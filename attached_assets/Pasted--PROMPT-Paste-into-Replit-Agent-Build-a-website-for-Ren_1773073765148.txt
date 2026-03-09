@@ -1,0 +1,471 @@
+---
+
+## PROMPT (Paste into Replit Agent)
+
+```
+Build a website for "RentAI 24" (rentai24.com) — an AI staffing agency that rents out pre-trained, ready-to-deploy AI agents to businesses. Just like traditional staffing agencies place human workers, we place AI workers. Our tagline: "Rent AI, 24/7."
+
+Tech stack: Next.js + Tailwind CSS + TypeScript. Modern, premium, dark theme design. English language. Fully responsive.
+
+---
+
+## BRAND IDENTITY
+
+- Brand name: RentAI 24 (stylize as "Rent**AI** 24" with AI highlighted in accent color)
+- Tagline: "Rent AI, 24/7."
+- Domain: rentai24.com
+- Tone: Professional but approachable. Confident, not overly corporate. Think "the future of hiring, available today."
+- Color palette:
+  - Primary background: Deep navy (#0A0E27)
+  - Secondary background: Dark slate (#111631)
+  - Accent 1: Electric blue (#3B82F6)
+  - Accent 2: Vivid purple (#8B5CF6)
+  - Accent gradient: linear-gradient from #3B82F6 to #8B5CF6
+  - Text: White (#FFFFFF) and gray (#94A3B8)
+  - Success/online indicator: Emerald (#10B981)
+- Font: Inter or Satoshi
+- Animations: Framer Motion for scroll-triggered animations, subtle hover effects, gradient animations
+
+---
+
+## PAGE STRUCTURE
+
+### 1. HOMEPAGE (/)
+
+**Sticky Navbar:**
+- Logo: "Rent**AI** 24" with accent gradient on "AI"
+- Nav links: AI Workers, How It Works, Pricing, About, Contact
+- CTA button: "Try Live Demo" (accent gradient background)
+- Mobile: hamburger menu
+
+**Hero Section:**
+- Headline: "Hire AI Workers. Not Headaches."
+- Subheadline: "Pre-trained AI agents ready to join your team today. They work 24/7, never call in sick, and cost a fraction of traditional hires."
+- Two CTA buttons: "Browse AI Workers" (primary) and "Book a Demo" (secondary/outline)
+- Background: animated gradient mesh or particle effect
+- Small trust badges below CTAs: "No Setup Fee · Cancel Anytime · 14-Day Free Trial"
+
+**Logos/Trust Bar:**
+- "Trusted by teams at" with 6-8 placeholder company logos (gray, subtle)
+
+**How It Works (3 Steps):**
+- Step 1: "Tell Us What You Need" — Describe the role. Customer support? Sales? Accounting? We'll match you.
+- Step 2: "Pick Your AI Worker" — Browse our catalog of pre-trained agents, each specialized for specific roles.
+- Step 3: "Deploy in Minutes" — We handle integration with your existing tools. You just start working.
+- Each step: icon + title + short description, connected by a line/timeline
+
+**AI Worker Catalog Preview:**
+Show 6 AI worker cards in a grid (details below). Each card has:
+- A modern geometric avatar/icon (not a human face — abstract, futuristic)
+- Role title
+- Short description (1 line)
+- 3-4 skill tags
+- "Online" status indicator (green dot)
+- Starting price
+- "View Profile" button
+- Section title: "Meet Your Next Team Members"
+- Below cards: "View All AI Workers →" link
+
+**Stats Section (animated counters on scroll):**
+- "150+ AI Workers Available"
+- "500+ Businesses Served"
+- "24/7 Uptime, Zero Downtime"
+- "40% Average Cost Savings"
+
+**Comparison Section:**
+Title: "The Old Way vs. The RentAI Way"
+Side-by-side comparison:
+
+| Traditional Hiring | RentAI 24 |
+|---|---|
+| Weeks to hire | Deploy in minutes |
+| Sick days, vacations, turnover | 24/7, never misses a day |
+| Training costs $$$  | Pre-trained & ready |
+| One language | Multilingual |
+| Hard to scale | Instant scaling |
+| $3,000-5,000+/month | From $49/month |
+
+**Industries Section:**
+Title: "AI Workers for Every Industry"
+Grid of industries with icons:
+- E-Commerce & Retail
+- Restaurants & Hospitality
+- Healthcare & Clinics
+- Legal & Law Firms
+- Accounting & Finance
+- Real Estate
+- Education & E-Learning
+- Travel & Tourism
+- SaaS & Tech Startups
+- Marketing Agencies
+
+**Testimonials:**
+3-4 testimonial cards in a slider/carousel:
+- Use realistic but fictional names, company names, and photos
+- Example: "We replaced 3 support reps with one RentAI worker. Response time dropped 80%." — Sarah K., COO at NexaShop
+
+**FAQ Section (Accordion):**
+- What exactly is an AI worker?
+- How is this different from ChatGPT or other AI tools?
+- Will AI workers replace my human employees?
+- How do you integrate with my existing systems?
+- Is my data secure?
+- What happens if the AI makes a mistake?
+- Can I customize the AI worker for my specific needs?
+- What's your refund policy?
+
+**Final CTA Section:**
+- "Ready to Hire Your First AI Worker?"
+- "Start your 14-day free trial. No credit card required."
+- CTA button: "Get Started Free"
+
+**Footer:**
+- Logo + tagline
+- Quick links: AI Workers, Pricing, About, Contact, Blog, Careers
+- Legal: Privacy Policy, Terms of Service
+- Social: Twitter/X, LinkedIn, YouTube
+- Newsletter signup
+- "© 2024 RentAI 24. All rights reserved."
+
+---
+
+### 2. AI WORKERS PAGE (/workers)
+
+**Hero:**
+- Title: "Browse Our AI Workforce"
+- Subtitle: "Every agent is pre-trained, battle-tested, and ready to deploy."
+
+**Filters:**
+- Category dropdown: All, Customer Support, Sales, Marketing, Finance, HR, Operations
+- Price range slider
+- Language filter
+- Search bar
+
+**AI Worker Profiles (card grid):**
+
+1. **Customer Support Agent**
+   - Role: Customer Service Representative
+   - Skills: Live chat, email response, complaint handling, order tracking, refund processing, FAQ handling
+   - Integrations: WhatsApp, Intercom, Zendesk, Freshdesk, Instagram DM, Facebook Messenger, Slack
+   - Languages: English, Spanish, French, German, Arabic, Turkish, Portuguese
+   - Response time: <5 seconds
+   - Starting at: $99/month
+   - Availability: 24/7
+   - Tag: "Most Popular"
+
+2. **Sales Development Rep (SDR)**
+   - Role: Outbound Sales Agent
+   - Skills: Lead generation, cold outreach, follow-up emails, proposal drafting, CRM updates, meeting scheduling
+   - Integrations: HubSpot, Salesforce, Pipedrive, LinkedIn, Gmail, Calendly
+   - Languages: English, Spanish, French, German
+   - Starting at: $149/month
+   - Tag: "High ROI"
+
+3. **Social Media Manager**
+   - Role: Content & Community Manager
+   - Skills: Content planning, post writing, comment moderation, hashtag research, analytics reporting, trend monitoring
+   - Integrations: Instagram, Twitter/X, Facebook, LinkedIn, TikTok, Buffer, Hootsuite
+   - Languages: English, Spanish, French, Portuguese
+   - Starting at: $119/month
+
+4. **Bookkeeping Assistant**
+   - Role: Financial Operations Agent
+   - Skills: Invoice processing, expense tracking, financial reporting, tax reminders, receipt scanning, reconciliation
+   - Integrations: QuickBooks, Xero, FreshBooks, Excel, Stripe, PayPal
+   - Languages: English, Spanish
+   - Starting at: $129/month
+
+5. **Appointment & Scheduling Agent**
+   - Role: Scheduling Coordinator
+   - Skills: Online booking, reminders, calendar management, rescheduling, no-show follow-up, waitlist management
+   - Integrations: Google Calendar, Calendly, Acuity, WhatsApp, SMS, Email
+   - Languages: English, Spanish, French, German, Arabic, Turkish
+   - Starting at: $79/month
+   - Tag: "Best Value"
+
+6. **HR & Recruiting Assistant**
+   - Role: Talent Acquisition Agent
+   - Skills: Resume screening, candidate shortlisting, interview scheduling, onboarding docs, job posting
+   - Integrations: LinkedIn, Indeed, Greenhouse, Lever, Workable, BambooHR
+   - Languages: English, Spanish, French
+   - Starting at: $139/month
+
+7. **Data Analyst Agent**
+   - Role: Business Intelligence Assistant
+   - Skills: Data cleaning, report generation, dashboard creation, trend analysis, KPI tracking, anomaly detection
+   - Integrations: Google Sheets, Excel, Tableau, Looker, SQL databases, Airtable
+   - Languages: English
+   - Starting at: $159/month
+   - Tag: "New"
+
+8. **E-Commerce Operations Agent**
+   - Role: Store Operations Manager
+   - Skills: Product listing, inventory alerts, price monitoring, review responses, order tracking, competitor analysis
+   - Integrations: Shopify, WooCommerce, Amazon Seller, Etsy, eBay
+   - Languages: English, Spanish, French, German
+   - Starting at: $129/month
+
+Each card:
+- Modern abstract avatar with role-specific color coding
+- Role title and one-line description
+- Skill tags (badge format, max 4 visible + "+X more")
+- Integration icons (small logos)
+- Language flags
+- "Online 24/7" green indicator
+- Price
+- "View Full Profile" and "Hire Now" buttons
+
+**Individual Worker Profile Page (/workers/[slug]):**
+- Large header with avatar and role
+- Full description of capabilities
+- Complete skill list
+- All integrations with logos
+- Use cases / example scenarios
+- Performance metrics (avg response time, accuracy rate, etc.)
+- Pricing details
+- "Hire This Worker" CTA
+- "Try Demo" secondary CTA
+- Related workers section at bottom
+
+---
+
+### 3. HOW IT WORKS PAGE (/how-it-works)
+
+Detailed process in vertical timeline/stepper format:
+
+1. **Free Consultation** — Book a 15-min call. We analyze your workflow and identify which roles AI can fill.
+2. **AI Worker Matching** — We recommend the best AI agents based on your industry, tools, and goals.
+3. **Customization & Fine-Tuning** — We tailor the agent to your brand voice, processes, and specific requirements.
+4. **Integration** — We connect to your existing stack: CRM, helpdesk, email, messaging, calendars, and more.
+5. **Testing & QA** — 48-hour test period where we monitor performance and make adjustments.
+6. **Go Live** — Your AI worker starts handling real tasks. You monitor via your dashboard.
+7. **Continuous Improvement** — We track performance, gather feedback, and optimize regularly.
+
+Each step: number + icon + title + description + small illustration
+
+Below the timeline:
+- "Average time from signup to deployment: 24 hours"
+- CTA: "Start Your Free Consultation"
+
+---
+
+### 4. PRICING PAGE (/pricing)
+
+Three pricing tiers:
+
+**Starter**
+- 1 AI Worker
+- Basic integrations (up to 3)
+- Weekly performance reports
+- Email support
+- Community access
+- $49/month per worker
+- "Start Free Trial" button
+
+**Professional** (highlighted as "Most Popular" with accent border)
+- Up to 5 AI Workers
+- Advanced integrations (unlimited)
+- Daily performance reports
+- Priority support (chat + email)
+- Custom fine-tuning
+- API access
+- $39/month per worker
+- "Start Free Trial" button
+
+**Enterprise**
+- Unlimited AI Workers
+- All integrations + custom
+- Real-time analytics dashboard
+- 24/7 dedicated support
+- Custom AI training on your data
+- SLA guarantee
+- White-label option
+- "Contact Sales" button
+
+**Add-ons section:**
+- Extra language pack: $19/month
+- Custom integration: $99 one-time
+- Priority onboarding: $199 one-time
+- Dedicated account manager: $299/month
+
+**FAQ below pricing** (pricing-specific questions)
+
+**Money-back guarantee badge:** "14-Day Free Trial · No Credit Card Required · Cancel Anytime"
+
+---
+
+### 5. LIVE DEMO PAGE (/demo)
+
+THIS PAGE IS CRITICAL — we will connect our AI model here.
+
+**Layout:**
+- Left sidebar (collapsible on mobile): AI worker role selector
+  - List of available demo agents with avatars and names
+  - Clicking one loads that agent's personality
+  - Show "Online" indicator
+
+- Right side: Full chat interface
+  - Chat header: Agent name, role, "Online" status
+  - Chat area with message bubbles (user on right in blue, AI on left in dark)
+  - Typing indicator animation ("Agent is typing...")
+  - Message input area with send button
+  - Suggested prompt chips above input: "What can you do?", "Handle a complaint", "Schedule a meeting"
+
+- Top banner: "This is a demo version. Our production AI workers are significantly more capable and customizable."
+
+**Chat API Setup:**
+Create /api/chat endpoint (POST):
+- Request body: { message: string, agentType: string, conversationHistory: array }
+- Response: { reply: string }
+- For now, return mock responses based on agentType:
+  - customer_support: "Hi! I'm your Customer Support AI agent. I can help with order tracking, refund processing, complaint handling, and more. How can I assist you today?"
+  - sales: "Hello! I'm your Sales AI agent. I can help generate leads, draft outreach emails, update your CRM, and schedule meetings. What would you like to work on?"
+  - social_media: "Hey there! I'm your Social Media AI agent. I can plan content, write posts, moderate comments, and track analytics. What's on the agenda?"
+  - Default: "Hello! I'm a RentAI 24 demo agent. Choose a specific role from the sidebar to see me in action!"
+
+// TODO: CONNECT REAL AI MODEL API HERE
+// Replace mock responses with actual API call
+// Environment variables needed: AI_API_KEY, AI_API_URL, AI_MODEL_ID
+
+**Features:**
+- Conversation history maintained during session
+- Clear chat button
+- Export chat button
+- Mobile: agent selector as dropdown at top
+
+---
+
+### 6. ABOUT PAGE (/about)
+
+**Hero:**
+- Title: "We're Building the Future of Work"
+- Subtitle: "RentAI 24 is the world's first AI staffing agency. We believe every business deserves access to intelligent, tireless, and affordable team members."
+
+**Our Story section:**
+Brief narrative about the mission — making AI workforce accessible to businesses of all sizes, from solopreneurs to enterprises.
+
+**By the Numbers:**
+- Year founded, team size, countries served, AI workers deployed
+
+**Our Values:**
+3-4 values with icons:
+- "Accessible AI" — Enterprise-grade AI at startup-friendly prices
+- "Human + AI" — We augment teams, not replace them
+- "Always Improving" — Our agents learn and get better over time
+- "Trust & Transparency" — Your data stays yours. Always.
+
+**Team Section (optional):**
+- Founder card with photo placeholder, name, title, short bio
+- "We're hiring" link
+
+---
+
+### 7. CONTACT PAGE (/contact)
+
+**Contact Form:**
+- Fields: Full Name, Business Email, Company Name, Company Size (dropdown: 1-10, 11-50, 51-200, 200+), Message
+- "Which AI worker are you interested in?" dropdown
+- Submit button: "Send Message"
+- Frontend validation on all fields
+
+**Contact Info Cards:**
+- Email: hello@rentai24.com
+- Schedule a call: Calendly embed or link
+- Response time: "We typically respond within 2 hours"
+
+**Social Links:**
+- Twitter/X, LinkedIn, YouTube
+
+---
+
+## GLOBAL TECHNICAL REQUIREMENTS
+
+**SEO:**
+- Proper meta titles and descriptions for every page
+- Open Graph tags for social sharing
+- Sitemap.xml
+- robots.txt
+- Schema markup for business (Organization, Service)
+
+**Performance:**
+- Lazy load images
+- Skeleton loading screens
+- Optimized bundle size
+
+**Data Architecture:**
+- All AI worker data in a single data file: /data/agents.ts
+- Export as typed array with full profile info
+- Easy to add/remove/edit workers without touching components
+
+**Environment Variables (.env.local):**
+AI_API_KEY=your_api_key_here
+AI_API_URL=your_api_url_here
+AI_MODEL_ID=your_model_id_here
+NEXT_PUBLIC_SITE_URL=https://rentai24.com
+
+**API Route:**
+/api/chat — POST endpoint for demo chat
+Include detailed TODO comments for AI model integration
+
+**Accessibility:**
+- Proper heading hierarchy
+- Alt text on images
+- Keyboard navigation
+- Sufficient color contrast
+
+**Analytics-ready:**
+- Google Analytics placeholder
+- Meta Pixel placeholder
+```
+
+---
+
+## AFTER REPLIT BUILDS THE SITE
+
+### 1. Connect Your AI Model
+Replace the mock responses in `/api/chat/route.ts`:
+
+```typescript
+// /api/chat/route.ts
+export async function POST(req: Request) {
+  const { message, agentType, conversationHistory } = await req.json();
+
+  // System prompts per agent type
+  const systemPrompts: Record<string, string> = {
+    customer_support: "You are a professional customer support AI agent for RentAI 24 demo. You handle complaints, track orders, process refunds, and answer FAQs. Be helpful, empathetic, and efficient.",
+    sales: "You are a sales development AI agent for RentAI 24 demo. You generate leads, write outreach emails, and schedule meetings. Be persuasive but professional.",
+    social_media: "You are a social media manager AI agent for RentAI 24 demo. You plan content, write posts, and analyze engagement. Be creative and trend-aware.",
+    bookkeeping: "You are a bookkeeping AI agent for RentAI 24 demo. You handle invoices, expenses, and financial reports. Be precise and detail-oriented.",
+    scheduling: "You are a scheduling AI agent for RentAI 24 demo. You manage appointments, send reminders, and handle rescheduling. Be organized and proactive.",
+    hr: "You are an HR & recruiting AI agent for RentAI 24 demo. You screen resumes, schedule interviews, and manage onboarding. Be thorough and fair.",
+  };
+
+  const response = await fetch(process.env.AI_API_URL!, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${process.env.AI_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: process.env.AI_MODEL_ID,
+      system: systemPrompts[agentType] || "You are a helpful AI agent demo for RentAI 24.",
+      messages: [
+        ...conversationHistory,
+        { role: 'user', content: message }
+      ],
+      max_tokens: 500,
+    }),
+  });
+
+  const data = await response.json();
+  return Response.json({ reply: data.content[0].text });
+}
+```
+
+### 2. Update Agent Data
+Edit `/data/agents.ts` to add, remove, or modify AI worker profiles.
+
+### 3. Deploy
+- Connect your rentai24.com domain in Replit settings
+- Set environment variables in Replit Secrets
+- Deploy

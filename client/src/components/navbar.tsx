@@ -2,15 +2,14 @@ import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Menu, Bot, X } from "lucide-react";
+import { Menu, Bot } from "lucide-react";
 
 const navLinks = [
-  { href: "/", label: "Ana Sayfa" },
-  { href: "/calisanlar", label: "AI Çalışanlar" },
-  { href: "/nasil-calisir", label: "Nasıl Çalışır" },
-  { href: "/fiyatlandirma", label: "Fiyatlandırma" },
-  { href: "/hakkimizda", label: "Hakkımızda" },
-  { href: "/iletisim", label: "İletişim" },
+  { href: "/workers", label: "AI Workers" },
+  { href: "/how-it-works", label: "How It Works" },
+  { href: "/pricing", label: "Pricing" },
+  { href: "/about", label: "About" },
+  { href: "/contact", label: "Contact" },
 ];
 
 export default function Navbar() {
@@ -41,7 +40,8 @@ export default function Navbar() {
                 <Bot className="w-5 h-5 text-white" />
               </div>
               <span className="font-bold text-lg text-foreground">
-                AI <span className="text-blue-500">İK</span> Ajansı
+                Rent<span className="bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent">AI</span>{" "}
+                <span className="text-foreground">24</span>
               </span>
             </div>
           </Link>
@@ -51,11 +51,11 @@ export default function Navbar() {
               <Link key={link.href} href={link.href}>
                 <span
                   className={`px-3 py-2 rounded-md text-sm font-medium transition-colors cursor-pointer ${
-                    location === link.href
+                    location === link.href || (link.href !== "/" && location.startsWith(link.href))
                       ? "text-blue-400"
                       : "text-muted-foreground"
                   }`}
-                  data-testid={`link-${link.href.replace("/", "") || "home"}`}
+                  data-testid={`link-${link.href.replace("/", "")}`}
                 >
                   {link.label}
                 </span>
@@ -70,7 +70,7 @@ export default function Navbar() {
                 className="bg-gradient-to-r from-blue-500 to-violet-500 text-white border-0 hidden sm:flex"
                 data-testid="button-demo-cta"
               >
-                Demo Dene
+                Try Live Demo
               </Button>
             </Link>
 
@@ -80,7 +80,7 @@ export default function Navbar() {
                   size="icon"
                   variant="ghost"
                   className="lg:hidden"
-                  aria-label="Menüyü aç"
+                  aria-label="Open menu"
                   data-testid="button-mobile-menu"
                 >
                   <Menu className="w-5 h-5" />
@@ -97,7 +97,7 @@ export default function Navbar() {
                             ? "text-blue-400 bg-blue-500/10"
                             : "text-muted-foreground"
                         }`}
-                        data-testid={`mobile-link-${link.href.replace("/", "") || "home"}`}
+                        data-testid={`mobile-link-${link.href.replace("/", "")}`}
                       >
                         {link.label}
                       </span>
@@ -110,7 +110,7 @@ export default function Navbar() {
                         onClick={() => setOpen(false)}
                         data-testid="button-mobile-demo"
                       >
-                        Demo Dene
+                        Try Live Demo
                       </Button>
                     </Link>
                   </div>

@@ -1,54 +1,53 @@
 import { motion } from "framer-motion";
-import {
-  Phone,
-  UserCheck,
-  Settings,
-  Plug,
-  Rocket,
-  TrendingUp,
-} from "lucide-react";
+import { Phone, UserCheck, Settings, Plug, TestTube, Rocket, TrendingUp } from "lucide-react";
 import SectionCTA from "@/components/section-cta";
 
 const steps = [
   {
     icon: Phone,
-    title: "Ücretsiz Danışma",
-    desc: "İşletmenizin ihtiyaçlarını birlikte analiz ediyoruz. Hangi süreçleri otomatize edebileceğinizi keşfediyoruz.",
-    detail: "15 dakikalık ücretsiz danışma görüşmemizde işletmenizin mevcut süreçlerini, karşılaştığınız zorlukları ve hedeflerinizi detaylı olarak inceliyoruz.",
+    title: "Free Consultation",
+    desc: "Book a 15-min call. We analyze your workflow and identify which roles AI can fill.",
+    detail: "Our team walks through your current processes, tools, and pain points to determine where AI workers can deliver the most impact.",
   },
   {
     icon: UserCheck,
-    title: "AI Çalışan Eşleştirme",
-    desc: "İşletmenize en uygun AI çalışanı belirliyoruz. Sektörünüze özel eğitilmiş ajanlarımızdan en doğru eşleşmeyi yapıyoruz.",
-    detail: "Kapsamlı ajan havuzumuzdan sektörünüze, iş süreçlerinize ve müşteri profilinize en uygun AI çalışanı seçiyoruz.",
+    title: "AI Worker Matching",
+    desc: "We recommend the best AI agents based on your industry, tools, and goals.",
+    detail: "From our catalog of 150+ specialized agents, we match you with workers that fit your exact needs, tech stack, and business objectives.",
   },
   {
     icon: Settings,
-    title: "Özelleştirme & Eğitim",
-    desc: "Seçilen AI çalışanı şirketinize özel eğitiyoruz. Markanızın dili, tonlaması ve süreçlerinize uyum sağlıyor.",
-    detail: "AI çalışanınız şirketinizin ürün/hizmet bilgilerini, SSS cevaplarını ve iş süreçlerinizi öğrenir. Firma kültürünüze uygun yanıtlar verecek şekilde ince ayar yapılır.",
+    title: "Customization & Fine-Tuning",
+    desc: "We tailor the agent to your brand voice, processes, and specific requirements.",
+    detail: "Your AI worker learns your products, policies, and communication style. We fine-tune responses to match your brand perfectly.",
   },
   {
     icon: Plug,
-    title: "Entegrasyon",
-    desc: "AI çalışanınızı mevcut sistemlerinize bağlıyoruz. WhatsApp, CRM, web sitesi ve daha fazlası.",
-    detail: "Teknik entegrasyon sürecinin tamamı bizim tarafımızdan yönetilir. Mevcut iş akışlarınıza sorunsuz bir şekilde dahil olur.",
+    title: "Integration",
+    desc: "We connect to your existing stack: CRM, helpdesk, email, messaging, calendars, and more.",
+    detail: "Our team handles the entire technical integration. We support 50+ tools including HubSpot, Zendesk, Slack, WhatsApp, and more.",
+  },
+  {
+    icon: TestTube,
+    title: "Testing & QA",
+    desc: "48-hour test period where we monitor performance and make adjustments.",
+    detail: "We run comprehensive tests with real scenarios, monitor response quality, and fine-tune performance before going live.",
   },
   {
     icon: Rocket,
-    title: "Canlıya Alma",
-    desc: "Test sürecinin ardından AI çalışanınızı devreye alıyoruz. İlk günden itibaren kesintisiz hizmet.",
-    detail: "Kapsamlı test senaryoları ile AI çalışanınızın performansını doğruluyoruz. Her şey hazır olduğunda canlıya alıyoruz.",
+    title: "Go Live",
+    desc: "Your AI worker starts handling real tasks. You monitor via your dashboard.",
+    detail: "Once testing is complete, your AI worker goes live. You get full visibility into performance metrics and conversation logs.",
   },
   {
     icon: TrendingUp,
-    title: "Sürekli İyileştirme",
-    desc: "AI çalışanınızın performansını sürekli takip ediyor ve optimize ediyoruz. Zaman geçtikçe daha da iyi hale gelir.",
-    detail: "Haftalık performans raporları, müşteri memnuniyet analizleri ve sürekli öğrenme algoritmaları ile AI çalışanınız her geçen gün daha etkili olur.",
+    title: "Continuous Improvement",
+    desc: "We track performance, gather feedback, and optimize regularly.",
+    detail: "Our team monitors your AI worker's performance weekly, implements improvements, and ensures it gets better over time.",
   },
 ];
 
-export default function NasilCalisir() {
+export default function HowItWorks() {
   return (
     <div className="pt-16">
       <section className="py-20 relative">
@@ -60,14 +59,14 @@ export default function NasilCalisir() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
           >
-            <h1 className="text-4xl sm:text-5xl font-bold text-foreground mb-4" data-testid="text-nasil-title">
-              Nasıl{" "}
+            <h1 className="text-4xl sm:text-5xl font-bold text-foreground mb-4" data-testid="text-how-title">
+              How It{" "}
               <span className="bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent">
-                Çalışır?
+                Works
               </span>
             </h1>
             <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-              AI çalışanınızı işe alma süreci adım adım
+              From signup to deployment in as little as 24 hours
             </p>
           </motion.div>
 
@@ -90,7 +89,7 @@ export default function NasilCalisir() {
                   <div className={`flex-1 ${i % 2 === 0 ? "sm:text-right" : "sm:text-left"}`}>
                     <div className={`inline-flex items-center gap-2 mb-3 ${i % 2 === 0 ? "sm:flex-row-reverse" : ""}`}>
                       <span className="text-xs font-bold text-blue-400 uppercase tracking-widest">
-                        Adım {i + 1}
+                        Step {i + 1}
                       </span>
                     </div>
                     <h3 className="text-xl font-bold text-foreground mb-3">{step.title}</h3>
@@ -109,6 +108,21 @@ export default function NasilCalisir() {
               ))}
             </div>
           </div>
+
+          <motion.div
+            className="text-center mt-20 p-8 rounded-md bg-card/50 border border-border/50"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+          >
+            <p className="text-lg text-foreground font-semibold mb-2">
+              Average time from signup to deployment:
+            </p>
+            <p className="text-4xl font-bold bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent mb-4">
+              24 hours
+            </p>
+          </motion.div>
         </div>
       </section>
 

@@ -1,0 +1,204 @@
+import { useState, useMemo } from "react";
+import { Link } from "wouter";
+import { motion } from "framer-motion";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Bot,
+  Headphones,
+  TrendingUp,
+  Share2,
+  Calculator,
+  CalendarCheck,
+  Users,
+  ArrowRight,
+  Search,
+  Plug,
+  BarChart3,
+  Package,
+} from "lucide-react";
+import { agents, categories } from "@/data/agents";
+import SectionCTA from "@/components/section-cta";
+
+const agentIcons: Record<string, any> = {
+  "customer-support": Headphones,
+  "sales-sdr": TrendingUp,
+  "social-media": Share2,
+  "bookkeeping": Calculator,
+  "scheduling": CalendarCheck,
+  "hr-recruiting": Users,
+  "data-analyst": BarChart3,
+  "ecommerce-ops": Package,
+};
+
+const stagger = {
+  initial: { opacity: 0, y: 20 },
+  whileInView: { opacity: 1, y: 0 },
+  viewport: { once: true },
+};
+
+export default function Workers() {
+  const [search, setSearch] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("All");
+  const [priceFilter, setPriceFilter] = useState("all");
+
+  const filtered = useMemo(() => {
+    return agents.filter((agent) => {
+      const matchSearch =
+        search === "" ||
+        agent.name.toLowerCase().includes(search.toLowerCase()) ||
+        agent.skills.some((s) => s.toLowerCase().includes(search.toLowerCase()));
+      const matchCategory =
+        categoryFilter === "All" || agent.category === categoryFilter;
+      const matchPrice =
+        priceFilter === "all" ||
+        (priceFilter === "low" && agent.price <= 99) ||
+        (priceFilter === "mid" && agent.price > 99 && agent.price <= 139) ||
+        (priceFilter === "high" && agent.price > 139);
+      return matchSearch && matchCategory && matchPrice;
+    });
+  }, [search, categoryFilter, priceFilter]);
+
+  return (
+    <div className="pt-16">
+      <section className="py-20 relative">
+        <div className="absolute inset-0 bg-gradient-to-b from-blue-950/20 to-transparent" />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <motion.div
+            className="text-center mb-12"
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+          >
+            <h1 className="text-4xl sm:text-5xl font-bold text-foreground mb-4" data-testid="text-workers-title">
+              Browse Our{" "}
+              <span className="bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent">
+                AI Workforce
+              </span>
+            </h1>
+            <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+              Every agent is pre-trained, battle-tested, and ready to deploy.
+            </p>
+          </motion.div>
+
+          <motion.div
+            className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mb-10 max-w-3xl mx-auto"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+          >
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input placeholder="Search by name or skill..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" data-testid="input-search" />
+            </div>
+            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+              <SelectTrigger className="w-full sm:w-48" data-testid="select-category">
+                <SelectValue placeholder="Category" />
+              </SelectTrigger>
+              <SelectContent>
+                {categories.map((c) => (
+                  <SelectItem key={c} value={c}>{c}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={priceFilter} onValueChange={setPriceFilter}>
+              <SelectTrigger className="w-full sm:w-48" data-testid="select-price">
+                <SelectValue placeholder="Price" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Prices</SelectItem>
+                <SelectItem value="low">$99 and under</SelectItem>
+                <SelectItem value="mid">$100 - $139</SelectItem>
+                <SelectItem value="high">$140+</SelectItem>
+              </SelectContent>
+            </Select>
+          </motion.div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {filtered.map((agent, i) => {
+              const Icon = agentIcons[agent.id] || Bot;
+              return (
+                <motion.div key={agent.id} {...stagger} transition={{ duration: 0.5, delay: i * 0.08 }}>
+                  <Card className="p-6 bg-card border-border/50 h-full flex flex-col hover-elevate" data-testid={`card-agent-${agent.id}`}>
+                    <div className="flex items-start justify-between gap-2 mb-4">
+                      <div className="w-12 h-12 rounded-md bg-gradient-to-br from-blue-500 to-violet-500 flex items-center justify-center shrink-0">
+                        <Icon className="w-6 h-6 text-white" />
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-2 h-2 rounded-full bg-emerald-400" />
+                        <span className="text-xs text-emerald-400">24/7</span>
+                      </div>
+                    </div>
+
+                    <h3 className="font-semibold text-foreground mb-1">{agent.name}</h3>
+                    <p className="text-xs text-muted-foreground mb-3">{agent.role}</p>
+                    <p className="text-sm text-muted-foreground leading-relaxed mb-4">{agent.shortDescription}</p>
+
+                    <div className="flex flex-wrap gap-1.5 mb-3">
+                      {agent.skills.slice(0, 4).map((skill) => (
+                        <Badge key={skill} variant="secondary" className="text-xs">{skill}</Badge>
+                      ))}
+                      {agent.skills.length > 4 && (
+                        <Badge variant="secondary" className="text-xs">+{agent.skills.length - 4}</Badge>
+                      )}
+                    </div>
+
+                    {agent.tag && (
+                      <Badge className="self-start mb-3 bg-blue-500/10 text-blue-400 border-blue-500/20 text-xs no-default-active-elevate">{agent.tag}</Badge>
+                    )}
+
+                    <div className="text-xs text-muted-foreground mb-4">
+                      <Plug className="w-3 h-3 inline mr-1" />
+                      {agent.integrations.slice(0, 3).join(", ")}
+                      {agent.integrations.length > 3 && ` +${agent.integrations.length - 3}`}
+                    </div>
+
+                    <div className="mt-auto pt-4 border-t border-border/50">
+                      <div className="flex items-center justify-between gap-2 mb-3">
+                        <div>
+                          <span className="text-xl font-bold bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent">${agent.price}</span>
+                          <span className="text-xs text-muted-foreground">/mo</span>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Link href={`/workers/${agent.slug}`} className="flex-1">
+                          <Button variant="outline" className="w-full" size="sm" data-testid={`button-profile-${agent.id}`}>
+                            View Profile
+                          </Button>
+                        </Link>
+                        <Link href="/contact" className="flex-1">
+                          <Button className="w-full bg-gradient-to-r from-blue-500 to-violet-500 text-white border-0" size="sm" data-testid={`button-hire-${agent.id}`}>
+                            Hire Now
+                          </Button>
+                        </Link>
+                      </div>
+                    </div>
+                  </Card>
+                </motion.div>
+              );
+            })}
+          </div>
+
+          {filtered.length === 0 && (
+            <div className="text-center py-20" data-testid="text-no-results">
+              <Bot className="w-16 h-16 text-muted-foreground/30 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-foreground mb-2">No results found</h3>
+              <p className="text-muted-foreground">Try different filters or search terms.</p>
+            </div>
+          )}
+        </div>
+      </section>
+
+      <SectionCTA />
+    </div>
+  );
+}

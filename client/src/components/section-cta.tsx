@@ -18,25 +18,28 @@ export default function SectionCTA() {
           transition={{ duration: 0.5 }}
         >
           <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4" data-testid="text-cta-heading">
-            AI Çalışanınızı Bugün Kirala
+            Ready to Hire Your First AI Worker?
           </h2>
-          <p className="text-muted-foreground text-lg mb-8 max-w-2xl mx-auto">
-            İşletmenizi geleceğe taşıyın. Eğitimi tamamlanmış AI çalışanlarımız dakikalar içinde aktif.
+          <p className="text-muted-foreground text-lg mb-2 max-w-2xl mx-auto">
+            Start your 14-day free trial. No credit card required.
+          </p>
+          <p className="text-sm text-muted-foreground mb-8">
+            No Setup Fee &middot; Cancel Anytime &middot; 14-Day Free Trial
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link href="/calisanlar">
+            <Link href="/pricing">
               <Button
                 size="lg"
                 className="bg-gradient-to-r from-blue-500 to-violet-500 text-white border-0"
-                data-testid="button-cta-explore"
+                data-testid="button-cta-start"
               >
-                AI Çalışanları Keşfet
+                Get Started Free
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
             </Link>
             <Link href="/demo">
               <Button size="lg" variant="outline" data-testid="button-cta-demo">
-                Ücretsiz Demo Al
+                Book a Demo
               </Button>
             </Link>
           </div>

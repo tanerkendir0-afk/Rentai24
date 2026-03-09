@@ -1,6 +1,8 @@
 import { Link } from "wouter";
-import { Bot, Mail, Phone, MapPin } from "lucide-react";
-import { SiLinkedin, SiInstagram, SiX } from "react-icons/si";
+import { Bot, Mail, ArrowRight } from "lucide-react";
+import { SiLinkedin, SiX, SiYoutube } from "react-icons/si";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 export default function Footer() {
   return (
@@ -13,34 +15,34 @@ export default function Footer() {
                 <Bot className="w-5 h-5 text-white" />
               </div>
               <span className="font-bold text-lg text-foreground">
-                AI <span className="text-blue-500">İK</span> Ajansı
+                Rent<span className="bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent">AI</span> 24
               </span>
             </div>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              İşletmeniz için eğitimi tamamlanmış hazır AI çalışanlar. 7/24 kesintisiz hizmet.
+            <p className="text-sm text-muted-foreground leading-relaxed mb-4">
+              Rent AI, 24/7. Pre-trained AI agents ready to join your team today.
             </p>
-            <div className="flex items-center gap-3 mt-6">
-              <a href="#" className="w-9 h-9 rounded-md bg-card flex items-center justify-center text-muted-foreground transition-colors" data-testid="link-linkedin">
+            <div className="flex items-center gap-3">
+              <a href="#" aria-label="Twitter" className="w-9 h-9 rounded-md bg-card flex items-center justify-center text-muted-foreground transition-colors" data-testid="link-twitter">
+                <SiX className="w-4 h-4" />
+              </a>
+              <a href="#" aria-label="LinkedIn" className="w-9 h-9 rounded-md bg-card flex items-center justify-center text-muted-foreground transition-colors" data-testid="link-linkedin">
                 <SiLinkedin className="w-4 h-4" />
               </a>
-              <a href="#" className="w-9 h-9 rounded-md bg-card flex items-center justify-center text-muted-foreground transition-colors" data-testid="link-instagram">
-                <SiInstagram className="w-4 h-4" />
-              </a>
-              <a href="#" className="w-9 h-9 rounded-md bg-card flex items-center justify-center text-muted-foreground transition-colors" data-testid="link-twitter">
-                <SiX className="w-4 h-4" />
+              <a href="#" aria-label="YouTube" className="w-9 h-9 rounded-md bg-card flex items-center justify-center text-muted-foreground transition-colors" data-testid="link-youtube">
+                <SiYoutube className="w-4 h-4" />
               </a>
             </div>
           </div>
 
           <div>
-            <h4 className="font-semibold text-foreground mb-4">Hızlı Bağlantılar</h4>
+            <h4 className="font-semibold text-foreground mb-4">Quick Links</h4>
             <ul className="space-y-3">
               {[
-                { href: "/calisanlar", label: "AI Çalışanlar" },
-                { href: "/nasil-calisir", label: "Nasıl Çalışır" },
-                { href: "/fiyatlandirma", label: "Fiyatlandırma" },
-                { href: "/hakkimizda", label: "Hakkımızda" },
-                { href: "/demo", label: "Demo Dene" },
+                { href: "/workers", label: "AI Workers" },
+                { href: "/pricing", label: "Pricing" },
+                { href: "/about", label: "About" },
+                { href: "/contact", label: "Contact" },
+                { href: "/demo", label: "Live Demo" },
               ].map((link) => (
                 <li key={link.href}>
                   <Link href={link.href}>
@@ -54,16 +56,9 @@ export default function Footer() {
           </div>
 
           <div>
-            <h4 className="font-semibold text-foreground mb-4">AI Çalışanlar</h4>
+            <h4 className="font-semibold text-foreground mb-4">Legal</h4>
             <ul className="space-y-3">
-              {[
-                "Müşteri Hizmetleri",
-                "Satış & Pazarlama",
-                "Sosyal Medya",
-                "Muhasebe",
-                "Randevu Yönetimi",
-                "İnsan Kaynakları",
-              ].map((item) => (
+              {["Privacy Policy", "Terms of Service", "Cookie Policy", "GDPR"].map((item) => (
                 <li key={item}>
                   <span className="text-sm text-muted-foreground">{item}</span>
                 </li>
@@ -72,28 +67,35 @@ export default function Footer() {
           </div>
 
           <div>
-            <h4 className="font-semibold text-foreground mb-4">İletişim</h4>
-            <ul className="space-y-3">
-              <li className="flex items-center gap-3 text-sm text-muted-foreground">
-                <Mail className="w-4 h-4 text-blue-400 shrink-0" />
-                info@aiikajans.com
-              </li>
-              <li className="flex items-center gap-3 text-sm text-muted-foreground">
-                <Phone className="w-4 h-4 text-blue-400 shrink-0" />
-                +90 (212) 555 0123
-              </li>
-              <li className="flex items-start gap-3 text-sm text-muted-foreground">
-                <MapPin className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
-                Levent, Büyükdere Cad. No:128, İstanbul
-              </li>
-            </ul>
+            <h4 className="font-semibold text-foreground mb-4">Newsletter</h4>
+            <p className="text-sm text-muted-foreground mb-4">
+              Get the latest on AI workforce trends and product updates.
+            </p>
+            <form
+              onSubmit={(e) => e.preventDefault()}
+              className="flex gap-2"
+            >
+              <Input
+                type="email"
+                placeholder="your@email.com"
+                className="flex-1"
+                data-testid="input-newsletter"
+              />
+              <Button size="icon" className="bg-gradient-to-r from-blue-500 to-violet-500 text-white border-0 shrink-0" aria-label="Subscribe" data-testid="button-newsletter">
+                <ArrowRight className="w-4 h-4" />
+              </Button>
+            </form>
           </div>
         </div>
 
-        <div className="border-t border-border/50 mt-12 pt-8 text-center">
+        <div className="border-t border-border/50 mt-12 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-sm text-muted-foreground" data-testid="text-copyright">
-            &copy; {new Date().getFullYear()} AI İK Ajansı. Tüm hakları saklıdır.
+            &copy; {new Date().getFullYear()} RentAI 24. All rights reserved.
           </p>
+          <div className="flex items-center gap-1 text-sm text-muted-foreground">
+            <Mail className="w-3.5 h-3.5 mr-1" />
+            hello@rentai24.com
+          </div>
         </div>
       </div>
     </footer>

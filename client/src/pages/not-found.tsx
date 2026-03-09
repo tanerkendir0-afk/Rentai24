@@ -12,13 +12,13 @@ export default function NotFound() {
         <h1 className="text-6xl font-bold bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent mb-4" data-testid="text-404">
           404
         </h1>
-        <h2 className="text-xl font-semibold text-foreground mb-2">Sayfa Bulunamadı</h2>
+        <h2 className="text-xl font-semibold text-foreground mb-2">Page Not Found</h2>
         <p className="text-muted-foreground mb-8 max-w-sm mx-auto">
-          Aradığınız sayfa mevcut değil veya taşınmış olabilir.
+          The page you're looking for doesn't exist or has been moved.
         </p>
         <Link href="/">
           <Button className="bg-gradient-to-r from-blue-500 to-violet-500 text-white border-0" data-testid="button-go-home">
-            Ana Sayfaya Dön
+            Go Home
           </Button>
         </Link>
       </div>

@@ -1,0 +1,235 @@
+Bir "AI İK Ajansı" web sitesi oluştur. Bu şirket, işletmelere eğitimi tamamlanmış hazır AI ajanları kiralıyor. Geleneksel İK ajansları nasıl şirketlere insan çalışan yerleştiriyorsa, biz de aynı modelle AI çalışanlar (ajanlar) kiralıyoruz.
+
+Teknoloji: Next.js + Tailwind CSS + TypeScript. Modern, profesyonel, koyu tema (dark mode) ağırlıklı tasarım. Türkçe dil desteği.
+
+---
+
+## SAYFA YAPISI
+
+### 1. ANA SAYFA (Landing Page)
+- Hero Section:
+  - Başlık: "İşletmeniz İçin Hazır AI Çalışanlar"
+  - Alt başlık: "Eğitimi tamamlanmış AI ajanlarımızı işletmenize kiralayın. 7/24 çalışan, asla yorulmayan, sürekli öğrenen dijital ekip arkadaşları."
+  - İki CTA butonu: "AI Çalışanları Keşfet" ve "Ücretsiz Demo Al"
+  - Arka planda animasyonlu gradient veya parçacık efekti
+
+- Nasıl Çalışır (3 Adım):
+  1. "İhtiyacınızı Belirleyin" — Hangi pozisyon için AI çalışana ihtiyacınız var?
+  2. "AI Çalışanınızı Seçin" — Sektörünüze özel eğitilmiş ajanlarımızı inceleyin.
+  3. "Hemen Başlayın" — Entegrasyon ve kurulum bizden, siz sadece kullanın.
+
+- AI Çalışan Katalog Önizlemesi:
+  Kart formatında 6 adet AI çalışan profili göster (aşağıda detaylar var)
+
+- İstatistikler Bölümü (sayaç animasyonlu):
+  - "150+ Aktif AI Çalışan"
+  - "500+ Mutlu İşletme"
+  - "7/24 Kesintisiz Hizmet"
+  - "%40 Maliyet Tasarrufu"
+
+- Sektörler Bölümü:
+  Hangi sektörlere hizmet verildiğini ikon + kısa açıklamayla göster:
+  E-Ticaret, Restoran & Kafe, Sağlık, Hukuk, Muhasebe & Finans, Gayrimenkul, Eğitim, Turizm & Otel
+
+- Müşteri Yorumları (Testimonials):
+  3-4 adet örnek müşteri yorumu slider formatında
+
+- SSS (Accordion formatında):
+  - AI çalışan nedir?
+  - Verilerim güvende mi?
+  - Mevcut sistemlerimle entegre olur mu?
+  - İnsan çalışanlarımın yerini mi alacak?
+  - Fiyatlandırma nasıl?
+
+- Footer:
+  Logo, iletişim bilgileri, sosyal medya linkleri, hızlı bağlantılar
+
+---
+
+### 2. AI ÇALIŞANLAR SAYFASI (/calisanlar)
+Bir katalog/mağaza görünümünde AI çalışan profilleri listele. Her profil bir kart olsun:
+
+Örnek AI Çalışan Profilleri:
+
+1. **Müşteri Hizmetleri Asistanı**
+   - Pozisyon: Müşteri Temsilcisi
+   - Yetenekler: Canlı chat, e-posta yanıtlama, şikayet yönetimi, sipariş takibi
+   - Entegrasyonlar: WhatsApp, Instagram DM, Web Chat, E-posta
+   - Diller: Türkçe, İngilizce, Arapça
+   - Aylık: ₺4.999'dan başlayan
+
+2. **Satış ve Pazarlama Uzmanı**
+   - Pozisyon: Dijital Satış Temsilcisi
+   - Yetenekler: Lead toplama, takip e-postaları, teklif hazırlama, CRM güncelleme
+   - Entegrasyonlar: HubSpot, Salesforce, LinkedIn, E-posta
+   - Aylık: ₺6.999'dan başlayan
+
+3. **Sosyal Medya Yöneticisi**
+   - Pozisyon: Content & Social Media Manager
+   - Yetenekler: İçerik planlama, post yazma, yorum yönetimi, analiz raporu
+   - Entegrasyonlar: Instagram, Twitter/X, Facebook, LinkedIn, TikTok
+   - Aylık: ₺5.499'dan başlayan
+
+4. **Muhasebe Asistanı**
+   - Pozisyon: Finansal Asistan
+   - Yetenekler: Fatura işleme, gider takibi, raporlama, vergi hatırlatmaları
+   - Entegrasyonlar: Paraşüt, Logo, Excel, e-Fatura
+   - Aylık: ₺5.999'dan başlayan
+
+5. **Randevu ve Rezervasyon Asistanı**
+   - Pozisyon: Planlama Asistanı
+   - Yetenekler: Online randevu alma, hatırlatma gönderme, takvim yönetimi, iptal/değişiklik
+   - Entegrasyonlar: Google Calendar, WhatsApp, SMS, Web
+   - Aylık: ₺3.999'dan başlayan
+
+6. **İnsan Kaynakları Asistanı**
+   - Pozisyon: İK Koordinatörü
+   - Yetenekler: CV tarama, aday ön eleme, mülakat planlama, onboarding
+   - Entegrasyonlar: LinkedIn, Kariyer.net, E-posta, ATS
+   - Aylık: ₺6.499'dan başlayan
+
+Her kartta:
+- AI çalışanı temsil eden modern bir avatar/ikon
+- Pozisyon adı ve kısa açıklama
+- Yetenek etiketleri (tag/badge formatında)
+- Fiyat bilgisi
+- "Detayları Gör" ve "Hemen Kirala" butonları
+- Filtreleme: Sektör, fiyat aralığı, yetenek bazlı
+
+---
+
+### 3. NASIL ÇALIŞIR SAYFASI (/nasil-calisir)
+Detaylı süreç açıklaması timeline/stepper formatında:
+
+1. **Ücretsiz Danışma** — İhtiyaç analizi yapılır
+2. **AI Çalışan Eşleştirme** — İşletmeye uygun ajan seçilir
+3. **Özelleştirme & Eğitim** — Sektöre ve firmaya özel ince ayar yapılır
+4. **Entegrasyon** — Mevcut sistemlere bağlanır (WhatsApp, CRM, web sitesi vb.)
+5. **Canlıya Alma** — Test süreci sonrası devreye alınır
+6. **Sürekli İyileştirme** — Performans takibi ve optimizasyon yapılır
+
+---
+
+### 4. FİYATLANDIRMA SAYFASI (/fiyatlandirma)
+3 paket halinde:
+
+**Başlangıç Paketi**
+- 1 AI Çalışan
+- Temel entegrasyonlar
+- Haftalık performans raporu
+- E-posta destek
+- ₺4.999/ay
+
+**Profesyonel Paket** (Önerilen — vurgulu)
+- 3 AI Çalışan
+- Gelişmiş entegrasyonlar
+- Günlük performans raporu
+- Öncelikli destek
+- Özel eğitim & ince ayar
+- ₺12.999/ay
+
+**Kurumsal Paket**
+- Sınırsız AI Çalışan
+- Tüm entegrasyonlar
+- Gerçek zamanlı dashboard
+- 7/24 öncelikli destek
+- Özel API erişimi
+- Bize Ulaşın
+
+---
+
+### 5. DEMO / CANLI CHAT SAYFASI (/demo)
+Bu sayfa çok önemli — buraya AI modelimizi bağlayacağız.
+
+- Tam sayfa chat arayüzü
+- Sol tarafta AI çalışan seçimi (hangi rolü denemek istiyorsun?)
+- Sağ tarafta chat penceresi
+- Mesaj gönderme alanı, yazıyor animasyonu
+- Chat baloncukları (kullanıcı sağda, AI solda)
+- Üstte bilgi banner'ı: "Bu bir demo versiyondur. Gerçek AI çalışanlarımız çok daha kapsamlıdır."
+
+Chat API bağlantısı için hazır yapı:
+- /api/chat endpoint'i oluştur
+- Request: { message: string, agentType: string }
+- Response: { reply: string }
+- Şimdilik mock response döndürsün, sonra gerçek AI API'ye bağlanacağız
+- Endpoint'e yorum olarak "// BURAYA AI MODEL API BAĞLANTISI YAPILACAK" yaz
+
+---
+
+### 6. HAKKIMIZDA SAYFASI (/hakkimizda)
+- Şirket hikayesi ve misyon
+- "Neden AI Çalışan?" bölümü
+- Geleneksel İK vs AI İK karşılaştırma tablosu:
+  | Geleneksel İK | AI İK Ajansı |
+  |---|---|
+  | Aylar süren işe alım | Dakikalar içinde aktif |
+  | Hastalık, izin, devamsızlık | 7/24 kesintisiz |
+  | Eğitim maliyeti | Eğitimi hazır |
+  | Tek dil | Çoklu dil desteği |
+  | Sınırlı ölçeklenme | Anında ölçeklenme |
+
+---
+
+### 7. İLETİŞİM SAYFASI (/iletisim)
+- İletişim formu (İsim, E-posta, Telefon, Şirket Adı, Mesaj)
+- Harita (opsiyonel)
+- Telefon, e-posta, adres bilgileri
+- WhatsApp ile hızlı iletişim butonu
+
+---
+
+## GENEL TASARIM KURALLARI
+
+- Renk paleti: Koyu lacivert (#0A0E27) ana arka plan, Neon mavi (#3B82F6) ve mor (#8B5CF6) aksanlar, beyaz metin
+- Font: Inter veya Satoshi
+- Animasyonlar: Framer Motion ile scroll-triggered animasyonlar
+- Tüm sayfalar responsive (mobil uyumlu)
+- Navbar: Logo + Sayfalar + "Demo Dene" CTA butonu (yapışkan header)
+- Sayfa geçişlerinde yumuşak animasyon
+- Her sayfanın altında CTA bölümü: "AI Çalışanınızı Bugün Kirala"
+- Loading durumları için skeleton ekranlar
+- SEO meta etiketleri
+
+## TEKNİK NOTLAR
+
+- /api/chat endpoint'i oluştur (POST). Body'de { message, agentType } al, şimdilik sabit bir karşılama mesajı döndürsün. Üstüne "// TODO: AI MODEL ENTEGRASYONU" yorumu ekle.
+- Tüm AI çalışan verileri bir data dosyasında (agents.ts) tutulsun, böylece kolayca güncellenebilsin.
+- İletişim formu frontend validasyonlu olsun.
+- Ortam değişkeni (.env) dosyası: AI_API_KEY, AI_API_URL gibi alanlar hazır olsun.
+```
+
+---
+
+## KULLANIM TALİMATLARI
+
+1. Replit'te yeni bir proje açın
+2. Yukarıdaki prompt'u Replit Agent'a yapıştırın
+3. Agent projeyi oluşturunca `/api/chat` endpoint'ini kendi AI modelinizle değiştirin
+4. `agents.ts` dosyasındaki AI çalışan bilgilerini özelleştirin
+5. Fiyatları ve içerikleri kendi markanıza göre güncelleyin
+
+## AI MODEL ENTEGRASYONU İÇİN
+
+`/api/chat` endpoint'indeki TODO kısmını kendi API'nizle değiştirmeniz yeterli. Örnek yapı:
+
+```typescript
+// /api/chat/route.ts
+export async function POST(req: Request) {
+  const { message, agentType } = await req.json();
+
+  const response = await fetch('SİZİN_AI_API_URL', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${process.env.AI_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      messages: [{ role: 'user', content: message }],
+      agent_type: agentType,
+    }),
+  });
+
+  const data = await response.json();
+  return Response.json({ reply: data.response });
+}

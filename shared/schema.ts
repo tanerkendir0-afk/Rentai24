@@ -1,7 +1,19 @@
 import { z } from "zod";
-import { pgTable, serial, text, timestamp, integer, boolean } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, timestamp, integer, boolean, customType } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { sql } from "drizzle-orm";
+
+const vector = customType<{ data: number[]; driverParam: string }>({
+  dataType() {
+    return "vector(1536)";
+  },
+  toDriver(value: number[]): string {
+    return `[${value.join(",")}]`;
+  },
+  fromDriver(value: string): number[] {
+    return JSON.parse(value);
+  },
+});
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -27,6 +39,39 @@ export const rentals = pgTable("rentals", {
   expiresAt: timestamp("expires_at"),
 });
 
+export const agentDocuments = pgTable("agent_documents", {
+  id: serial("id").primaryKey(),
+  agentType: text("agent_type").notNull(),
+  filename: text("filename").notNull(),
+  contentType: text("content_type").notNull(),
+  chunkCount: integer("chunk_count").notNull().default(0),
+  fileSize: integer("file_size").default(0),
+  uploadedAt: timestamp("uploaded_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
+export const documentChunks = pgTable("document_chunks", {
+  id: serial("id").primaryKey(),
+  documentId: integer("document_id").notNull().references(() => agentDocuments.id, { onDelete: "cascade" }),
+  agentType: text("agent_type").notNull(),
+  content: text("content").notNull(),
+  chunkIndex: integer("chunk_index").notNull(),
+  embedding: vector("embedding"),
+});
+
+export const fineTuningJobs = pgTable("fine_tuning_jobs", {
+  id: serial("id").primaryKey(),
+  agentType: text("agent_type").notNull(),
+  openaiJobId: text("openai_job_id"),
+  openaiFileId: text("openai_file_id"),
+  fineTunedModel: text("fine_tuned_model"),
+  status: text("status").notNull().default("pending"),
+  isActive: boolean("is_active").notNull().default(false),
+  trainingFile: text("training_file"),
+  error: text("error"),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+  updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
   createdAt: true,
@@ -38,10 +83,25 @@ export const insertRentalSchema = createInsertSchema(rentals).omit({
   messagesUsed: true,
 });
 
+export const insertAgentDocumentSchema = createInsertSchema(agentDocuments).omit({
+  id: true,
+  uploadedAt: true,
+});
+
+export const insertFineTuningJobSchema = createInsertSchema(fineTuningJobs).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type Rental = typeof rentals.$inferSelect;
 export type InsertRental = z.infer<typeof insertRentalSchema>;
+export type AgentDocument = typeof agentDocuments.$inferSelect;
+export type InsertAgentDocument = z.infer<typeof insertAgentDocumentSchema>;
+export type FineTuningJob = typeof fineTuningJobs.$inferSelect;
+export type InsertFineTuningJob = z.infer<typeof insertFineTuningJobSchema>;
 
 export const registerSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters").max(30),

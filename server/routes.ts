@@ -1,4 +1,4 @@
-import type { Express } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import OpenAI from "openai";
 import bcrypt from "bcrypt";
@@ -7,6 +7,9 @@ import { storage } from "./storage";
 import { requireAuth } from "./auth";
 import { stripeService } from "./stripeService";
 import { getPublishableKey } from "./stripeClient";
+import { uploadDocument, uploadTrainingFile } from "./upload";
+import { processAndStoreDocument, processAndStoreUrl, retrieveRelevantChunks, getDocumentsByAgent, deleteDocument, getDocumentCount } from "./ragService";
+import { createFineTuningJob, syncJobStatus, getJobsByAgent, toggleActiveModel, deactivateModel, getActiveModel } from "./fineTuningService";
 
 const openai = new OpenAI({
   apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
@@ -300,7 +303,7 @@ export async function registerRoutes(
     }
 
     const { message, agentType, conversationHistory } = parsed.data;
-    const systemPrompt = agentSystemPrompts[agentType] || defaultSystemPrompt;
+    let systemPrompt = agentSystemPrompts[agentType] || defaultSystemPrompt;
 
     if (req.session.userId) {
       const rental = await storage.getActiveRental(req.session.userId, agentType);
@@ -315,6 +318,18 @@ export async function registerRoutes(
     }
 
     try {
+      const ragChunks = await retrieveRelevantChunks(agentType, message, 5).catch(() => []);
+      if (ragChunks.length > 0) {
+        const context = ragChunks.join("\n\n---\n\n");
+        systemPrompt += `\n\n## KNOWLEDGE BASE CONTEXT\nUse the following information from your knowledge base to answer the user's question when relevant. If the information doesn't apply, rely on your general knowledge.\n\n${context}`;
+      }
+
+      let modelToUse = "gpt-4o";
+      const fineTunedModel = await getActiveModel(agentType).catch(() => null);
+      if (fineTunedModel) {
+        modelToUse = fineTunedModel;
+      }
+
       const messages: OpenAI.ChatCompletionMessageParam[] = [
         { role: "system", content: systemPrompt },
       ];
@@ -331,7 +346,7 @@ export async function registerRoutes(
       messages.push({ role: "user", content: message });
 
       const response = await openai.chat.completions.create({
-        model: "gpt-4o",
+        model: modelToUse,
         messages,
         max_tokens: 800,
         temperature: 0.7,
@@ -483,6 +498,164 @@ export async function registerRoutes(
     } catch (error: any) {
       console.error("Subscription error:", error.message);
       res.json({ subscription: null });
+    }
+  });
+
+  function requireAdmin(req: Request, res: Response, next: NextFunction) {
+    const adminPassword = process.env.ADMIN_PASSWORD;
+    if (!adminPassword) {
+      return res.status(503).json({ error: "Admin access not configured" });
+    }
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({ error: "Admin authentication required" });
+    }
+    const token = authHeader.slice(7);
+    if (token !== adminPassword) {
+      return res.status(403).json({ error: "Invalid admin credentials" });
+    }
+    next();
+  }
+
+  app.post("/api/admin/auth", (req, res) => {
+    const { password } = req.body;
+    const adminPassword = process.env.ADMIN_PASSWORD;
+    if (!adminPassword) {
+      return res.status(503).json({ error: "Admin access not configured" });
+    }
+    if (password !== adminPassword) {
+      return res.status(403).json({ error: "Invalid admin password" });
+    }
+    res.json({ success: true, token: password });
+  });
+
+  app.get("/api/admin/agents/:agentType/documents", requireAdmin, async (req, res) => {
+    try {
+      const docs = await getDocumentsByAgent(req.params.agentType);
+      res.json(docs);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/admin/agents/:agentType/documents", requireAdmin, (req, res, next) => {
+    uploadDocument.single("file")(req, res, async (err) => {
+      if (err) {
+        return res.status(400).json({ error: err.message });
+      }
+      try {
+        if (!req.file) {
+          return res.status(400).json({ error: "No file uploaded" });
+        }
+        const doc = await processAndStoreDocument(
+          req.file.path,
+          req.file.originalname,
+          req.params.agentType,
+          req.file.mimetype,
+          req.file.size
+        );
+        res.json(doc);
+      } catch (error: any) {
+        res.status(500).json({ error: error.message });
+      }
+    });
+  });
+
+  app.post("/api/admin/agents/:agentType/documents/url", requireAdmin, async (req, res) => {
+    try {
+      const { url } = req.body;
+      if (!url || typeof url !== "string") {
+        return res.status(400).json({ error: "URL is required" });
+      }
+      const doc = await processAndStoreUrl(url, req.params.agentType);
+      res.json(doc);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.delete("/api/admin/documents/:docId", requireAdmin, async (req, res) => {
+    try {
+      await deleteDocument(parseInt(req.params.docId));
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/admin/agents/:agentType/fine-tuning", requireAdmin, async (req, res) => {
+    try {
+      const jobs = await getJobsByAgent(req.params.agentType);
+      res.json(jobs);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/admin/agents/:agentType/fine-tuning", requireAdmin, (req, res, next) => {
+    uploadTrainingFile.single("file")(req, res, async (err) => {
+      if (err) {
+        return res.status(400).json({ error: err.message });
+      }
+      try {
+        if (!req.file) {
+          return res.status(400).json({ error: "No file uploaded" });
+        }
+        const job = await createFineTuningJob(
+          req.params.agentType,
+          req.file.path,
+          req.file.originalname
+        );
+        res.json(job);
+      } catch (error: any) {
+        res.status(500).json({ error: error.message });
+      }
+    });
+  });
+
+  app.post("/api/admin/fine-tuning/:jobId/sync", requireAdmin, async (req, res) => {
+    try {
+      const job = await syncJobStatus(parseInt(req.params.jobId));
+      res.json(job);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/admin/fine-tuning/:jobId/activate", requireAdmin, async (req, res) => {
+    try {
+      const { agentType } = req.body;
+      if (!agentType) {
+        return res.status(400).json({ error: "agentType is required" });
+      }
+      const job = await toggleActiveModel(parseInt(req.params.jobId), agentType);
+      res.json(job);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/admin/agents/:agentType/fine-tuning/deactivate", requireAdmin, async (req, res) => {
+    try {
+      await deactivateModel(req.params.agentType);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/admin/agents/:agentType/stats", requireAdmin, async (req, res) => {
+    try {
+      const docCount = await getDocumentCount(req.params.agentType);
+      const ftJobs = await getJobsByAgent(req.params.agentType);
+      const activeModel = await getActiveModel(req.params.agentType);
+      res.json({
+        documentCount: docCount,
+        fineTuningJobs: ftJobs.length,
+        activeModel: activeModel || null,
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
     }
   });
 

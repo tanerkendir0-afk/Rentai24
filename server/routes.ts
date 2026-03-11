@@ -501,6 +501,8 @@ export async function registerRoutes(
     }
   });
 
+  const adminTokens = new Set<string>();
+
   function requireAdmin(req: Request, res: Response, next: NextFunction) {
     const adminPassword = process.env.ADMIN_PASSWORD;
     if (!adminPassword) {
@@ -511,7 +513,7 @@ export async function registerRoutes(
       return res.status(401).json({ error: "Admin authentication required" });
     }
     const token = authHeader.slice(7);
-    if (token !== adminPassword) {
+    if (!adminTokens.has(token)) {
       return res.status(403).json({ error: "Invalid admin credentials" });
     }
     next();
@@ -526,7 +528,10 @@ export async function registerRoutes(
     if (password !== adminPassword) {
       return res.status(403).json({ error: "Invalid admin password" });
     }
-    res.json({ success: true, token: password });
+    const crypto = require("crypto");
+    const token = crypto.randomBytes(32).toString("hex");
+    adminTokens.add(token);
+    res.json({ success: true, token });
   });
 
   app.get("/api/admin/agents/:agentType/documents", requireAdmin, async (req, res) => {

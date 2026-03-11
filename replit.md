@@ -35,6 +35,7 @@ RentAI 24 — the world's first AI staffing agency website. Lets businesses brow
 - `/login` — Sign in page
 - `/register` — Create account page
 - `/dashboard` — Customer dashboard (protected, shows rented workers + usage stats + Manage Billing)
+- `/admin` — Admin panel (password-protected via ADMIN_PASSWORD env var, RAG knowledge base + fine-tuning management for all 8 agents)
 
 ## Key Files
 - `client/src/data/agents.ts` — All 8 AI worker data
@@ -55,11 +56,19 @@ RentAI 24 — the world's first AI staffing agency website. Lets businesses brow
 - `server/stripeService.ts` — Stripe service (checkout, portal, customer creation)
 - `server/webhookHandlers.ts` — Stripe webhook handler
 - `scripts/seed-products.ts` — Stripe product/price seeding script
+- `server/upload.ts` — Multer upload middleware (documents + training files)
+- `server/documentParser.ts` — Document parsing pipeline (TXT, PDF, DOCX, CSV, URL) + text chunking
+- `server/ragService.ts` — RAG service: embeddings (text-embedding-3-small), vector storage, cosine similarity retrieval
+- `server/fineTuningService.ts` — OpenAI fine-tuning: create jobs, sync status, toggle active model
+- `client/src/pages/admin.tsx` — Admin panel UI (password-protected, RAG + fine-tuning management)
 - `shared/schema.ts` — Database schemas + Zod validation schemas
 
 ## Database Tables
 - `users` — id, username, email, password (hashed), full_name, company, stripe_customer_id, stripe_subscription_id, created_at
 - `rentals` — id, user_id, agent_type, plan, status, messages_used, messages_limit, started_at, expires_at
+- `agent_documents` — id, agent_type, filename, content_type, chunk_count, file_size, uploaded_at (RAG knowledge base docs)
+- `document_chunks` — id, document_id, agent_type, content, chunk_index, embedding (vector(1536) via pgvector)
+- `fine_tuning_jobs` — id, agent_type, openai_job_id, openai_file_id, fine_tuned_model, status, is_active, training_file, error, created_at, updated_at
 - `stripe.*` — Auto-managed by stripe-replit-sync (products, prices, customers, subscriptions, etc.)
 
 ## Stripe Integration
@@ -89,9 +98,12 @@ RentAI 24 — the world's first AI staffing agency website. Lets businesses brow
 
 ## AI Integration
 - Uses Replit AI Integrations (AI_INTEGRATIONS_OPENAI_API_KEY, AI_INTEGRATIONS_OPENAI_BASE_URL)
-- Model: gpt-4o, max_tokens: 800, temperature: 0.7
+- Model: gpt-4o, max_tokens: 800, temperature: 0.7 (or fine-tuned model if active for agent)
 - Each agent has role-restricted system prompt
 - Input limits: message max 2000 chars, conversation max 20 messages
+- RAG: Uploaded documents chunked (~500 words, 50 overlap), embedded via text-embedding-3-small, stored in pgvector, top-5 cosine similarity retrieval prepended to system prompt
+- Fine-tuning: JSONL upload → OpenAI fine-tune on gpt-4o-mini-2024-07-18 → toggle active model per agent
+- Admin panel at /admin (ADMIN_PASSWORD env var required)
 
 ## Auth System
 - Session-based authentication (express-session + memorystore)
@@ -113,13 +125,24 @@ RentAI 24 — the world's first AI staffing agency website. Lets businesses brow
 - `GET /api/auth/me` — Current user
 - `GET /api/rentals` — User's rentals (protected)
 - `POST /api/rentals` — Add worker to subscription (requires active Stripe subscription, validated against subscription status)
-- `POST /api/chat` — AI chat via OpenAI GPT-4o
+- `POST /api/chat` — AI chat via OpenAI GPT-4o (RAG-enhanced, uses fine-tuned model if active)
 - `POST /api/contact` — Contact form submission
 - `GET /api/stripe/config` — Stripe publishable key
 - `GET /api/stripe/products` — List products with prices
 - `POST /api/stripe/checkout` — Create Stripe Checkout session (protected)
 - `POST /api/stripe/portal` — Create Stripe Customer Portal session (protected)
 - `GET /api/stripe/subscription` — Get user's subscription status (protected)
+- `POST /api/admin/auth` — Admin login (validates ADMIN_PASSWORD)
+- `GET /api/admin/agents/:agentType/documents` — List RAG documents (admin)
+- `POST /api/admin/agents/:agentType/documents` — Upload document for RAG (admin, multipart)
+- `POST /api/admin/agents/:agentType/documents/url` — Add URL content to RAG (admin)
+- `DELETE /api/admin/documents/:docId` — Delete RAG document (admin)
+- `GET /api/admin/agents/:agentType/fine-tuning` — List fine-tuning jobs (admin)
+- `POST /api/admin/agents/:agentType/fine-tuning` — Upload JSONL + start fine-tuning (admin)
+- `POST /api/admin/fine-tuning/:jobId/sync` — Sync fine-tuning job status from OpenAI (admin)
+- `POST /api/admin/fine-tuning/:jobId/activate` — Activate fine-tuned model (admin)
+- `POST /api/admin/agents/:agentType/fine-tuning/deactivate` — Deactivate all fine-tuned models for agent (admin)
+- `GET /api/admin/agents/:agentType/stats` — Agent stats: doc count, FT jobs, active model (admin)
 
 ## PWA Support
 - Web app manifest at `client/public/manifest.json` (app name, icons, standalone display, theme colors)

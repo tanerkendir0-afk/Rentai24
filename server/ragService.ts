@@ -25,36 +25,41 @@ export async function processAndStoreDocument(
   contentType: string,
   fileSize: number
 ): Promise<AgentDocument> {
-  const text = await parseDocument(filePath, originalName);
-  const chunks = chunkText(text);
-
-  const [doc] = await db
-    .insert(agentDocuments)
-    .values({
-      agentType,
-      filename: originalName,
-      contentType,
-      chunkCount: chunks.length,
-      fileSize,
-    })
-    .returning();
-
-  for (let i = 0; i < chunks.length; i++) {
-    const embedding = await generateEmbedding(chunks[i]);
-    await db.insert(documentChunks).values({
-      documentId: doc.id,
-      agentType,
-      content: chunks[i],
-      chunkIndex: i,
-      embedding,
-    });
-  }
-
   try {
-    fs.unlinkSync(filePath);
-  } catch {}
+    const text = await parseDocument(filePath, originalName);
+    const chunks = chunkText(text);
 
-  return doc;
+    const [doc] = await db
+      .insert(agentDocuments)
+      .values({
+        agentType,
+        filename: originalName,
+        contentType,
+        chunkCount: chunks.length,
+        fileSize,
+      })
+      .returning();
+
+    try {
+      for (let i = 0; i < chunks.length; i++) {
+        const embedding = await generateEmbedding(chunks[i]);
+        await db.insert(documentChunks).values({
+          documentId: doc.id,
+          agentType,
+          content: chunks[i],
+          chunkIndex: i,
+          embedding,
+        });
+      }
+    } catch (embeddingError) {
+      await db.delete(agentDocuments).where(eq(agentDocuments.id, doc.id));
+      throw embeddingError;
+    }
+
+    return doc;
+  } finally {
+    try { fs.unlinkSync(filePath); } catch {}
+  }
 }
 
 export async function processAndStoreUrl(

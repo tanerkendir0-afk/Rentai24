@@ -14,34 +14,34 @@ export async function createFineTuningJob(
   trainingFilePath: string,
   originalFilename: string
 ): Promise<FineTuningJob> {
-  const fileStream = fs.createReadStream(trainingFilePath);
-  const uploadedFile = await openai.files.create({
-    file: fileStream,
-    purpose: "fine-tune",
-  });
-
-  const job = await openai.fineTuning.jobs.create({
-    training_file: uploadedFile.id,
-    model: "gpt-4o-mini-2024-07-18",
-    suffix: `rentai-${agentType}`,
-  });
-
-  const [record] = await db
-    .insert(fineTuningJobs)
-    .values({
-      agentType,
-      openaiJobId: job.id,
-      openaiFileId: uploadedFile.id,
-      status: job.status,
-      trainingFile: originalFilename,
-    })
-    .returning();
-
   try {
-    fs.unlinkSync(trainingFilePath);
-  } catch {}
+    const fileStream = fs.createReadStream(trainingFilePath);
+    const uploadedFile = await openai.files.create({
+      file: fileStream,
+      purpose: "fine-tune",
+    });
 
-  return record;
+    const job = await openai.fineTuning.jobs.create({
+      training_file: uploadedFile.id,
+      model: "gpt-4o-mini-2024-07-18",
+      suffix: `rentai-${agentType}`,
+    });
+
+    const [record] = await db
+      .insert(fineTuningJobs)
+      .values({
+        agentType,
+        openaiJobId: job.id,
+        openaiFileId: uploadedFile.id,
+        status: job.status,
+        trainingFile: originalFilename,
+      })
+      .returning();
+
+    return record;
+  } finally {
+    try { fs.unlinkSync(trainingFilePath); } catch {}
+  }
 }
 
 export async function syncJobStatus(jobId: number): Promise<FineTuningJob> {
@@ -103,6 +103,7 @@ export async function toggleActiveModel(
     .where(
       and(
         eq(fineTuningJobs.id, jobId),
+        eq(fineTuningJobs.agentType, agentType),
         eq(fineTuningJobs.status, "succeeded")
       )
     )

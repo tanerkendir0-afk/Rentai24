@@ -111,63 +111,124 @@ export default function Home() {
 
   return (
     <div>
-      <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-16">
-        <div className="absolute inset-0 bg-gradient-to-br from-background via-background to-blue-950/30" />
-        <div className="absolute top-20 right-20 w-72 h-72 bg-blue-500/10 rounded-full blur-3xl animate-pulse-glow" />
-        <div className="absolute bottom-20 left-20 w-96 h-96 bg-violet-500/10 rounded-full blur-3xl animate-pulse-glow" style={{ animationDelay: "1.5s" }} />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-gradient-to-r from-blue-500/5 to-violet-500/5 rounded-full blur-3xl" />
+      <section className="relative min-h-screen flex items-center overflow-hidden pt-16" data-testid="section-hero">
+        <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
+          <div className="absolute top-[10%] left-[20%] w-[500px] h-[500px] bg-blue-600/20 rounded-full blur-[120px] mix-blend-screen" />
+          <div className="absolute bottom-[10%] right-[10%] w-[600px] h-[600px] bg-violet-600/20 rounded-full blur-[150px] mix-blend-screen" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-indigo-500/10 rounded-full blur-[100px] mix-blend-screen" />
+        </div>
 
-        <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }}>
-            <Badge variant="secondary" className="mb-6 px-4 py-1.5 text-sm">
-              <Sparkles className="w-3.5 h-3.5 mr-1.5" />
-              The World's First AI Staffing Agency
-            </Badge>
-          </motion.div>
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:3rem_3rem] [mask-image:radial-gradient(ellipse_80%_80%_at_50%_50%,#000_20%,transparent_100%)] pointer-events-none" />
 
-          <motion.h1
-            className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-foreground mb-6 leading-tight"
-            initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.15 }}
-            data-testid="text-hero-title"
-          >
-            Hire AI Workers.{" "}
-            <span className="bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent">
-              Not Headaches.
-            </span>
-          </motion.h1>
-
-          <motion.p
-            className="text-lg sm:text-xl text-muted-foreground max-w-3xl mx-auto mb-10 leading-relaxed"
-            initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.3 }}
-            data-testid="text-hero-subtitle"
-          >
-            Pre-trained AI agents ready to join your team today. They work 24/7,
-            never call in sick, and cost a fraction of traditional hires.
-          </motion.p>
-
+        <div className="max-w-[1400px] mx-auto w-full px-6 lg:px-12 relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-16 lg:gap-8 py-20 items-center">
           <motion.div
-            className="flex flex-col sm:flex-row items-center justify-center gap-4"
-            initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.45 }}
+            className="lg:col-span-4 flex flex-col items-start space-y-8 relative"
+            initial={{ opacity: 0, x: -40 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.8 }}
           >
-            <Link href="/workers">
-              <Button size="lg" className="bg-gradient-to-r from-blue-500 to-violet-500 text-white border-0 px-8" data-testid="button-hero-browse">
-                Browse AI Workers
-                <ArrowRight className="w-4 h-4 ml-2" />
-              </Button>
-            </Link>
-            <Link href="/demo">
-              <Button size="lg" variant="outline" className="px-8" data-testid="button-hero-demo">
-                Book a Demo
-              </Button>
-            </Link>
+            <div className="inline-flex items-center space-x-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 backdrop-blur-sm shadow-[0_0_15px_rgba(255,255,255,0.05)]">
+              <span className="flex h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)] animate-pulse"></span>
+              <span className="text-sm font-medium text-white/90 tracking-wide">Agents standing by</span>
+            </div>
+
+            <h1
+              className="text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.15]"
+              data-testid="text-hero-title"
+            >
+              Meet your new <br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-400 to-violet-400 drop-shadow-sm">
+                AI workforce.
+              </span>
+            </h1>
+
+            <p
+              className="text-lg text-white/60 leading-relaxed max-w-md font-medium"
+              data-testid="text-hero-subtitle"
+            >
+              Step into the lobby of the future. Rent pre-trained, specialized AI agents that seamlessly integrate into your team from day one.
+            </p>
+
+            <div className="pt-2 flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
+              <Link href="/workers">
+                <button
+                  className="group relative px-8 py-4 bg-gradient-to-r from-blue-500 to-violet-500 rounded-xl font-bold text-white overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_30px_-5px_rgba(139,92,246,0.6)] active:scale-[0.98]"
+                  data-testid="button-hero-browse"
+                >
+                  <div className="absolute inset-0 bg-white/20 translate-y-[100%] group-hover:translate-y-0 transition-transform duration-300 ease-out"></div>
+                  <span className="relative flex items-center justify-center gap-2 text-base">
+                    Hire your first agent
+                    <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                  </span>
+                </button>
+              </Link>
+
+              <Link href="/workers">
+                <button
+                  className="px-8 py-4 bg-[#12183A] hover:bg-[#1A2250] border border-white/10 hover:border-white/20 rounded-xl font-semibold text-white transition-all duration-300 flex items-center justify-center gap-2 text-base shadow-sm"
+                  data-testid="button-hero-demo"
+                >
+                  <Sparkles className="w-5 h-5 text-violet-400" />
+                  View Roster
+                </button>
+              </Link>
+            </div>
           </motion.div>
 
-          <motion.p
-            className="mt-6 text-sm text-muted-foreground"
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.8, delay: 0.6 }}
-          >
-            No Setup Fee &middot; Cancel Anytime &middot; 14-Day Free Trial
-          </motion.p>
+          <div className="lg:col-span-8 relative mt-12 lg:mt-0">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 relative">
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3/4 h-3/4 bg-blue-500/10 rounded-full blur-[120px] pointer-events-none z-0" />
+
+              {[
+                { name: "Ava", role: "Customer Support Agent", icon: Headphones, offset: "md:translate-y-0", color: "from-blue-400 to-blue-600", delay: 0 },
+                { name: "Rex", role: "Sales Development Rep", icon: TrendingUp, offset: "md:translate-y-8", color: "from-violet-400 to-purple-600", delay: 0.1 },
+                { name: "Maya", role: "Social Media Manager", icon: Share2, offset: "md:translate-y-16", color: "from-fuchsia-400 to-pink-600", delay: 0.2 },
+                { name: "Finn", role: "Bookkeeping Assistant", icon: Calculator, offset: "md:translate-y-0", color: "from-cyan-400 to-blue-500", delay: 0.15 },
+                { name: "Cal", role: "Scheduling Coordinator", icon: CalendarCheck, offset: "md:translate-y-8", color: "from-indigo-400 to-violet-500", delay: 0.25 },
+                { name: "Harper", role: "HR & Recruiting Agent", icon: Users, offset: "md:translate-y-16", color: "from-purple-400 to-fuchsia-500", delay: 0.35 },
+              ].map((worker) => {
+                const Icon = worker.icon;
+                return (
+                  <motion.div
+                    key={worker.name}
+                    className={`group relative p-[1px] rounded-[1.25rem] bg-gradient-to-b from-white/10 to-white/0 hover:from-blue-500/50 hover:to-violet-500/50 transition-all duration-500 z-10 ${worker.offset}`}
+                    initial={{ opacity: 0, y: 30 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6, delay: 0.3 + worker.delay }}
+                    data-testid={`card-hero-worker-${worker.name.toLowerCase()}`}
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-violet-500/20 rounded-[1.25rem] blur-xl transition-opacity duration-500 opacity-0 group-hover:opacity-100"></div>
+
+                    <div className="relative h-full bg-[#0E1332] hover:bg-[#12183A] backdrop-blur-xl rounded-2xl p-6 flex flex-col items-center text-center overflow-hidden transition-all duration-500 group-hover:-translate-y-2 shadow-lg group-hover:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.5)]">
+                      <div className="absolute top-4 right-4 flex items-center gap-2 bg-black/20 px-2 py-1 rounded-full border border-white/5">
+                        <div className="relative flex h-2 w-2">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500 shadow-[0_0_5px_rgba(16,185,129,0.8)]"></span>
+                        </div>
+                        <span className="text-[10px] uppercase tracking-wider font-bold text-emerald-400/90">Available</span>
+                      </div>
+
+                      <div className="relative w-24 h-24 mt-6 mb-6 flex items-center justify-center group-hover:scale-110 transition-transform duration-500 ease-out">
+                        <div className={`absolute inset-0 bg-gradient-to-br ${worker.color} rounded-full opacity-10 group-hover:opacity-30 blur-lg transition-opacity duration-500`}></div>
+                        <div className={`absolute inset-1 bg-gradient-to-br ${worker.color} rounded-full opacity-20 group-hover:opacity-40 blur-md transition-opacity duration-500`}></div>
+                        <div className={`absolute inset-3 bg-gradient-to-br ${worker.color} rounded-full opacity-30 group-hover:opacity-50 blur-sm transition-opacity duration-500`}></div>
+
+                        <div className="relative w-16 h-16 rounded-full bg-gradient-to-b from-[#1A2250] to-[#0A0E27] border border-white/10 flex items-center justify-center shadow-inner z-10">
+                          <Icon className="w-7 h-7 text-white/90 drop-shadow-md" strokeWidth={1.5} />
+                        </div>
+                      </div>
+
+                      <h3 className="text-xl font-bold text-white mb-1.5 tracking-tight group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white group-hover:to-white/70 transition-colors">{worker.name}</h3>
+                      <p className="text-sm text-blue-200/60 font-medium leading-relaxed">{worker.role}</p>
+
+                      <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                      <div className="absolute bottom-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-blue-500/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+          </div>
         </div>
       </section>
 

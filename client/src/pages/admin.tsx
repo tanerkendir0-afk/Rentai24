@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -128,7 +128,7 @@ function DocumentsPanel({ agentType, token }: { agentType: string; token: string
     }
   }, [agentType, token]);
 
-  useState(() => { fetchDocs(); });
+  useEffect(() => { fetchDocs(); }, [fetchDocs]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -335,7 +335,7 @@ function FineTuningPanel({ agentType, token }: { agentType: string; token: strin
     }
   }, [agentType, token]);
 
-  useState(() => { fetchJobs(); });
+  useEffect(() => { fetchJobs(); }, [fetchJobs]);
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

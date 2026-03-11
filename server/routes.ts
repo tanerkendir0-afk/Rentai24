@@ -325,9 +325,11 @@ export async function registerRoutes(
       }
 
       let modelToUse = "gpt-4o";
+      let useDirectClient = false;
       const fineTunedModel = await getActiveModel(agentType).catch(() => null);
       if (fineTunedModel) {
         modelToUse = fineTunedModel;
+        useDirectClient = true;
       }
 
       const messages: OpenAI.ChatCompletionMessageParam[] = [
@@ -345,7 +347,12 @@ export async function registerRoutes(
 
       messages.push({ role: "user", content: message });
 
-      const response = await openai.chat.completions.create({
+      let chatClient = openai;
+      if (useDirectClient && process.env.OPENAI_API_KEY) {
+        chatClient = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+      }
+
+      const response = await chatClient.chat.completions.create({
         model: modelToUse,
         messages,
         max_tokens: 800,

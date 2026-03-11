@@ -25,6 +25,7 @@ export class WebhookHandlers {
         await WebhookHandlers.handleCheckoutCompleted(event.data.object);
         break;
       }
+      case 'customer.subscription.created':
       case 'customer.subscription.updated': {
         await WebhookHandlers.handleSubscriptionUpdated(event.data.object);
         break;

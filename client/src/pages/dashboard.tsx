@@ -76,7 +76,7 @@ export default function Dashboard() {
     enabled: !!user,
   });
 
-  const hasSubscription = !!(user as any)?.hasSubscription;
+  const hasSubscription = !!user?.hasSubscription;
   const subscription = subscriptionData?.subscription;
   const planName = subscription?.metadata?.plan
     ? subscription.metadata.plan.charAt(0).toUpperCase() + subscription.metadata.plan.slice(1)

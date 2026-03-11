@@ -71,6 +71,11 @@ RentAI 24 — the world's first AI staffing agency website. Lets businesses brow
 - Checkout flow: Frontend calls POST /api/stripe/checkout → creates Stripe Checkout session → redirects to Stripe
 - Billing portal: POST /api/stripe/portal → Stripe Customer Portal for subscription management
 - Products queried from stripe.products/stripe.prices tables (synced from Stripe)
+- Webhook handlers process: checkout.session.completed (creates rental + sets stripeSubscriptionId), customer.subscription.updated (activates/monitors rentals), customer.subscription.deleted (deactivates all rentals + clears stripeSubscriptionId)
+- POST /api/rentals gated: requires user to have active stripeSubscriptionId
+- Dashboard shows subscription status badge (Active Subscription / No Subscription)
+- Sensitive Stripe URLs (checkout, portal, config) suppressed from API logs
+- Enterprise plan shown as "Contact Sales" on frontend (no direct checkout)
 
 ## 8 AI Workers (with Persona Names)
 1. Ava — Customer Support Agent ($99/mo)

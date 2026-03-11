@@ -80,15 +80,20 @@ export async function processAndStoreUrl(
     })
     .returning();
 
-  for (let i = 0; i < chunks.length; i++) {
-    const embedding = await generateEmbedding(chunks[i]);
-    await db.insert(documentChunks).values({
-      documentId: doc.id,
-      agentType,
-      content: chunks[i],
-      chunkIndex: i,
-      embedding,
-    });
+  try {
+    for (let i = 0; i < chunks.length; i++) {
+      const embedding = await generateEmbedding(chunks[i]);
+      await db.insert(documentChunks).values({
+        documentId: doc.id,
+        agentType,
+        content: chunks[i],
+        chunkIndex: i,
+        embedding,
+      });
+    }
+  } catch (embeddingError) {
+    await db.delete(agentDocuments).where(eq(agentDocuments.id, doc.id));
+    throw embeddingError;
   }
 
   return doc;

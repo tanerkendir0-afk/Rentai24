@@ -7,6 +7,7 @@ import { createServer } from "http";
 import { runMigrations } from "stripe-replit-sync";
 import { getStripeSync } from "./stripeClient";
 import { WebhookHandlers } from "./webhookHandlers";
+import { pool } from "./db";
 
 const app = express();
 const httpServer = createServer(app);
@@ -113,6 +114,10 @@ app.use((req, res, next) => {
   try {
     const databaseUrl = process.env.DATABASE_URL;
     if (databaseUrl) {
+      await pool.query("CREATE EXTENSION IF NOT EXISTS vector").catch((err: any) =>
+        console.warn("pgvector extension setup:", err.message)
+      );
+
       console.log('Initializing Stripe schema...');
       await runMigrations({ databaseUrl, schema: 'stripe' });
       console.log('Stripe schema ready');

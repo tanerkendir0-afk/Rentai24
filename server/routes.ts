@@ -1,7 +1,10 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import OpenAI from "openai";
-import { chatMessageSchema, contactFormSchema } from "@shared/schema";
+import bcrypt from "bcrypt";
+import { chatMessageSchema, contactFormSchema, registerSchema, loginSchema } from "@shared/schema";
+import { storage } from "./storage";
+import { requireAuth } from "./auth";
 
 const openai = new OpenAI({
   apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
@@ -129,10 +132,151 @@ You can briefly introduce the available AI workers: Customer Support (Ava), Sale
 Suggest the user select a specific agent from the sidebar to get specialized help.
 Respond in the same language the user writes in.`;
 
+const agentNameMap: Record<string, string> = {
+  "customer-support": "Customer Support Agent",
+  "sales-sdr": "Sales Development Rep",
+  "social-media": "Social Media Manager",
+  "bookkeeping": "Bookkeeping Assistant",
+  "scheduling": "Appointment & Scheduling Agent",
+  "hr-recruiting": "HR & Recruiting Assistant",
+  "data-analyst": "Data Analyst Agent",
+  "ecommerce-ops": "E-Commerce Operations Agent",
+};
+
 export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+
+  app.post("/api/auth/register", async (req, res) => {
+    const parsed = registerSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: "Invalid data", details: parsed.error.flatten() });
+    }
+
+    const { username, email, password, fullName, company } = parsed.data;
+
+    const existingEmail = await storage.getUserByEmail(email);
+    if (existingEmail) {
+      return res.status(409).json({ error: "An account with this email already exists" });
+    }
+
+    const existingUsername = await storage.getUserByUsername(username);
+    if (existingUsername) {
+      return res.status(409).json({ error: "This username is already taken" });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 12);
+    const user = await storage.createUser({
+      username,
+      email,
+      password: hashedPassword,
+      fullName,
+      company: company || null,
+    });
+
+    req.session.userId = user.id;
+    req.session.save(() => {
+      res.json({
+        user: { id: user.id, username: user.username, email: user.email, fullName: user.fullName, company: user.company },
+      });
+    });
+  });
+
+  app.post("/api/auth/login", async (req, res) => {
+    const parsed = loginSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: "Invalid credentials" });
+    }
+
+    const { email, password } = parsed.data;
+
+    const user = await storage.getUserByEmail(email);
+    if (!user) {
+      return res.status(401).json({ error: "Invalid email or password" });
+    }
+
+    const valid = await bcrypt.compare(password, user.password);
+    if (!valid) {
+      return res.status(401).json({ error: "Invalid email or password" });
+    }
+
+    req.session.regenerate((err) => {
+      if (err) {
+        return res.status(500).json({ error: "Session error" });
+      }
+      req.session.userId = user.id;
+      req.session.save(() => {
+        res.json({
+          user: { id: user.id, username: user.username, email: user.email, fullName: user.fullName, company: user.company },
+        });
+      });
+    });
+  });
+
+  app.post("/api/auth/logout", (req, res) => {
+    req.session.destroy((err) => {
+      if (err) {
+        return res.status(500).json({ error: "Failed to log out" });
+      }
+      res.json({ success: true });
+    });
+  });
+
+  app.get("/api/auth/me", async (req, res) => {
+    if (!req.session.userId) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+    const user = await storage.getUserById(req.session.userId);
+    if (!user) {
+      return res.status(401).json({ error: "User not found" });
+    }
+    res.json({
+      user: { id: user.id, username: user.username, email: user.email, fullName: user.fullName, company: user.company },
+    });
+  });
+
+  app.get("/api/rentals", requireAuth, async (req, res) => {
+    const rentals = await storage.getRentalsByUser(req.session.userId!);
+    const enriched = rentals.map((r) => ({
+      ...r,
+      agentName: agentNameMap[r.agentType] || r.agentType,
+    }));
+    res.json(enriched);
+  });
+
+  app.post("/api/rentals", requireAuth, async (req, res) => {
+    const { agentType, plan } = req.body;
+    if (!agentType || !agentNameMap[agentType]) {
+      return res.status(400).json({ error: "Invalid agent type" });
+    }
+
+    const existing = await storage.getActiveRental(req.session.userId!, agentType);
+    if (existing) {
+      return res.status(409).json({ error: "You already have an active rental for this agent" });
+    }
+
+    const planLimits: Record<string, number> = {
+      starter: 100,
+      professional: 500,
+      enterprise: 5000,
+    };
+
+    const expiresAt = new Date();
+    expiresAt.setMonth(expiresAt.getMonth() + 1);
+
+    const rental = await storage.createRental({
+      userId: req.session.userId!,
+      agentType,
+      plan: plan || "starter",
+      status: "active",
+      messagesLimit: planLimits[plan || "starter"] || 100,
+      expiresAt,
+    });
+
+    res.json({ ...rental, agentName: agentNameMap[agentType] });
+  });
+
   app.post("/api/chat", async (req, res) => {
     const parsed = chatMessageSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -141,6 +285,18 @@ export async function registerRoutes(
 
     const { message, agentType, conversationHistory } = parsed.data;
     const systemPrompt = agentSystemPrompts[agentType] || defaultSystemPrompt;
+
+    if (req.session.userId) {
+      const rental = await storage.getActiveRental(req.session.userId, agentType);
+      if (rental) {
+        if (rental.messagesUsed >= rental.messagesLimit) {
+          return res.status(403).json({
+            reply: "You've reached your message limit for this agent. Please upgrade your plan for more messages.",
+          });
+        }
+        await storage.incrementUsage(rental.id);
+      }
+    }
 
     try {
       const messages: OpenAI.ChatCompletionMessageParam[] = [

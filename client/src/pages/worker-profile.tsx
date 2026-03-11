@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link, useParams } from "wouter";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -18,8 +19,12 @@ import {
   Package,
   Check,
   Zap,
+  Loader2,
 } from "lucide-react";
 import { agents } from "@/data/agents";
+import { useAuth } from "@/lib/auth";
+import { useToast } from "@/hooks/use-toast";
+import { queryClient } from "@/lib/queryClient";
 import SectionCTA from "@/components/section-cta";
 
 const agentIcons: Record<string, any> = {
@@ -36,6 +41,9 @@ const agentIcons: Record<string, any> = {
 export default function WorkerProfile() {
   const { slug } = useParams<{ slug: string }>();
   const agent = agents.find((a) => a.slug === slug);
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [renting, setRenting] = useState(false);
 
   if (!agent) {
     return (
@@ -88,13 +96,47 @@ export default function WorkerProfile() {
             </div>
 
             <div className="flex flex-wrap gap-3 mb-8">
-              <Link href="/contact">
-                <Button size="lg" className="bg-gradient-to-r from-blue-500 to-violet-500 text-white border-0" data-testid="button-hire-worker">
-                  Hire This Worker
+              {user ? (
+                <Button
+                  size="lg"
+                  className="bg-gradient-to-r from-blue-500 to-violet-500 text-white border-0"
+                  data-testid="button-hire-worker"
+                  disabled={renting}
+                  onClick={async () => {
+                    setRenting(true);
+                    try {
+                      const res = await fetch("/api/rentals", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ agentType: agent.id, plan: "starter" }),
+                      });
+                      const data = await res.json();
+                      if (!res.ok) {
+                        toast({ title: "Notice", description: data.error, variant: "destructive" });
+                      } else {
+                        toast({ title: "Worker Rented!", description: `${agent.name} has been added to your dashboard.` });
+                        queryClient.invalidateQueries({ queryKey: ["/api/rentals"] });
+                      }
+                    } catch {
+                      toast({ title: "Error", description: "Something went wrong.", variant: "destructive" });
+                    } finally {
+                      setRenting(false);
+                    }
+                  }}
+                >
+                  {renting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                  Rent This Worker
                   <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>
-              </Link>
-              <Link href="/demo">
+              ) : (
+                <Link href="/login">
+                  <Button size="lg" className="bg-gradient-to-r from-blue-500 to-violet-500 text-white border-0" data-testid="button-hire-worker">
+                    Sign In to Rent
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </Button>
+                </Link>
+              )}
+              <Link href={`/demo?agent=${agent.id}`}>
                 <Button size="lg" variant="outline" data-testid="button-try-demo">
                   Try Demo
                 </Button>

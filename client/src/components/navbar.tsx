@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Menu, Bot } from "lucide-react";
+import { Menu, Bot, User, LayoutDashboard } from "lucide-react";
+import { useAuth } from "@/lib/auth";
 
 const navLinks = [
   { href: "/workers", label: "AI Workers" },
@@ -16,6 +17,7 @@ export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
   const [location] = useLocation();
+  const { user, isLoading } = useAuth();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -64,15 +66,36 @@ export default function Navbar() {
           </nav>
 
           <div className="flex items-center gap-3">
-            <Link href="/demo">
-              <Button
-                size="sm"
-                className="bg-gradient-to-r from-blue-500 to-violet-500 text-white border-0 hidden sm:flex"
-                data-testid="button-demo-cta"
-              >
-                Try Live Demo
-              </Button>
-            </Link>
+            {!isLoading && user ? (
+              <Link href="/dashboard">
+                <Button
+                  size="sm"
+                  className="bg-gradient-to-r from-blue-500 to-violet-500 text-white border-0 hidden sm:flex"
+                  data-testid="button-dashboard"
+                >
+                  <LayoutDashboard className="w-4 h-4 mr-1" />
+                  Dashboard
+                </Button>
+              </Link>
+            ) : !isLoading ? (
+              <div className="hidden sm:flex items-center gap-2">
+                <Link href="/login">
+                  <Button size="sm" variant="ghost" data-testid="button-login">
+                    <User className="w-4 h-4 mr-1" />
+                    Sign In
+                  </Button>
+                </Link>
+                <Link href="/demo">
+                  <Button
+                    size="sm"
+                    className="bg-gradient-to-r from-blue-500 to-violet-500 text-white border-0"
+                    data-testid="button-demo-cta"
+                  >
+                    Try Live Demo
+                  </Button>
+                </Link>
+              </div>
+            ) : null}
 
             <Sheet open={open} onOpenChange={setOpen}>
               <SheetTrigger asChild>
@@ -103,16 +126,41 @@ export default function Navbar() {
                       </span>
                     </Link>
                   ))}
-                  <div className="mt-4 px-4">
-                    <Link href="/demo">
-                      <Button
-                        className="w-full bg-gradient-to-r from-blue-500 to-violet-500 text-white border-0"
-                        onClick={() => setOpen(false)}
-                        data-testid="button-mobile-demo"
-                      >
-                        Try Live Demo
-                      </Button>
-                    </Link>
+                  <div className="mt-4 px-4 space-y-2">
+                    {user ? (
+                      <Link href="/dashboard">
+                        <Button
+                          className="w-full bg-gradient-to-r from-blue-500 to-violet-500 text-white border-0"
+                          onClick={() => setOpen(false)}
+                          data-testid="button-mobile-dashboard"
+                        >
+                          <LayoutDashboard className="w-4 h-4 mr-1" />
+                          Dashboard
+                        </Button>
+                      </Link>
+                    ) : (
+                      <>
+                        <Link href="/login">
+                          <Button
+                            variant="outline"
+                            className="w-full"
+                            onClick={() => setOpen(false)}
+                            data-testid="button-mobile-login"
+                          >
+                            Sign In
+                          </Button>
+                        </Link>
+                        <Link href="/demo">
+                          <Button
+                            className="w-full bg-gradient-to-r from-blue-500 to-violet-500 text-white border-0"
+                            onClick={() => setOpen(false)}
+                            data-testid="button-mobile-demo"
+                          >
+                            Try Live Demo
+                          </Button>
+                        </Link>
+                      </>
+                    )}
                   </div>
                 </div>
               </SheetContent>

@@ -24,8 +24,23 @@ import {
 import { agents } from "@/data/agents";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
-import { queryClient } from "@/lib/queryClient";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useQuery } from "@tanstack/react-query";
 import SectionCTA from "@/components/section-cta";
+
+interface StripePrice {
+  id: string;
+  unit_amount: number;
+  currency: string;
+  recurring: any;
+}
+
+interface StripeProduct {
+  id: string;
+  name: string;
+  metadata: Record<string, string>;
+  prices: StripePrice[];
+}
 
 const agentIcons: Record<string, any> = {
   "customer-support": Headphones,
@@ -44,6 +59,10 @@ export default function WorkerProfile() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [renting, setRenting] = useState(false);
+
+  const { data: stripeProducts } = useQuery<{ data: StripeProduct[] }>({
+    queryKey: ["/api/stripe/products"],
+  });
 
   if (!agent) {
     return (
@@ -105,18 +124,24 @@ export default function WorkerProfile() {
                   onClick={async () => {
                     setRenting(true);
                     try {
-                      const res = await fetch("/api/rentals", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ agentType: agent.id, plan: "starter" }),
-                      });
-                      const data = await res.json();
-                      if (!res.ok) {
-                        toast({ title: "Notice", description: data.error, variant: "destructive" });
-                      } else {
-                        toast({ title: "Worker Rented!", description: `${agent.name} has been added to your dashboard.` });
-                        queryClient.invalidateQueries({ queryKey: ["/api/rentals"] });
+                      const starterProduct = stripeProducts?.data?.find(p =>
+                        p.metadata?.plan === "starter" || p.name?.toLowerCase().includes("starter")
+                      );
+                      const priceId = starterProduct?.prices?.[0]?.id;
+
+                      if (priceId) {
+                        const res = await apiRequest("POST", "/api/stripe/checkout", {
+                          priceId,
+                          agentType: agent.id,
+                        });
+                        const data = await res.json();
+                        if (data.url) {
+                          window.location.href = data.url;
+                          return;
+                        }
                       }
+
+                      toast({ title: "Not Available", description: "Checkout is temporarily unavailable. Please try from the pricing page.", variant: "destructive" });
                     } catch {
                       toast({ title: "Error", description: "Something went wrong.", variant: "destructive" });
                     } finally {

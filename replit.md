@@ -15,6 +15,7 @@ RentAI 24 — the world's first AI staffing agency website. Lets businesses brow
 - Backend: Express.js + PostgreSQL (Neon serverless)
 - ORM: Drizzle ORM
 - AI: OpenAI GPT-4o via Replit AI Integrations
+- Payments: Stripe (via Replit Stripe integration + stripe-replit-sync)
 - Auth: express-session + memorystore + bcrypt
 - Routing: wouter
 - Animations: Framer Motion
@@ -25,34 +26,51 @@ RentAI 24 — the world's first AI staffing agency website. Lets businesses brow
 ## Pages
 - `/` — Homepage
 - `/workers` — AI Workers catalog (8 agents)
-- `/workers/:slug` — Worker profile with "Rent This Worker" button
+- `/workers/:slug` — Worker profile with "Rent This Worker" button (Stripe checkout)
 - `/how-it-works` — Process timeline
-- `/pricing` — 3 pricing tiers
+- `/pricing` — 3 pricing tiers with Stripe checkout integration
 - `/demo` — Live AI chat demo with agent selector
 - `/about` — About page
 - `/contact` — Contact form
 - `/login` — Sign in page
 - `/register` — Create account page
-- `/dashboard` — Customer dashboard (protected, shows rented workers + usage stats)
+- `/dashboard` — Customer dashboard (protected, shows rented workers + usage stats + Manage Billing)
 
 ## Key Files
 - `client/src/data/agents.ts` — All 8 AI worker data
 - `client/src/App.tsx` — Router setup with AuthProvider
 - `client/src/lib/auth.tsx` — Auth context provider (login/register/logout)
 - `client/src/lib/queryClient.ts` — TanStack Query setup with on401 handling
-- `client/src/pages/dashboard.tsx` — Customer dashboard with rental cards
+- `client/src/pages/dashboard.tsx` — Customer dashboard with rental cards + billing management
+- `client/src/pages/pricing.tsx` — Pricing page with Stripe checkout buttons
+- `client/src/pages/worker-profile.tsx` — Worker profile with Stripe checkout for renting
 - `client/src/pages/login.tsx` — Login page
 - `client/src/pages/register.tsx` — Registration page
 - `client/src/components/navbar.tsx` — Navbar with auth-aware buttons
-- `server/routes.ts` — All API routes (auth, chat, rentals, contact)
+- `server/routes.ts` — All API routes (auth, chat, rentals, contact, stripe)
 - `server/auth.ts` — Auth middleware (requireAuth)
 - `server/db.ts` — Database connection (Neon/Drizzle)
-- `server/storage.ts` — Storage layer (users, rentals CRUD)
+- `server/storage.ts` — Storage layer (users, rentals, stripe data queries)
+- `server/stripeClient.ts` — Stripe SDK client + StripeSync setup
+- `server/stripeService.ts` — Stripe service (checkout, portal, customer creation)
+- `server/webhookHandlers.ts` — Stripe webhook handler
+- `scripts/seed-products.ts` — Stripe product/price seeding script
 - `shared/schema.ts` — Database schemas + Zod validation schemas
 
 ## Database Tables
-- `users` — id, username, email, password (hashed), full_name, company, created_at
+- `users` — id, username, email, password (hashed), full_name, company, stripe_customer_id, stripe_subscription_id, created_at
 - `rentals` — id, user_id, agent_type, plan, status, messages_used, messages_limit, started_at, expires_at
+- `stripe.*` — Auto-managed by stripe-replit-sync (products, prices, customers, subscriptions, etc.)
+
+## Stripe Integration
+- Connected via Replit Stripe integration (sandbox/test mode)
+- Credentials: STRIPE_SECRET_KEY, STRIPE_PUBLISHABLE_KEY (env vars)
+- stripe-replit-sync handles schema migrations, webhook management, and data backfill
+- Webhook route registered BEFORE express.json() middleware at /api/stripe/webhook
+- 3 Stripe products created: Starter ($49/mo), Professional ($39/mo), Enterprise ($199/mo)
+- Checkout flow: Frontend calls POST /api/stripe/checkout → creates Stripe Checkout session → redirects to Stripe
+- Billing portal: POST /api/stripe/portal → Stripe Customer Portal for subscription management
+- Products queried from stripe.products/stripe.prices tables (synced from Stripe)
 
 ## 8 AI Workers (with Persona Names)
 1. Ava — Customer Support Agent ($99/mo)
@@ -92,7 +110,13 @@ RentAI 24 — the world's first AI staffing agency website. Lets businesses brow
 - `POST /api/rentals` — Rent an AI worker (protected)
 - `POST /api/chat` — AI chat via OpenAI GPT-4o
 - `POST /api/contact` — Contact form submission
+- `GET /api/stripe/config` — Stripe publishable key
+- `GET /api/stripe/products` — List products with prices
+- `POST /api/stripe/checkout` — Create Stripe Checkout session (protected)
+- `POST /api/stripe/portal` — Create Stripe Customer Portal session (protected)
+- `GET /api/stripe/subscription` — Get user's subscription status (protected)
 
 ## Development
 - Run: `npm run dev` (Express + Vite on port 5000)
 - DB push: `npm run db:push`
+- Seed Stripe products: `npx tsx scripts/seed-products.ts`

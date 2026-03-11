@@ -22,8 +22,10 @@ import {
   LogOut,
   Loader2,
   Gauge,
+  CreditCard,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 
 interface Rental {
   id: number;
@@ -74,6 +76,18 @@ export default function Dashboard() {
     setLocation("/");
   };
 
+  const handleManageBilling = async () => {
+    try {
+      const res = await apiRequest("POST", "/api/stripe/portal", {});
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      }
+    } catch {
+      toast({ title: "No billing account", description: "Subscribe to a plan first to manage billing.", variant: "destructive" });
+    }
+  };
+
   useEffect(() => {
     if (!authLoading && !user) {
       setLocation("/login");
@@ -112,6 +126,10 @@ export default function Dashboard() {
                   Rent AI Worker
                 </Button>
               </Link>
+              <Button variant="outline" size="sm" onClick={handleManageBilling} data-testid="button-manage-billing">
+                <CreditCard className="w-4 h-4 mr-1" />
+                Manage Billing
+              </Button>
               <Button variant="ghost" size="sm" onClick={handleLogout} data-testid="button-logout">
                 <LogOut className="w-4 h-4 mr-1" />
                 Sign Out

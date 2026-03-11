@@ -39,4 +39,10 @@ args = "npm run dev"
 waitForPort = 5000
 
 [agent]
-integrations = ["javascript_openai_ai_integrations:2.0.0"]
+integrations = ["javascript_openai_ai_integrations:2.0.0", "stripe:1.0.0"]
+
+[userenv]
+
+[userenv.shared]
+STRIPE_SECRET_KEY = "sk_test_51T9tQDLgdtb00uf4Ast84GGiZNYRrOWgEcXwsymIBBGkKdH1tiGiPSe5jlBoQoW6D8J7XQk9hgUh9ej7OFsG6p0F00D5huBe9z"
+STRIPE_PUBLISHABLE_KEY = "pk_test_51T9tQDLgdtb00uf4P6EWupf7fu9JyiIEXE8UHuZHaxH8QkYN4VXiJiaMBIE6QyUf3YFZB1uBezYxrnjXzPmgexYR00o95QCp18"

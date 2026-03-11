@@ -1,27 +1,48 @@
+import { useState } from "react";
 import { Link } from "wouter";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Check, ArrowRight, Sparkles, Shield, Zap, Users, Globe } from "lucide-react";
+import { Check, ArrowRight, Sparkles, Shield, Zap, Users, Globe, Loader2 } from "lucide-react";
+import { useAuth } from "@/lib/auth";
+import { useQuery } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 import SectionCTA from "@/components/section-cta";
 
-const plans = [
+interface StripePrice {
+  id: string;
+  unit_amount: number;
+  currency: string;
+  recurring: any;
+  active: boolean;
+}
+
+interface StripeProduct {
+  id: string;
+  name: string;
+  description: string;
+  active: boolean;
+  metadata: Record<string, string>;
+  prices: StripePrice[];
+}
+
+const fallbackPlans = [
   {
     name: "Starter",
     price: "$49",
     per: "/mo per worker",
     desc: "Perfect for small businesses getting started with AI",
     featured: false,
+    plan: "starter",
     features: [
       "1 AI Worker",
       "Basic integrations (up to 3)",
-      "Weekly performance reports",
+      "100 messages/month",
       "Email support",
       "Community access",
     ],
-    cta: "Start Free Trial",
-    ctaLink: "/contact",
   },
   {
     name: "Professional",
@@ -29,17 +50,16 @@ const plans = [
     per: "/mo per worker",
     desc: "Best value for growing teams scaling with AI",
     featured: true,
+    plan: "professional",
     features: [
       "Up to 5 AI Workers",
       "Advanced integrations (unlimited)",
-      "Daily performance reports",
+      "500 messages/month per worker",
       "Priority support (chat + email)",
       "Custom fine-tuning",
       "API access",
       "Multilingual support",
     ],
-    cta: "Start Free Trial",
-    ctaLink: "/contact",
   },
   {
     name: "Enterprise",
@@ -47,18 +67,17 @@ const plans = [
     per: "",
     desc: "For large-scale operations with custom requirements",
     featured: false,
+    plan: "enterprise",
     features: [
       "Unlimited AI Workers",
       "All integrations + custom",
-      "Real-time analytics dashboard",
+      "5,000 messages/month per worker",
       "24/7 dedicated support",
       "Custom AI training on your data",
       "SLA guarantee",
       "White-label option",
       "Dedicated account manager",
     ],
-    cta: "Contact Sales",
-    ctaLink: "/contact",
   },
 ];
 
@@ -76,6 +95,58 @@ const stagger = {
 };
 
 export default function Pricing() {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [checkingOut, setCheckingOut] = useState<string | null>(null);
+
+  const { data: stripeProducts } = useQuery<{ data: StripeProduct[] }>({
+    queryKey: ["/api/stripe/products"],
+  });
+
+  function getPriceForPlan(planName: string): StripePrice | null {
+    if (!stripeProducts?.data) return null;
+    const product = stripeProducts.data.find(p =>
+      p.metadata?.plan === planName || p.name?.toLowerCase().includes(planName)
+    );
+    if (!product || !product.prices.length) return null;
+    return product.prices[0];
+  }
+
+  async function handleCheckout(planName: string) {
+    if (!user) {
+      window.location.href = "/login";
+      return;
+    }
+
+    const price = getPriceForPlan(planName);
+    if (!price) {
+      toast({ title: "Not Available", description: "This plan is not yet available for purchase. Please contact sales.", variant: "destructive" });
+      return;
+    }
+
+    setCheckingOut(planName);
+    try {
+      const res = await apiRequest("POST", "/api/stripe/checkout", { priceId: price.id });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      }
+    } catch (error: any) {
+      toast({ title: "Error", description: "Failed to start checkout. Please try again.", variant: "destructive" });
+    } finally {
+      setCheckingOut(null);
+    }
+  }
+
+  const plans = fallbackPlans.map(plan => {
+    const stripePrice = getPriceForPlan(plan.plan);
+    return {
+      ...plan,
+      priceDisplay: stripePrice ? `$${(stripePrice.unit_amount / 100).toFixed(0)}` : plan.price,
+      hasStripePrice: !!stripePrice,
+    };
+  });
+
   return (
     <div className="pt-16">
       <section className="py-20 relative">
@@ -111,7 +182,7 @@ export default function Pricing() {
                       ? "bg-gradient-to-b from-blue-500/10 to-violet-500/10 border-blue-500/30"
                       : "bg-card border-border/50"
                   }`}
-                  data-testid={`card-plan-${i}`}
+                  data-testid={`card-plan-${plan.plan}`}
                 >
                   {plan.featured && (
                     <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-blue-500 to-violet-500 text-white border-0">
@@ -127,7 +198,7 @@ export default function Pricing() {
 
                   <div className="mb-8">
                     <span className="text-4xl font-bold bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent">
-                      {plan.price}
+                      {plan.priceDisplay}
                     </span>
                     {plan.per && <span className="text-muted-foreground text-sm">{plan.per}</span>}
                   </div>
@@ -141,19 +212,36 @@ export default function Pricing() {
                     ))}
                   </ul>
 
-                  <Link href={plan.ctaLink}>
+                  {plan.plan === "enterprise" ? (
+                    <Link href="/contact">
+                      <Button
+                        variant="outline"
+                        size="lg"
+                        className="w-full"
+                        data-testid={`button-plan-${plan.plan}`}
+                      >
+                        Contact Sales
+                        <ArrowRight className="w-4 h-4 ml-2" />
+                      </Button>
+                    </Link>
+                  ) : (
                     <Button
                       className={`w-full ${
                         plan.featured ? "bg-gradient-to-r from-blue-500 to-violet-500 text-white border-0" : ""
                       }`}
                       variant={plan.featured ? "default" : "outline"}
                       size="lg"
-                      data-testid={`button-plan-${i}`}
+                      data-testid={`button-plan-${plan.plan}`}
+                      disabled={checkingOut === plan.plan}
+                      onClick={() => handleCheckout(plan.plan)}
                     >
-                      {plan.cta}
+                      {checkingOut === plan.plan ? (
+                        <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                      ) : null}
+                      {user ? "Subscribe Now" : "Start Free Trial"}
                       <ArrowRight className="w-4 h-4 ml-2" />
                     </Button>
-                  </Link>
+                  )}
                 </Card>
               </motion.div>
             ))}

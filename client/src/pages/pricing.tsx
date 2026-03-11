@@ -140,10 +140,11 @@ export default function Pricing() {
 
   const plans = fallbackPlans.map(plan => {
     const stripePrice = getPriceForPlan(plan.plan);
+    const isEnterprise = plan.plan === 'enterprise';
     return {
       ...plan,
-      priceDisplay: stripePrice ? `$${(stripePrice.unit_amount / 100).toFixed(0)}` : plan.price,
-      hasStripePrice: !!stripePrice,
+      priceDisplay: isEnterprise ? 'Custom' : (stripePrice ? `$${(stripePrice.unit_amount / 100).toFixed(0)}` : plan.price),
+      hasStripePrice: isEnterprise ? false : !!stripePrice,
     };
   });
 
@@ -165,11 +166,11 @@ export default function Pricing() {
               </span>
             </h1>
             <p className="text-muted-foreground text-lg max-w-2xl mx-auto mb-4">
-              Start your 14-day free trial. No credit card required. Cancel anytime.
+              Scale your AI workforce with flexible plans. Cancel anytime.
             </p>
             <div className="flex items-center justify-center gap-2">
               <Shield className="w-4 h-4 text-emerald-400" />
-              <span className="text-sm text-emerald-400 font-medium">14-Day Free Trial &middot; No Credit Card &middot; Money-back Guarantee</span>
+              <span className="text-sm text-emerald-400 font-medium">Cancel Anytime &middot; Secure Checkout &middot; Money-back Guarantee</span>
             </div>
           </motion.div>
 
@@ -238,7 +239,7 @@ export default function Pricing() {
                       {checkingOut === plan.plan ? (
                         <Loader2 className="w-4 h-4 animate-spin mr-2" />
                       ) : null}
-                      {user ? "Subscribe Now" : "Start Free Trial"}
+                      {user ? "Subscribe Now" : "Get Started"}
                       <ArrowRight className="w-4 h-4 ml-2" />
                     </Button>
                   )}

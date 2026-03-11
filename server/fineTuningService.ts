@@ -4,10 +4,15 @@ import { db } from "./db";
 import { fineTuningJobs, type FineTuningJob } from "@shared/schema";
 import { eq, and, desc } from "drizzle-orm";
 
-const openai = new OpenAI({
-  apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
-  baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
-});
+function getFineTuningClient(): OpenAI {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    throw new Error(
+      "Fine-tuning requires a direct OpenAI API key. Set the OPENAI_API_KEY environment variable (not the Replit AI integration key)."
+    );
+  }
+  return new OpenAI({ apiKey });
+}
 
 export async function createFineTuningJob(
   agentType: string,
@@ -15,13 +20,14 @@ export async function createFineTuningJob(
   originalFilename: string
 ): Promise<FineTuningJob> {
   try {
+    const client = getFineTuningClient();
     const fileStream = fs.createReadStream(trainingFilePath);
-    const uploadedFile = await openai.files.create({
+    const uploadedFile = await client.files.create({
       file: fileStream,
       purpose: "fine-tune",
     });
 
-    const job = await openai.fineTuning.jobs.create({
+    const job = await client.fineTuning.jobs.create({
       training_file: uploadedFile.id,
       model: "gpt-4o-mini-2024-07-18",
       suffix: `rentai-${agentType}`,
@@ -54,7 +60,8 @@ export async function syncJobStatus(jobId: number): Promise<FineTuningJob> {
     throw new Error("Job not found");
   }
 
-  const job = await openai.fineTuning.jobs.retrieve(record.openaiJobId);
+  const client = getFineTuningClient();
+  const job = await client.fineTuning.jobs.retrieve(record.openaiJobId);
 
   const updates: Partial<FineTuningJob> = {
     status: job.status,

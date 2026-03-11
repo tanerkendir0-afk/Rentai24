@@ -102,7 +102,7 @@ RentAI 24 — the world's first AI staffing agency website. Lets businesses brow
 - Each agent has role-restricted system prompt
 - Input limits: message max 2000 chars, conversation max 20 messages
 - RAG: Uploaded documents chunked (~500 words, 50 overlap), embedded via text-embedding-3-small, stored in pgvector, top-5 cosine similarity retrieval prepended to system prompt
-- Fine-tuning: JSONL upload → OpenAI fine-tune on gpt-4o-mini-2024-07-18 → toggle active model per agent
+- Fine-tuning: JSONL upload → OpenAI fine-tune on gpt-4o-mini-2024-07-18 → toggle active model per agent (requires OPENAI_API_KEY env var — direct OpenAI key, separate from Replit AI integration)
 - Admin panel at /admin (ADMIN_PASSWORD env var required)
 
 ## Auth System

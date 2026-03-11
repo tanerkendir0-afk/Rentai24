@@ -28,14 +28,14 @@ interface Message {
 }
 
 const agentOptions = [
-  { id: "customer-support", name: "Customer Support", icon: Headphones },
-  { id: "sales-sdr", name: "Sales SDR", icon: TrendingUp },
-  { id: "social-media", name: "Social Media", icon: Share2 },
-  { id: "bookkeeping", name: "Bookkeeping", icon: Calculator },
-  { id: "scheduling", name: "Scheduling", icon: CalendarCheck },
-  { id: "hr-recruiting", name: "HR & Recruiting", icon: Users },
-  { id: "data-analyst", name: "Data Analyst", icon: BarChart3 },
-  { id: "ecommerce-ops", name: "E-Commerce Ops", icon: Package },
+  { id: "customer-support", name: "Customer Support", persona: "Ava", icon: Headphones },
+  { id: "sales-sdr", name: "Sales SDR", persona: "Rex", icon: TrendingUp },
+  { id: "social-media", name: "Social Media", persona: "Maya", icon: Share2 },
+  { id: "bookkeeping", name: "Bookkeeping", persona: "Finn", icon: Calculator },
+  { id: "scheduling", name: "Scheduling", persona: "Cal", icon: CalendarCheck },
+  { id: "hr-recruiting", name: "HR & Recruiting", persona: "Harper", icon: Users },
+  { id: "data-analyst", name: "Data Analyst", persona: "DataBot", icon: BarChart3 },
+  { id: "ecommerce-ops", name: "E-Commerce Ops", persona: "ShopBot", icon: Package },
 ];
 
 const suggestedPrompts = [
@@ -64,10 +64,14 @@ export default function Demo() {
     setLoading(true);
 
     try {
-      const res = await apiRequest("POST", "/api/chat", {
-        message: userMessage,
-        agentType: selectedAgent,
-        conversationHistory: messages,
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: userMessage,
+          agentType: selectedAgent,
+          conversationHistory: messages.slice(-20),
+        }),
       });
       const data = await res.json();
       setMessages((prev) => [...prev, { role: "assistant", content: data.reply }]);
@@ -149,7 +153,7 @@ export default function Demo() {
                 </div>
                 <div>
                   <h3 className="font-semibold text-foreground text-sm" data-testid="text-chat-agent-name">
-                    {currentAgent?.name} AI
+                    {currentAgent?.persona} — {currentAgent?.name}
                   </h3>
                   <div className="flex items-center gap-1.5">
                     <div className="w-2 h-2 rounded-full bg-emerald-400" />
@@ -178,7 +182,7 @@ export default function Demo() {
                     <Bot className="w-8 h-8 text-blue-400" />
                   </div>
                   <h3 className="font-semibold text-foreground mb-2" data-testid="text-chat-empty">
-                    Chat with {currentAgent?.name} AI
+                    Chat with {currentAgent?.persona}
                   </h3>
                   <p className="text-sm text-muted-foreground max-w-sm mb-6">
                     Start a conversation to see this AI worker in action. Try one of the prompts below.

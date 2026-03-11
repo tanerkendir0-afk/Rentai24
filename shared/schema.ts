@@ -1,12 +1,12 @@
 import { z } from "zod";
 
 export const chatMessageSchema = z.object({
-  message: z.string().min(1),
+  message: z.string().min(1).max(2000),
   agentType: z.string().min(1),
   conversationHistory: z.array(z.object({
     role: z.enum(["user", "assistant"]),
-    content: z.string(),
-  })).optional(),
+    content: z.string().max(2000),
+  })).max(20).optional(),
 });
 
 export type ChatMessage = z.infer<typeof chatMessageSchema>;

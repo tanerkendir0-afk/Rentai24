@@ -101,7 +101,7 @@ export class WebhookHandlers {
     const user = await storage.getUserByStripeCustomerId(customerId);
     if (!user) return;
 
-    await storage.updateUserStripeInfo(user.id, { stripeSubscriptionId: null as any });
+    await storage.updateUserStripeInfo(user.id, { stripeSubscriptionId: null });
     await storage.deactivateUserRentals(user.id);
     console.log(`Webhook: Deactivated all rentals for user ${user.id} (subscription cancelled)`);
   }

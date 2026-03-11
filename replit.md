@@ -112,7 +112,7 @@ RentAI 24 — the world's first AI staffing agency website. Lets businesses brow
 - `POST /api/auth/logout` — Destroy session
 - `GET /api/auth/me` — Current user
 - `GET /api/rentals` — User's rentals (protected)
-- `POST /api/rentals` — Rent an AI worker (protected)
+- `POST /api/rentals` — Disabled (rentals created only via Stripe webhook after checkout)
 - `POST /api/chat` — AI chat via OpenAI GPT-4o
 - `POST /api/contact` — Contact form submission
 - `GET /api/stripe/config` — Stripe publishable key

@@ -121,6 +121,15 @@ RentAI 24 — the world's first AI staffing agency website. Lets businesses brow
 - `POST /api/stripe/portal` — Create Stripe Customer Portal session (protected)
 - `GET /api/stripe/subscription` — Get user's subscription status (protected)
 
+## PWA Support
+- Web app manifest at `client/public/manifest.json` (app name, icons, standalone display, theme colors)
+- Service worker at `client/public/sw.js` (stale-while-revalidate for static, network-first for API)
+- Icons: `client/public/icon-192.png`, `client/public/icon-512.png` (blue-to-violet gradient with Bot icon)
+- SW registered in `client/src/main.tsx` on window load
+- Install prompt hook at `client/src/hooks/use-pwa-install.ts` (beforeinstallprompt + appinstalled events)
+- "Install App" button in navbar (desktop + mobile) — only shows when browser supports PWA install
+- Meta tags in `client/index.html`: manifest link, theme-color, apple-mobile-web-app-capable/status-bar-style/title
+
 ## Development
 - Run: `npm run dev` (Express + Vite on port 5000)
 - DB push: `npm run db:push`

@@ -2,8 +2,9 @@ import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Menu, Bot, User, LayoutDashboard } from "lucide-react";
+import { Menu, Bot, User, LayoutDashboard, Download } from "lucide-react";
 import { useAuth } from "@/lib/auth";
+import { usePwaInstall } from "@/hooks/use-pwa-install";
 
 const navLinks = [
   { href: "/workers", label: "AI Workers" },
@@ -18,6 +19,7 @@ export default function Navbar() {
   const [open, setOpen] = useState(false);
   const [location] = useLocation();
   const { user, isLoading } = useAuth();
+  const { canInstall, install } = usePwaInstall();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -66,6 +68,18 @@ export default function Navbar() {
           </nav>
 
           <div className="flex items-center gap-3">
+            {canInstall && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="hidden sm:flex border-blue-500/30 text-blue-400 hover:bg-blue-500/10"
+                onClick={install}
+                data-testid="button-install-pwa"
+              >
+                <Download className="w-4 h-4 mr-1" />
+                Install App
+              </Button>
+            )}
             {!isLoading && user ? (
               <Link href="/dashboard">
                 <Button
@@ -126,6 +140,19 @@ export default function Navbar() {
                       </span>
                     </Link>
                   ))}
+                  {canInstall && (
+                    <div className="px-4 mt-4">
+                      <Button
+                        variant="outline"
+                        className="w-full border-blue-500/30 text-blue-400 hover:bg-blue-500/10"
+                        onClick={() => { install(); setOpen(false); }}
+                        data-testid="button-mobile-install-pwa"
+                      >
+                        <Download className="w-4 h-4 mr-1" />
+                        Install App
+                      </Button>
+                    </div>
+                  )}
                   <div className="mt-4 px-4 space-y-2">
                     {user ? (
                       <Link href="/dashboard">

@@ -71,6 +71,13 @@ export default function Dashboard() {
     enabled: !!user,
   });
 
+  const { data: subscriptionData } = useQuery<{ subscription: any }>({
+    queryKey: ["/api/stripe/subscription"],
+    enabled: !!user,
+  });
+
+  const hasSubscription = !!(user as any)?.hasSubscription;
+
   const handleLogout = async () => {
     await logout();
     setLocation("/");
@@ -115,8 +122,17 @@ export default function Dashboard() {
               <h1 className="text-2xl font-bold text-foreground" data-testid="text-dashboard-welcome">
                 Welcome, {user.fullName}
               </h1>
-              <p className="text-muted-foreground text-sm mt-1">
+              <p className="text-muted-foreground text-sm mt-1 flex items-center gap-2">
                 Manage your AI workforce from here
+                {hasSubscription ? (
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-500/20 text-green-400 border border-green-500/30" data-testid="badge-subscription-active">
+                    Active Subscription
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-500/20 text-yellow-400 border border-yellow-500/30" data-testid="badge-no-subscription">
+                    No Subscription
+                  </span>
+                )}
               </p>
             </div>
             <div className="flex gap-3">

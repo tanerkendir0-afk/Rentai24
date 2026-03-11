@@ -234,7 +234,14 @@ export async function registerRoutes(
       return res.status(401).json({ error: "User not found" });
     }
     res.json({
-      user: { id: user.id, username: user.username, email: user.email, fullName: user.fullName, company: user.company },
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        fullName: user.fullName,
+        company: user.company,
+        hasSubscription: !!user.stripeSubscriptionId,
+      },
     });
   });
 
@@ -251,6 +258,11 @@ export async function registerRoutes(
     const { agentType, plan } = req.body;
     if (!agentType || !agentNameMap[agentType]) {
       return res.status(400).json({ error: "Invalid agent type" });
+    }
+
+    const user = await storage.getUserById(req.session.userId!);
+    if (!user?.stripeSubscriptionId) {
+      return res.status(403).json({ error: "An active subscription is required. Please subscribe from the Pricing page." });
     }
 
     const existing = await storage.getActiveRental(req.session.userId!, agentType);

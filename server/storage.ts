@@ -7,12 +7,15 @@ export interface IStorage {
   getUserByEmail(email: string): Promise<User | undefined>;
   getUserById(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
-  updateUserStripeInfo(userId: number, info: { stripeCustomerId?: string; stripeSubscriptionId?: string }): Promise<User | undefined>;
+  getUserByStripeCustomerId(customerId: string): Promise<User | undefined>;
+  updateUserStripeInfo(userId: number, info: { stripeCustomerId?: string; stripeSubscriptionId?: string | null }): Promise<User | undefined>;
 
   createRental(rental: InsertRental): Promise<Rental>;
   getRentalsByUser(userId: number): Promise<Rental[]>;
   getActiveRental(userId: number, agentType: string): Promise<Rental | undefined>;
   incrementUsage(rentalId: number): Promise<void>;
+  activateUserRentals(userId: number): Promise<void>;
+  deactivateUserRentals(userId: number): Promise<void>;
 
   getProduct(productId: string): Promise<any>;
   listProducts(active?: boolean): Promise<any[]>;
@@ -69,9 +72,26 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async updateUserStripeInfo(userId: number, info: { stripeCustomerId?: string; stripeSubscriptionId?: string }): Promise<User | undefined> {
+  async getUserByStripeCustomerId(customerId: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.stripeCustomerId, customerId));
+    return user;
+  }
+
+  async updateUserStripeInfo(userId: number, info: { stripeCustomerId?: string; stripeSubscriptionId?: string | null }): Promise<User | undefined> {
     const [updated] = await db.update(users).set(info).where(eq(users.id, userId)).returning();
     return updated;
+  }
+
+  async activateUserRentals(userId: number): Promise<void> {
+    await db.update(rentals).set({ status: 'active' }).where(
+      and(eq(rentals.userId, userId), eq(rentals.status, 'inactive'))
+    );
+  }
+
+  async deactivateUserRentals(userId: number): Promise<void> {
+    await db.update(rentals).set({ status: 'inactive' }).where(
+      and(eq(rentals.userId, userId), eq(rentals.status, 'active'))
+    );
   }
 
   async getProduct(productId: string) {

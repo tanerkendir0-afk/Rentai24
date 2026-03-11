@@ -77,6 +77,13 @@ export default function Dashboard() {
   });
 
   const hasSubscription = !!(user as any)?.hasSubscription;
+  const subscription = subscriptionData?.subscription;
+  const planName = subscription?.metadata?.plan
+    ? subscription.metadata.plan.charAt(0).toUpperCase() + subscription.metadata.plan.slice(1)
+    : null;
+  const renewalDate = subscription?.current_period_end
+    ? new Date(subscription.current_period_end * 1000).toLocaleDateString()
+    : null;
 
   const handleLogout = async () => {
     await logout();
@@ -126,7 +133,8 @@ export default function Dashboard() {
                 Manage your AI workforce from here
                 {hasSubscription ? (
                   <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-500/20 text-green-400 border border-green-500/30" data-testid="badge-subscription-active">
-                    Active Subscription
+                    {planName ? `${planName} Plan` : 'Active Subscription'}
+                    {renewalDate ? ` · Renews ${renewalDate}` : ''}
                   </span>
                 ) : (
                   <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-500/20 text-yellow-400 border border-yellow-500/30" data-testid="badge-no-subscription">

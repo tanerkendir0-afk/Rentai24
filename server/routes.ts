@@ -254,8 +254,43 @@ export async function registerRoutes(
     res.json(enriched);
   });
 
-  app.post("/api/rentals", requireAuth, async (_req, res) => {
-    res.status(403).json({ error: "Rentals are activated via Stripe checkout. Please subscribe from the Pricing page or rent a worker from their profile." });
+  app.post("/api/rentals", requireAuth, async (req, res) => {
+    const { agentType } = req.body;
+    if (!agentType || !agentNameMap[agentType]) {
+      return res.status(400).json({ error: "Invalid agent type" });
+    }
+
+    const user = await storage.getUserById(req.session.userId!);
+    if (!user?.stripeSubscriptionId) {
+      return res.status(403).json({ error: "An active subscription is required. Please subscribe from the Pricing page first." });
+    }
+
+    const existing = await storage.getActiveRental(req.session.userId!, agentType);
+    if (existing) {
+      return res.status(409).json({ error: "You already have an active rental for this agent" });
+    }
+
+    const subscription = await storage.getSubscription(user.stripeSubscriptionId);
+    if (!subscription || (subscription.status !== 'active' && subscription.status !== 'trialing')) {
+      return res.status(403).json({ error: "Your subscription is not active. Please update your billing." });
+    }
+
+    const planMeta = subscription.metadata?.plan || 'starter';
+    const planLimits: Record<string, number> = { starter: 100, professional: 500, enterprise: 5000 };
+
+    const expiresAt = new Date();
+    expiresAt.setMonth(expiresAt.getMonth() + 1);
+
+    const rental = await storage.createRental({
+      userId: req.session.userId!,
+      agentType,
+      plan: planMeta,
+      status: "active",
+      messagesLimit: planLimits[planMeta] || 100,
+      expiresAt,
+    });
+
+    res.json({ ...rental, agentName: agentNameMap[agentType] });
   });
 
   app.post("/api/chat", async (req, res) => {
@@ -381,10 +416,10 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Invalid product" });
       }
 
-      const allowedPlans = ["starter", "professional", "enterprise"];
+      const allowedPlans = ["starter", "professional"];
       const planMeta = product.metadata?.plan;
       if (!planMeta || !allowedPlans.includes(planMeta)) {
-        return res.status(400).json({ error: "Invalid plan" });
+        return res.status(400).json({ error: "Invalid plan. Enterprise plans require contacting sales." });
       }
 
       const user = await storage.getUserById(req.session.userId!);

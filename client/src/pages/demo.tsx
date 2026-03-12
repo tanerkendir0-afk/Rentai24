@@ -26,6 +26,8 @@ import {
   Coins,
   ShoppingCart,
   X,
+  AlertTriangle,
+  Gauge,
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
@@ -40,6 +42,7 @@ interface Message {
   role: "user" | "assistant";
   content: string;
   actions?: AgentAction[];
+  isLimitWarning?: boolean;
 }
 
 const agentOptions = [
@@ -97,6 +100,16 @@ export default function Demo() {
 
   const imageCredits = creditsData?.credits ?? 0;
   const isSocialMediaAgent = selectedAgent === "social-media";
+
+  const { data: spendingData } = useQuery<{ spent: number; limit: number; remaining: number; limitReached: boolean }>({
+    queryKey: ["/api/token-spending", selectedAgent],
+    queryFn: async () => {
+      const params = user ? `?agentType=${selectedAgent}` : "";
+      const res = await fetch(`/api/token-spending${params}`);
+      return res.json();
+    },
+    refetchInterval: 60000,
+  });
 
   const rentalsReady = !user || !rentalsLoading;
   const activeRentals = rentals?.filter(r => r.status === "active") || [];
@@ -179,7 +192,12 @@ export default function Demo() {
         }),
       });
       const data = await res.json();
-      setMessages((prev) => [...prev, { role: "assistant", content: data.reply, actions: data.actions }]);
+      if (data.limitReached) {
+        setMessages((prev) => [...prev, { role: "assistant", content: data.reply, isLimitWarning: true }]);
+      } else {
+        setMessages((prev) => [...prev, { role: "assistant", content: data.reply, actions: data.actions }]);
+      }
+      queryClient.invalidateQueries({ queryKey: ["/api/token-spending"] });
       if (isSocialMediaAgent) {
         queryClient.invalidateQueries({ queryKey: ["/api/image-credits"] });
       }
@@ -282,6 +300,16 @@ export default function Demo() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
+                {spendingData && (
+                  <Badge
+                    variant="outline"
+                    className={`text-xs gap-1 ${spendingData.limitReached ? "border-red-500/50 text-red-400 bg-red-500/10" : spendingData.remaining < 1 ? "border-yellow-500/50 text-yellow-400 bg-yellow-500/10" : "border-emerald-500/50 text-emerald-400 bg-emerald-500/10"}`}
+                    data-testid="badge-token-spending"
+                  >
+                    <Gauge className="w-3 h-3" />
+                    ${spendingData.spent.toFixed(2)} / ${spendingData.limit.toFixed(2)}
+                  </Badge>
+                )}
                 {user && isSocialMediaAgent && (
                   <div className="relative">
                     <Button
@@ -406,10 +434,17 @@ export default function Demo() {
                     )}
                     <div
                       className={`rounded-md px-4 py-3 text-sm leading-relaxed ${
+                        msg.isLimitWarning ? "bg-red-500/20 border border-red-500/40 text-red-300" :
                         msg.role === "user" ? "bg-blue-500 text-white" : "bg-muted text-foreground"
                       }`}
                       data-testid={`chat-message-${i}`}
                     >
+                      {msg.isLimitWarning && (
+                        <div className="flex items-center gap-2 mb-2 text-red-400 font-medium">
+                          <AlertTriangle className="w-4 h-4" />
+                          Token Limit Reached
+                        </div>
+                      )}
                       {msg.content.split(/(\!\[.*?\]\(.*?\))/).map((part, pi) => {
                         const imgMatch = part.match(/^\!\[(.*?)\]\((.*?)\)$/);
                         if (imgMatch) {

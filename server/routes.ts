@@ -559,6 +559,8 @@ export async function registerRoutes(
     const { message, agentType, conversationHistory } = parsed.data;
     let systemPrompt = agentSystemPrompts[agentType] || defaultSystemPrompt;
 
+    const TOKEN_SPENDING_LIMIT_USD = 5.00;
+
     if (req.session.userId) {
       const userRentals = await storage.getRentalsByUser(req.session.userId);
       const activeRentals = userRentals.filter(r => r.status === "active");
@@ -575,7 +577,26 @@ export async function registerRoutes(
             reply: "You've reached your message limit for this agent. Please upgrade your plan for more messages.",
           });
         }
+        const userSpending = await storage.getTokenSpending(req.session.userId, agentType);
+        if (userSpending >= TOKEN_SPENDING_LIMIT_USD) {
+          return res.status(403).json({
+            reply: `Bu ajan için token harcama limitinize ($${TOKEN_SPENDING_LIMIT_USD.toFixed(2)} USD) ulaştınız. Şu ana kadar $${userSpending.toFixed(4)} harcandı. Daha fazla kullanım için lütfen planınızı yükseltin.`,
+            limitReached: true,
+            spent: userSpending,
+            limit: TOKEN_SPENDING_LIMIT_USD,
+          });
+        }
         await storage.incrementUsage(rental.id);
+      }
+    } else {
+      const sessionSpending = (req.session as any).tokenSpending || 0;
+      if (sessionSpending >= TOKEN_SPENDING_LIMIT_USD) {
+        return res.status(403).json({
+          reply: `Demo token harcama limitine ($${TOKEN_SPENDING_LIMIT_USD.toFixed(2)} USD) ulaşıldı. Devam etmek için lütfen kayıt olun ve bir ajan kiralayın.`,
+          limitReached: true,
+          spent: sessionSpending,
+          limit: TOKEN_SPENDING_LIMIT_USD,
+        });
       }
     }
 
@@ -671,6 +692,10 @@ export async function registerRoutes(
 
       const totalTokens = totalPromptTokens + totalCompletionTokens;
       const costUsd = calculateTokenCost(modelToUse, totalPromptTokens, totalCompletionTokens);
+
+      if (!req.session.userId) {
+        (req.session as any).tokenSpending = ((req.session as any).tokenSpending || 0) + costUsd;
+      }
 
       storage.logTokenUsage({
         userId: req.session.userId || null,
@@ -1129,6 +1154,27 @@ export async function registerRoutes(
       const minCost = parseFloat(req.query.minCost as string) || 0;
       const detailed = await storage.getTokenUsageDetailed(minCost);
       res.json(detailed);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/token-spending", async (req: any, res) => {
+    try {
+      const limit = 5.00;
+      let spent: number;
+      if (req.session?.userId) {
+        const agentType = req.query.agentType as string | undefined;
+        spent = await storage.getTokenSpending(req.session.userId, agentType);
+      } else {
+        spent = (req.session as any)?.tokenSpending || 0;
+      }
+      res.json({
+        spent: parseFloat(spent.toFixed(4)),
+        limit,
+        remaining: parseFloat(Math.max(0, limit - spent).toFixed(4)),
+        limitReached: spent >= limit,
+      });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }

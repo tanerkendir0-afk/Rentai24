@@ -52,6 +52,7 @@ export interface IStorage {
   logTokenUsage(usage: InsertTokenUsage): Promise<TokenUsage>;
   getTokenUsageSummary(): Promise<any[]>;
   getTokenUsageDetailed(minCostUsd?: number): Promise<any[]>;
+  getTokenSpending(userId: number | null, agentType?: string): Promise<number>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -339,6 +340,32 @@ export class DatabaseStorage implements IStorage {
       LIMIT 500
     `);
     return result.rows;
+  }
+
+  async getTokenSpending(userId: number | null, agentType?: string): Promise<number> {
+    let result;
+    if (userId) {
+      if (agentType) {
+        result = await db.execute(sql`
+          SELECT COALESCE(SUM(CAST(cost_usd AS DECIMAL(10,6))), 0)::text as total
+          FROM token_usage
+          WHERE user_id = ${userId} AND agent_type = ${agentType}
+        `);
+      } else {
+        result = await db.execute(sql`
+          SELECT COALESCE(SUM(CAST(cost_usd AS DECIMAL(10,6))), 0)::text as total
+          FROM token_usage
+          WHERE user_id = ${userId}
+        `);
+      }
+    } else {
+      result = await db.execute(sql`
+        SELECT COALESCE(SUM(CAST(cost_usd AS DECIMAL(10,6))), 0)::text as total
+        FROM token_usage
+        WHERE user_id IS NULL
+      `);
+    }
+    return parseFloat((result.rows[0] as any)?.total || "0");
   }
 }
 

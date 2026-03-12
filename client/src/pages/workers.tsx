@@ -71,10 +71,6 @@ export default function Workers() {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const { data: stripeProducts } = useQuery<{ data: any[] }>({
-    queryKey: ["/api/stripe/products"],
-  });
-
   async function handleHire(agentId: string) {
     if (!user) {
       const agent = agents.find(a => a.id === agentId);
@@ -83,36 +79,27 @@ export default function Workers() {
       return;
     }
 
-    const starterProduct = stripeProducts?.data?.find(
-      (p: any) => p.metadata?.plan === "starter" || p.name?.toLowerCase().includes("starter")
-    );
-    const priceId = starterProduct?.prices?.[0]?.id;
-
-    if (!priceId) {
-      toast({
-        title: "Checkout unavailable",
-        description: "No pricing plan found. Please visit the Pricing page or try again later.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setCheckingOut(agentId);
     try {
-      const res = await apiRequest("POST", "/api/stripe/checkout", {
-        priceId,
+      const res = await apiRequest("POST", "/api/test-checkout", {
+        plan: "starter",
         agentType: agentId,
+        cardNumber: "4242424242424242",
+        expiry: "12/28",
+        cvc: "123",
       });
       const data = await res.json();
-      if (data.url) {
-        window.location.href = data.url;
+      if (data.success) {
+        toast({ title: "Agent Hired!", description: "Your AI worker is now active and ready to use." });
+        window.location.href = "/dashboard?checkout=success";
       }
-    } catch {
-      toast({
-        title: "Error",
-        description: "Failed to start checkout. Please try again.",
-        variant: "destructive",
-      });
+    } catch (error: any) {
+      const msg = error?.message || "Failed to hire agent.";
+      if (msg.includes("already have")) {
+        toast({ title: "Already Active", description: "You already have this agent active.", variant: "destructive" });
+      } else {
+        toast({ title: "Error", description: msg, variant: "destructive" });
+      }
     } finally {
       setCheckingOut(null);
     }

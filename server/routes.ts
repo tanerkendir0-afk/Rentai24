@@ -814,6 +814,89 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/test-checkout", requireAuth, async (req, res) => {
+    try {
+      const { plan, agentType, cardNumber, expiry, cvc } = req.body;
+
+      const allowedPlans = ["starter", "professional"];
+      if (!plan || !allowedPlans.includes(plan)) {
+        return res.status(400).json({ error: "Invalid plan" });
+      }
+
+      const cleanCard = (cardNumber || "").replace(/\s/g, "");
+      const validTestCards = [
+        "4242424242424242",
+        "4000000000000077",
+        "5555555555554444",
+        "378282246310005",
+      ];
+      const declinedCards = [
+        "4000000000000002",
+        "4000000000009995",
+        "4000000000000069",
+      ];
+
+      if (declinedCards.includes(cleanCard)) {
+        return res.status(402).json({ error: "Card declined. Please try a different card." });
+      }
+
+      if (!validTestCards.includes(cleanCard)) {
+        return res.status(400).json({ error: "Invalid test card number. Use 4242 4242 4242 4242 for testing." });
+      }
+
+      if (!expiry || !cvc) {
+        return res.status(400).json({ error: "Card details are incomplete" });
+      }
+
+      const user = await storage.getUserById(req.session.userId!);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+
+      const planLimits: Record<string, number> = { starter: 100, professional: 500 };
+      const expiresAt = new Date();
+      expiresAt.setMonth(expiresAt.getMonth() + 1);
+
+      if (agentType && agentNameMap[agentType]) {
+        const existing = await storage.getActiveRental(user.id, agentType);
+        if (existing) {
+          return res.status(409).json({ error: "You already have an active rental for this agent" });
+        }
+
+        await storage.createRental({
+          userId: user.id,
+          agentType,
+          plan,
+          status: "active",
+          messagesLimit: planLimits[plan] || 100,
+          expiresAt,
+        });
+      } else {
+        const defaultAgent = "customer-support";
+        const existing = await storage.getActiveRental(user.id, defaultAgent);
+        if (!existing) {
+          await storage.createRental({
+            userId: user.id,
+            agentType: defaultAgent,
+            plan,
+            status: "active",
+            messagesLimit: planLimits[plan] || 100,
+            expiresAt,
+          });
+        }
+      }
+
+      await storage.updateUserStripeInfo(user.id, {
+        stripeSubscriptionId: `test_sub_${Date.now()}`,
+      });
+
+      res.json({ success: true, redirect: "/dashboard?checkout=success" });
+    } catch (error: any) {
+      console.error("Test checkout error:", error.message);
+      res.status(500).json({ error: "Checkout failed. Please try again." });
+    }
+  });
+
   app.post("/api/stripe/checkout", requireAuth, async (req, res) => {
     try {
       const { priceId, agentType } = req.body;

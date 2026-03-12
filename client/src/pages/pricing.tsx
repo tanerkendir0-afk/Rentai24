@@ -1,33 +1,16 @@
 import { useState } from "react";
-import { Link } from "wouter";
-import { motion } from "framer-motion";
+import { Link, useLocation } from "wouter";
+import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Check, ArrowRight, Sparkles, Shield, Zap, Users, Globe, Loader2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Check, ArrowRight, Sparkles, Shield, Zap, Users, Globe, Loader2, CreditCard, Lock, X } from "lucide-react";
 import { useAuth } from "@/lib/auth";
-import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { CreditCard, Copy, Info } from "lucide-react";
 import SectionCTA from "@/components/section-cta";
-
-interface StripePrice {
-  id: string;
-  unit_amount: number;
-  currency: string;
-  recurring: any;
-  active: boolean;
-}
-
-interface StripeProduct {
-  id: string;
-  name: string;
-  description: string;
-  active: boolean;
-  metadata: Record<string, string>;
-  prices: StripePrice[];
-}
 
 const fallbackPlans = [
   {
@@ -98,56 +81,16 @@ const stagger = {
 export default function Pricing() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [checkingOut, setCheckingOut] = useState<string | null>(null);
+  const [, navigate] = useLocation();
+  const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
 
-  const { data: stripeProducts } = useQuery<{ data: StripeProduct[] }>({
-    queryKey: ["/api/stripe/products"],
-  });
-
-  function getPriceForPlan(planName: string): StripePrice | null {
-    if (!stripeProducts?.data) return null;
-    const product = stripeProducts.data.find(p =>
-      p.metadata?.plan === planName || p.name?.toLowerCase().includes(planName)
-    );
-    if (!product || !product.prices.length) return null;
-    return product.prices[0];
-  }
-
-  async function handleCheckout(planName: string) {
+  function handleSelectPlan(planName: string) {
     if (!user) {
       window.location.href = "/login";
       return;
     }
-
-    const price = getPriceForPlan(planName);
-    if (!price) {
-      toast({ title: "Not Available", description: "This plan is not yet available for purchase. Please contact sales.", variant: "destructive" });
-      return;
-    }
-
-    setCheckingOut(planName);
-    try {
-      const res = await apiRequest("POST", "/api/stripe/checkout", { priceId: price.id });
-      const data = await res.json();
-      if (data.url) {
-        window.location.href = data.url;
-      }
-    } catch (error: any) {
-      toast({ title: "Error", description: "Failed to start checkout. Please try again.", variant: "destructive" });
-    } finally {
-      setCheckingOut(null);
-    }
+    setSelectedPlan(planName);
   }
-
-  const plans = fallbackPlans.map(plan => {
-    const stripePrice = getPriceForPlan(plan.plan);
-    const isEnterprise = plan.plan === 'enterprise';
-    return {
-      ...plan,
-      priceDisplay: isEnterprise ? 'Custom' : (stripePrice ? `$${(stripePrice.unit_amount / 100).toFixed(0)}` : plan.price),
-      hasStripePrice: isEnterprise ? false : !!stripePrice,
-    };
-  });
 
   return (
     <div className="pt-16">
@@ -176,7 +119,7 @@ export default function Pricing() {
           </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 max-w-5xl mx-auto items-stretch">
-            {plans.map((plan, i) => (
+            {fallbackPlans.map((plan, i) => (
               <motion.div key={plan.name} {...stagger} transition={{ duration: 0.5, delay: i * 0.15 }} className="flex">
                 <Card
                   className={`p-8 flex flex-col w-full relative ${
@@ -200,7 +143,7 @@ export default function Pricing() {
 
                   <div className="mb-8">
                     <span className="text-4xl font-bold bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent">
-                      {plan.priceDisplay}
+                      {plan.price}
                     </span>
                     {plan.per && <span className="text-muted-foreground text-sm">{plan.per}</span>}
                   </div>
@@ -234,12 +177,8 @@ export default function Pricing() {
                       variant={plan.featured ? "default" : "outline"}
                       size="lg"
                       data-testid={`button-plan-${plan.plan}`}
-                      disabled={checkingOut === plan.plan}
-                      onClick={() => handleCheckout(plan.plan)}
+                      onClick={() => handleSelectPlan(plan.plan)}
                     >
-                      {checkingOut === plan.plan ? (
-                        <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                      ) : null}
                       {user ? "Subscribe Now" : "Get Started"}
                       <ArrowRight className="w-4 h-4 ml-2" />
                     </Button>
@@ -273,89 +212,210 @@ export default function Pricing() {
         </div>
       </section>
 
-      <section className="py-16 relative">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
-          >
-            <Card className="p-8 bg-gradient-to-br from-amber-500/5 to-orange-500/5 border-amber-500/20" data-testid="card-test-payment">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 rounded-md bg-gradient-to-br from-amber-500/20 to-orange-500/20 flex items-center justify-center">
-                  <CreditCard className="w-5 h-5 text-amber-400" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold text-foreground">Test Mode</h3>
-                  <p className="text-xs text-amber-400 font-medium flex items-center gap-1">
-                    <Info className="w-3 h-3" />
-                    Stripe test mode is active
-                  </p>
-                </div>
-              </div>
-
-              <p className="text-sm text-muted-foreground mb-5">
-                Use the following test card details to simulate a payment. No real charges will be made.
-              </p>
-
-              <div className="space-y-3">
-                <TestCardRow label="Card Number" value="4242 4242 4242 4242" />
-                <TestCardRow label="Expiry Date" value="12/28" />
-                <TestCardRow label="CVC" value="123" />
-                <TestCardRow label="ZIP / Postal" value="12345" />
-              </div>
-
-              <div className="mt-6 pt-5 border-t border-border/30">
-                <p className="text-xs text-muted-foreground mb-3">Other test scenarios:</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <TestCardRow label="Declined" value="4000 0000 0000 0002" compact />
-                  <TestCardRow label="Auth Required" value="4000 0025 0000 3155" compact />
-                  <TestCardRow label="Insufficient Funds" value="4000 0000 0000 9995" compact />
-                  <TestCardRow label="Expired Card" value="4000 0000 0000 0069" compact />
-                </div>
-              </div>
-            </Card>
-          </motion.div>
-        </div>
-      </section>
-
       <SectionCTA />
+
+      <AnimatePresence>
+        {selectedPlan && (
+          <CheckoutModal
+            plan={selectedPlan}
+            planData={fallbackPlans.find(p => p.plan === selectedPlan)!}
+            onClose={() => setSelectedPlan(null)}
+            onSuccess={() => {
+              setSelectedPlan(null);
+              navigate("/dashboard?checkout=success");
+            }}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
 
-function TestCardRow({ label, value, compact }: { label: string; value: string; compact?: boolean }) {
+function CheckoutModal({
+  plan,
+  planData,
+  onClose,
+  onSuccess,
+}: {
+  plan: string;
+  planData: typeof fallbackPlans[0];
+  onClose: () => void;
+  onSuccess: () => void;
+}) {
   const { toast } = useToast();
+  const [processing, setProcessing] = useState(false);
+  const [cardNumber, setCardNumber] = useState("");
+  const [expiry, setExpiry] = useState("");
+  const [cvc, setCvc] = useState("");
+  const [name, setName] = useState("");
 
-  function copyToClipboard() {
-    navigator.clipboard.writeText(value.replace(/\s/g, ""));
-    toast({ title: "Copied!", description: `${label} copied to clipboard.` });
+  function formatCardNumber(value: string) {
+    const digits = value.replace(/\D/g, "").slice(0, 16);
+    return digits.replace(/(\d{4})(?=\d)/g, "$1 ");
   }
 
-  if (compact) {
-    return (
-      <div className="flex items-center justify-between bg-background/50 rounded-md px-3 py-2">
-        <span className="text-xs text-muted-foreground">{label}</span>
-        <div className="flex items-center gap-2">
-          <code className="text-xs font-mono text-foreground">{value}</code>
-          <button onClick={copyToClipboard} className="text-muted-foreground hover:text-foreground transition-colors" data-testid={`button-copy-${label.toLowerCase().replace(/\s/g, '-')}`}>
-            <Copy className="w-3 h-3" />
-          </button>
-        </div>
-      </div>
-    );
+  function formatExpiry(value: string) {
+    const digits = value.replace(/\D/g, "").slice(0, 4);
+    if (digits.length >= 3) {
+      return digits.slice(0, 2) + "/" + digits.slice(2);
+    }
+    return digits;
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+
+    const cleanCard = cardNumber.replace(/\s/g, "");
+    if (cleanCard.length < 13) {
+      toast({ title: "Invalid Card", description: "Please enter a valid card number.", variant: "destructive" });
+      return;
+    }
+    if (!expiry || expiry.length < 4) {
+      toast({ title: "Invalid Expiry", description: "Please enter a valid expiry date (MM/YY).", variant: "destructive" });
+      return;
+    }
+    if (!cvc || cvc.length < 3) {
+      toast({ title: "Invalid CVC", description: "Please enter a valid CVC.", variant: "destructive" });
+      return;
+    }
+
+    setProcessing(true);
+    try {
+      const res = await apiRequest("POST", "/api/test-checkout", {
+        plan,
+        cardNumber: cleanCard,
+        expiry,
+        cvc,
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast({ title: "Payment Successful!", description: `Your ${planData.name} plan is now active.` });
+        onSuccess();
+      }
+    } catch (error: any) {
+      const message = error?.message || "Payment failed. Please try again.";
+      toast({ title: "Payment Failed", description: message, variant: "destructive" });
+    } finally {
+      setProcessing(false);
+    }
   }
 
   return (
-    <div className="flex items-center justify-between bg-background/50 rounded-lg px-4 py-3">
-      <span className="text-sm text-muted-foreground">{label}</span>
-      <div className="flex items-center gap-3">
-        <code className="text-sm font-mono text-foreground tracking-wider">{value}</code>
-        <button onClick={copyToClipboard} className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded-md hover:bg-background" data-testid={`button-copy-${label.toLowerCase().replace(/\s/g, '-')}`}>
-          <Copy className="w-4 h-4" />
-        </button>
-      </div>
-    </div>
+    <motion.div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+    >
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <motion.div
+        className="relative w-full max-w-md"
+        initial={{ scale: 0.95, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.95, opacity: 0 }}
+        transition={{ duration: 0.2 }}
+      >
+        <Card className="p-6 bg-card border-border/50 shadow-2xl" data-testid="card-checkout-modal">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-md bg-gradient-to-br from-blue-500/20 to-violet-500/20 flex items-center justify-center">
+                <CreditCard className="w-5 h-5 text-blue-400" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-foreground">Checkout</h3>
+                <p className="text-xs text-muted-foreground">{planData.name} Plan — {planData.price}{planData.per}</p>
+              </div>
+            </div>
+            <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors" data-testid="button-close-checkout">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <Label htmlFor="cardName" className="text-sm text-muted-foreground">Cardholder Name</Label>
+              <Input
+                id="cardName"
+                placeholder="John Doe"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="mt-1 bg-background/50"
+                data-testid="input-card-name"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="cardNumber" className="text-sm text-muted-foreground">Card Number</Label>
+              <div className="relative mt-1">
+                <Input
+                  id="cardNumber"
+                  placeholder="4242 4242 4242 4242"
+                  value={cardNumber}
+                  onChange={(e) => setCardNumber(formatCardNumber(e.target.value))}
+                  className="bg-background/50 pr-10"
+                  maxLength={19}
+                  data-testid="input-card-number"
+                />
+                <CreditCard className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="expiry" className="text-sm text-muted-foreground">Expiry</Label>
+                <Input
+                  id="expiry"
+                  placeholder="MM/YY"
+                  value={expiry}
+                  onChange={(e) => setExpiry(formatExpiry(e.target.value))}
+                  className="mt-1 bg-background/50"
+                  maxLength={5}
+                  data-testid="input-expiry"
+                />
+              </div>
+              <div>
+                <Label htmlFor="cvc" className="text-sm text-muted-foreground">CVC</Label>
+                <Input
+                  id="cvc"
+                  placeholder="123"
+                  value={cvc}
+                  onChange={(e) => setCvc(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                  className="mt-1 bg-background/50"
+                  maxLength={4}
+                  data-testid="input-cvc"
+                />
+              </div>
+            </div>
+
+            <div className="pt-2">
+              <Button
+                type="submit"
+                className="w-full bg-gradient-to-r from-blue-500 to-violet-500 text-white border-0"
+                size="lg"
+                disabled={processing}
+                data-testid="button-pay"
+              >
+                {processing ? (
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                ) : (
+                  <Lock className="w-4 h-4 mr-2" />
+                )}
+                {processing ? "Processing..." : `Pay ${planData.price}/mo`}
+              </Button>
+            </div>
+
+            <div className="flex items-center justify-center gap-2 pt-1">
+              <Lock className="w-3 h-3 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground">Secure payment — Test mode active</span>
+            </div>
+
+            <div className="pt-2 border-t border-border/30">
+              <p className="text-xs text-muted-foreground mb-2">Test card: <code className="text-foreground">4242 4242 4242 4242</code></p>
+              <p className="text-xs text-muted-foreground">Any future expiry &middot; Any 3-digit CVC</p>
+            </div>
+          </form>
+        </Card>
+      </motion.div>
+    </motion.div>
   );
 }

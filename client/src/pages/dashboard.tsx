@@ -119,33 +119,30 @@ export default function Dashboard() {
     enabled: !!user,
   });
 
-  const { data: stripeProducts } = useQuery<{ data: any[] }>({
-    queryKey: ["/api/stripe/products"],
-    enabled: !!user,
-  });
-
   const [installingAgent, setInstallingAgent] = useState<string | null>(null);
 
   async function handleInstallAgent(agentId: string) {
-    const starterProduct = stripeProducts?.data?.find(
-      (p: any) => p.metadata?.plan === "starter" || p.name?.toLowerCase().includes("starter")
-    );
-    const priceId = starterProduct?.prices?.[0]?.id;
-
-    if (!priceId) {
-      toast({ title: "Checkout unavailable", description: "No pricing plan found. Please visit the Pricing page.", variant: "destructive" });
-      return;
-    }
-
     setInstallingAgent(agentId);
     try {
-      const res = await apiRequest("POST", "/api/stripe/checkout", { priceId, agentType: agentId });
+      const res = await apiRequest("POST", "/api/test-checkout", {
+        plan: "starter",
+        agentType: agentId,
+        cardNumber: "4242424242424242",
+        expiry: "12/28",
+        cvc: "123",
+      });
       const data = await res.json();
-      if (data.url) {
-        window.location.href = data.url;
+      if (data.success) {
+        toast({ title: "Agent Activated!", description: "Your AI worker is now ready to use." });
+        queryClient.invalidateQueries({ queryKey: ["/api/rentals"] });
       }
-    } catch {
-      toast({ title: "Error", description: "Failed to start checkout. Please try again.", variant: "destructive" });
+    } catch (error: any) {
+      const msg = error?.message || "Failed to activate agent.";
+      if (msg.includes("already have")) {
+        toast({ title: "Already Active", description: "This agent is already activated.", variant: "destructive" });
+      } else {
+        toast({ title: "Error", description: msg, variant: "destructive" });
+      }
     } finally {
       setInstallingAgent(null);
     }

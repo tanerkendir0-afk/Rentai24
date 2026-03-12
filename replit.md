@@ -73,6 +73,8 @@ RentAI 24 — the world's first AI staffing agency website. Lets businesses brow
 - `fine_tuning_jobs` — id, agent_type, openai_job_id, openai_file_id, fine_tuned_model, status, is_active, training_file, error, created_at, updated_at
 - `contact_messages` — id, name, email, company, company_size, ai_worker_interest, message, created_at (contact form submissions)
 - `newsletter_subscribers` — id, email (unique), subscribed_at (newsletter signups)
+- `leads` — id, user_id, name, email, company, status (new/contacted/qualified/proposal/negotiation/won/lost), notes, created_at, updated_at
+- `agent_actions` — id, user_id, agent_type, action_type, description, metadata (jsonb), created_at
 - `stripe.*` — Auto-managed by stripe-replit-sync (products, prices, customers, subscriptions, etc.)
 
 ## Stripe Integration
@@ -107,6 +109,15 @@ RentAI 24 — the world's first AI staffing agency website. Lets businesses brow
 - Input limits: message max 2000 chars, conversation max 20 messages
 - RAG: Uploaded documents chunked (~500 words, 50 overlap), embedded via text-embedding-3-small, stored in pgvector, top-5 cosine similarity retrieval prepended to system prompt
 - Fine-tuning: JSONL upload → OpenAI fine-tune on gpt-4o-mini-2024-07-18 → toggle active model per agent (requires OPENAI_API_KEY env var — direct OpenAI key, separate from Replit AI integration)
+
+## Agentic AI (Rex — Sales SDR)
+- Rex (sales-sdr) is a full agentic AI worker with OpenAI tool calling
+- Tools: send_email, add_lead, update_lead, list_leads, schedule_followup, create_meeting
+- Tool definitions in `server/agentTools.ts`, email service in `server/emailService.ts`
+- When Rex uses tools, actions are logged in agent_actions table and shown as action indicators in the chat UI
+- Dashboard shows "Agent Activity Log" section with all actions taken by AI agents
+- Leads stored in `leads` table (user-scoped CRM pipeline with status tracking)
+- Action metadata stored as JSONB for rich audit trail
 - Admin panel at /admin (ADMIN_PASSWORD env var required)
 
 ## Auth System

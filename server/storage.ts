@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { users, rentals, contactMessages, newsletterSubscribers, type User, type InsertUser, type Rental, type InsertRental, type ContactMessage, type InsertContactMessage, type NewsletterSubscriber } from "@shared/schema";
+import { users, rentals, contactMessages, newsletterSubscribers, leads, agentActions, type User, type InsertUser, type Rental, type InsertRental, type ContactMessage, type InsertContactMessage, type NewsletterSubscriber, type Lead, type InsertLead, type AgentAction, type InsertAgentAction } from "@shared/schema";
 import { eq, and, sql, desc } from "drizzle-orm";
 
 export interface IStorage {
@@ -27,6 +27,14 @@ export interface IStorage {
   getContactMessages(): Promise<ContactMessage[]>;
   createNewsletterSubscriber(email: string): Promise<NewsletterSubscriber>;
   getNewsletterSubscribers(): Promise<NewsletterSubscriber[]>;
+
+  createLead(lead: InsertLead): Promise<Lead>;
+  getLeadsByUser(userId: number): Promise<Lead[]>;
+  getLeadById(id: number, userId: number): Promise<Lead | undefined>;
+  updateLead(id: number, userId: number, updates: Partial<Pick<Lead, "name" | "email" | "company" | "status" | "notes">>): Promise<Lead | undefined>;
+
+  createAgentAction(action: InsertAgentAction): Promise<AgentAction>;
+  getActionsByUser(userId: number): Promise<AgentAction[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -167,6 +175,38 @@ export class DatabaseStorage implements IStorage {
 
   async getNewsletterSubscribers(): Promise<NewsletterSubscriber[]> {
     return db.select().from(newsletterSubscribers).orderBy(desc(newsletterSubscribers.subscribedAt));
+  }
+
+  async createLead(lead: InsertLead): Promise<Lead> {
+    const [created] = await db.insert(leads).values(lead).returning();
+    return created;
+  }
+
+  async getLeadsByUser(userId: number): Promise<Lead[]> {
+    return db.select().from(leads).where(eq(leads.userId, userId)).orderBy(desc(leads.createdAt));
+  }
+
+  async getLeadById(id: number, userId: number): Promise<Lead | undefined> {
+    const [lead] = await db.select().from(leads).where(and(eq(leads.id, id), eq(leads.userId, userId)));
+    return lead;
+  }
+
+  async updateLead(id: number, userId: number, updates: Partial<Pick<Lead, "name" | "email" | "company" | "status" | "notes">>): Promise<Lead | undefined> {
+    const [updated] = await db
+      .update(leads)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(and(eq(leads.id, id), eq(leads.userId, userId)))
+      .returning();
+    return updated;
+  }
+
+  async createAgentAction(action: InsertAgentAction): Promise<AgentAction> {
+    const [created] = await db.insert(agentActions).values(action).returning();
+    return created;
+  }
+
+  async getActionsByUser(userId: number): Promise<AgentAction[]> {
+    return db.select().from(agentActions).where(eq(agentActions.userId, userId)).orderBy(desc(agentActions.createdAt));
   }
 }
 

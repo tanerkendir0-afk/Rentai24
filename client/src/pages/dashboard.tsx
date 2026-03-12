@@ -23,6 +23,12 @@ import {
   Loader2,
   Gauge,
   CreditCard,
+  Activity,
+  Mail,
+  UserPlus,
+  Clock,
+  Calendar,
+  Edit,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -73,6 +79,11 @@ export default function Dashboard() {
 
   const { data: subscriptionData } = useQuery<{ subscription: any }>({
     queryKey: ["/api/stripe/subscription"],
+    enabled: !!user,
+  });
+
+  const { data: agentActions } = useQuery<any[]>({
+    queryKey: ["/api/agent-actions"],
     enabled: !!user,
   });
 
@@ -293,6 +304,44 @@ export default function Dashboard() {
                 </motion.div>
               );
             })}
+          </div>
+        )}
+
+        {agentActions && agentActions.length > 0 && (
+          <div className="mt-8">
+            <div className="flex items-center gap-2 mb-4">
+              <Activity className="w-5 h-5 text-blue-400" />
+              <h2 className="text-lg font-semibold text-foreground" data-testid="text-actions-title">Agent Activity Log</h2>
+              <Badge variant="secondary" className="text-xs">{agentActions.length}</Badge>
+            </div>
+            <Card className="bg-card border-border/50 divide-y divide-border/50" data-testid="card-actions-log">
+              {agentActions.slice(0, 20).map((action: any, i: number) => {
+                const actionIcons: Record<string, any> = {
+                  email_sent: Mail,
+                  lead_added: UserPlus,
+                  lead_updated: Edit,
+                  followup_scheduled: Clock,
+                  meeting_created: Calendar,
+                };
+                const ActionIcon = actionIcons[action.actionType] || Activity;
+
+                return (
+                  <div key={action.id} className="flex items-start gap-3 px-4 py-3" data-testid={`action-item-${i}`}>
+                    <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0 mt-0.5">
+                      <ActionIcon className="w-4 h-4 text-blue-400" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-foreground">{action.description}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-xs text-muted-foreground capitalize">{agentPersonas[action.agentType] || action.agentType}</span>
+                        <span className="text-xs text-muted-foreground">·</span>
+                        <span className="text-xs text-muted-foreground">{new Date(action.createdAt).toLocaleString()}</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </Card>
           </div>
         )}
       </div>

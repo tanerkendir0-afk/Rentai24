@@ -25,9 +25,15 @@ import {
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/lib/auth";
 
+interface AgentAction {
+  type: string;
+  description: string;
+}
+
 interface Message {
   role: "user" | "assistant";
   content: string;
+  actions?: AgentAction[];
 }
 
 const agentOptions = [
@@ -108,7 +114,7 @@ export default function Demo() {
         }),
       });
       const data = await res.json();
-      setMessages((prev) => [...prev, { role: "assistant", content: data.reply }]);
+      setMessages((prev) => [...prev, { role: "assistant", content: data.reply, actions: data.actions }]);
     } catch {
       setMessages((prev) => [
         ...prev,
@@ -259,13 +265,29 @@ export default function Demo() {
                   >
                     {msg.role === "user" ? <User className="w-4 h-4 text-muted-foreground" /> : <Bot className="w-4 h-4 text-white" />}
                   </div>
-                  <div
-                    className={`max-w-[75%] rounded-md px-4 py-3 text-sm leading-relaxed ${
-                      msg.role === "user" ? "bg-blue-500 text-white" : "bg-muted text-foreground"
-                    }`}
-                    data-testid={`chat-message-${i}`}
-                  >
-                    {msg.content}
+                  <div className="max-w-[75%] flex flex-col gap-2">
+                    {msg.actions && msg.actions.length > 0 && (
+                      <div className="flex flex-col gap-1" data-testid={`chat-actions-${i}`}>
+                        {msg.actions.map((action, ai) => (
+                          <div
+                            key={ai}
+                            className="flex items-center gap-2 rounded-md px-3 py-1.5 text-xs font-medium bg-gradient-to-r from-blue-500/10 to-violet-500/10 border border-blue-500/20 text-blue-400"
+                            data-testid={`chat-action-${i}-${ai}`}
+                          >
+                            <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+                            {action.description}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <div
+                      className={`rounded-md px-4 py-3 text-sm leading-relaxed ${
+                        msg.role === "user" ? "bg-blue-500 text-white" : "bg-muted text-foreground"
+                      }`}
+                      data-testid={`chat-message-${i}`}
+                    >
+                      {msg.content}
+                    </div>
                   </div>
                 </div>
               ))}

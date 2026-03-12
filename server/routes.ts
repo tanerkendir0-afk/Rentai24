@@ -10,6 +10,7 @@ import { getPublishableKey } from "./stripeClient";
 import { uploadDocument, uploadTrainingFile } from "./upload";
 import { processAndStoreDocument, processAndStoreUrl, retrieveRelevantChunks, getDocumentsByAgent, deleteDocument, getDocumentCount } from "./ragService";
 import { createFineTuningJob, syncJobStatus, getJobsByAgent, toggleActiveModel, deactivateModel, getActiveModel } from "./fineTuningService";
+import { salesSdrTools, executeToolCall } from "./agentTools";
 
 const openai = new OpenAI({
   apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
@@ -35,13 +36,32 @@ BEHAVIOR RULES:
   "sales-sdr": `You are "Rex", a Sales Development Representative AI agent for RentAI 24.
 
 YOUR ROLE: Outbound sales and lead generation ONLY.
-ALLOWED TASKS: Lead generation, cold outreach drafting, follow-up emails, proposal drafting, CRM update suggestions, meeting scheduling, qualifying leads.
+ALLOWED TASKS: Lead generation, cold outreach drafting, follow-up emails, proposal drafting, CRM updates, meeting scheduling, qualifying leads.
 FORBIDDEN: You CANNOT handle customer complaints, do bookkeeping, manage social media, handle HR tasks, or any non-sales activities.
 
+YOU HAVE REAL TOOLS — USE THEM:
+You are not just a chatbot. You are a real sales agent with the ability to take REAL ACTIONS:
+- send_email: Actually send real emails to prospects
+- add_lead: Add prospects to the CRM pipeline
+- update_lead: Update lead status (new → contacted → qualified → proposal → negotiation → won/lost)
+- list_leads: View the full pipeline
+- schedule_followup: Schedule follow-up emails for later
+- create_meeting: Create meetings/demos with prospects
+
+WHEN TO USE TOOLS:
+- When the user says "email john@example.com" → use send_email
+- When the user mentions a new prospect → use add_lead
+- When the user asks to see leads/pipeline → use list_leads
+- When the user says "follow up in 3 days" → use schedule_followup
+- When the user wants to schedule a demo/meeting → use create_meeting
+- When the user says to update a lead's status → use update_lead
+
 BEHAVIOR RULES:
+- Be proactive: if the user gives you a prospect's info, add them as a lead AND offer to send outreach
 - Be persuasive but never pushy or dishonest
 - Focus on value propositions and ROI
 - Ask qualifying questions to understand prospect needs
+- After taking an action, confirm what you did and suggest next steps
 - If asked about customer complaints, say: "I focus on sales and business development. For support issues, please connect with our Customer Support agent."
 - If asked about anything outside your role, redirect: "That's not my specialty. Let me connect you with the right agent for that."
 - Use data-driven language and focus on business outcomes
@@ -248,6 +268,16 @@ export async function registerRoutes(
     });
   });
 
+  app.get("/api/leads", requireAuth, async (req, res) => {
+    const userLeads = await storage.getLeadsByUser(req.session.userId!);
+    res.json(userLeads);
+  });
+
+  app.get("/api/agent-actions", requireAuth, async (req, res) => {
+    const userActions = await storage.getActionsByUser(req.session.userId!);
+    res.json(userActions);
+  });
+
   app.get("/api/rentals", requireAuth, async (req, res) => {
     const rentals = await storage.getRentalsByUser(req.session.userId!);
     const enriched = rentals.map((r) => ({
@@ -360,16 +390,56 @@ export async function registerRoutes(
         chatClient = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
       }
 
+      const isAgenticAgent = agentType === "sales-sdr" && !!req.session.userId;
+      const toolsParam = isAgenticAgent ? salesSdrTools : undefined;
+
       const response = await chatClient.chat.completions.create({
         model: modelToUse,
         messages,
         max_tokens: 800,
         temperature: 0.7,
+        ...(toolsParam ? { tools: toolsParam } : {}),
       });
 
-      const reply = response.choices[0]?.message?.content || "Sorry, I couldn't generate a response. Please try again.";
+      let assistantMessage = response.choices[0]?.message;
+      const actions: Array<{ type: string; description: string }> = [];
 
-      res.json({ reply });
+      if (assistantMessage?.tool_calls && assistantMessage.tool_calls.length > 0 && req.session.userId) {
+        messages.push(assistantMessage);
+
+        for (const toolCall of assistantMessage.tool_calls) {
+          const args = JSON.parse(toolCall.function.arguments);
+          const toolResult = await executeToolCall(
+            toolCall.function.name,
+            args,
+            req.session.userId,
+            agentType
+          );
+
+          messages.push({
+            role: "tool" as any,
+            tool_call_id: toolCall.id,
+            content: toolResult.result,
+          } as any);
+
+          if (toolResult.actionType && toolResult.actionDescription) {
+            actions.push({ type: toolResult.actionType, description: toolResult.actionDescription });
+          }
+        }
+
+        const followUp = await chatClient.chat.completions.create({
+          model: modelToUse,
+          messages,
+          max_tokens: 800,
+          temperature: 0.7,
+        });
+
+        assistantMessage = followUp.choices[0]?.message;
+      }
+
+      const reply = assistantMessage?.content || "Sorry, I couldn't generate a response. Please try again.";
+
+      res.json({ reply, actions: actions.length > 0 ? actions : undefined });
     } catch (error: any) {
       console.error("Chat API error:", error?.message || error);
       res.status(502).json({

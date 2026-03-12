@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { pgTable, serial, text, timestamp, integer, boolean, customType } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, timestamp, integer, boolean, jsonb, customType } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { sql } from "drizzle-orm";
 
@@ -173,3 +173,41 @@ export type InsertNewsletterSubscriber = z.infer<typeof insertNewsletterSubscrib
 export const newsletterSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
 });
+
+export const leads = pgTable("leads", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  name: text("name").notNull(),
+  email: text("email").notNull(),
+  company: text("company"),
+  status: text("status").notNull().default("new"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+  updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
+export const agentActions = pgTable("agent_actions", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  agentType: text("agent_type").notNull(),
+  actionType: text("action_type").notNull(),
+  description: text("description").notNull(),
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
+export const insertLeadSchema = createInsertSchema(leads).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertAgentActionSchema = createInsertSchema(agentActions).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type Lead = typeof leads.$inferSelect;
+export type InsertLead = z.infer<typeof insertLeadSchema>;
+export type AgentAction = typeof agentActions.$inferSelect;
+export type InsertAgentAction = z.infer<typeof insertAgentActionSchema>;

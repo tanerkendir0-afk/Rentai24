@@ -113,7 +113,10 @@ RentAI 24 — the world's first AI staffing agency website. Lets businesses brow
 ## Agentic AI (Rex — Sales SDR)
 - Rex (sales-sdr) is a full agentic AI worker with OpenAI tool calling
 - Tools: send_email, add_lead, update_lead, list_leads, schedule_followup, create_meeting
-- Tool definitions in `server/agentTools.ts`, email service in `server/emailService.ts`
+- Tool definitions in `server/agentTools.ts`
+- Email: Real email sending via Resend integration (`server/emailService.ts`), credentials fetched via Replit connectors API
+- Follow-ups: `server/followupScheduler.ts` — in-memory timer-based scheduler that auto-sends follow-up emails via Resend after configured delay
+- Calendar: `server/calendarService.ts` — creates Google Calendar events via API if connected; gracefully falls back to logging if not connected
 - When Rex uses tools, actions are logged in agent_actions table and shown as action indicators in the chat UI
 - Dashboard shows "Agent Activity Log" section with all actions taken by AI agents
 - Leads stored in `leads` table (user-scoped CRM pipeline with status tracking)

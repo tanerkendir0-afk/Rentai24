@@ -416,11 +416,12 @@ export async function registerRoutes(
             agentType
           );
 
-          messages.push({
-            role: "tool" as any,
+          const toolMessage: OpenAI.ChatCompletionToolMessageParam = {
+            role: "tool",
             tool_call_id: toolCall.id,
             content: toolResult.result,
-          } as any);
+          };
+          messages.push(toolMessage);
 
           if (toolResult.actionType && toolResult.actionDescription) {
             actions.push({ type: toolResult.actionType, description: toolResult.actionDescription });

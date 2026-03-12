@@ -1,6 +1,8 @@
 import type OpenAI from "openai";
 import { storage } from "./storage";
 import { sendEmail } from "./emailService";
+import { scheduleFollowup } from "./followupScheduler";
+import { createCalendarEvent } from "./calendarService";
 
 export const salesSdrTools: OpenAI.ChatCompletionTool[] = [
   {
@@ -72,7 +74,7 @@ export const salesSdrTools: OpenAI.ChatCompletionTool[] = [
     type: "function",
     function: {
       name: "schedule_followup",
-      description: "Schedule a follow-up email to be sent to a lead at a future time. Use this when the user asks to follow up later or schedule a reminder email.",
+      description: "Schedule a follow-up email to be sent to a lead at a future time. The email will be automatically sent via Resend when the scheduled time arrives.",
       parameters: {
         type: "object",
         properties: {
@@ -89,7 +91,7 @@ export const salesSdrTools: OpenAI.ChatCompletionTool[] = [
     type: "function",
     function: {
       name: "create_meeting",
-      description: "Create a meeting/demo appointment. Use this when the user asks to schedule a meeting, demo, or call with a prospect.",
+      description: "Create a meeting/demo appointment. If Google Calendar is connected, a calendar event with invite is created automatically. Otherwise the meeting is logged and tracked.",
       parameters: {
         type: "object",
         properties: {
@@ -108,7 +110,7 @@ export const salesSdrTools: OpenAI.ChatCompletionTool[] = [
 
 export async function executeToolCall(
   toolName: string,
-  args: any,
+  args: Record<string, unknown>,
   userId: number,
   agentType: string
 ): Promise<{ result: string; actionType?: string; actionDescription?: string }> {
@@ -116,25 +118,27 @@ export async function executeToolCall(
     case "send_email": {
       const emailResult = await sendEmail({
         userId,
-        to: args.to,
-        subject: args.subject,
-        body: args.body,
+        to: String(args.to),
+        subject: String(args.subject),
+        body: String(args.body),
         agentType,
       });
       return {
         result: emailResult.message,
-        actionType: "email_sent",
-        actionDescription: `📧 Email sent to ${args.to}: "${args.subject}"`,
+        actionType: emailResult.success ? "email_sent" : "email_failed",
+        actionDescription: emailResult.success
+          ? `📧 Email sent to ${args.to}: "${args.subject}"`
+          : `❌ Email failed to ${args.to}: ${emailResult.message}`,
       };
     }
 
     case "add_lead": {
       const lead = await storage.createLead({
         userId,
-        name: args.name,
-        email: args.email,
-        company: args.company || null,
-        notes: args.notes || null,
+        name: String(args.name),
+        email: String(args.email),
+        company: args.company ? String(args.company) : null,
+        notes: args.notes ? String(args.notes) : null,
       });
       await storage.createAgentAction({
         userId,
@@ -151,26 +155,27 @@ export async function executeToolCall(
     }
 
     case "update_lead": {
-      const updates: any = {};
-      if (args.status) updates.status = args.status;
-      if (args.notes) updates.notes = args.notes;
-      if (args.name) updates.name = args.name;
-      if (args.email) updates.email = args.email;
-      if (args.company) updates.company = args.company;
+      const updates: Record<string, string> = {};
+      if (args.status) updates.status = String(args.status);
+      if (args.notes) updates.notes = String(args.notes);
+      if (args.name) updates.name = String(args.name);
+      if (args.email) updates.email = String(args.email);
+      if (args.company) updates.company = String(args.company);
 
-      const updated = await storage.updateLead(args.lead_id, userId, updates);
+      const leadId = Number(args.lead_id);
+      const updated = await storage.updateLead(leadId, userId, updates);
       if (!updated) {
-        return { result: `Lead with ID ${args.lead_id} not found or you don't have access to it.` };
+        return { result: `Lead with ID ${leadId} not found or you don't have access to it.` };
       }
       await storage.createAgentAction({
         userId,
         agentType,
         actionType: "lead_updated",
-        description: `Updated lead #${args.lead_id}: ${updated.name}${args.status ? ` → ${args.status}` : ""}`,
-        metadata: { leadId: args.lead_id, updates },
+        description: `Updated lead #${leadId}: ${updated.name}${args.status ? ` → ${args.status}` : ""}`,
+        metadata: { leadId, updates },
       });
       return {
-        result: `Lead #${args.lead_id} (${updated.name}) updated successfully.${args.status ? ` Status: ${args.status}` : ""}`,
+        result: `Lead #${leadId} (${updated.name}) updated successfully.${args.status ? ` Status: ${args.status}` : ""}`,
         actionType: "lead_updated",
         actionDescription: `✏️ Updated lead: ${updated.name}${args.status ? ` → ${args.status}` : ""}`,
       };
@@ -178,12 +183,13 @@ export async function executeToolCall(
 
     case "list_leads": {
       const allLeads = await storage.getLeadsByUser(userId);
-      const filtered = args.status_filter
-        ? allLeads.filter(l => l.status === args.status_filter)
+      const statusFilter = args.status_filter ? String(args.status_filter) : null;
+      const filtered = statusFilter
+        ? allLeads.filter(l => l.status === statusFilter)
         : allLeads;
 
       if (filtered.length === 0) {
-        return { result: args.status_filter ? `No leads found with status "${args.status_filter}".` : "No leads in your pipeline yet. Add some with the add_lead tool!" };
+        return { result: statusFilter ? `No leads found with status "${statusFilter}".` : "No leads in your pipeline yet. Add some with the add_lead tool!" };
       }
 
       const leadList = filtered.map(l =>
@@ -194,40 +200,49 @@ export async function executeToolCall(
     }
 
     case "schedule_followup": {
-      const delayDays = Math.min(Math.max(args.delay_days || 1, 1), 30);
-      const sendDate = new Date();
-      sendDate.setDate(sendDate.getDate() + delayDays);
+      const delayDays = Math.min(Math.max(Number(args.delay_days) || 1, 1), 30);
+      const { followupId, sendAt } = scheduleFollowup({
+        userId,
+        agentType,
+        to: String(args.to),
+        subject: String(args.subject),
+        body: String(args.body),
+        delayDays,
+      });
 
       await storage.createAgentAction({
         userId,
         agentType,
         actionType: "followup_scheduled",
-        description: `Follow-up scheduled for ${args.to} on ${sendDate.toLocaleDateString()}: "${args.subject}"`,
-        metadata: { to: args.to, subject: args.subject, body: args.body, sendDate: sendDate.toISOString(), delayDays },
+        description: `Follow-up email scheduled for ${args.to} on ${sendAt.toLocaleDateString()}: "${args.subject}"`,
+        metadata: { followupId, to: args.to, subject: args.subject, body: args.body, sendDate: sendAt.toISOString(), delayDays },
       });
 
       return {
-        result: `Follow-up email scheduled for ${sendDate.toLocaleDateString()} (${delayDays} days from now) to ${args.to} with subject "${args.subject}"`,
+        result: `Follow-up email #${followupId} scheduled for ${sendAt.toLocaleDateString()} (${delayDays} days from now) to ${args.to} with subject "${args.subject}". The email will be automatically sent via Resend at that time.`,
         actionType: "followup_scheduled",
-        actionDescription: `⏰ Follow-up scheduled for ${args.to} on ${sendDate.toLocaleDateString()}`,
+        actionDescription: `⏰ Follow-up scheduled for ${args.to} on ${sendAt.toLocaleDateString()}`,
       };
     }
 
     case "create_meeting": {
-      const duration = args.duration_minutes || 30;
+      const duration = Number(args.duration_minutes) || 30;
 
-      await storage.createAgentAction({
+      const calendarResult = await createCalendarEvent({
         userId,
         agentType,
-        actionType: "meeting_created",
-        description: `Meeting created: "${args.title}" with ${args.attendee_email} on ${args.date} at ${args.time} (${duration}min)`,
-        metadata: { title: args.title, attendeeEmail: args.attendee_email, date: args.date, time: args.time, duration, description: args.description },
+        title: String(args.title),
+        attendeeEmail: String(args.attendee_email),
+        date: String(args.date),
+        time: String(args.time),
+        durationMinutes: duration,
+        description: args.description ? String(args.description) : undefined,
       });
 
       return {
-        result: `Meeting "${args.title}" created for ${args.date} at ${args.time} (${duration} minutes) with ${args.attendee_email}.${args.description ? ` Agenda: ${args.description}` : ""}`,
+        result: calendarResult.message,
         actionType: "meeting_created",
-        actionDescription: `📅 Meeting created: "${args.title}" on ${args.date} at ${args.time}`,
+        actionDescription: `📅 Meeting: "${args.title}" on ${args.date} at ${args.time}`,
       };
     }
 

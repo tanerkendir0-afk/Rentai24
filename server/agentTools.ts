@@ -870,6 +870,9 @@ export async function executeToolCall(
           actionDescription: "❌ Gmail not connected",
         };
       }
+      if (!args.email_id) {
+        return { result: "Please provide an email ID or number to read.", actionType: "email_read_failed", actionDescription: "❌ No email ID provided" };
+      }
       const emailId = resolveEmailId(String(args.email_id), userId);
       const readResult = await readEmail(emailId);
       if (!readResult.success || !readResult.email) {
@@ -906,6 +909,9 @@ export async function executeToolCall(
           actionType: "email_reply_failed",
           actionDescription: "❌ Gmail not connected",
         };
+      }
+      if (!args.email_id || !args.body) {
+        return { result: "Please provide both the email ID and reply message.", actionType: "email_reply_failed", actionDescription: "❌ Missing email ID or reply body" };
       }
       const replyEmailId = resolveEmailId(String(args.email_id), userId);
       const replyBody = String(args.body);

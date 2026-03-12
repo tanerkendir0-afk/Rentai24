@@ -559,6 +559,34 @@ export async function registerRoutes(
     const { message, agentType, conversationHistory } = parsed.data;
     let systemPrompt = agentSystemPrompts[agentType] || defaultSystemPrompt;
 
+    let userName: string | null = null;
+    let userCompany: string | null = null;
+    if (req.session.userId) {
+      const currentUser = await storage.getUserById(req.session.userId);
+      if (currentUser) {
+        userName = currentUser.fullName || currentUser.username;
+        userCompany = currentUser.company || null;
+      }
+    }
+
+    const personalizationBlock = userName
+      ? `\n\nPERSONALIZATION:
+- The user's name is "${userName}".${userCompany ? ` They work at "${userCompany}".` : ""}
+- Address them by their first name naturally in conversation (e.g., "Hi ${userName.split(" ")[0]}!", "Sure ${userName.split(" ")[0]},").
+- Make interactions personal and warm — they are a valued client.
+- Remember their name throughout the conversation.`
+      : (!conversationHistory || conversationHistory.length === 0)
+        ? `\n\nPERSONALIZATION:
+- You don't know this user's name yet.
+- At the START of the very first message, warmly introduce yourself and ask for their name before helping.
+- For example: "Hi! I'm [your persona name]. Before we get started, may I know your name?"
+- Once they tell you their name, use it naturally throughout the conversation.`
+        : `\n\nPERSONALIZATION:
+- If the user has already told you their name in this conversation, keep using it naturally.
+- If not, feel free to ask when appropriate.`;
+
+    systemPrompt += personalizationBlock;
+
     const TOKEN_SPENDING_LIMIT_USD = 5.00;
 
     let hasActiveRental = false;

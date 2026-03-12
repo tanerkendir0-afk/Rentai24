@@ -236,7 +236,7 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <p className="text-center text-sm text-muted-foreground mb-8">Trusted by teams at</p>
           <div className="flex flex-wrap items-center justify-center gap-x-12 gap-y-6">
-            {["Acme Corp", "TechFlow", "NovaPay", "CloudBase", "PixelForge", "DataWave"].map((name) => (
+            {["Synthera", "VoltAI", "NeuralPath", "Cerulean Labs", "Stratosphere", "Apex Dynamics"].map((name) => (
               <span key={name} className="text-muted-foreground/30 font-bold text-xl tracking-wider">{name}</span>
             ))}
           </div>

@@ -145,13 +145,13 @@ export default function About() {
             <Card className="p-8 bg-card border-border/50">
               <div className="flex flex-col sm:flex-row items-center gap-6">
                 <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-500 to-violet-500 flex items-center justify-center text-white text-2xl font-bold shrink-0">
-                  AK
+                  DR
                 </div>
                 <div>
-                  <h3 className="font-bold text-foreground text-lg">Alex Kim</h3>
+                  <h3 className="font-bold text-foreground text-lg">Daniel Reeves</h3>
                   <p className="text-sm text-blue-400 mb-2">Founder & CEO</p>
                   <p className="text-sm text-muted-foreground leading-relaxed">
-                    Former Head of AI at a Fortune 500 company, Alex founded RentAI 24 with the vision of making enterprise AI accessible to every business. With 15+ years in AI and machine learning, he's passionate about building tools that augment human potential.
+                    A serial entrepreneur with deep roots in AI infrastructure, Daniel founded RentAI 24 after seeing firsthand how small and mid-size businesses struggled to access the same AI capabilities as large enterprises. His mission: democratize the AI workforce and make intelligent automation available to every team, everywhere.
                   </p>
                 </div>
               </div>

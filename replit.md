@@ -30,12 +30,14 @@ RentAI 24 — the world's first AI staffing agency website. Lets businesses brow
 - `/how-it-works` — Process timeline
 - `/pricing` — 3 pricing tiers with Stripe checkout integration
 - `/demo` — Live AI chat demo with agent selector
-- `/about` — About page
-- `/contact` — Contact form
+- `/about` — About page (founder: Daniel Reeves)
+- `/contact` — Contact form (saves to DB)
 - `/login` — Sign in page
 - `/register` — Create account page
 - `/dashboard` — Customer dashboard (protected, shows rented workers + usage stats + Manage Billing)
-- `/admin` — Admin panel (password-protected via ADMIN_PASSWORD env var, RAG knowledge base + fine-tuning management for all 8 agents)
+- `/admin` — Admin panel (password-protected via ADMIN_PASSWORD env var, RAG + fine-tuning + messages/subscribers tabs)
+- `/privacy` — Privacy Policy page
+- `/terms` — Terms of Service page
 
 ## Key Files
 - `client/src/data/agents.ts` — All 8 AI worker data
@@ -69,6 +71,8 @@ RentAI 24 — the world's first AI staffing agency website. Lets businesses brow
 - `agent_documents` — id, agent_type, filename, content_type, chunk_count, file_size, uploaded_at (RAG knowledge base docs)
 - `document_chunks` — id, document_id, agent_type, content, chunk_index, embedding (vector(1536) via pgvector)
 - `fine_tuning_jobs` — id, agent_type, openai_job_id, openai_file_id, fine_tuned_model, status, is_active, training_file, error, created_at, updated_at
+- `contact_messages` — id, name, email, company, company_size, ai_worker_interest, message, created_at (contact form submissions)
+- `newsletter_subscribers` — id, email (unique), subscribed_at (newsletter signups)
 - `stripe.*` — Auto-managed by stripe-replit-sync (products, prices, customers, subscriptions, etc.)
 
 ## Stripe Integration

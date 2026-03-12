@@ -1,6 +1,6 @@
 import { db } from "./db";
-import { users, rentals, type User, type InsertUser, type Rental, type InsertRental } from "@shared/schema";
-import { eq, and, sql } from "drizzle-orm";
+import { users, rentals, contactMessages, newsletterSubscribers, type User, type InsertUser, type Rental, type InsertRental, type ContactMessage, type InsertContactMessage, type NewsletterSubscriber } from "@shared/schema";
+import { eq, and, sql, desc } from "drizzle-orm";
 
 export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
@@ -22,6 +22,11 @@ export interface IStorage {
   listProductsWithPrices(active?: boolean): Promise<any[]>;
   getPrice(priceId: string): Promise<any>;
   getSubscription(subscriptionId: string): Promise<any>;
+
+  createContactMessage(msg: InsertContactMessage): Promise<ContactMessage>;
+  getContactMessages(): Promise<ContactMessage[]>;
+  createNewsletterSubscriber(email: string): Promise<NewsletterSubscriber>;
+  getNewsletterSubscribers(): Promise<NewsletterSubscriber[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -144,6 +149,24 @@ export class DatabaseStorage implements IStorage {
       sql`SELECT * FROM stripe.subscriptions WHERE id = ${subscriptionId}`
     );
     return result.rows[0] || null;
+  }
+
+  async createContactMessage(msg: InsertContactMessage): Promise<ContactMessage> {
+    const [created] = await db.insert(contactMessages).values(msg).returning();
+    return created;
+  }
+
+  async getContactMessages(): Promise<ContactMessage[]> {
+    return db.select().from(contactMessages).orderBy(desc(contactMessages.createdAt));
+  }
+
+  async createNewsletterSubscriber(email: string): Promise<NewsletterSubscriber> {
+    const [created] = await db.insert(newsletterSubscribers).values({ email }).returning();
+    return created;
+  }
+
+  async getNewsletterSubscribers(): Promise<NewsletterSubscriber[]> {
+    return db.select().from(newsletterSubscribers).orderBy(desc(newsletterSubscribers.subscribedAt));
   }
 }
 

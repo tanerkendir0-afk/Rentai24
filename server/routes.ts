@@ -2,7 +2,7 @@ import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import OpenAI from "openai";
 import bcrypt from "bcrypt";
-import { chatMessageSchema, contactFormSchema, registerSchema, loginSchema } from "@shared/schema";
+import { chatMessageSchema, contactFormSchema, registerSchema, loginSchema, newsletterSchema } from "@shared/schema";
 import { storage } from "./storage";
 import { requireAuth } from "./auth";
 import { stripeService } from "./stripeService";
@@ -370,13 +370,44 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/contact", (req, res) => {
+  app.post("/api/contact", async (req, res) => {
     const parsed = contactFormSchema.safeParse(req.body);
     if (!parsed.success) {
       return res.status(400).json({ error: "Please check your form data", details: parsed.error.flatten() });
     }
 
-    res.json({ success: true, message: "Your message has been received. We'll get back to you within 2 hours." });
+    try {
+      await storage.createContactMessage({
+        name: parsed.data.name,
+        email: parsed.data.email,
+        company: parsed.data.company,
+        companySize: parsed.data.companySize,
+        aiWorkerInterest: parsed.data.aiWorkerInterest || null,
+        message: parsed.data.message,
+      });
+      res.json({ success: true, message: "Your message has been received. We'll get back to you within 2 hours." });
+    } catch (error: any) {
+      console.error("Contact form error:", error.message);
+      res.status(500).json({ error: "Failed to save your message. Please try again." });
+    }
+  });
+
+  app.post("/api/newsletter", async (req, res) => {
+    const parsed = newsletterSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: "Please enter a valid email address" });
+    }
+
+    try {
+      await storage.createNewsletterSubscriber(parsed.data.email);
+      res.json({ success: true, message: "You've been subscribed to our newsletter!" });
+    } catch (error: any) {
+      if (error.message?.includes("unique") || error.code === "23505") {
+        return res.json({ success: true, message: "You're already subscribed!" });
+      }
+      console.error("Newsletter error:", error.message);
+      res.status(500).json({ error: "Failed to subscribe. Please try again." });
+    }
   });
 
   app.get("/api/stripe/config", (_req, res) => {
@@ -651,6 +682,24 @@ export async function registerRoutes(
     try {
       await deactivateModel(req.params.agentType);
       res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/admin/contact-messages", requireAdmin, async (_req, res) => {
+    try {
+      const messages = await storage.getContactMessages();
+      res.json(messages);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/admin/newsletter-subscribers", requireAdmin, async (_req, res) => {
+    try {
+      const subscribers = await storage.getNewsletterSubscribers();
+      res.json(subscribers);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }

@@ -1,10 +1,33 @@
+import { useState } from "react";
 import { Link } from "wouter";
-import { Bot, Mail, ArrowRight } from "lucide-react";
-import { SiLinkedin, SiX, SiYoutube } from "react-icons/si";
+import { Bot, Mail, ArrowRight, Loader2, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 
 export default function Footer() {
+  const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [subscribed, setSubscribed] = useState(false);
+  const { toast } = useToast();
+
+  const handleNewsletter = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim()) return;
+    setLoading(true);
+    try {
+      const res = await apiRequest("POST", "/api/newsletter", { email });
+      const data = await res.json();
+      setSubscribed(true);
+      toast({ title: "Subscribed!", description: data.message });
+    } catch {
+      toast({ title: "Error", description: "Failed to subscribe. Please try again.", variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <footer className="bg-background border-t border-border/50" data-testid="footer">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
@@ -21,17 +44,6 @@ export default function Footer() {
             <p className="text-sm text-muted-foreground leading-relaxed mb-4">
               Rent AI, 24/7. Pre-trained AI agents ready to join your team today.
             </p>
-            <div className="flex items-center gap-3">
-              <a href="#" aria-label="Twitter" className="w-9 h-9 rounded-md bg-card flex items-center justify-center text-muted-foreground transition-colors" data-testid="link-twitter">
-                <SiX className="w-4 h-4" />
-              </a>
-              <a href="#" aria-label="LinkedIn" className="w-9 h-9 rounded-md bg-card flex items-center justify-center text-muted-foreground transition-colors" data-testid="link-linkedin">
-                <SiLinkedin className="w-4 h-4" />
-              </a>
-              <a href="#" aria-label="YouTube" className="w-9 h-9 rounded-md bg-card flex items-center justify-center text-muted-foreground transition-colors" data-testid="link-youtube">
-                <SiYoutube className="w-4 h-4" />
-              </a>
-            </div>
           </div>
 
           <div>
@@ -46,7 +58,7 @@ export default function Footer() {
               ].map((link) => (
                 <li key={link.href}>
                   <Link href={link.href}>
-                    <span className="text-sm text-muted-foreground cursor-pointer" data-testid={`footer-link-${link.href.replace("/", "")}`}>
+                    <span className="text-sm text-muted-foreground cursor-pointer hover:text-foreground transition-colors" data-testid={`footer-link-${link.href.replace("/", "")}`}>
                       {link.label}
                     </span>
                   </Link>
@@ -58,11 +70,20 @@ export default function Footer() {
           <div>
             <h4 className="font-semibold text-foreground mb-4">Legal</h4>
             <ul className="space-y-3">
-              {["Privacy Policy", "Terms of Service", "Cookie Policy", "GDPR"].map((item) => (
-                <li key={item}>
-                  <span className="text-sm text-muted-foreground">{item}</span>
-                </li>
-              ))}
+              <li>
+                <Link href="/privacy">
+                  <span className="text-sm text-muted-foreground cursor-pointer hover:text-foreground transition-colors" data-testid="footer-link-privacy">
+                    Privacy Policy
+                  </span>
+                </Link>
+              </li>
+              <li>
+                <Link href="/terms">
+                  <span className="text-sm text-muted-foreground cursor-pointer hover:text-foreground transition-colors" data-testid="footer-link-terms">
+                    Terms of Service
+                  </span>
+                </Link>
+              </li>
             </ul>
           </div>
 
@@ -71,20 +92,34 @@ export default function Footer() {
             <p className="text-sm text-muted-foreground mb-4">
               Get the latest on AI workforce trends and product updates.
             </p>
-            <form
-              onSubmit={(e) => e.preventDefault()}
-              className="flex gap-2"
-            >
-              <Input
-                type="email"
-                placeholder="your@email.com"
-                className="flex-1"
-                data-testid="input-newsletter"
-              />
-              <Button size="icon" className="bg-gradient-to-r from-blue-500 to-violet-500 text-white border-0 shrink-0" aria-label="Subscribe" data-testid="button-newsletter">
-                <ArrowRight className="w-4 h-4" />
-              </Button>
-            </form>
+            {subscribed ? (
+              <div className="flex items-center gap-2 text-sm text-emerald-400">
+                <CheckCircle2 className="w-4 h-4" />
+                <span>You're subscribed!</span>
+              </div>
+            ) : (
+              <form onSubmit={handleNewsletter} className="flex gap-2">
+                <Input
+                  type="email"
+                  placeholder="your@email.com"
+                  className="flex-1"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  data-testid="input-newsletter"
+                />
+                <Button
+                  type="submit"
+                  size="icon"
+                  disabled={loading}
+                  className="bg-gradient-to-r from-blue-500 to-violet-500 text-white border-0 shrink-0"
+                  aria-label="Subscribe"
+                  data-testid="button-newsletter"
+                >
+                  {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4" />}
+                </Button>
+              </form>
+            )}
           </div>
         </div>
 

@@ -23,7 +23,6 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Mail, Clock, Send, Loader2, CheckCircle2, Calendar } from "lucide-react";
-import { SiLinkedin, SiX, SiYoutube } from "react-icons/si";
 import { contactFormSchema, type ContactForm } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { agents } from "@/data/agents";
@@ -225,16 +224,16 @@ export default function Contact() {
               </Card>
 
               <Card className="p-6 bg-card border-border/50">
-                <h3 className="font-semibold text-foreground mb-4">Follow Us</h3>
-                <div className="flex items-center gap-3">
-                  <a href="#" aria-label="Twitter" className="w-10 h-10 rounded-md bg-muted/50 flex items-center justify-center text-muted-foreground transition-colors" data-testid="contact-link-twitter">
-                    <SiX className="w-4 h-4" />
+                <h3 className="font-semibold text-foreground mb-4">Quick Links</h3>
+                <div className="space-y-3">
+                  <a href="/demo" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid="contact-link-demo">
+                    Try Live Demo
                   </a>
-                  <a href="#" aria-label="LinkedIn" className="w-10 h-10 rounded-md bg-muted/50 flex items-center justify-center text-muted-foreground transition-colors" data-testid="contact-link-linkedin">
-                    <SiLinkedin className="w-4 h-4" />
+                  <a href="/pricing" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid="contact-link-pricing">
+                    View Pricing
                   </a>
-                  <a href="#" aria-label="YouTube" className="w-10 h-10 rounded-md bg-muted/50 flex items-center justify-center text-muted-foreground transition-colors" data-testid="contact-link-youtube">
-                    <SiYoutube className="w-4 h-4" />
+                  <a href="/how-it-works" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid="contact-link-how">
+                    How It Works
                   </a>
                 </div>
               </Card>

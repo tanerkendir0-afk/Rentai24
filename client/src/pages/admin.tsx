@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Shield, Upload, FileText, Link2, Trash2, RefreshCw, Cpu, ToggleLeft, ToggleRight, Lock, Brain, Database, Zap } from "lucide-react";
+import { Shield, Upload, FileText, Link2, Trash2, RefreshCw, Cpu, ToggleLeft, ToggleRight, Lock, Brain, Database, Zap, MessageSquare, Mail } from "lucide-react";
 
 const AGENTS = [
   { slug: "customer-support", name: "Ava — Customer Support" },
@@ -551,6 +551,116 @@ function FineTuningPanel({ agentType, token }: { agentType: string; token: strin
   );
 }
 
+interface ContactMsg {
+  id: number;
+  name: string;
+  email: string;
+  company: string;
+  companySize: string;
+  aiWorkerInterest: string | null;
+  message: string;
+  createdAt: string;
+}
+
+interface Subscriber {
+  id: number;
+  email: string;
+  subscribedAt: string;
+}
+
+function MessagesPanel({ token }: { token: string }) {
+  const [messages, setMessages] = useState<ContactMsg[]>([]);
+  const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const headers = { Authorization: `Bearer ${token}` };
+
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [msgRes, subRes] = await Promise.all([
+        fetch("/api/admin/contact-messages", { headers }),
+        fetch("/api/admin/newsletter-subscribers", { headers }),
+      ]);
+      const msgData = await msgRes.json();
+      const subData = await subRes.json();
+      if (Array.isArray(msgData)) setMessages(msgData);
+      if (Array.isArray(subData)) setSubscribers(subData);
+    } catch {
+    } finally {
+      setLoading(false);
+    }
+  }, [token]);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
+
+  return (
+    <div className="space-y-6">
+      <Card className="bg-[#0A0E27] border-[#1E2448]">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle className="text-lg text-white flex items-center gap-2">
+              <MessageSquare className="w-5 h-5 text-blue-400" />
+              Contact Messages ({messages.length})
+            </CardTitle>
+          </div>
+          <Button variant="ghost" size="sm" onClick={fetchData} disabled={loading} data-testid="button-refresh-messages">
+            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {messages.length === 0 ? (
+            <p className="text-gray-500 text-center py-8">No messages yet</p>
+          ) : (
+            <div className="space-y-3">
+              {messages.map((msg) => (
+                <div key={msg.id} className="p-4 bg-[#111633] rounded-lg border border-[#1E2448]" data-testid={`message-item-${msg.id}`}>
+                  <div className="flex items-start justify-between mb-2">
+                    <div>
+                      <p className="text-white font-medium">{msg.name}</p>
+                      <p className="text-gray-400 text-sm">{msg.email} &middot; {msg.company} ({msg.companySize})</p>
+                    </div>
+                    <span className="text-gray-500 text-xs">{new Date(msg.createdAt).toLocaleString()}</span>
+                  </div>
+                  {msg.aiWorkerInterest && (
+                    <Badge className="mb-2 bg-blue-900/30 text-blue-400 border-blue-800 text-xs">
+                      Interest: {msg.aiWorkerInterest}
+                    </Badge>
+                  )}
+                  <p className="text-gray-300 text-sm leading-relaxed">{msg.message}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="bg-[#0A0E27] border-[#1E2448]">
+        <CardHeader>
+          <CardTitle className="text-lg text-white flex items-center gap-2">
+            <Mail className="w-5 h-5 text-violet-400" />
+            Newsletter Subscribers ({subscribers.length})
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {subscribers.length === 0 ? (
+            <p className="text-gray-500 text-center py-8">No subscribers yet</p>
+          ) : (
+            <div className="space-y-2">
+              {subscribers.map((sub) => (
+                <div key={sub.id} className="flex items-center justify-between p-3 bg-[#111633] rounded-lg border border-[#1E2448]" data-testid={`subscriber-item-${sub.id}`}>
+                  <p className="text-white text-sm">{sub.email}</p>
+                  <span className="text-gray-500 text-xs">{new Date(sub.subscribedAt).toLocaleString()}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 export default function AdminPage() {
   const [token, setToken] = useState<string | null>(null);
   const [selectedAgent, setSelectedAgent] = useState(AGENTS[0].slug);
@@ -636,6 +746,9 @@ export default function AdminPage() {
             <TabsTrigger value="fine-tuning" className="data-[state=active]:bg-violet-600 data-[state=active]:text-white" data-testid="tab-fine-tuning">
               Fine-Tuning
             </TabsTrigger>
+            <TabsTrigger value="messages" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white" data-testid="tab-messages">
+              Messages
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="rag">
@@ -644,6 +757,10 @@ export default function AdminPage() {
 
           <TabsContent value="fine-tuning">
             <FineTuningPanel key={`ft-${selectedAgent}`} agentType={selectedAgent} token={token} />
+          </TabsContent>
+
+          <TabsContent value="messages">
+            <MessagesPanel token={token} />
           </TabsContent>
         </Tabs>
       </div>

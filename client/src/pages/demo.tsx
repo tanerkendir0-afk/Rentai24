@@ -21,6 +21,8 @@ import {
   BarChart3,
   Package,
   Lock,
+  ImagePlus,
+  Download,
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/lib/auth";
@@ -67,7 +69,10 @@ export default function Demo() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [initialAgentSet, setInitialAgentSet] = useState(false);
+  const [uploadedImage, setUploadedImage] = useState<{ url: string; name: string } | null>(null);
+  const [uploading, setUploading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: rentals, isLoading: rentalsLoading } = useQuery<RentalData[]>({
     queryKey: ["/api/rentals"],
@@ -96,11 +101,41 @@ export default function Demo() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("image", file);
+      const res = await fetch("/api/chat/upload", { method: "POST", body: formData });
+      const data = await res.json();
+      if (data.success) {
+        setUploadedImage({ url: data.imageUrl, name: data.filename });
+      }
+    } catch {
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
   const sendMessage = async (text?: string) => {
     const userMessage = (text || input).trim();
     if (!userMessage || loading) return;
+
+    const imageAttachment = uploadedImage;
     setInput("");
-    setMessages((prev) => [...prev, { role: "user", content: userMessage }]);
+    setUploadedImage(null);
+
+    const displayContent = imageAttachment
+      ? `${userMessage}\n\n![Uploaded](${imageAttachment.url})`
+      : userMessage;
+    const messageToSend = imageAttachment
+      ? `${userMessage}\n\n[User attached an image: ${imageAttachment.name}]`
+      : userMessage;
+
+    setMessages((prev) => [...prev, { role: "user", content: displayContent }]);
     setLoading(true);
 
     try {
@@ -108,7 +143,7 @@ export default function Demo() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          message: userMessage,
+          message: messageToSend,
           agentType: selectedAgent,
           conversationHistory: messages.slice(-20),
         }),
@@ -286,7 +321,34 @@ export default function Demo() {
                       }`}
                       data-testid={`chat-message-${i}`}
                     >
-                      {msg.content}
+                      {msg.content.split(/(\!\[.*?\]\(.*?\))/).map((part, pi) => {
+                        const imgMatch = part.match(/^\!\[(.*?)\]\((.*?)\)$/);
+                        if (imgMatch) {
+                          const [, alt, src] = imgMatch;
+                          return (
+                            <div key={pi} className="my-2">
+                              <img
+                                src={src}
+                                alt={alt}
+                                className="rounded-lg max-w-full max-h-64 object-contain border border-border/30"
+                                data-testid={`chat-image-${i}-${pi}`}
+                              />
+                              <a
+                                href={src}
+                                download
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className={`inline-flex items-center gap-1 mt-1 text-xs ${
+                                  msg.role === "user" ? "text-blue-100 hover:text-white" : "text-blue-400 hover:text-blue-300"
+                                }`}
+                              >
+                                <Download className="w-3 h-3" /> Download
+                              </a>
+                            </div>
+                          );
+                        }
+                        return part ? <span key={pi}>{part}</span> : null;
+                      })}
                     </div>
                   </div>
                 </div>
@@ -324,6 +386,21 @@ export default function Demo() {
                   ))}
                 </div>
               )}
+              {uploadedImage && (
+                <div className="flex items-center gap-2 mb-2 p-2 rounded-md bg-blue-500/10 border border-blue-500/20" data-testid="upload-preview">
+                  <img src={uploadedImage.url} alt="Uploaded" className="w-10 h-10 rounded object-cover" />
+                  <span className="text-xs text-muted-foreground flex-1 truncate">{uploadedImage.name}</span>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-6 w-6 p-0 text-muted-foreground hover:text-red-400"
+                    onClick={() => setUploadedImage(null)}
+                    data-testid="button-remove-upload"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </Button>
+                </div>
+              )}
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
@@ -331,6 +408,28 @@ export default function Demo() {
                 }}
                 className="flex gap-3"
               >
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  className="hidden"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  data-testid="input-image-upload"
+                />
+                {user && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={loading || uploading}
+                    className="shrink-0"
+                    title="Upload image"
+                    data-testid="button-upload-image"
+                  >
+                    {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ImagePlus className="w-4 h-4" />}
+                  </Button>
+                )}
                 <Input
                   value={input}
                   onChange={(e) => setInput(e.target.value)}

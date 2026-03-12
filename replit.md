@@ -151,11 +151,20 @@ RentAI 24 — the world's first AI staffing agency website. Lets businesses brow
 - generate_report: Generate comprehensive reports (executive_summary, sales_performance, activity_overview, agent_usage)
 - Pulls real data from all tables — no mocked numbers
 
-### Maya — Social Media (4 tools)
+### Maya — Social Media (6 tools)
+- generate_image: AI image generation (DALL-E 3) for brand visuals, post graphics, story images — supports all aspect ratios
+- find_stock_image: Find professional stock photos matching descriptions (photorealistic style)
 - create_post: Generate platform-specific social media posts (Instagram, Twitter, LinkedIn, Facebook, TikTok)
 - create_content_calendar: Generate multi-day content calendars with posting schedules
 - generate_hashtags: Generate optimized hashtag sets for any topic and platform
 - draft_response: Draft responses to customer comments/reviews with sentiment awareness
+- Image service: `server/imageService.ts` — DALL-E 3 generation + stock photo search, images served via `/api/images/:filename`
+
+### Chat Image Upload
+- Customers can upload images in chat via `/api/chat/upload` (requires auth, max 10MB, JPG/PNG/GIF/WebP/SVG)
+- Uploaded images shown as preview before sending, displayed inline in chat messages
+- AI-generated images from Maya also displayed inline with download links
+- Upload button visible only to logged-in users
 
 ### Finn — Bookkeeping (3 tools)
 - create_invoice: Generate invoices with line items, totals, and optional email delivery

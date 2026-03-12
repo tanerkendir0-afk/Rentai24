@@ -11,6 +11,10 @@ import { uploadDocument, uploadTrainingFile } from "./upload";
 import { processAndStoreDocument, processAndStoreUrl, retrieveRelevantChunks, getDocumentsByAgent, deleteDocument, getDocumentCount } from "./ragService";
 import { createFineTuningJob, syncJobStatus, getJobsByAgent, toggleActiveModel, deactivateModel, getActiveModel } from "./fineTuningService";
 import { getToolsForAgent, executeToolCall } from "./agentTools";
+import { getImagePath, chatImageDir } from "./imageService";
+import multer from "multer";
+import path from "path";
+import fs from "fs";
 
 const openai = new OpenAI({
   apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
@@ -114,12 +118,14 @@ FORBIDDEN: You CANNOT handle sales, customer support tickets, bookkeeping, sched
 
 YOU HAVE REAL TOOLS — USE THEM:
 You are not just a chatbot. You are a real social media manager with the ability to take REAL ACTIONS:
+- generate_image: Create custom AI-generated visuals, graphics, and brand imagery for social media
+- find_stock_image: Find professional stock photos for posts (office scenes, people, products, etc.)
 - create_post: Create platform-specific social media post drafts with hashtags
 - create_content_calendar: Generate multi-day content calendars with posting schedules
 - generate_hashtags: Generate optimized hashtag sets for any topic and platform
 - draft_response: Draft professional responses to customer comments and reviews
 
-IMPORTANT: When asked to write a post, create content, or suggest hashtags — ALWAYS use your tools. Don't just give advice — produce real content!
+IMPORTANT: When asked to create a visual, graphic, image, or design — ALWAYS use generate_image. When they need realistic photos, use find_stock_image. When asked to write a post, create content, or suggest hashtags — use the appropriate tool. Don't just give advice — produce real content and real visuals!
 
 BEHAVIOR RULES:
 - Be creative, trend-aware, and brand-conscious
@@ -479,6 +485,52 @@ export async function registerRoutes(
     });
 
     res.json({ ...rental, agentName: agentNameMap[agentType] });
+  });
+
+  app.get("/api/images/:filename", (req, res) => {
+    const filepath = getImagePath(req.params.filename);
+    if (!filepath) {
+      return res.status(404).json({ error: "Image not found" });
+    }
+    res.sendFile(filepath);
+  });
+
+  const chatUploadStorage = multer.diskStorage({
+    destination: (_req, _file, cb) => cb(null, chatImageDir),
+    filename: (_req, file, cb) => {
+      const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+      cb(null, uniqueSuffix + path.extname(file.originalname));
+    },
+  });
+
+  const chatUpload = multer({
+    storage: chatUploadStorage,
+    limits: { fileSize: 10 * 1024 * 1024 },
+    fileFilter: (_req, file, cb) => {
+      const allowed = [".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg"];
+      const ext = path.extname(file.originalname).toLowerCase();
+      if (allowed.includes(ext)) {
+        cb(null, true);
+      } else {
+        cb(new Error("Only image files are allowed (JPG, PNG, GIF, WebP, SVG)"));
+      }
+    },
+  });
+
+  app.post("/api/chat/upload", requireAuth, chatUpload.single("image"), (req: any, res) => {
+    if (!req.file) {
+      return res.status(400).json({ error: "No image file provided" });
+    }
+    const imageUrl = `/api/chat/uploads/${req.file.filename}`;
+    res.json({ success: true, imageUrl, filename: req.file.originalname });
+  });
+
+  app.get("/api/chat/uploads/:filename", (req, res) => {
+    const filepath = path.join(chatImageDir, req.params.filename);
+    if (!fs.existsSync(filepath)) {
+      return res.status(404).json({ error: "Image not found" });
+    }
+    res.sendFile(filepath);
   });
 
   app.post("/api/chat", async (req, res) => {

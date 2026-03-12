@@ -450,6 +450,8 @@ export default function Dashboard() {
                   listing_optimized: Tag,
                   price_analysis: DollarSign,
                   review_response_drafted: Star,
+                  image_generated: Activity,
+                  stock_image_found: Activity,
                 };
                 const ActionIcon = actionIcons[action.actionType] || Activity;
 

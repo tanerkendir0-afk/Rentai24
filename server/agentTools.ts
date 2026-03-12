@@ -4,6 +4,7 @@ import { sendEmail } from "./emailService";
 import { scheduleFollowup } from "./followupScheduler";
 import { createCalendarEvent } from "./calendarService";
 import { getTemplate, fillTemplate, listTemplates, DRIP_SEQUENCES } from "./emailTemplates";
+import { generateAIImage, findStockImages } from "./imageService";
 
 export const salesSdrTools: OpenAI.ChatCompletionTool[] = [
   {
@@ -447,6 +448,38 @@ export const dataAnalystTools: OpenAI.ChatCompletionTool[] = [
 ];
 
 export const socialMediaTools: OpenAI.ChatCompletionTool[] = [
+  {
+    type: "function",
+    function: {
+      name: "generate_image",
+      description: "Generate a custom AI image for social media content. Creates brand visuals, post graphics, story images, cover photos, or any creative visual content. Use when the user asks for a visual, graphic, image, or design.",
+      parameters: {
+        type: "object",
+        properties: {
+          prompt: { type: "string", description: "Detailed description of the image to generate. Include style, colors, mood, and composition details for best results." },
+          aspect_ratio: { type: "string", enum: ["1:1", "4:3", "16:9", "9:16", "3:4"], description: "Image aspect ratio. 1:1 for Instagram posts, 9:16 for Stories/Reels, 16:9 for YouTube/LinkedIn covers, 4:3 for Facebook." },
+          platform: { type: "string", enum: ["instagram", "twitter", "linkedin", "facebook", "tiktok", "youtube"], description: "Target platform (helps optimize dimensions)" },
+        },
+        required: ["prompt"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "find_stock_image",
+      description: "Find and retrieve professional stock photos matching a description. Use when the user needs realistic photography rather than AI-generated graphics — such as office scenes, people, products, or nature.",
+      parameters: {
+        type: "object",
+        properties: {
+          description: { type: "string", description: "Description of the stock image needed" },
+          count: { type: "number", description: "Number of images to find (1-5, default: 3)" },
+          orientation: { type: "string", enum: ["horizontal", "vertical", "all"], description: "Image orientation preference (default: horizontal)" },
+        },
+        required: ["description"],
+      },
+    },
+  },
   {
     type: "function",
     function: {
@@ -1648,6 +1681,68 @@ ${activeRentals.map(r => `  ${r.agentType}: ${r.messagesUsed}/${r.messagesLimit}
         result: report,
         actionType: "report_generated",
         actionDescription: `📊 ${reportType.replace(/_/g, " ")} report generated`,
+      };
+    }
+
+    case "generate_image": {
+      const prompt = String(args.prompt);
+      const aspectRatio = args.aspect_ratio ? String(args.aspect_ratio) : "1:1";
+      const platform = args.platform ? String(args.platform) : "general";
+
+      const result = await generateAIImage(prompt, aspectRatio);
+
+      if (result.success && result.imageUrl) {
+        await storage.createAgentAction({
+          userId, agentType,
+          actionType: "image_generated",
+          description: `🎨 AI image generated for ${platform}: "${prompt.substring(0, 80)}..."`,
+          metadata: { prompt, aspectRatio, platform, imageUrl: result.imageUrl },
+        });
+
+        return {
+          result: `Image generated successfully!\n\n🎨 Prompt: "${prompt}"\n📐 Aspect Ratio: ${aspectRatio}\n📱 Platform: ${platform}\n\n![Generated Image](${result.imageUrl})\n\nThe image is ready to use. You can download it or I can create more variations.`,
+          actionType: "image_generated",
+          actionDescription: `🎨 AI image generated for ${platform}`,
+        };
+      }
+
+      return {
+        result: `Image generation failed: ${result.error}. Please try a different description or try again later.`,
+        actionType: "image_failed",
+        actionDescription: `❌ Image generation failed`,
+      };
+    }
+
+    case "find_stock_image": {
+      const description = String(args.description);
+      const count = Math.min(Number(args.count) || 3, 5);
+      const orientation = args.orientation ? String(args.orientation) : "horizontal";
+
+      const result = await findStockImages(description, count, orientation);
+
+      if (result.success && result.images && result.images.length > 0) {
+        await storage.createAgentAction({
+          userId, agentType,
+          actionType: "stock_image_found",
+          description: `📷 ${result.images.length} stock image(s) found: "${description}"`,
+          metadata: { description, count, orientation, images: result.images },
+        });
+
+        const imageList = result.images.map((img, i) =>
+          `${i + 1}. ![${img.alt}](${img.url})`
+        ).join("\n\n");
+
+        return {
+          result: `Found ${result.images.length} stock image(s) for "${description}":\n\n${imageList}\n\nThese are professional-quality images ready for use in your social media content.`,
+          actionType: "stock_image_found",
+          actionDescription: `📷 ${result.images.length} stock image(s) found`,
+        };
+      }
+
+      return {
+        result: `Could not find stock images for "${description}": ${result.error || "No results"}. Try a different search description.`,
+        actionType: "stock_search_failed",
+        actionDescription: `❌ Stock image search failed`,
       };
     }
 

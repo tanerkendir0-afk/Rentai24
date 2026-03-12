@@ -63,11 +63,12 @@ export default function Demo() {
   const [initialAgentSet, setInitialAgentSet] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const { data: rentals } = useQuery<RentalData[]>({
+  const { data: rentals, isLoading: rentalsLoading } = useQuery<RentalData[]>({
     queryKey: ["/api/rentals"],
     enabled: !!user,
   });
 
+  const rentalsReady = !user || !rentalsLoading;
   const activeRentals = rentals?.filter(r => r.status === "active") || [];
   const hasRentals = activeRentals.length > 0;
   const rentedAgentIds = new Set(activeRentals.map(r => r.agentType));
@@ -146,20 +147,23 @@ export default function Demo() {
             </h2>
             <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-1 gap-2">
               {agentOptions.map((agent) => {
-                const isLocked = user && hasRentals && !rentedAgentIds.has(agent.id);
+                const isLocked = user && rentalsReady && hasRentals && !rentedAgentIds.has(agent.id);
+                const isPending = user && !rentalsReady;
                 return (
                   <button
                     key={agent.id}
                     onClick={() => {
-                      if (isLocked) return;
+                      if (isLocked || isPending) return;
                       setSelectedAgent(agent.id);
                       setMessages([]);
                     }}
-                    disabled={!!isLocked}
+                    disabled={!!isLocked || !!isPending}
                     className={`flex items-center gap-3 px-4 py-3 rounded-md text-left text-sm font-medium transition-all ${
                       isLocked
                         ? "bg-card/50 border border-border/30 text-muted-foreground/40 cursor-not-allowed opacity-50"
-                        : selectedAgent === agent.id
+                        : isPending
+                          ? "bg-card/50 border border-border/30 text-muted-foreground/60 cursor-wait opacity-60"
+                          : selectedAgent === agent.id
                           ? "bg-blue-500/10 text-blue-400 border border-blue-500/30"
                           : "bg-card border border-border/50 text-muted-foreground"
                     }`}

@@ -871,6 +871,11 @@ export async function executeToolCall(
         };
       }
       if (!args.email_id) {
+        await storage.createAgentAction({
+          userId, agentType, actionType: "email_read_failed",
+          description: "Attempted to read email — no email ID provided",
+          metadata: { error: "missing_email_id" },
+        });
         return { result: "Please provide an email ID or number to read.", actionType: "email_read_failed", actionDescription: "❌ No email ID provided" };
       }
       const emailId = resolveEmailId(String(args.email_id), userId);
@@ -911,6 +916,11 @@ export async function executeToolCall(
         };
       }
       if (!args.email_id || !args.body) {
+        await storage.createAgentAction({
+          userId, agentType, actionType: "email_reply_failed",
+          description: "Attempted to reply — missing email ID or reply body",
+          metadata: { error: "missing_required_args", hasEmailId: !!args.email_id, hasBody: !!args.body },
+        });
         return { result: "Please provide both the email ID and reply message.", actionType: "email_reply_failed", actionDescription: "❌ Missing email ID or reply body" };
       }
       const replyEmailId = resolveEmailId(String(args.email_id), userId);

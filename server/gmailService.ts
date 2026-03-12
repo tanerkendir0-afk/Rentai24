@@ -220,11 +220,14 @@ export async function replyToEmail(messageId: string, body: string): Promise<{ s
     });
 
     const headers = (original.data.payload?.headers || []) as Array<{ name: string; value: string }>;
-    const originalFrom = extractHeader(headers, "From");
+    const originalFromRaw = extractHeader(headers, "From");
     const originalSubject = extractHeader(headers, "Subject");
     const originalMessageId = extractHeader(headers, "Message-ID");
     const existingReferences = extractHeader(headers, "References");
     const threadId = original.data.threadId || messageId;
+
+    const emailMatch = originalFromRaw.match(/<([^>]+)>/);
+    const replyTo = emailMatch ? emailMatch[1] : originalFromRaw;
 
     const profile = await gmail.users.getProfile({ userId: "me" });
     const myAddress = profile.data.emailAddress || "me";
@@ -236,7 +239,7 @@ export async function replyToEmail(messageId: string, body: string): Promise<{ s
 
     const rawLines = [
       `From: ${myAddress}`,
-      `To: ${originalFrom}`,
+      `To: ${replyTo}`,
       `Subject: ${replySubject}`,
       `In-Reply-To: ${originalMessageId}`,
       `References: ${references}`,
@@ -254,7 +257,7 @@ export async function replyToEmail(messageId: string, body: string): Promise<{ s
 
     return {
       success: true,
-      message: `Reply sent to ${originalFrom} in thread "${replySubject}"`,
+      message: `Reply sent to ${replyTo} in thread "${replySubject}"`,
       replyMessageId: result.data.id || undefined,
     };
   } catch (error: unknown) {

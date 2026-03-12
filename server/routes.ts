@@ -421,7 +421,7 @@ export async function registerRoutes(
   });
 
   const profileUpdateSchema = z.object({
-    fullName: z.string().min(1, "Full name is required").transform(s => s.trim()),
+    fullName: z.string().transform(s => s.trim()).pipe(z.string().min(1, "Full name is required")),
     company: z.string().optional().transform(s => s?.trim() || null),
   });
 

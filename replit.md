@@ -151,8 +151,31 @@ RentAI 24 — the world's first AI staffing agency website. Lets businesses brow
 - generate_report: Generate comprehensive reports (executive_summary, sales_performance, activity_overview, agent_usage)
 - Pulls real data from all tables — no mocked numbers
 
+### Maya — Social Media (4 tools)
+- create_post: Generate platform-specific social media posts (Instagram, Twitter, LinkedIn, Facebook, TikTok)
+- create_content_calendar: Generate multi-day content calendars with posting schedules
+- generate_hashtags: Generate optimized hashtag sets for any topic and platform
+- draft_response: Draft responses to customer comments/reviews with sentiment awareness
+
+### Finn — Bookkeeping (3 tools)
+- create_invoice: Generate invoices with line items, totals, and optional email delivery
+- log_expense: Log expenses with categories (office, software, travel, marketing, etc.)
+- financial_summary: Generate financial summaries from logged invoices/expenses for any period
+
+### Harper — HR & Recruiting (4 tools)
+- create_job_posting: Create professional job postings with requirements and responsibilities
+- screen_resume: Evaluate candidates against job requirements with fit scoring
+- create_interview_kit: Generate tailored interview questions for any role and level
+- send_candidate_email: Send emails to candidates (invites, offers, updates)
+
+### ShopBot — E-Commerce Ops (3 tools)
+- optimize_listing: Generate SEO-optimized product listings for Amazon, Shopify, Etsy, etc.
+- price_analysis: Analyze pricing with cost, competitor comparison, and margin calculations
+- draft_review_response: Draft professional responses to customer product reviews
+
 ### Shared Infrastructure
-- Dashboard shows: stats grid (workers, messages, remaining, active campaigns), Smart Alerts, Agent Activity Log with per-action-type icons
+- All 8 agents now have real tool-calling capabilities (total: 45 tools across all agents)
+- Dashboard shows: stats grid (workers, messages, remaining, active campaigns), Smart Alerts, Agent Activity Log with per-action-type icons (35+ icon mappings)
 - Leads stored in `leads` table (user-scoped CRM with status + score tracking)
 - Action metadata stored as JSONB for rich audit trail
 

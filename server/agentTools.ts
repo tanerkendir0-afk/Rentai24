@@ -446,11 +446,260 @@ export const dataAnalystTools: OpenAI.ChatCompletionTool[] = [
   },
 ];
 
+export const socialMediaTools: OpenAI.ChatCompletionTool[] = [
+  {
+    type: "function",
+    function: {
+      name: "create_post",
+      description: "Create a social media post draft for a specific platform. Generates ready-to-publish content with hashtags and emojis.",
+      parameters: {
+        type: "object",
+        properties: {
+          platform: { type: "string", enum: ["instagram", "twitter", "linkedin", "facebook", "tiktok"], description: "Target social media platform" },
+          topic: { type: "string", description: "Topic or subject of the post" },
+          tone: { type: "string", enum: ["professional", "casual", "humorous", "inspirational", "educational"], description: "Tone of voice (default: professional)" },
+          include_hashtags: { type: "boolean", description: "Whether to include hashtags (default: true)" },
+        },
+        required: ["platform", "topic"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "create_content_calendar",
+      description: "Generate a content calendar with post ideas for a specified time period. Creates a structured posting schedule.",
+      parameters: {
+        type: "object",
+        properties: {
+          days: { type: "number", description: "Number of days to plan (1-30, default 7)" },
+          platforms: { type: "string", description: "Comma-separated platforms (e.g. 'instagram,twitter,linkedin')" },
+          theme: { type: "string", description: "Overall theme or focus area for the content" },
+        },
+        required: ["theme"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "generate_hashtags",
+      description: "Generate relevant hashtags for a topic, optimized for reach and engagement on a specific platform.",
+      parameters: {
+        type: "object",
+        properties: {
+          topic: { type: "string", description: "Topic to generate hashtags for" },
+          platform: { type: "string", enum: ["instagram", "twitter", "linkedin", "facebook", "tiktok"], description: "Target platform" },
+          count: { type: "number", description: "Number of hashtags to generate (default: 10)" },
+        },
+        required: ["topic"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "draft_response",
+      description: "Draft a response to a customer comment, review, or social media mention. Generates professional, brand-appropriate replies.",
+      parameters: {
+        type: "object",
+        properties: {
+          original_message: { type: "string", description: "The customer's original comment/message to respond to" },
+          sentiment: { type: "string", enum: ["positive", "negative", "neutral", "question"], description: "Sentiment of the original message" },
+          platform: { type: "string", enum: ["instagram", "twitter", "linkedin", "facebook", "tiktok", "google_review"], description: "Where the comment was posted" },
+        },
+        required: ["original_message"],
+      },
+    },
+  },
+];
+
+export const bookkeepingTools: OpenAI.ChatCompletionTool[] = [
+  {
+    type: "function",
+    function: {
+      name: "create_invoice",
+      description: "Generate a professional invoice with line items, totals, and payment terms.",
+      parameters: {
+        type: "object",
+        properties: {
+          client_name: { type: "string", description: "Client/company name" },
+          client_email: { type: "string", description: "Client email for sending the invoice" },
+          items: { type: "string", description: "Line items in format: 'Description|Qty|Price' separated by semicolons. e.g. 'Web Design|1|5000;Hosting|12|50'" },
+          due_days: { type: "number", description: "Payment due in N days (default: 30)" },
+          notes: { type: "string", description: "Additional notes on the invoice" },
+        },
+        required: ["client_name", "items"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "log_expense",
+      description: "Log a business expense for tracking and categorization.",
+      parameters: {
+        type: "object",
+        properties: {
+          description: { type: "string", description: "What the expense is for" },
+          amount: { type: "number", description: "Expense amount" },
+          category: { type: "string", enum: ["office", "software", "travel", "marketing", "payroll", "utilities", "equipment", "professional_services", "other"], description: "Expense category" },
+          date: { type: "string", description: "Expense date (YYYY-MM-DD, default: today)" },
+          vendor: { type: "string", description: "Vendor/supplier name" },
+        },
+        required: ["description", "amount", "category"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "financial_summary",
+      description: "Generate a financial summary showing logged expenses, invoices, and cash flow overview.",
+      parameters: {
+        type: "object",
+        properties: {
+          period: { type: "string", enum: ["week", "month", "quarter", "year"], description: "Time period for the summary (default: month)" },
+        },
+      },
+    },
+  },
+];
+
+export const hrRecruitingTools: OpenAI.ChatCompletionTool[] = [
+  {
+    type: "function",
+    function: {
+      name: "create_job_posting",
+      description: "Create a professional job posting with requirements, responsibilities, and benefits.",
+      parameters: {
+        type: "object",
+        properties: {
+          title: { type: "string", description: "Job title" },
+          department: { type: "string", description: "Department (e.g. Engineering, Marketing, Sales)" },
+          type: { type: "string", enum: ["full-time", "part-time", "contract", "internship", "remote"], description: "Employment type" },
+          description: { type: "string", description: "Brief job description and key responsibilities" },
+          requirements: { type: "string", description: "Required skills and qualifications (comma-separated)" },
+          salary_range: { type: "string", description: "Salary range (e.g. '$80,000 - $120,000')" },
+        },
+        required: ["title", "description"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "screen_resume",
+      description: "Evaluate a resume/candidate description against job requirements and provide a fit score with recommendations.",
+      parameters: {
+        type: "object",
+        properties: {
+          candidate_info: { type: "string", description: "Candidate's resume text, skills, or background description" },
+          job_requirements: { type: "string", description: "Required skills and qualifications for the role" },
+          job_title: { type: "string", description: "Title of the position being filled" },
+        },
+        required: ["candidate_info", "job_requirements"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "create_interview_kit",
+      description: "Generate an interview question kit tailored to a specific role, including behavioral, technical, and situational questions.",
+      parameters: {
+        type: "object",
+        properties: {
+          job_title: { type: "string", description: "Job title to create questions for" },
+          focus_areas: { type: "string", description: "Key areas to evaluate (comma-separated, e.g. 'leadership,problem-solving,technical')" },
+          experience_level: { type: "string", enum: ["junior", "mid", "senior", "lead", "executive"], description: "Candidate experience level" },
+        },
+        required: ["job_title"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "send_candidate_email",
+      description: "Send an email to a candidate (interview invite, status update, offer, or rejection).",
+      parameters: {
+        type: "object",
+        properties: {
+          to: { type: "string", description: "Candidate email address" },
+          subject: { type: "string", description: "Email subject" },
+          body: { type: "string", description: "Email body" },
+        },
+        required: ["to", "subject", "body"],
+      },
+    },
+  },
+];
+
+export const ecommerceOpsTools: OpenAI.ChatCompletionTool[] = [
+  {
+    type: "function",
+    function: {
+      name: "optimize_listing",
+      description: "Generate an optimized product listing with SEO-friendly title, description, bullet points, and keywords.",
+      parameters: {
+        type: "object",
+        properties: {
+          product_name: { type: "string", description: "Product name" },
+          category: { type: "string", description: "Product category" },
+          features: { type: "string", description: "Key product features (comma-separated)" },
+          target_audience: { type: "string", description: "Target customer segment" },
+          platform: { type: "string", enum: ["amazon", "shopify", "etsy", "ebay", "general"], description: "E-commerce platform (default: general)" },
+        },
+        required: ["product_name", "features"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "price_analysis",
+      description: "Generate a pricing strategy analysis with competitive positioning, margin calculations, and pricing recommendations.",
+      parameters: {
+        type: "object",
+        properties: {
+          product_name: { type: "string", description: "Product name" },
+          cost_price: { type: "number", description: "Cost/wholesale price per unit" },
+          current_price: { type: "number", description: "Current selling price (if any)" },
+          competitor_prices: { type: "string", description: "Competitor prices (comma-separated, e.g. '29.99,34.99,24.99')" },
+          target_margin: { type: "number", description: "Target profit margin percentage (e.g. 40 for 40%)" },
+        },
+        required: ["product_name", "cost_price"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "draft_review_response",
+      description: "Draft a professional response to a customer product review. Handles positive, negative, and neutral reviews appropriately.",
+      parameters: {
+        type: "object",
+        properties: {
+          review_text: { type: "string", description: "The customer's review text" },
+          rating: { type: "number", description: "Star rating (1-5)" },
+          product_name: { type: "string", description: "Name of the product being reviewed" },
+        },
+        required: ["review_text", "rating"],
+      },
+    },
+  },
+];
+
 export const agentToolRegistry: Record<string, OpenAI.ChatCompletionTool[]> = {
   "sales-sdr": salesSdrTools,
   "customer-support": customerSupportTools,
   "scheduling": schedulingTools,
   "data-analyst": dataAnalystTools,
+  "social-media": socialMediaTools,
+  "bookkeeping": bookkeepingTools,
+  "hr-recruiting": hrRecruitingTools,
+  "ecommerce-ops": ecommerceOpsTools,
 };
 
 export function getToolsForAgent(agentType: string): OpenAI.ChatCompletionTool[] | undefined {
@@ -1399,6 +1648,364 @@ ${activeRentals.map(r => `  ${r.agentType}: ${r.messagesUsed}/${r.messagesLimit}
         result: report,
         actionType: "report_generated",
         actionDescription: `📊 ${reportType.replace(/_/g, " ")} report generated`,
+      };
+    }
+
+    case "create_post": {
+      const platform = String(args.platform);
+      const topic = String(args.topic);
+      const tone = args.tone ? String(args.tone) : "professional";
+      const includeHashtags = args.include_hashtags !== false;
+
+      const platformLimits: Record<string, number> = { twitter: 280, instagram: 2200, linkedin: 3000, facebook: 5000, tiktok: 2200 };
+      const charLimit = platformLimits[platform] || 2200;
+
+      const platformEmojis: Record<string, string> = { instagram: "📸", twitter: "🐦", linkedin: "💼", facebook: "📘", tiktok: "🎵" };
+      const emoji = platformEmojis[platform] || "📱";
+
+      await storage.createAgentAction({
+        userId, agentType,
+        actionType: "post_created",
+        description: `${emoji} ${platform} post drafted about "${topic}" (${tone} tone)`,
+        metadata: { platform, topic, tone, includeHashtags },
+      });
+
+      return {
+        result: `I've drafted a ${platform} post about "${topic}" in a ${tone} tone. Here's the content:\n\n[${platform.toUpperCase()} POST — ${charLimit} char limit]\n\nTopic: ${topic}\nTone: ${tone}\n${includeHashtags ? "Hashtags: included" : "Hashtags: excluded"}\n\nPlease note: I've prepared the structure. The AI will generate the actual creative content in my response.`,
+        actionType: "post_created",
+        actionDescription: `${emoji} ${platform} post: "${topic}"`,
+      };
+    }
+
+    case "create_content_calendar": {
+      const days = Math.min(Math.max(Number(args.days) || 7, 1), 30);
+      const platforms = args.platforms ? String(args.platforms) : "instagram,twitter,linkedin";
+      const theme = String(args.theme);
+
+      await storage.createAgentAction({
+        userId, agentType,
+        actionType: "content_calendar_created",
+        description: `📅 ${days}-day content calendar created for "${theme}" on ${platforms}`,
+        metadata: { days, platforms, theme },
+      });
+
+      return {
+        result: `Content calendar created!\n\nTheme: ${theme}\nDuration: ${days} days\nPlatforms: ${platforms}\n\nI'll outline the posting schedule with specific post ideas for each day and platform.`,
+        actionType: "content_calendar_created",
+        actionDescription: `📅 ${days}-day content calendar: "${theme}"`,
+      };
+    }
+
+    case "generate_hashtags": {
+      const topic = String(args.topic);
+      const platform = args.platform ? String(args.platform) : "instagram";
+      const count = Math.min(Number(args.count) || 10, 30);
+
+      await storage.createAgentAction({
+        userId, agentType,
+        actionType: "hashtags_generated",
+        description: `#️⃣ ${count} hashtags generated for "${topic}" on ${platform}`,
+        metadata: { topic, platform, count },
+      });
+
+      return {
+        result: `Generating ${count} optimized hashtags for "${topic}" on ${platform}.\n\nI'll provide a mix of high-volume, medium, and niche hashtags for maximum reach.`,
+        actionType: "hashtags_generated",
+        actionDescription: `#️⃣ Hashtags for "${topic}" on ${platform}`,
+      };
+    }
+
+    case "draft_response": {
+      const originalMessage = String(args.original_message);
+      const sentiment = args.sentiment ? String(args.sentiment) : "neutral";
+      const platform = args.platform ? String(args.platform) : "general";
+
+      await storage.createAgentAction({
+        userId, agentType,
+        actionType: "response_drafted",
+        description: `💬 Response drafted for ${sentiment} ${platform} comment`,
+        metadata: { sentiment, platform, originalMessagePreview: originalMessage.substring(0, 100) },
+      });
+
+      return {
+        result: `Drafting a professional response to this ${sentiment} comment on ${platform}.\n\nOriginal: "${originalMessage.substring(0, 200)}${originalMessage.length > 200 ? "..." : ""}"\n\nI'll craft an appropriate, brand-aligned response.`,
+        actionType: "response_drafted",
+        actionDescription: `💬 ${sentiment} comment response drafted (${platform})`,
+      };
+    }
+
+    case "create_invoice": {
+      const clientName = String(args.client_name);
+      const clientEmail = args.client_email ? String(args.client_email) : null;
+      const dueDays = Number(args.due_days) || 30;
+      const notes = args.notes ? String(args.notes) : null;
+
+      const itemsRaw = String(args.items);
+      const parsedItems = itemsRaw.split(";").map(item => {
+        const parts = item.trim().split("|");
+        return {
+          description: parts[0]?.trim() || "Item",
+          quantity: Number(parts[1]?.trim()) || 1,
+          price: Number(parts[2]?.trim()) || 0,
+        };
+      });
+
+      const subtotal = parsedItems.reduce((sum, item) => sum + (item.quantity * item.price), 0);
+      const invoiceNumber = `INV-${Date.now().toString(36).toUpperCase()}`;
+
+      const itemLines = parsedItems.map(item =>
+        `  ${item.description} × ${item.quantity} = $${(item.quantity * item.price).toFixed(2)}`
+      ).join("\n");
+
+      await storage.createAgentAction({
+        userId, agentType,
+        actionType: "invoice_created",
+        description: `🧾 Invoice ${invoiceNumber} created for ${clientName} — $${subtotal.toFixed(2)}`,
+        metadata: { invoiceNumber, clientName, clientEmail, subtotal, items: parsedItems, dueDays, notes },
+      });
+
+      if (clientEmail) {
+        await sendEmail({
+          userId,
+          to: clientEmail,
+          subject: `Invoice ${invoiceNumber} from your business`,
+          body: `Dear ${clientName},\n\nPlease find your invoice below:\n\nInvoice #: ${invoiceNumber}\nItems:\n${itemLines}\n\nSubtotal: $${subtotal.toFixed(2)}\nDue: ${dueDays} days\n\n${notes ? `Notes: ${notes}\n\n` : ""}Thank you for your business.`,
+          agentType,
+        });
+      }
+
+      return {
+        result: `Invoice ${invoiceNumber} created!\n\nClient: ${clientName}${clientEmail ? `\nEmail: ${clientEmail} (invoice sent)` : ""}\n\nItems:\n${itemLines}\n\nSubtotal: $${subtotal.toFixed(2)}\nDue: Net ${dueDays}${notes ? `\nNotes: ${notes}` : ""}`,
+        actionType: "invoice_created",
+        actionDescription: `🧾 Invoice ${invoiceNumber}: $${subtotal.toFixed(2)} for ${clientName}`,
+      };
+    }
+
+    case "log_expense": {
+      const description = String(args.description);
+      const amount = Number(args.amount);
+      const category = String(args.category);
+      const date = args.date ? String(args.date) : new Date().toISOString().split("T")[0];
+      const vendor = args.vendor ? String(args.vendor) : null;
+
+      const expenseId = `EXP-${Date.now().toString(36).toUpperCase()}`;
+
+      await storage.createAgentAction({
+        userId, agentType,
+        actionType: "expense_logged",
+        description: `💸 Expense logged: $${amount.toFixed(2)} — ${description} [${category}]`,
+        metadata: { expenseId, description, amount, category, date, vendor },
+      });
+
+      return {
+        result: `Expense ${expenseId} logged!\n\nDescription: ${description}\nAmount: $${amount.toFixed(2)}\nCategory: ${category}\nDate: ${date}${vendor ? `\nVendor: ${vendor}` : ""}`,
+        actionType: "expense_logged",
+        actionDescription: `💸 Expense: $${amount.toFixed(2)} — ${description}`,
+      };
+    }
+
+    case "financial_summary": {
+      const period = args.period ? String(args.period) : "month";
+      const periodDays: Record<string, number> = { week: 7, month: 30, quarter: 90, year: 365 };
+      const days = periodDays[period] || 30;
+
+      const allActions = await storage.getActionsByUser(userId);
+      const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
+      const periodActions = allActions.filter(a => new Date(a.createdAt).getTime() >= cutoff);
+
+      const invoices = periodActions.filter(a => a.actionType === "invoice_created");
+      const expenses = periodActions.filter(a => a.actionType === "expense_logged");
+
+      const totalInvoiced = invoices.reduce((sum, a) => {
+        const meta = a.metadata as Record<string, unknown>;
+        return sum + (Number(meta?.subtotal) || 0);
+      }, 0);
+
+      const totalExpenses = expenses.reduce((sum, a) => {
+        const meta = a.metadata as Record<string, unknown>;
+        return sum + (Number(meta?.amount) || 0);
+      }, 0);
+
+      const categoryCounts: Record<string, number> = {};
+      for (const e of expenses) {
+        const meta = e.metadata as Record<string, unknown>;
+        const cat = String(meta?.category || "other");
+        categoryCounts[cat] = (categoryCounts[cat] || 0) + (Number(meta?.amount) || 0);
+      }
+
+      const categoryReport = Object.entries(categoryCounts)
+        .sort((a, b) => b[1] - a[1])
+        .map(([k, v]) => `  ${k}: $${v.toFixed(2)}`)
+        .join("\n");
+
+      await storage.createAgentAction({
+        userId, agentType,
+        actionType: "financial_summary",
+        description: `📊 ${period} financial summary generated`,
+        metadata: { period, totalInvoiced, totalExpenses, invoiceCount: invoices.length, expenseCount: expenses.length },
+      });
+
+      return {
+        result: `📊 FINANCIAL SUMMARY (${period})\n\n💰 Revenue (Invoiced): $${totalInvoiced.toFixed(2)} (${invoices.length} invoices)\n💸 Expenses: $${totalExpenses.toFixed(2)} (${expenses.length} entries)\n📈 Net: $${(totalInvoiced - totalExpenses).toFixed(2)}\n\n${categoryReport ? `Expense Categories:\n${categoryReport}` : "No expenses logged this period."}`,
+        actionType: "financial_summary",
+        actionDescription: `📊 ${period} financial summary`,
+      };
+    }
+
+    case "create_job_posting": {
+      const title = String(args.title);
+      const dept = args.department ? String(args.department) : "General";
+      const type = args.type ? String(args.type) : "full-time";
+      const description = String(args.description);
+      const requirements = args.requirements ? String(args.requirements) : "";
+      const salaryRange = args.salary_range ? String(args.salary_range) : null;
+
+      const postingId = `JOB-${Date.now().toString(36).toUpperCase()}`;
+
+      await storage.createAgentAction({
+        userId, agentType,
+        actionType: "job_posting_created",
+        description: `📋 Job posting created: ${title} (${dept}, ${type})`,
+        metadata: { postingId, title, department: dept, type, description, requirements, salaryRange },
+      });
+
+      return {
+        result: `Job posting ${postingId} created!\n\n📋 ${title}\nDepartment: ${dept}\nType: ${type}${salaryRange ? `\nSalary: ${salaryRange}` : ""}\n\nDescription: ${description}\n${requirements ? `\nRequirements: ${requirements}` : ""}\n\nI'll format this as a professional job posting.`,
+        actionType: "job_posting_created",
+        actionDescription: `📋 Job posting: ${title} (${type})`,
+      };
+    }
+
+    case "screen_resume": {
+      const candidateInfo = String(args.candidate_info);
+      const jobRequirements = String(args.job_requirements);
+      const jobTitle = args.job_title ? String(args.job_title) : "the position";
+
+      await storage.createAgentAction({
+        userId, agentType,
+        actionType: "resume_screened",
+        description: `📄 Resume screened for ${jobTitle}`,
+        metadata: { jobTitle, requirementsPreview: jobRequirements.substring(0, 200), candidatePreview: candidateInfo.substring(0, 200) },
+      });
+
+      return {
+        result: `Screening candidate for: ${jobTitle}\n\nJob Requirements: ${jobRequirements}\n\nCandidate Profile: ${candidateInfo.substring(0, 500)}${candidateInfo.length > 500 ? "..." : ""}\n\nI'll provide a detailed fit analysis with scoring and recommendations.`,
+        actionType: "resume_screened",
+        actionDescription: `📄 Resume screened for ${jobTitle}`,
+      };
+    }
+
+    case "create_interview_kit": {
+      const jobTitle = String(args.job_title);
+      const focusAreas = args.focus_areas ? String(args.focus_areas) : "general,problem-solving,culture-fit";
+      const level = args.experience_level ? String(args.experience_level) : "mid";
+
+      await storage.createAgentAction({
+        userId, agentType,
+        actionType: "interview_kit_created",
+        description: `🎯 Interview kit created for ${jobTitle} (${level} level)`,
+        metadata: { jobTitle, focusAreas, level },
+      });
+
+      return {
+        result: `Interview kit for: ${jobTitle} (${level} level)\n\nFocus Areas: ${focusAreas}\n\nI'll generate behavioral, technical, and situational questions tailored to this role and level.`,
+        actionType: "interview_kit_created",
+        actionDescription: `🎯 Interview kit: ${jobTitle} (${level})`,
+      };
+    }
+
+    case "send_candidate_email": {
+      const emailResult = await sendEmail({
+        userId,
+        to: String(args.to),
+        subject: String(args.subject),
+        body: String(args.body),
+        agentType,
+      });
+
+      if (emailResult.success) {
+        await storage.createAgentAction({
+          userId, agentType,
+          actionType: "candidate_email_sent",
+          description: `📧 Candidate email sent to ${args.to}: "${args.subject}"`,
+          metadata: { to: args.to, subject: args.subject },
+        });
+      }
+
+      return {
+        result: emailResult.success
+          ? `Email sent to candidate at ${args.to}: "${args.subject}"`
+          : `Failed to send email: ${emailResult.message}`,
+        actionType: emailResult.success ? "candidate_email_sent" : "email_failed",
+        actionDescription: emailResult.success
+          ? `📧 Candidate email sent to ${args.to}`
+          : `❌ Email failed to ${args.to}`,
+      };
+    }
+
+    case "optimize_listing": {
+      const productName = String(args.product_name);
+      const category = args.category ? String(args.category) : "General";
+      const features = String(args.features);
+      const targetAudience = args.target_audience ? String(args.target_audience) : "general consumers";
+      const platform = args.platform ? String(args.platform) : "general";
+
+      await storage.createAgentAction({
+        userId, agentType,
+        actionType: "listing_optimized",
+        description: `🏷️ Product listing optimized: "${productName}" for ${platform}`,
+        metadata: { productName, category, features, targetAudience, platform },
+      });
+
+      return {
+        result: `Optimizing listing for "${productName}" on ${platform}.\n\nCategory: ${category}\nFeatures: ${features}\nTarget: ${targetAudience}\n\nI'll generate an SEO-optimized title, bullet points, description, and keywords.`,
+        actionType: "listing_optimized",
+        actionDescription: `🏷️ Listing optimized: "${productName}" (${platform})`,
+      };
+    }
+
+    case "price_analysis": {
+      const productName = String(args.product_name);
+      const costPrice = Number(args.cost_price);
+      const currentPrice = args.current_price ? Number(args.current_price) : null;
+      const competitorPrices = args.competitor_prices ? String(args.competitor_prices).split(",").map(p => Number(p.trim())) : [];
+      const targetMargin = args.target_margin ? Number(args.target_margin) : 40;
+
+      const suggestedPrice = costPrice / (1 - targetMargin / 100);
+      const avgCompetitor = competitorPrices.length > 0 ? competitorPrices.reduce((a, b) => a + b, 0) / competitorPrices.length : null;
+
+      await storage.createAgentAction({
+        userId, agentType,
+        actionType: "price_analysis",
+        description: `💲 Price analysis: "${productName}" — cost $${costPrice.toFixed(2)}, suggested $${suggestedPrice.toFixed(2)}`,
+        metadata: { productName, costPrice, currentPrice, competitorPrices, targetMargin, suggestedPrice, avgCompetitor },
+      });
+
+      return {
+        result: `💲 PRICE ANALYSIS: ${productName}\n\nCost: $${costPrice.toFixed(2)}${currentPrice ? `\nCurrent Price: $${currentPrice.toFixed(2)} (${((currentPrice - costPrice) / costPrice * 100).toFixed(1)}% markup)` : ""}\nTarget Margin: ${targetMargin}%\nSuggested Price: $${suggestedPrice.toFixed(2)}\n${avgCompetitor ? `\nCompetitor Avg: $${avgCompetitor.toFixed(2)}\nCompetitor Range: $${Math.min(...competitorPrices).toFixed(2)} — $${Math.max(...competitorPrices).toFixed(2)}` : ""}\n\nI'll provide detailed positioning recommendations.`,
+        actionType: "price_analysis",
+        actionDescription: `💲 Price analysis: "${productName}"`,
+      };
+    }
+
+    case "draft_review_response": {
+      const reviewText = String(args.review_text);
+      const rating = Number(args.rating);
+      const productName = args.product_name ? String(args.product_name) : "your product";
+
+      const ratingEmoji = rating >= 4 ? "⭐" : rating >= 3 ? "😐" : "⚠️";
+
+      await storage.createAgentAction({
+        userId, agentType,
+        actionType: "review_response_drafted",
+        description: `${ratingEmoji} Review response drafted for ${productName} (${rating}/5 stars)`,
+        metadata: { rating, productName, reviewPreview: reviewText.substring(0, 200) },
+      });
+
+      return {
+        result: `Drafting response to ${rating}/5 star review for "${productName}".\n\nReview: "${reviewText.substring(0, 300)}${reviewText.length > 300 ? "..." : ""}"\n\nI'll create an appropriate, professional response that ${rating >= 4 ? "thanks the customer and encourages loyalty" : rating >= 3 ? "acknowledges feedback and offers to improve" : "addresses concerns empathetically and offers resolution"}.`,
+        actionType: "review_response_drafted",
+        actionDescription: `${ratingEmoji} Review response: ${productName} (${rating}★)`,
       };
     }
 

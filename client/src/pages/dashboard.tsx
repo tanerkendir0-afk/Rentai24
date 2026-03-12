@@ -42,6 +42,13 @@ import {
   CheckSquare,
   Bell,
   LineChart,
+  Hash,
+  Receipt,
+  DollarSign,
+  Briefcase,
+  ClipboardList,
+  Tag,
+  Star,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -429,6 +436,20 @@ export default function Dashboard() {
                   reminder_sent: Bell,
                   reminder_scheduled: Clock,
                   report_generated: LineChart,
+                  post_created: Share2,
+                  content_calendar_created: CalendarCheck,
+                  hashtags_generated: Hash,
+                  response_drafted: MessageSquare,
+                  invoice_created: Receipt,
+                  expense_logged: DollarSign,
+                  financial_summary: BarChart3,
+                  job_posting_created: Briefcase,
+                  resume_screened: ClipboardList,
+                  interview_kit_created: ClipboardList,
+                  candidate_email_sent: Mail,
+                  listing_optimized: Tag,
+                  price_analysis: DollarSign,
+                  review_response_drafted: Star,
                 };
                 const ActionIcon = actionIcons[action.actionType] || Activity;
 

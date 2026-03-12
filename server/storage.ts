@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { users, rentals, contactMessages, newsletterSubscribers, leads, agentActions, emailCampaigns, type User, type InsertUser, type Rental, type InsertRental, type ContactMessage, type InsertContactMessage, type NewsletterSubscriber, type Lead, type InsertLead, type AgentAction, type InsertAgentAction, type EmailCampaign, type InsertEmailCampaign } from "@shared/schema";
+import { users, rentals, contactMessages, newsletterSubscribers, leads, agentActions, emailCampaigns, supportTickets, type User, type InsertUser, type Rental, type InsertRental, type ContactMessage, type InsertContactMessage, type NewsletterSubscriber, type Lead, type InsertLead, type AgentAction, type InsertAgentAction, type EmailCampaign, type InsertEmailCampaign, type SupportTicket, type InsertSupportTicket } from "@shared/schema";
 import { eq, and, sql, desc } from "drizzle-orm";
 
 export interface IStorage {
@@ -41,6 +41,11 @@ export interface IStorage {
   getCampaignsByUser(userId: number): Promise<EmailCampaign[]>;
   getActiveCampaigns(userId: number): Promise<EmailCampaign[]>;
   updateCampaignStep(id: number, userId: number, currentStep: number, status?: string): Promise<EmailCampaign | undefined>;
+
+  createSupportTicket(ticket: InsertSupportTicket): Promise<SupportTicket>;
+  getTicketsByUser(userId: number): Promise<SupportTicket[]>;
+  getTicketById(id: number, userId: number): Promise<SupportTicket | undefined>;
+  updateTicket(id: number, userId: number, updates: Partial<Pick<SupportTicket, "status" | "priority" | "resolution" | "subject" | "description">>): Promise<SupportTicket | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -239,6 +244,28 @@ export class DatabaseStorage implements IStorage {
       .update(emailCampaigns)
       .set(updates)
       .where(and(eq(emailCampaigns.id, id), eq(emailCampaigns.userId, userId)))
+      .returning();
+    return updated;
+  }
+  async createSupportTicket(ticket: InsertSupportTicket): Promise<SupportTicket> {
+    const [created] = await db.insert(supportTickets).values(ticket).returning();
+    return created;
+  }
+
+  async getTicketsByUser(userId: number): Promise<SupportTicket[]> {
+    return db.select().from(supportTickets).where(eq(supportTickets.userId, userId)).orderBy(desc(supportTickets.createdAt));
+  }
+
+  async getTicketById(id: number, userId: number): Promise<SupportTicket | undefined> {
+    const [ticket] = await db.select().from(supportTickets).where(and(eq(supportTickets.id, id), eq(supportTickets.userId, userId)));
+    return ticket;
+  }
+
+  async updateTicket(id: number, userId: number, updates: Partial<Pick<SupportTicket, "status" | "priority" | "resolution" | "subject" | "description">>): Promise<SupportTicket | undefined> {
+    const [updated] = await db
+      .update(supportTickets)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(and(eq(supportTickets.id, id), eq(supportTickets.userId, userId)))
       .returning();
     return updated;
   }

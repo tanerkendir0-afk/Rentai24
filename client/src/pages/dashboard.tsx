@@ -38,6 +38,10 @@ import {
   AlertCircle,
   Flame,
   Search,
+  Ticket,
+  CheckSquare,
+  Bell,
+  LineChart,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -417,6 +421,14 @@ export default function Dashboard() {
                   leads_scored: BarChart3,
                   proposal_created: FileText,
                   competitor_analysis: Search,
+                  ticket_created: Ticket,
+                  ticket_updated: Ticket,
+                  ticket_closed: CheckSquare,
+                  customer_email_sent: Mail,
+                  appointment_created: Calendar,
+                  reminder_sent: Bell,
+                  reminder_scheduled: Clock,
+                  report_generated: LineChart,
                 };
                 const ActionIcon = actionIcons[action.actionType] || Activity;
 

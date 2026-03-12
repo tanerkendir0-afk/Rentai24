@@ -230,6 +230,233 @@ export const salesSdrTools: OpenAI.ChatCompletionTool[] = [
   },
 ];
 
+export const customerSupportTools: OpenAI.ChatCompletionTool[] = [
+  {
+    type: "function",
+    function: {
+      name: "create_ticket",
+      description: "Create a new support ticket to track a customer issue. Use when a customer reports a problem, bug, or needs help.",
+      parameters: {
+        type: "object",
+        properties: {
+          subject: { type: "string", description: "Short summary of the issue" },
+          description: { type: "string", description: "Detailed description of the problem" },
+          priority: { type: "string", enum: ["low", "medium", "high", "urgent"], description: "Ticket priority level" },
+          customer_email: { type: "string", description: "Customer's email address for follow-up" },
+        },
+        required: ["subject", "description"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "list_tickets",
+      description: "List all support tickets. Use when the user asks about open tickets, ticket status, or wants to see all issues.",
+      parameters: {
+        type: "object",
+        properties: {
+          status_filter: { type: "string", enum: ["open", "in_progress", "resolved", "closed"], description: "Optional: filter by ticket status" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "update_ticket",
+      description: "Update a support ticket's status, priority, or add notes. Use when working on a ticket or changing its priority.",
+      parameters: {
+        type: "object",
+        properties: {
+          ticket_id: { type: "number", description: "Ticket ID to update" },
+          status: { type: "string", enum: ["open", "in_progress", "resolved", "closed"], description: "New ticket status" },
+          priority: { type: "string", enum: ["low", "medium", "high", "urgent"], description: "Updated priority" },
+          resolution: { type: "string", description: "Resolution notes when closing/resolving a ticket" },
+        },
+        required: ["ticket_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "close_ticket",
+      description: "Close a resolved support ticket with a resolution summary. Use when an issue is fully resolved.",
+      parameters: {
+        type: "object",
+        properties: {
+          ticket_id: { type: "number", description: "Ticket ID to close" },
+          resolution: { type: "string", description: "How the issue was resolved" },
+        },
+        required: ["ticket_id", "resolution"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "email_customer",
+      description: "Send an email update to a customer about their support ticket. Use to notify customers about ticket progress or resolution.",
+      parameters: {
+        type: "object",
+        properties: {
+          to: { type: "string", description: "Customer email address" },
+          subject: { type: "string", description: "Email subject" },
+          body: { type: "string", description: "Email body with the update" },
+        },
+        required: ["to", "subject", "body"],
+      },
+    },
+  },
+];
+
+export const schedulingTools: OpenAI.ChatCompletionTool[] = [
+  {
+    type: "function",
+    function: {
+      name: "create_appointment",
+      description: "Create a new appointment or meeting. If Google Calendar is connected, a calendar event with invite will be created automatically.",
+      parameters: {
+        type: "object",
+        properties: {
+          title: { type: "string", description: "Appointment title" },
+          attendee_email: { type: "string", description: "Attendee's email address" },
+          date: { type: "string", description: "Appointment date (YYYY-MM-DD format)" },
+          time: { type: "string", description: "Appointment time (HH:MM format, 24h)" },
+          duration_minutes: { type: "number", description: "Duration in minutes (default 30)" },
+          description: { type: "string", description: "Appointment description/notes" },
+        },
+        required: ["title", "attendee_email", "date", "time"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "list_appointments",
+      description: "List all scheduled appointments and meetings. Shows upcoming and past appointments from the activity log.",
+      parameters: {
+        type: "object",
+        properties: {
+          upcoming_only: { type: "boolean", description: "If true, show only future appointments" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "send_reminder",
+      description: "Send a reminder email about an upcoming appointment or meeting.",
+      parameters: {
+        type: "object",
+        properties: {
+          to: { type: "string", description: "Recipient email address" },
+          subject: { type: "string", description: "Reminder subject" },
+          body: { type: "string", description: "Reminder message body" },
+        },
+        required: ["to", "subject", "body"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "schedule_followup_reminder",
+      description: "Schedule a follow-up reminder email to be sent at a future date.",
+      parameters: {
+        type: "object",
+        properties: {
+          to: { type: "string", description: "Recipient email address" },
+          subject: { type: "string", description: "Reminder email subject" },
+          body: { type: "string", description: "Reminder email body" },
+          delay_days: { type: "number", description: "Number of days from now to send (1-30)" },
+        },
+        required: ["to", "subject", "body", "delay_days"],
+      },
+    },
+  },
+];
+
+export const dataAnalystTools: OpenAI.ChatCompletionTool[] = [
+  {
+    type: "function",
+    function: {
+      name: "query_leads",
+      description: "Query and analyze the user's lead data from the CRM. Returns stats, counts, and breakdowns by status or score.",
+      parameters: {
+        type: "object",
+        properties: {
+          group_by: { type: "string", enum: ["status", "score", "company"], description: "How to group the results" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "query_actions",
+      description: "Query the activity log to analyze agent actions, email sends, meetings, and other tracked events.",
+      parameters: {
+        type: "object",
+        properties: {
+          action_type: { type: "string", description: "Optional: filter by action type (email_sent, lead_added, meeting_created, etc.)" },
+          agent_type: { type: "string", description: "Optional: filter by agent (sales-sdr, customer-support, etc.)" },
+          days: { type: "number", description: "Look back this many days (default: 30)" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "query_campaigns",
+      description: "Analyze email campaign data — active vs completed campaigns, success rates, and campaign performance.",
+      parameters: {
+        type: "object",
+        properties: {},
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "query_rentals",
+      description: "Query rental/subscription data to analyze active AI worker usage, message consumption, and worker distribution.",
+      parameters: {
+        type: "object",
+        properties: {},
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "generate_report",
+      description: "Generate a comprehensive business intelligence report combining leads, actions, campaigns, and rental data into a single executive summary.",
+      parameters: {
+        type: "object",
+        properties: {
+          report_type: { type: "string", enum: ["executive_summary", "sales_performance", "activity_overview", "agent_usage"], description: "Type of report to generate" },
+        },
+        required: ["report_type"],
+      },
+    },
+  },
+];
+
+export const agentToolRegistry: Record<string, OpenAI.ChatCompletionTool[]> = {
+  "sales-sdr": salesSdrTools,
+  "customer-support": customerSupportTools,
+  "scheduling": schedulingTools,
+  "data-analyst": dataAnalystTools,
+};
+
+export function getToolsForAgent(agentType: string): OpenAI.ChatCompletionTool[] | undefined {
+  return agentToolRegistry[agentType];
+}
+
 export async function executeToolCall(
   toolName: string,
   args: Record<string, unknown>,
@@ -761,6 +988,417 @@ AI-First Competitors:
         result: analysis,
         actionType: "competitor_analysis",
         actionDescription: `🔍 Competitive analysis: ${industry}`,
+      };
+    }
+
+    case "create_ticket": {
+      const ticket = await storage.createSupportTicket({
+        userId,
+        subject: String(args.subject),
+        description: String(args.description),
+        priority: args.priority ? String(args.priority) : "medium",
+        customerEmail: args.customer_email ? String(args.customer_email) : null,
+        status: "open",
+        resolution: null,
+      });
+
+      await storage.createAgentAction({
+        userId, agentType,
+        actionType: "ticket_created",
+        description: `Support ticket #${ticket.id} created: "${ticket.subject}" [${ticket.priority}]`,
+        metadata: { ticketId: ticket.id, subject: ticket.subject, priority: ticket.priority, customerEmail: ticket.customerEmail },
+      });
+
+      return {
+        result: `Support ticket #${ticket.id} created successfully!\n\nSubject: ${ticket.subject}\nPriority: ${ticket.priority}\nStatus: open${ticket.customerEmail ? `\nCustomer: ${ticket.customerEmail}` : ""}\n\nI'll track this issue and help resolve it.`,
+        actionType: "ticket_created",
+        actionDescription: `🎫 Ticket #${ticket.id}: "${ticket.subject}" [${ticket.priority}]`,
+      };
+    }
+
+    case "list_tickets": {
+      const allTickets = await storage.getTicketsByUser(userId);
+      const statusFilter = args.status_filter ? String(args.status_filter) : null;
+      const filtered = statusFilter
+        ? allTickets.filter(t => t.status === statusFilter)
+        : allTickets;
+
+      if (filtered.length === 0) {
+        return { result: statusFilter ? `No tickets found with status "${statusFilter}".` : "No support tickets yet." };
+      }
+
+      const priorityEmoji: Record<string, string> = { urgent: "🔴", high: "🟠", medium: "🟡", low: "🟢" };
+      const ticketList = filtered.map(t =>
+        `- #${t.id} ${priorityEmoji[t.priority] || "⚪"} [${t.status}] "${t.subject}"${t.customerEmail ? ` — ${t.customerEmail}` : ""}`
+      ).join("\n");
+
+      return { result: `Found ${filtered.length} ticket(s):\n${ticketList}` };
+    }
+
+    case "update_ticket": {
+      const ticketId = Number(args.ticket_id);
+      const updates: Record<string, string> = {};
+      if (args.status) updates.status = String(args.status);
+      if (args.priority) updates.priority = String(args.priority);
+      if (args.resolution) updates.resolution = String(args.resolution);
+
+      const updated = await storage.updateTicket(ticketId, userId, updates);
+      if (!updated) {
+        return { result: `Ticket #${ticketId} not found.` };
+      }
+
+      await storage.createAgentAction({
+        userId, agentType,
+        actionType: "ticket_updated",
+        description: `Ticket #${ticketId} updated: "${updated.subject}"${args.status ? ` → ${args.status}` : ""}`,
+        metadata: { ticketId, updates },
+      });
+
+      return {
+        result: `Ticket #${ticketId} updated!\n\nSubject: ${updated.subject}\nStatus: ${updated.status}\nPriority: ${updated.priority}${updated.resolution ? `\nResolution: ${updated.resolution}` : ""}`,
+        actionType: "ticket_updated",
+        actionDescription: `🎫 Ticket #${ticketId} updated${args.status ? ` → ${args.status}` : ""}`,
+      };
+    }
+
+    case "close_ticket": {
+      const closeId = Number(args.ticket_id);
+      const resolution = String(args.resolution);
+      const closed = await storage.updateTicket(closeId, userId, { status: "closed", resolution });
+      if (!closed) {
+        return { result: `Ticket #${closeId} not found.` };
+      }
+
+      await storage.createAgentAction({
+        userId, agentType,
+        actionType: "ticket_closed",
+        description: `Ticket #${closeId} closed: "${closed.subject}" — ${resolution}`,
+        metadata: { ticketId: closeId, resolution },
+      });
+
+      return {
+        result: `Ticket #${closeId} closed!\n\nSubject: ${closed.subject}\nResolution: ${resolution}`,
+        actionType: "ticket_closed",
+        actionDescription: `✅ Ticket #${closeId} closed: "${closed.subject}"`,
+      };
+    }
+
+    case "email_customer": {
+      const emailResult = await sendEmail({
+        userId,
+        to: String(args.to),
+        subject: String(args.subject),
+        body: String(args.body),
+        agentType,
+      });
+
+      if (emailResult.success) {
+        await storage.createAgentAction({
+          userId, agentType,
+          actionType: "customer_email_sent",
+          description: `Customer email sent to ${args.to}: "${args.subject}"`,
+          metadata: { to: args.to, subject: args.subject },
+        });
+      }
+
+      return {
+        result: emailResult.success
+          ? `Email sent to ${args.to}: "${args.subject}"`
+          : `Failed to send email: ${emailResult.message}`,
+        actionType: emailResult.success ? "customer_email_sent" : "email_failed",
+        actionDescription: emailResult.success
+          ? `📧 Customer email sent to ${args.to}`
+          : `❌ Email failed to ${args.to}`,
+      };
+    }
+
+    case "create_appointment": {
+      const duration = Number(args.duration_minutes) || 30;
+      const calResult = await createCalendarEvent({
+        userId,
+        agentType,
+        title: String(args.title),
+        attendeeEmail: String(args.attendee_email),
+        date: String(args.date),
+        time: String(args.time),
+        durationMinutes: duration,
+        description: args.description ? String(args.description) : undefined,
+      });
+
+      return {
+        result: calResult.message,
+        actionType: "appointment_created",
+        actionDescription: `📅 Appointment: "${args.title}" on ${args.date} at ${args.time}`,
+      };
+    }
+
+    case "list_appointments": {
+      const actions = await storage.getActionsByUser(userId);
+      const meetings = actions.filter(a => a.actionType === "meeting_created" || a.actionType === "appointment_created");
+
+      if (meetings.length === 0) {
+        return { result: "No appointments found. Create one with create_appointment!" };
+      }
+
+      const upcomingOnly = args.upcoming_only === true;
+      const now = new Date();
+
+      const meetingList = meetings
+        .filter(m => {
+          if (!upcomingOnly) return true;
+          const meta = m.metadata as Record<string, unknown>;
+          if (meta?.date) {
+            const meetingDate = new Date(`${meta.date}T${meta.time || "00:00"}:00`);
+            return meetingDate > now;
+          }
+          return true;
+        })
+        .slice(0, 15)
+        .map(m => {
+          const meta = m.metadata as Record<string, unknown>;
+          return `- "${meta?.title || "Meeting"}" with ${meta?.attendeeEmail || "N/A"} on ${meta?.date || "N/A"} at ${meta?.time || "N/A"} (${meta?.duration || 30}min)`;
+        })
+        .join("\n");
+
+      return { result: `${upcomingOnly ? "Upcoming" : "All"} appointments:\n${meetingList}` };
+    }
+
+    case "send_reminder": {
+      const reminderResult = await sendEmail({
+        userId,
+        to: String(args.to),
+        subject: String(args.subject),
+        body: String(args.body),
+        agentType,
+      });
+
+      if (reminderResult.success) {
+        await storage.createAgentAction({
+          userId, agentType,
+          actionType: "reminder_sent",
+          description: `Reminder sent to ${args.to}: "${args.subject}"`,
+          metadata: { to: args.to, subject: args.subject },
+        });
+      }
+
+      return {
+        result: reminderResult.success
+          ? `Reminder sent to ${args.to}: "${args.subject}"`
+          : `Failed to send reminder: ${reminderResult.message}`,
+        actionType: reminderResult.success ? "reminder_sent" : "email_failed",
+        actionDescription: reminderResult.success
+          ? `🔔 Reminder sent to ${args.to}`
+          : `❌ Reminder failed to ${args.to}`,
+      };
+    }
+
+    case "schedule_followup_reminder": {
+      const delayDays = Math.min(Math.max(Number(args.delay_days) || 1, 1), 30);
+      const { followupId, sendAt } = scheduleFollowup({
+        userId, agentType,
+        to: String(args.to),
+        subject: String(args.subject),
+        body: String(args.body),
+        delayDays,
+      });
+
+      await storage.createAgentAction({
+        userId, agentType,
+        actionType: "reminder_scheduled",
+        description: `Reminder scheduled for ${args.to} on ${sendAt.toLocaleDateString()}: "${args.subject}"`,
+        metadata: { followupId, to: args.to, subject: args.subject, sendDate: sendAt.toISOString(), delayDays },
+      });
+
+      return {
+        result: `Reminder #${followupId} scheduled for ${sendAt.toLocaleDateString()} (${delayDays} days from now) to ${args.to}.`,
+        actionType: "reminder_scheduled",
+        actionDescription: `⏰ Reminder scheduled for ${args.to} on ${sendAt.toLocaleDateString()}`,
+      };
+    }
+
+    case "query_leads": {
+      const allLeads = await storage.getLeadsByUser(userId);
+      if (allLeads.length === 0) {
+        return { result: "No lead data found. The sales pipeline is empty." };
+      }
+
+      const groupBy = args.group_by ? String(args.group_by) : "status";
+      const groups: Record<string, number> = {};
+      for (const lead of allLeads) {
+        const key = groupBy === "score" ? (lead.score || "unscored") :
+                    groupBy === "company" ? (lead.company || "No company") :
+                    lead.status;
+        groups[key] = (groups[key] || 0) + 1;
+      }
+
+      const groupReport = Object.entries(groups)
+        .sort((a, b) => b[1] - a[1])
+        .map(([k, v]) => `  ${k}: ${v}`)
+        .join("\n");
+
+      return {
+        result: `📊 LEAD DATA ANALYSIS\n\nTotal Leads: ${allLeads.length}\n\nGrouped by ${groupBy}:\n${groupReport}\n\nOldest lead: ${allLeads[allLeads.length - 1]?.name} (${new Date(allLeads[allLeads.length - 1]?.createdAt).toLocaleDateString()})\nNewest lead: ${allLeads[0]?.name} (${new Date(allLeads[0]?.createdAt).toLocaleDateString()})`,
+      };
+    }
+
+    case "query_actions": {
+      const allActions = await storage.getActionsByUser(userId);
+      const days = Number(args.days) || 30;
+      const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
+
+      let filtered = allActions.filter(a => new Date(a.createdAt).getTime() >= cutoff);
+      if (args.action_type) filtered = filtered.filter(a => a.actionType === String(args.action_type));
+      if (args.agent_type) filtered = filtered.filter(a => a.agentType === String(args.agent_type));
+
+      const typeCounts: Record<string, number> = {};
+      for (const action of filtered) {
+        typeCounts[action.actionType] = (typeCounts[action.actionType] || 0) + 1;
+      }
+
+      const typeReport = Object.entries(typeCounts)
+        .sort((a, b) => b[1] - a[1])
+        .map(([k, v]) => `  ${k}: ${v}`)
+        .join("\n");
+
+      return {
+        result: `📊 ACTIVITY LOG ANALYSIS (last ${days} days)\n\nTotal Actions: ${filtered.length}\n\nBy Type:\n${typeReport}\n\nMost Recent:\n${filtered.slice(0, 5).map(a => `  - ${a.description} (${new Date(a.createdAt).toLocaleString()})`).join("\n")}`,
+      };
+    }
+
+    case "query_campaigns": {
+      const campaigns = await storage.getCampaignsByUser(userId);
+      if (campaigns.length === 0) {
+        return { result: "No email campaign data found." };
+      }
+
+      const statusCounts: Record<string, number> = {};
+      for (const c of campaigns) {
+        statusCounts[c.status] = (statusCounts[c.status] || 0) + 1;
+      }
+
+      return {
+        result: `📊 CAMPAIGN ANALYSIS\n\nTotal Campaigns: ${campaigns.length}\n\nBy Status:\n${Object.entries(statusCounts).map(([k, v]) => `  ${k}: ${v}`).join("\n")}\n\nActive campaigns: ${statusCounts["active"] || 0}\nCompleted: ${statusCounts["completed"] || 0}`,
+      };
+    }
+
+    case "query_rentals": {
+      const rentals = await storage.getRentalsByUser(userId);
+      if (rentals.length === 0) {
+        return { result: "No rental data found. No AI workers are currently rented." };
+      }
+
+      const activeRentals = rentals.filter(r => r.status === "active");
+      const totalUsage = activeRentals.reduce((sum, r) => sum + r.messagesUsed, 0);
+      const totalLimit = activeRentals.reduce((sum, r) => sum + r.messagesLimit, 0);
+
+      const rentalList = activeRentals.map(r =>
+        `  - ${r.agentType}: ${r.messagesUsed}/${r.messagesLimit} messages (${Math.round((r.messagesUsed / r.messagesLimit) * 100)}% used)`
+      ).join("\n");
+
+      return {
+        result: `📊 AI WORKER USAGE\n\nActive Workers: ${activeRentals.length}\nTotal Messages Used: ${totalUsage}/${totalLimit} (${totalLimit > 0 ? Math.round((totalUsage / totalLimit) * 100) : 0}%)\n\nBy Worker:\n${rentalList}`,
+      };
+    }
+
+    case "generate_report": {
+      const reportType = String(args.report_type);
+      const leads = await storage.getLeadsByUser(userId);
+      const actions = await storage.getActionsByUser(userId);
+      const rentals = await storage.getRentalsByUser(userId);
+      const campaigns = await storage.getCampaignsByUser(userId);
+
+      const activeRentals = rentals.filter(r => r.status === "active");
+      const now = Date.now();
+      const weekAgo = now - 7 * 24 * 60 * 60 * 1000;
+      const recentActions = actions.filter(a => new Date(a.createdAt).getTime() >= weekAgo);
+
+      const statusCounts: Record<string, number> = {};
+      for (const l of leads) statusCounts[l.status] = (statusCounts[l.status] || 0) + 1;
+
+      let report = "";
+
+      if (reportType === "executive_summary") {
+        const won = statusCounts["won"] || 0;
+        const closed = won + (statusCounts["lost"] || 0);
+        const convRate = closed > 0 ? Math.round((won / closed) * 100) : 0;
+
+        report = `
+═══════════════════════════════════════
+   EXECUTIVE SUMMARY REPORT
+═══════════════════════════════════════
+
+📈 KEY METRICS
+• Total Leads: ${leads.length}
+• Active AI Workers: ${activeRentals.length}
+• Conversion Rate: ${convRate}%
+• Active Campaigns: ${campaigns.filter(c => c.status === "active").length}
+• Actions This Week: ${recentActions.length}
+
+📊 PIPELINE BREAKDOWN
+${Object.entries(statusCounts).sort((a, b) => b[1] - a[1]).map(([k, v]) => `• ${k}: ${v}`).join("\n")}
+
+🤖 WORKER UTILIZATION
+${activeRentals.map(r => `• ${r.agentType}: ${r.messagesUsed}/${r.messagesLimit} messages`).join("\n") || "• No active workers"}
+
+📅 WEEKLY HIGHLIGHTS
+• ${recentActions.length} actions performed
+• ${actions.filter(a => a.actionType === "email_sent" && new Date(a.createdAt).getTime() >= weekAgo).length} emails sent
+• ${leads.filter(l => new Date(l.createdAt).getTime() >= weekAgo).length} new leads added
+═══════════════════════════════════════`;
+      } else if (reportType === "sales_performance") {
+        const scoreCounts: Record<string, number> = { hot: 0, warm: 0, cold: 0 };
+        for (const l of leads) if (l.score) scoreCounts[l.score]++;
+
+        report = `
+📊 SALES PERFORMANCE REPORT
+
+Pipeline: ${leads.length} total leads
+${Object.entries(statusCounts).map(([k, v]) => `  ${k}: ${v}`).join("\n")}
+
+Lead Scores: 🔥 ${scoreCounts.hot} Hot | 🌤️ ${scoreCounts.warm} Warm | ❄️ ${scoreCounts.cold} Cold
+
+Email Activity:
+  Sent: ${actions.filter(a => a.actionType === "email_sent").length}
+  Bulk: ${actions.filter(a => a.actionType === "bulk_email_sent").length}
+  Templates: ${actions.filter(a => a.actionType === "template_email_sent").length}
+
+Campaigns: ${campaigns.length} total (${campaigns.filter(c => c.status === "active").length} active)`;
+      } else if (reportType === "activity_overview") {
+        const typeCounts: Record<string, number> = {};
+        for (const a of recentActions) typeCounts[a.actionType] = (typeCounts[a.actionType] || 0) + 1;
+
+        report = `
+📊 ACTIVITY OVERVIEW (Last 7 Days)
+
+Total Actions: ${recentActions.length}
+
+By Type:
+${Object.entries(typeCounts).sort((a, b) => b[1] - a[1]).map(([k, v]) => `  ${k}: ${v}`).join("\n")}
+
+Recent Activity:
+${recentActions.slice(0, 10).map(a => `  - ${a.description}`).join("\n")}`;
+      } else {
+        report = `
+📊 AGENT USAGE REPORT
+
+Active Workers: ${activeRentals.length}
+Total Messages: ${activeRentals.reduce((s, r) => s + r.messagesUsed, 0)}/${activeRentals.reduce((s, r) => s + r.messagesLimit, 0)}
+
+Per Worker:
+${activeRentals.map(r => `  ${r.agentType}: ${r.messagesUsed}/${r.messagesLimit} (${Math.round((r.messagesUsed / r.messagesLimit) * 100)}%)`).join("\n") || "  No active workers"}`;
+      }
+
+      await storage.createAgentAction({
+        userId, agentType,
+        actionType: "report_generated",
+        description: `${reportType} report generated`,
+        metadata: { reportType },
+      });
+
+      return {
+        result: report,
+        actionType: "report_generated",
+        actionDescription: `📊 ${reportType.replace(/_/g, " ")} report generated`,
       };
     }
 

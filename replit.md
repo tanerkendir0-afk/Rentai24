@@ -110,32 +110,49 @@ RentAI 24 — the world's first AI staffing agency website. Lets businesses brow
 - RAG: Uploaded documents chunked (~500 words, 50 overlap), embedded via text-embedding-3-small, stored in pgvector, top-5 cosine similarity retrieval prepended to system prompt
 - Fine-tuning: JSONL upload → OpenAI fine-tune on gpt-4o-mini-2024-07-18 → toggle active model per agent (requires OPENAI_API_KEY env var — direct OpenAI key, separate from Replit AI integration)
 
-## Agentic AI (Rex — Sales SDR)
-- Rex (sales-sdr) is a full agentic AI worker with OpenAI tool calling
-- 17 tools total in `server/agentTools.ts`:
-  - Core: send_email, add_lead, update_lead, list_leads, schedule_followup, create_meeting
-  - Campaigns: bulk_email, use_template, start_drip_campaign, list_campaigns, list_templates
-  - Analytics: score_leads, pipeline_report
-  - Sales docs: create_proposal, analyze_competitors
+## Agentic AI Tool System
+- Generalized tool registry in `server/agentTools.ts` with `agentToolRegistry` map and `getToolsForAgent()` function
+- Tool-calling is no longer hardcoded to Rex — any agent in the registry gets tools automatically
+- All tool actions logged in `agent_actions` table with rich JSONB metadata
+
+### Rex — Sales SDR (17 tools)
+- Core: send_email, add_lead, update_lead, list_leads, schedule_followup, create_meeting
+- Campaigns: bulk_email, use_template, start_drip_campaign, list_campaigns, list_templates
+- Analytics: score_leads, pipeline_report
+- Sales docs: create_proposal, analyze_competitors
 - Email routing: Gmail (OAuth) → Resend (platform) fallback chain (`server/emailService.ts`)
-  - Gmail service: `server/gmailService.ts` — sends via user's own Gmail account when connected
-  - Resend: platform-level email when Gmail not available
-  - GET /api/email-status returns current provider (gmail/platform) + address
-- Email templates: `server/emailTemplates.ts` — 5 pre-built templates (cold_outreach, follow_up, value_proposition, meeting_request, proposal) with {{name}}/{{company}} placeholders
-- Drip campaigns: `email_campaigns` table tracks multi-step automated email sequences
-  - 3 campaign types: standard (3 steps/7 days), aggressive (5 steps/7 days), gentle (3 steps/14 days)
-  - Campaign runner: `server/campaignRunner.ts` — hourly process that auto-sends next drip step
-  - First email sent immediately on campaign start (delayDays: 0)
-- Lead scoring: Rule-based Hot/Warm/Cold scoring based on pipeline status + recency of activity
-  - `score` column on leads table, updated via score_leads tool
-- Pipeline analytics: pipeline_report tool generates totals, status breakdown, conversion rate, weekly/monthly stats
-- Smart alerts: GET /api/smart-alerts returns actionable alerts (stale leads, hot leads, uncontacted new leads)
-- Proposals: create_proposal generates formatted sales proposals stored in agent_actions metadata
-- Competitor analysis: analyze_competitors generates competitive landscape reports
-- Follow-ups: `server/followupScheduler.ts` — in-memory timer-based scheduler that auto-sends follow-up emails via the same Gmail→Resend chain
-- Calendar: `server/calendarService.ts` — creates Google Calendar events via API if connected; gracefully falls back to logging if not connected
-- When Rex uses tools, actions are logged in agent_actions table and shown as action indicators in the chat UI
-- Dashboard shows: stats grid (workers, messages, remaining, active campaigns), Smart Alerts section, Agent Activity Log
+- Email templates: `server/emailTemplates.ts` — 5 pre-built templates
+- Drip campaigns: `email_campaigns` table, 3 campaign types, `server/campaignRunner.ts` hourly processor
+- Lead scoring: Hot/Warm/Cold based on status + recency
+- Smart alerts: GET /api/smart-alerts
+- Follow-ups: `server/followupScheduler.ts`
+- Calendar: `server/calendarService.ts`
+
+### Ava — Customer Support (5 tools)
+- create_ticket: Create support tickets with subject, description, priority, customer email
+- list_tickets: List/filter support tickets by status
+- update_ticket: Update ticket status/priority/resolution
+- close_ticket: Close ticket with resolution summary
+- email_customer: Send email updates to customers
+- Data: `support_tickets` table (user-scoped, status/priority/resolution tracking)
+
+### Cal — Scheduling (4 tools)
+- create_appointment: Create appointments with Google Calendar event + invite
+- list_appointments: View all scheduled appointments
+- send_reminder: Send reminder emails about upcoming meetings
+- schedule_followup_reminder: Schedule future follow-up reminder emails
+- Uses same calendarService and followupScheduler infrastructure as Rex
+
+### DataBot — Data Analyst (5 tools)
+- query_leads: Analyze CRM lead data grouped by status/score/company
+- query_actions: Analyze activity log by type/agent/time range
+- query_campaigns: Analyze email campaign performance
+- query_rentals: Analyze AI worker usage and message consumption
+- generate_report: Generate comprehensive reports (executive_summary, sales_performance, activity_overview, agent_usage)
+- Pulls real data from all tables — no mocked numbers
+
+### Shared Infrastructure
+- Dashboard shows: stats grid (workers, messages, remaining, active campaigns), Smart Alerts, Agent Activity Log with per-action-type icons
 - Leads stored in `leads` table (user-scoped CRM with status + score tracking)
 - Action metadata stored as JSONB for rich audit trail
 

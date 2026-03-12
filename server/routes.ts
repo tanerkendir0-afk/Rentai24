@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import OpenAI from "openai";
 import bcrypt from "bcrypt";
 import { chatMessageSchema, contactFormSchema, registerSchema, loginSchema, newsletterSchema } from "@shared/schema";
+import { z } from "zod";
 import { storage } from "./storage";
 import { requireAuth } from "./auth";
 import { stripeService } from "./stripeService";
@@ -419,18 +420,18 @@ export async function registerRoutes(
     });
   });
 
+  const profileUpdateSchema = z.object({
+    fullName: z.string().min(1, "Full name is required").transform(s => s.trim()),
+    company: z.string().optional().transform(s => s?.trim() || null),
+  });
+
   app.patch("/api/auth/profile", requireAuth, async (req, res) => {
-    const { fullName, company } = req.body;
-    if (!fullName || typeof fullName !== "string" || fullName.trim().length < 1) {
-      return res.status(400).json({ error: "Full name is required" });
+    const parsed = profileUpdateSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: parsed.error.errors[0]?.message || "Invalid input" });
     }
-    const updates: { fullName?: string; company?: string | null } = {
-      fullName: fullName.trim(),
-    };
-    if (company !== undefined) {
-      updates.company = company ? company.trim() : null;
-    }
-    const updated = await storage.updateUserProfile(req.session.userId!, updates);
+    const { fullName, company } = parsed.data;
+    const updated = await storage.updateUserProfile(req.session.userId!, { fullName, company });
     if (!updated) {
       return res.status(404).json({ error: "User not found" });
     }
@@ -446,14 +447,17 @@ export async function registerRoutes(
     });
   });
 
+  const passwordUpdateSchema = z.object({
+    currentPassword: z.string().min(1, "Current password is required"),
+    newPassword: z.string().min(6, "New password must be at least 6 characters"),
+  });
+
   app.patch("/api/auth/password", requireAuth, async (req, res) => {
-    const { currentPassword, newPassword } = req.body;
-    if (!currentPassword || !newPassword) {
-      return res.status(400).json({ error: "Current password and new password are required" });
+    const parsed = passwordUpdateSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: parsed.error.errors[0]?.message || "Invalid input" });
     }
-    if (newPassword.length < 6) {
-      return res.status(400).json({ error: "New password must be at least 6 characters" });
-    }
+    const { currentPassword, newPassword } = parsed.data;
     const user = await storage.getUserById(req.session.userId!);
     if (!user) {
       return res.status(404).json({ error: "User not found" });

@@ -282,7 +282,7 @@ export default function Settings() {
             <h2 className="text-lg font-semibold text-foreground">Subscription</h2>
           </div>
           <div className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               <div className="p-3 rounded-lg bg-muted/30 border border-border/50 text-center">
                 <p className="text-xs text-muted-foreground mb-1">Plan</p>
                 <p className="text-lg font-bold text-foreground" data-testid="text-plan-name">
@@ -301,10 +301,19 @@ export default function Settings() {
               <div className="p-3 rounded-lg bg-muted/30 border border-border/50 text-center">
                 <div className="flex items-center justify-center gap-1.5 mb-1">
                   <MessageSquare className="w-3 h-3 text-muted-foreground" />
-                  <p className="text-xs text-muted-foreground">Messages</p>
+                  <p className="text-xs text-muted-foreground">Messages Used</p>
                 </div>
-                <p className="text-lg font-bold text-foreground" data-testid="text-messages-usage">
-                  {totalMessages} / {totalLimit || 0}
+                <p className="text-lg font-bold text-foreground" data-testid="text-messages-used">
+                  {totalMessages}
+                </p>
+              </div>
+              <div className="p-3 rounded-lg bg-muted/30 border border-border/50 text-center">
+                <div className="flex items-center justify-center gap-1.5 mb-1">
+                  <MessageSquare className="w-3 h-3 text-muted-foreground" />
+                  <p className="text-xs text-muted-foreground">Remaining</p>
+                </div>
+                <p className="text-lg font-bold text-foreground" data-testid="text-messages-remaining">
+                  {totalLimit ? totalLimit - totalMessages : 0}
                 </p>
               </div>
             </div>

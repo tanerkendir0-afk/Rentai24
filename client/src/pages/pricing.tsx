@@ -9,6 +9,7 @@ import { useAuth } from "@/lib/auth";
 import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { CreditCard, Copy, Info } from "lucide-react";
 import SectionCTA from "@/components/section-cta";
 
 interface StripePrice {
@@ -272,7 +273,89 @@ export default function Pricing() {
         </div>
       </section>
 
+      <section className="py-16 relative">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+          >
+            <Card className="p-8 bg-gradient-to-br from-amber-500/5 to-orange-500/5 border-amber-500/20" data-testid="card-test-payment">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 rounded-md bg-gradient-to-br from-amber-500/20 to-orange-500/20 flex items-center justify-center">
+                  <CreditCard className="w-5 h-5 text-amber-400" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-foreground">Test Mode</h3>
+                  <p className="text-xs text-amber-400 font-medium flex items-center gap-1">
+                    <Info className="w-3 h-3" />
+                    Stripe test mode is active
+                  </p>
+                </div>
+              </div>
+
+              <p className="text-sm text-muted-foreground mb-5">
+                Use the following test card details to simulate a payment. No real charges will be made.
+              </p>
+
+              <div className="space-y-3">
+                <TestCardRow label="Card Number" value="4242 4242 4242 4242" />
+                <TestCardRow label="Expiry Date" value="12/28" />
+                <TestCardRow label="CVC" value="123" />
+                <TestCardRow label="ZIP / Postal" value="12345" />
+              </div>
+
+              <div className="mt-6 pt-5 border-t border-border/30">
+                <p className="text-xs text-muted-foreground mb-3">Other test scenarios:</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <TestCardRow label="Declined" value="4000 0000 0000 0002" compact />
+                  <TestCardRow label="Auth Required" value="4000 0025 0000 3155" compact />
+                  <TestCardRow label="Insufficient Funds" value="4000 0000 0000 9995" compact />
+                  <TestCardRow label="Expired Card" value="4000 0000 0000 0069" compact />
+                </div>
+              </div>
+            </Card>
+          </motion.div>
+        </div>
+      </section>
+
       <SectionCTA />
+    </div>
+  );
+}
+
+function TestCardRow({ label, value, compact }: { label: string; value: string; compact?: boolean }) {
+  const { toast } = useToast();
+
+  function copyToClipboard() {
+    navigator.clipboard.writeText(value.replace(/\s/g, ""));
+    toast({ title: "Copied!", description: `${label} copied to clipboard.` });
+  }
+
+  if (compact) {
+    return (
+      <div className="flex items-center justify-between bg-background/50 rounded-md px-3 py-2">
+        <span className="text-xs text-muted-foreground">{label}</span>
+        <div className="flex items-center gap-2">
+          <code className="text-xs font-mono text-foreground">{value}</code>
+          <button onClick={copyToClipboard} className="text-muted-foreground hover:text-foreground transition-colors" data-testid={`button-copy-${label.toLowerCase().replace(/\s/g, '-')}`}>
+            <Copy className="w-3 h-3" />
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center justify-between bg-background/50 rounded-lg px-4 py-3">
+      <span className="text-sm text-muted-foreground">{label}</span>
+      <div className="flex items-center gap-3">
+        <code className="text-sm font-mono text-foreground tracking-wider">{value}</code>
+        <button onClick={copyToClipboard} className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded-md hover:bg-background" data-testid={`button-copy-${label.toLowerCase().replace(/\s/g, '-')}`}>
+          <Copy className="w-4 h-4" />
+        </button>
+      </div>
     </div>
   );
 }

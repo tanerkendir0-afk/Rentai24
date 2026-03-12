@@ -392,7 +392,7 @@ export default function Dashboard() {
                       <span className="text-xs text-muted-foreground capitalize">
                         {rental.plan} Plan
                       </span>
-                      <Link href={`/demo?agent=${rental.agentType}`}>
+                      <Link href={`/chat?agent=${rental.agentType}`}>
                         <Button size="sm" variant="outline" className="text-xs" data-testid={`button-chat-${rental.agentType}`}>
                           <MessageSquare className="w-3 h-3 mr-1" />
                           Chat

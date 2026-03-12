@@ -69,7 +69,7 @@ interface RentalData {
   status: string;
 }
 
-export default function Demo() {
+export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean }) {
   const { user } = useAuth();
   const [selectedAgent, setSelectedAgent] = useState(agentOptions[0].id);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -215,16 +215,29 @@ export default function Demo() {
 
   return (
     <div className="pt-16 min-h-screen flex flex-col">
-      <div className="bg-gradient-to-r from-blue-500/10 to-violet-500/10 border-b border-border/50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
-          <div className="flex items-center gap-2 justify-center text-sm text-muted-foreground">
-            <Info className="w-4 h-4 text-blue-400 shrink-0" />
-            <span data-testid="text-demo-banner">
-              This is a demo version. Our production AI workers are significantly more capable and customizable.
-            </span>
+      {isWorkspace ? (
+        <div className="bg-gradient-to-r from-emerald-500/10 to-blue-500/10 border-b border-border/50">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+            <div className="flex items-center gap-2 justify-center text-sm text-emerald-400">
+              <div className="w-2 h-2 rounded-full bg-emerald-400" />
+              <span data-testid="text-workspace-banner">
+                AI Workspace — Full access active. Your agents are ready to work.
+              </span>
+            </div>
           </div>
         </div>
-      </div>
+      ) : (
+        <div className="bg-gradient-to-r from-blue-500/10 to-violet-500/10 border-b border-border/50">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+            <div className="flex items-center gap-2 justify-center text-sm text-muted-foreground">
+              <Info className="w-4 h-4 text-blue-400 shrink-0" />
+              <span data-testid="text-demo-banner">
+                This is a demo version. Our production AI workers are significantly more capable and customizable.
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="flex-1 flex flex-col lg:flex-row max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 gap-6">
         <motion.aside
@@ -235,7 +248,7 @@ export default function Demo() {
         >
           <div className="lg:sticky lg:top-24">
             <h2 className="text-sm font-semibold text-foreground uppercase tracking-wider mb-3" data-testid="text-agent-select-title">
-              Select AI Worker
+              {isWorkspace ? "Your AI Workers" : "Select AI Worker"}
             </h2>
             <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-1 gap-2">
               {agentOptions.map((agent) => {

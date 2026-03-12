@@ -31,6 +31,7 @@ function Router() {
       <Route path="/how-it-works" component={HowItWorks} />
       <Route path="/pricing" component={Pricing} />
       <Route path="/demo" component={Demo} />
+      <Route path="/chat">{() => <Demo isWorkspace />}</Route>
       <Route path="/about" component={About} />
       <Route path="/contact" component={Contact} />
       <Route path="/login" component={Login} />

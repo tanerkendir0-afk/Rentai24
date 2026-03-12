@@ -5,8 +5,55 @@ import { scheduleFollowup } from "./followupScheduler";
 import { createCalendarEvent } from "./calendarService";
 import { getTemplate, fillTemplate, listTemplates, DRIP_SEQUENCES } from "./emailTemplates";
 import { generateAIImage, findStockImages } from "./imageService";
+import { isGmailConnected, listInbox, readEmail, replyToEmail } from "./gmailService";
+
+const gmailInboxTools: OpenAI.ChatCompletionTool[] = [
+  {
+    type: "function",
+    function: {
+      name: "list_inbox",
+      description: "List the latest emails from the user's Gmail inbox. Use when the user asks to check their email, see new messages, or view their inbox.",
+      parameters: {
+        type: "object",
+        properties: {
+          max_results: { type: "number", description: "Number of emails to fetch (1-20, default: 10)" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "read_email",
+      description: "Read the full content of a specific email by its ID. Use when the user asks to open, read, or see the details of an email from the inbox list.",
+      parameters: {
+        type: "object",
+        properties: {
+          email_id: { type: "string", description: "The email ID (from list_inbox results)" },
+        },
+        required: ["email_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "reply_email",
+      description: "Reply to a specific email in the same thread. Use when the user asks to respond to, reply to, or answer an email.",
+      parameters: {
+        type: "object",
+        properties: {
+          email_id: { type: "string", description: "The email ID to reply to (from list_inbox or read_email results)" },
+          body: { type: "string", description: "The reply message body" },
+        },
+        required: ["email_id", "body"],
+      },
+    },
+  },
+];
 
 export const salesSdrTools: OpenAI.ChatCompletionTool[] = [
+  ...gmailInboxTools,
   {
     type: "function",
     function: {
@@ -232,6 +279,7 @@ export const salesSdrTools: OpenAI.ChatCompletionTool[] = [
 ];
 
 export const customerSupportTools: OpenAI.ChatCompletionTool[] = [
+  ...gmailInboxTools,
   {
     type: "function",
     function: {
@@ -313,6 +361,7 @@ export const customerSupportTools: OpenAI.ChatCompletionTool[] = [
 ];
 
 export const schedulingTools: OpenAI.ChatCompletionTool[] = [
+  ...gmailInboxTools,
   {
     type: "function",
     function: {
@@ -746,6 +795,97 @@ export async function executeToolCall(
   agentType: string
 ): Promise<{ result: string; actionType?: string; actionDescription?: string }> {
   switch (toolName) {
+    case "list_inbox": {
+      const connected = await isGmailConnected();
+      if (!connected) {
+        return {
+          result: "Gmail is not connected. Please connect your Gmail account in the integrations settings to use inbox features.",
+          actionType: "inbox_check_failed",
+          actionDescription: "❌ Gmail not connected — cannot check inbox",
+        };
+      }
+      const maxResults = Math.min(Math.max(Number(args.max_results) || 10, 1), 20);
+      const inboxResult = await listInbox(maxResults);
+      if (!inboxResult.success || !inboxResult.emails) {
+        return { result: inboxResult.message, actionType: "inbox_check_failed", actionDescription: `❌ ${inboxResult.message}` };
+      }
+      if (inboxResult.emails.length === 0) {
+        await storage.createAgentAction({
+          userId, agentType, actionType: "inbox_checked",
+          description: "Checked Gmail inbox — no emails found",
+          metadata: { count: 0 },
+        });
+        return { result: "Your inbox is empty. No new emails.", actionType: "inbox_checked", actionDescription: "📬 Inbox checked — empty" };
+      }
+      const emailList = inboxResult.emails.map((e, i) =>
+        `${i + 1}. **From:** ${e.from}\n   **Subject:** ${e.subject}\n   **Date:** ${e.date}\n   **Preview:** ${e.snippet}\n   **Email ID:** \`${e.id}\``
+      ).join("\n\n");
+      await storage.createAgentAction({
+        userId, agentType, actionType: "inbox_checked",
+        description: `Checked Gmail inbox — ${inboxResult.emails.length} emails found`,
+        metadata: { count: inboxResult.emails.length, emailIds: inboxResult.emails.map(e => e.id) },
+      });
+      return {
+        result: `📬 **Gmail Inbox** (${inboxResult.emails.length} emails):\n\n${emailList}\n\nTo read an email's full content, ask me to "read email" and provide the Email ID.`,
+        actionType: "inbox_checked",
+        actionDescription: `📬 Checked inbox — ${inboxResult.emails.length} emails`,
+      };
+    }
+
+    case "read_email": {
+      const connected = await isGmailConnected();
+      if (!connected) {
+        return {
+          result: "Gmail is not connected. Please connect your Gmail account to read emails.",
+          actionType: "email_read_failed",
+          actionDescription: "❌ Gmail not connected",
+        };
+      }
+      const emailId = String(args.email_id);
+      const readResult = await readEmail(emailId);
+      if (!readResult.success || !readResult.email) {
+        return { result: readResult.message, actionType: "email_read_failed", actionDescription: `❌ ${readResult.message}` };
+      }
+      const e = readResult.email;
+      await storage.createAgentAction({
+        userId, agentType, actionType: "email_read",
+        description: `Read email from ${e.from}: "${e.subject}"`,
+        metadata: { emailId: e.id, threadId: e.threadId, from: e.from, subject: e.subject },
+      });
+      return {
+        result: `📧 **Email Details**\n\n**From:** ${e.from}\n**To:** ${e.to}\n**Subject:** ${e.subject}\n**Date:** ${e.date}\n**Email ID:** \`${e.id}\`\n\n---\n\n${e.body}\n\n---\n\nTo reply to this email, ask me to "reply to this email" with your message.`,
+        actionType: "email_read",
+        actionDescription: `📧 Read email: "${e.subject}"`,
+      };
+    }
+
+    case "reply_email": {
+      const connected = await isGmailConnected();
+      if (!connected) {
+        return {
+          result: "Gmail is not connected. Please connect your Gmail account to reply to emails.",
+          actionType: "email_reply_failed",
+          actionDescription: "❌ Gmail not connected",
+        };
+      }
+      const replyEmailId = String(args.email_id);
+      const replyBody = String(args.body);
+      const replyResult = await replyToEmail(replyEmailId, replyBody);
+      if (!replyResult.success) {
+        return { result: replyResult.message, actionType: "email_reply_failed", actionDescription: `❌ ${replyResult.message}` };
+      }
+      await storage.createAgentAction({
+        userId, agentType, actionType: "email_replied",
+        description: `Replied to email ${replyEmailId}`,
+        metadata: { originalEmailId: replyEmailId, replyMessageId: replyResult.replyMessageId },
+      });
+      return {
+        result: `✅ ${replyResult.message}`,
+        actionType: "email_replied",
+        actionDescription: `↩️ ${replyResult.message}`,
+      };
+    }
+
     case "send_email": {
       const emailResult = await sendEmail({
         userId,

@@ -23,8 +23,12 @@ import {
   Lock,
   ImagePlus,
   Download,
+  Coins,
+  ShoppingCart,
+  X,
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
+import { queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/lib/auth";
 
 interface AgentAction {
@@ -71,6 +75,7 @@ export default function Demo() {
   const [initialAgentSet, setInitialAgentSet] = useState(false);
   const [uploadedImage, setUploadedImage] = useState<{ url: string; name: string } | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [showCreditsPanel, setShowCreditsPanel] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -78,6 +83,20 @@ export default function Demo() {
     queryKey: ["/api/rentals"],
     enabled: !!user,
   });
+
+  const { data: creditsData } = useQuery<{ credits: number }>({
+    queryKey: ["/api/image-credits"],
+    enabled: !!user,
+    refetchInterval: 30000,
+  });
+
+  const { data: creditPrices } = useQuery<{ id: string; credits: number; amount: number; currency: string }[]>({
+    queryKey: ["/api/image-credits/prices"],
+    enabled: !!user,
+  });
+
+  const imageCredits = creditsData?.credits ?? 0;
+  const isSocialMediaAgent = selectedAgent === "social-media";
 
   const rentalsReady = !user || !rentalsLoading;
   const activeRentals = rentals?.filter(r => r.status === "active") || [];
@@ -100,6 +119,17 @@ export default function Demo() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  const buyCredits = async (priceId: string) => {
+    try {
+      const res = await apiRequest("POST", "/api/stripe/checkout/credits", { priceId });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      }
+    } catch {
+    }
+  };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -150,6 +180,9 @@ export default function Demo() {
       });
       const data = await res.json();
       setMessages((prev) => [...prev, { role: "assistant", content: data.reply, actions: data.actions }]);
+      if (isSocialMediaAgent) {
+        queryClient.invalidateQueries({ queryKey: ["/api/image-credits"] });
+      }
     } catch {
       setMessages((prev) => [
         ...prev,
@@ -248,18 +281,74 @@ export default function Demo() {
                   </div>
                 </div>
               </div>
-              {messages.length > 0 && (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => setMessages([])}
-                  className="text-muted-foreground"
-                  data-testid="button-clear-chat"
-                >
-                  <Trash2 className="w-4 h-4 mr-1" />
-                  Clear
-                </Button>
-              )}
+              <div className="flex items-center gap-2">
+                {user && isSocialMediaAgent && (
+                  <div className="relative">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setShowCreditsPanel(!showCreditsPanel)}
+                      className="text-xs gap-1.5"
+                      data-testid="button-image-credits"
+                    >
+                      <Coins className="w-3.5 h-3.5 text-yellow-500" />
+                      <span>{imageCredits} credit{imageCredits !== 1 ? "s" : ""}</span>
+                    </Button>
+                    {showCreditsPanel && (
+                      <div className="absolute right-0 top-full mt-2 w-72 bg-card border border-border rounded-lg shadow-xl z-50 p-4" data-testid="credits-panel">
+                        <div className="flex items-center justify-between mb-3">
+                          <h4 className="font-semibold text-sm">Image Credits</h4>
+                          <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => setShowCreditsPanel(false)}>
+                            <X className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                        <p className="text-xs text-muted-foreground mb-3">
+                          Each AI image generation or stock photo search uses 1 credit ($3.00).
+                          Buy in bulk to save!
+                        </p>
+                        <div className="space-y-2">
+                          {(creditPrices || []).map((price) => (
+                            <button
+                              key={price.id}
+                              onClick={() => buyCredits(price.id)}
+                              className="w-full flex items-center justify-between p-2.5 rounded-md border border-border/50 hover:border-blue-500/50 hover:bg-blue-500/5 transition-colors text-left"
+                              data-testid={`button-buy-credits-${price.credits}`}
+                            >
+                              <div>
+                                <span className="text-sm font-medium">{price.credits} Credit{price.credits !== 1 ? "s" : ""}</span>
+                                {price.credits > 1 && (
+                                  <span className="text-xs text-muted-foreground ml-1.5">
+                                    (${(price.amount / price.credits / 100).toFixed(2)}/ea)
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-sm font-semibold text-blue-400">${(price.amount / 100).toFixed(2)}</span>
+                                <ShoppingCart className="w-3.5 h-3.5 text-muted-foreground" />
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                        {(!creditPrices || creditPrices.length === 0) && (
+                          <div className="text-center py-3 text-xs text-muted-foreground">Loading prices...</div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+                {messages.length > 0 && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setMessages([])}
+                    className="text-muted-foreground"
+                    data-testid="button-clear-chat"
+                  >
+                    <Trash2 className="w-4 h-4 mr-1" />
+                    Clear
+                  </Button>
+                )}
+              </div>
             </div>
 
             <div className="flex-1 overflow-y-auto p-6 space-y-4" data-testid="chat-messages">

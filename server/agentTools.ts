@@ -1685,65 +1685,103 @@ ${activeRentals.map(r => `  ${r.agentType}: ${r.messagesUsed}/${r.messagesLimit}
     }
 
     case "generate_image": {
+      const creditUsed = await storage.useImageCredit(userId);
+      if (!creditUsed) {
+        return {
+          result: `You don't have any image credits remaining. Each AI image generation costs 1 credit ($3.00). Please purchase image credits from the credits panel in the chat interface to continue generating images.`,
+          actionType: "image_credit_insufficient",
+          actionDescription: `⚠️ Image generation blocked — no credits`,
+        };
+      }
+
       const prompt = String(args.prompt);
       const aspectRatio = args.aspect_ratio ? String(args.aspect_ratio) : "1:1";
       const platform = args.platform ? String(args.platform) : "general";
 
-      const result = await generateAIImage(prompt, aspectRatio);
+      try {
+        const result = await generateAIImage(prompt, aspectRatio);
 
-      if (result.success && result.imageUrl) {
-        await storage.createAgentAction({
-          userId, agentType,
-          actionType: "image_generated",
-          description: `🎨 AI image generated for ${platform}: "${prompt.substring(0, 80)}..."`,
-          metadata: { prompt, aspectRatio, platform, imageUrl: result.imageUrl },
-        });
+        if (result.success && result.imageUrl) {
+          await storage.createAgentAction({
+            userId, agentType,
+            actionType: "image_generated",
+            description: `🎨 AI image generated for ${platform}: "${prompt.substring(0, 80)}..."`,
+            metadata: { prompt, aspectRatio, platform, imageUrl: result.imageUrl },
+          });
 
+          return {
+            result: `Image generated successfully! (1 credit used)\n\n🎨 Prompt: "${prompt}"\n📐 Aspect Ratio: ${aspectRatio}\n📱 Platform: ${platform}\n\n![Generated Image](${result.imageUrl})\n\nThe image is ready to use. You can download it or I can create more variations.`,
+            actionType: "image_generated",
+            actionDescription: `🎨 AI image generated for ${platform}`,
+          };
+        }
+
+        await storage.addImageCredits(userId, 1);
         return {
-          result: `Image generated successfully!\n\n🎨 Prompt: "${prompt}"\n📐 Aspect Ratio: ${aspectRatio}\n📱 Platform: ${platform}\n\n![Generated Image](${result.imageUrl})\n\nThe image is ready to use. You can download it or I can create more variations.`,
-          actionType: "image_generated",
-          actionDescription: `🎨 AI image generated for ${platform}`,
+          result: `Image generation failed: ${result.error}. Your credit has been refunded. Please try a different description or try again later.`,
+          actionType: "image_failed",
+          actionDescription: `❌ Image generation failed (credit refunded)`,
+        };
+      } catch (err: any) {
+        await storage.addImageCredits(userId, 1);
+        return {
+          result: `Image generation encountered an error. Your credit has been refunded. Please try again later.`,
+          actionType: "image_failed",
+          actionDescription: `❌ Image generation error (credit refunded)`,
         };
       }
-
-      return {
-        result: `Image generation failed: ${result.error}. Please try a different description or try again later.`,
-        actionType: "image_failed",
-        actionDescription: `❌ Image generation failed`,
-      };
     }
 
     case "find_stock_image": {
+      const creditUsed = await storage.useImageCredit(userId);
+      if (!creditUsed) {
+        return {
+          result: `You don't have any image credits remaining. Stock image search costs 1 credit ($3.00). Please purchase image credits from the credits panel in the chat interface.`,
+          actionType: "image_credit_insufficient",
+          actionDescription: `⚠️ Stock image search blocked — no credits`,
+        };
+      }
+
       const description = String(args.description);
       const count = Math.min(Number(args.count) || 3, 5);
       const orientation = args.orientation ? String(args.orientation) : "horizontal";
 
-      const result = await findStockImages(description, count, orientation);
+      try {
+        const result = await findStockImages(description, count, orientation);
 
-      if (result.success && result.images && result.images.length > 0) {
-        await storage.createAgentAction({
-          userId, agentType,
-          actionType: "stock_image_found",
-          description: `📷 ${result.images.length} stock image(s) found: "${description}"`,
-          metadata: { description, count, orientation, images: result.images },
-        });
+        if (result.success && result.images && result.images.length > 0) {
+          await storage.createAgentAction({
+            userId, agentType,
+            actionType: "stock_image_found",
+            description: `📷 ${result.images.length} stock image(s) found: "${description}"`,
+            metadata: { description, count, orientation, images: result.images },
+          });
 
-        const imageList = result.images.map((img, i) =>
-          `${i + 1}. ![${img.alt}](${img.url})`
-        ).join("\n\n");
+          const imageList = result.images.map((img, i) =>
+            `${i + 1}. ![${img.alt}](${img.url})`
+          ).join("\n\n");
 
+          return {
+            result: `Found ${result.images.length} stock image(s) for "${description}" (1 credit used):\n\n${imageList}\n\nThese are professional-quality images ready for use in your social media content.`,
+            actionType: "stock_image_found",
+            actionDescription: `📷 ${result.images.length} stock image(s) found`,
+          };
+        }
+
+        await storage.addImageCredits(userId, 1);
         return {
-          result: `Found ${result.images.length} stock image(s) for "${description}":\n\n${imageList}\n\nThese are professional-quality images ready for use in your social media content.`,
-          actionType: "stock_image_found",
-          actionDescription: `📷 ${result.images.length} stock image(s) found`,
+          result: `Could not find stock images for "${description}": ${result.error || "No results"}. Your credit has been refunded. Try a different search description.`,
+          actionType: "stock_search_failed",
+          actionDescription: `❌ Stock image search failed (credit refunded)`,
+        };
+      } catch (err: any) {
+        await storage.addImageCredits(userId, 1);
+        return {
+          result: `Stock image search encountered an error. Your credit has been refunded. Please try again later.`,
+          actionType: "stock_search_failed",
+          actionDescription: `❌ Stock image search error (credit refunded)`,
         };
       }
-
-      return {
-        result: `Could not find stock images for "${description}": ${result.error || "No results"}. Try a different search description.`,
-        actionType: "stock_search_failed",
-        actionDescription: `❌ Stock image search failed`,
-      };
     }
 
     case "create_post": {

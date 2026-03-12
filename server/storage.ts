@@ -10,6 +10,8 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserByStripeCustomerId(customerId: string): Promise<User | undefined>;
   updateUserStripeInfo(userId: number, info: { stripeCustomerId?: string; stripeSubscriptionId?: string | null }): Promise<User | undefined>;
+  addImageCredits(userId: number, credits: number): Promise<User | undefined>;
+  useImageCredit(userId: number): Promise<boolean>;
 
   createRental(rental: InsertRental): Promise<Rental>;
   getRentalsByUser(userId: number): Promise<Rental[]>;
@@ -108,6 +110,22 @@ export class DatabaseStorage implements IStorage {
   async updateUserStripeInfo(userId: number, info: { stripeCustomerId?: string; stripeSubscriptionId?: string | null }): Promise<User | undefined> {
     const [updated] = await db.update(users).set(info).where(eq(users.id, userId)).returning();
     return updated;
+  }
+
+  async addImageCredits(userId: number, credits: number): Promise<User | undefined> {
+    const [updated] = await db.update(users)
+      .set({ imageCredits: sql`${users.imageCredits} + ${credits}` })
+      .where(eq(users.id, userId))
+      .returning();
+    return updated;
+  }
+
+  async useImageCredit(userId: number): Promise<boolean> {
+    const result = await db.update(users)
+      .set({ imageCredits: sql`${users.imageCredits} - 1` })
+      .where(and(eq(users.id, userId), sql`${users.imageCredits} > 0`))
+      .returning();
+    return result.length > 0;
   }
 
   async activateUserRentals(userId: number): Promise<void> {

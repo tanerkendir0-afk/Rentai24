@@ -790,6 +790,93 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/stripe/checkout/credits", requireAuth, async (req, res) => {
+    try {
+      const { priceId } = req.body;
+      if (!priceId) {
+        return res.status(400).json({ error: "Price ID is required" });
+      }
+
+      const price = await storage.getPrice(priceId);
+      if (!price || !price.active) {
+        return res.status(400).json({ error: "Invalid or inactive price" });
+      }
+
+      const product = await storage.getProduct(price.product);
+      if (!product || !product.active || product.metadata?.type !== "image_credits") {
+        return res.status(400).json({ error: "Invalid image credit product" });
+      }
+
+      const credits = parseInt(price.metadata?.credits || "0");
+      if (credits <= 0) {
+        return res.status(400).json({ error: "Invalid credit amount" });
+      }
+
+      const user = await storage.getUserById(req.session.userId!);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+
+      let customerId = user.stripeCustomerId;
+      if (!customerId) {
+        const customer = await stripeService.createCustomer(user.email, user.id);
+        await storage.updateUserStripeInfo(user.id, { stripeCustomerId: customer.id });
+        customerId = customer.id;
+      }
+
+      const domain = process.env.REPLIT_DOMAINS?.split(',')[0];
+      const baseUrl = domain ? `https://${domain}` : `${req.protocol}://${req.get('host')}`;
+      const session = await stripeService.createOneTimeCheckout(
+        customerId,
+        priceId,
+        1,
+        `${baseUrl}/demo?credits=purchased`,
+        `${baseUrl}/demo?credits=cancelled`,
+        { type: "image_credits", credits: String(credits) }
+      );
+
+      res.json({ url: session.url });
+    } catch (error: any) {
+      console.error("Credits checkout error:", error.message);
+      res.status(500).json({ error: "Failed to create checkout session" });
+    }
+  });
+
+  app.get("/api/image-credits", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUserById(req.session.userId!);
+      if (!user) return res.status(401).json({ error: "User not found" });
+      res.json({ credits: user.imageCredits });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/image-credits/prices", async (_req, res) => {
+    try {
+      const rows = await storage.listProductsWithPrices(true);
+      const prices = rows
+        .filter((r: any) => {
+          const meta = typeof r.product_metadata === 'string' ? JSON.parse(r.product_metadata) : r.product_metadata;
+          return meta?.type === "image_credits" && r.price_id;
+        })
+        .map((r: any) => {
+          const priceMeta = typeof r.price_metadata === 'string' ? JSON.parse(r.price_metadata) : r.price_metadata;
+          return {
+            id: r.price_id,
+            credits: parseInt(priceMeta?.credits || "0"),
+            amount: r.unit_amount,
+            currency: r.currency,
+          };
+        })
+        .filter((p: any) => p.credits > 0)
+        .sort((a: any, b: any) => a.credits - b.credits);
+      res.json(prices);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.post("/api/stripe/portal", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUserById(req.session.userId!);

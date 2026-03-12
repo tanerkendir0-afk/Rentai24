@@ -28,6 +28,26 @@ export class StripeService {
     });
   }
 
+  async createOneTimeCheckout(
+    customerId: string,
+    priceId: string,
+    quantity: number,
+    successUrl: string,
+    cancelUrl: string,
+    metadata?: Record<string, string>
+  ) {
+    const stripe = getUncachableStripeClient();
+    return await stripe.checkout.sessions.create({
+      customer: customerId,
+      payment_method_types: ['card'],
+      line_items: [{ price: priceId, quantity }],
+      mode: 'payment',
+      success_url: successUrl,
+      cancel_url: cancelUrl,
+      metadata,
+    });
+  }
+
   async createCustomerPortalSession(customerId: string, returnUrl: string) {
     const stripe = getUncachableStripeClient();
     return await stripe.billingPortal.sessions.create({

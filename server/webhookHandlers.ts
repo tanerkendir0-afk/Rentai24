@@ -3,6 +3,8 @@ import { storage } from './storage';
 import { db } from './db';
 import { sql } from 'drizzle-orm';
 
+const processedEventIds = new Set<string>();
+
 export class WebhookHandlers {
   static async processWebhook(payload: Buffer, signature: string): Promise<void> {
     if (!Buffer.isBuffer(payload)) {
@@ -16,6 +18,19 @@ export class WebhookHandlers {
     await sync.processWebhook(payload, signature);
 
     const event = JSON.parse(payload.toString());
+
+    if (event.id && processedEventIds.has(event.id)) {
+      console.log(`Webhook: Skipping duplicate event ${event.id}`);
+      return;
+    }
+    if (event.id) {
+      processedEventIds.add(event.id);
+      if (processedEventIds.size > 10000) {
+        const entries = Array.from(processedEventIds);
+        for (let i = 0; i < 5000; i++) processedEventIds.delete(entries[i]);
+      }
+    }
+
     await WebhookHandlers.handleEvent(event);
   }
 
@@ -40,6 +55,11 @@ export class WebhookHandlers {
   }
 
   static async handleCheckoutCompleted(session: any): Promise<void> {
+    if (session.mode === 'payment' && session.metadata?.type === 'image_credits') {
+      await WebhookHandlers.handleCreditsPurchase(session);
+      return;
+    }
+
     if (session.mode !== 'subscription' || !session.customer || !session.subscription) {
       return;
     }
@@ -105,5 +125,24 @@ export class WebhookHandlers {
     await storage.updateUserStripeInfo(user.id, { stripeSubscriptionId: null });
     await storage.deactivateUserRentals(user.id);
     console.log(`Webhook: Deactivated all rentals for user ${user.id} (subscription cancelled)`);
+  }
+
+  static async handleCreditsPurchase(session: any): Promise<void> {
+    const customerId = typeof session.customer === 'string' ? session.customer : session.customer.id;
+    const credits = parseInt(session.metadata?.credits || '0');
+
+    if (credits <= 0) {
+      console.error('Webhook: Invalid credit amount in metadata:', session.metadata);
+      return;
+    }
+
+    const user = await storage.getUserByStripeCustomerId(customerId);
+    if (!user) {
+      console.error('Webhook: No user found for Stripe customer:', customerId);
+      return;
+    }
+
+    await storage.addImageCredits(user.id, credits);
+    console.log(`Webhook: Added ${credits} image credits to user ${user.id}`);
   }
 }

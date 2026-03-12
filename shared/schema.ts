@@ -24,6 +24,7 @@ export const users = pgTable("users", {
   company: text("company"),
   stripeCustomerId: text("stripe_customer_id"),
   stripeSubscriptionId: text("stripe_subscription_id"),
+  imageCredits: integer("image_credits").notNull().default(0),
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
 });
 

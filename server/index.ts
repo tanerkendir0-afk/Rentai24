@@ -133,9 +133,12 @@ app.use((req, res, next) => {
       console.log('Webhook configured');
 
       console.log('Syncing Stripe data...');
-      stripeSync.syncBackfill()
-        .then(() => console.log('Stripe data synced'))
-        .catch((err: any) => console.error('Error syncing Stripe data:', err));
+      try {
+        await stripeSync.syncBackfill();
+        console.log('Stripe data synced');
+      } catch (err: any) {
+        console.error('Error syncing Stripe data:', err?.message || err);
+      }
     }
   } catch (error) {
     console.error('Failed to initialize Stripe:', error);

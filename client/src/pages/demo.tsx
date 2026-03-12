@@ -72,7 +72,14 @@ interface RentalData {
 export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean }) {
   const { user } = useAuth();
   const [selectedAgent, setSelectedAgent] = useState(agentOptions[0].id);
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [conversationMap, setConversationMap] = useState<Record<string, Message[]>>({});
+  const messages = conversationMap[selectedAgent] || [];
+  const setMessages = (msgs: Message[] | ((prev: Message[]) => Message[])) => {
+    setConversationMap(prev => ({
+      ...prev,
+      [selectedAgent]: typeof msgs === 'function' ? msgs(prev[selectedAgent] || []) : msgs,
+    }));
+  };
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [initialAgentSet, setInitialAgentSet] = useState(false);
@@ -260,7 +267,6 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                     onClick={() => {
                       if (isLocked || isPending) return;
                       setSelectedAgent(agent.id);
-                      setMessages([]);
                     }}
                     disabled={!!isLocked || !!isPending}
                     className={`flex items-center gap-3 px-4 py-3 rounded-md text-left text-sm font-medium transition-all ${

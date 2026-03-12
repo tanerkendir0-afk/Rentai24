@@ -9,7 +9,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Menu, Bot, User, LayoutDashboard, Download, Smartphone, Wifi, Bell } from "lucide-react";
+import { Menu, Bot, User, LayoutDashboard, Download, Smartphone, Wifi, Bell, Settings } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { usePwaInstall } from "@/hooks/use-pwa-install";
 
@@ -98,16 +98,28 @@ export default function Navbar() {
               </Button>
             )}
             {!isLoading && user ? (
-              <Link href="/dashboard">
-                <Button
-                  size="sm"
-                  className="bg-gradient-to-r from-blue-500 to-violet-500 text-white border-0 hidden sm:flex"
-                  data-testid="button-dashboard"
-                >
-                  <LayoutDashboard className="w-4 h-4 mr-1" />
-                  Dashboard
-                </Button>
-              </Link>
+              <div className="hidden sm:flex items-center gap-2">
+                <Link href="/settings">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    data-testid="button-settings"
+                  >
+                    <Settings className="w-4 h-4 mr-1" />
+                    Settings
+                  </Button>
+                </Link>
+                <Link href="/dashboard">
+                  <Button
+                    size="sm"
+                    className="bg-gradient-to-r from-blue-500 to-violet-500 text-white border-0"
+                    data-testid="button-dashboard"
+                  >
+                    <LayoutDashboard className="w-4 h-4 mr-1" />
+                    Dashboard
+                  </Button>
+                </Link>
+              </div>
             ) : !isLoading ? (
               <div className="hidden sm:flex items-center gap-2">
                 <Link href="/login">
@@ -172,16 +184,29 @@ export default function Navbar() {
                   )}
                   <div className="mt-4 px-4 space-y-2">
                     {user ? (
-                      <Link href="/dashboard">
-                        <Button
-                          className="w-full bg-gradient-to-r from-blue-500 to-violet-500 text-white border-0"
-                          onClick={() => setOpen(false)}
-                          data-testid="button-mobile-dashboard"
-                        >
-                          <LayoutDashboard className="w-4 h-4 mr-1" />
-                          Dashboard
-                        </Button>
-                      </Link>
+                      <>
+                        <Link href="/dashboard">
+                          <Button
+                            className="w-full bg-gradient-to-r from-blue-500 to-violet-500 text-white border-0"
+                            onClick={() => setOpen(false)}
+                            data-testid="button-mobile-dashboard"
+                          >
+                            <LayoutDashboard className="w-4 h-4 mr-1" />
+                            Dashboard
+                          </Button>
+                        </Link>
+                        <Link href="/settings">
+                          <Button
+                            variant="outline"
+                            className="w-full"
+                            onClick={() => setOpen(false)}
+                            data-testid="button-mobile-settings"
+                          >
+                            <Settings className="w-4 h-4 mr-1" />
+                            Settings
+                          </Button>
+                        </Link>
+                      </>
                     ) : (
                       <>
                         <Link href="/login">

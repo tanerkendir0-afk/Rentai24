@@ -50,6 +50,7 @@ import {
   ClipboardList,
   Tag,
   Star,
+  Settings,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -244,6 +245,12 @@ export default function Dashboard() {
                 <Button variant="outline" size="sm" data-testid="button-browse-workers">
                   <Plus className="w-4 h-4 mr-1" />
                   Rent AI Worker
+                </Button>
+              </Link>
+              <Link href="/settings">
+                <Button variant="outline" size="sm" data-testid="button-settings">
+                  <Settings className="w-4 h-4 mr-1" />
+                  Settings
                 </Button>
               </Link>
               <Button variant="outline" size="sm" onClick={handleManageBilling} data-testid="button-manage-billing">

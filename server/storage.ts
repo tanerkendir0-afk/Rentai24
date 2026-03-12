@@ -10,6 +10,8 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserByStripeCustomerId(customerId: string): Promise<User | undefined>;
   updateUserStripeInfo(userId: number, info: { stripeCustomerId?: string; stripeSubscriptionId?: string | null }): Promise<User | undefined>;
+  updateUserProfile(userId: number, updates: { fullName?: string; company?: string | null }): Promise<User | undefined>;
+  updateUserPassword(userId: number, hashedPassword: string): Promise<User | undefined>;
   addImageCredits(userId: number, credits: number): Promise<User | undefined>;
   useImageCredit(userId: number): Promise<boolean>;
 
@@ -114,6 +116,16 @@ export class DatabaseStorage implements IStorage {
 
   async updateUserStripeInfo(userId: number, info: { stripeCustomerId?: string; stripeSubscriptionId?: string | null }): Promise<User | undefined> {
     const [updated] = await db.update(users).set(info).where(eq(users.id, userId)).returning();
+    return updated;
+  }
+
+  async updateUserProfile(userId: number, updates: { fullName?: string; company?: string | null }): Promise<User | undefined> {
+    const [updated] = await db.update(users).set(updates).where(eq(users.id, userId)).returning();
+    return updated;
+  }
+
+  async updateUserPassword(userId: number, hashedPassword: string): Promise<User | undefined> {
+    const [updated] = await db.update(users).set({ password: hashedPassword }).where(eq(users.id, userId)).returning();
     return updated;
   }
 

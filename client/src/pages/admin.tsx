@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Shield, Upload, FileText, Link2, Trash2, RefreshCw, Cpu, ToggleLeft, ToggleRight, Lock, Brain, Database, Zap, MessageSquare, Mail } from "lucide-react";
+import { Shield, Upload, FileText, Link2, Trash2, RefreshCw, Cpu, ToggleLeft, ToggleRight, Lock, Brain, Database, Zap, MessageSquare, Mail, DollarSign, TrendingUp, AlertTriangle, Filter } from "lucide-react";
 
 const AGENTS = [
   { slug: "customer-support", name: "Ava — Customer Support" },
@@ -661,6 +661,226 @@ function MessagesPanel({ token }: { token: string }) {
   );
 }
 
+interface TokenTotals {
+  total_requests: number;
+  total_prompt_tokens: number;
+  total_completion_tokens: number;
+  total_tokens: number;
+  total_cost: string;
+  unique_users: number;
+  expensive_requests: number;
+}
+
+interface TokenDetail {
+  id: number;
+  user_id: number | null;
+  user_email: string;
+  user_name: string;
+  agent_type: string;
+  model: string;
+  prompt_tokens: number;
+  completion_tokens: number;
+  total_tokens: number;
+  cost_usd: string;
+  operation_type: string;
+  created_at: string;
+}
+
+interface TokenSummary {
+  agent_type: string;
+  user_email: string;
+  user_name: string;
+  request_count: number;
+  total_prompt_tokens: number;
+  total_completion_tokens: number;
+  total_tokens: number;
+  total_cost: string;
+  last_used: string;
+}
+
+function CostTrackerPanel({ token }: { token: string }) {
+  const [totals, setTotals] = useState<TokenTotals | null>(null);
+  const [summary, setSummary] = useState<TokenSummary[]>([]);
+  const [detailed, setDetailed] = useState<TokenDetail[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [showExpensive, setShowExpensive] = useState(false);
+  const [view, setView] = useState<"summary" | "detailed">("summary");
+
+  const headers = { Authorization: `Bearer ${token}` };
+
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const minCost = showExpensive ? 0.01 : 0;
+      const [totalsRes, summaryRes, detailedRes] = await Promise.all([
+        fetch("/api/admin/token-usage/totals", { headers }),
+        fetch("/api/admin/token-usage/summary", { headers }),
+        fetch(`/api/admin/token-usage/detailed?minCost=${minCost}`, { headers }),
+      ]);
+      const t = await totalsRes.json();
+      const s = await summaryRes.json();
+      const d = await detailedRes.json();
+      setTotals(t);
+      if (Array.isArray(s)) setSummary(s);
+      if (Array.isArray(d)) setDetailed(d);
+    } catch {
+    } finally {
+      setLoading(false);
+    }
+  }, [token, showExpensive]);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
+
+  const agentLabel = (slug: string) => AGENTS.find(a => a.slug === slug)?.name || slug;
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card className="bg-[#0A0E27] border-[#1E2448]">
+          <CardContent className="p-4">
+            <p className="text-xs text-gray-400">Total Cost</p>
+            <p className="text-xl font-bold text-red-400" data-testid="text-total-cost">
+              ${totals ? parseFloat(totals.total_cost).toFixed(4) : "0.0000"}
+            </p>
+          </CardContent>
+        </Card>
+        <Card className="bg-[#0A0E27] border-[#1E2448]">
+          <CardContent className="p-4">
+            <p className="text-xs text-gray-400">Total Requests</p>
+            <p className="text-xl font-bold text-blue-400" data-testid="text-total-requests">
+              {totals?.total_requests || 0}
+            </p>
+          </CardContent>
+        </Card>
+        <Card className="bg-[#0A0E27] border-[#1E2448]">
+          <CardContent className="p-4">
+            <p className="text-xs text-gray-400">Total Tokens</p>
+            <p className="text-xl font-bold text-violet-400" data-testid="text-total-tokens">
+              {totals?.total_tokens ? totals.total_tokens.toLocaleString() : "0"}
+            </p>
+          </CardContent>
+        </Card>
+        <Card className="bg-[#0A0E27] border-[#1E2448]">
+          <CardContent className="p-4">
+            <p className="text-xs text-gray-400">Unique Users</p>
+            <p className="text-xl font-bold text-emerald-400" data-testid="text-unique-users">
+              {totals?.unique_users || 0}
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card className="bg-[#0A0E27] border-[#1E2448]">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle className="text-lg text-white flex items-center gap-2">
+              <DollarSign className="w-5 h-5 text-yellow-400" />
+              Token Cost Breakdown
+            </CardTitle>
+            <CardDescription className="text-gray-400">AI API costs per user and agent</CardDescription>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant={showExpensive ? "default" : "outline"}
+              size="sm"
+              onClick={() => setShowExpensive(!showExpensive)}
+              className={showExpensive ? "bg-red-600 hover:bg-red-700 text-white" : "border-[#1E2448] text-gray-300"}
+              data-testid="button-filter-expensive"
+            >
+              <AlertTriangle className="w-3.5 h-3.5 mr-1" />
+              $0.01+
+            </Button>
+            <Button
+              variant={view === "summary" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setView("summary")}
+              className={view === "summary" ? "bg-blue-600 text-white" : "border-[#1E2448] text-gray-300"}
+              data-testid="button-view-summary"
+            >
+              Summary
+            </Button>
+            <Button
+              variant={view === "detailed" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setView("detailed")}
+              className={view === "detailed" ? "bg-violet-600 text-white" : "border-[#1E2448] text-gray-300"}
+              data-testid="button-view-detailed"
+            >
+              Detailed
+            </Button>
+            <Button variant="ghost" size="sm" onClick={fetchData} disabled={loading}>
+              <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {view === "summary" ? (
+            <div className="space-y-2">
+              {summary.length === 0 && (
+                <p className="text-gray-500 text-sm text-center py-8">No token usage data yet. Chat with agents to generate data.</p>
+              )}
+              {summary.map((row, i) => (
+                <div key={i} className="flex items-center justify-between p-3 bg-[#111633] rounded-lg border border-[#1E2448]" data-testid={`cost-summary-row-${i}`}>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-white">{row.user_name}</span>
+                      <span className="text-xs text-gray-500">{row.user_email}</span>
+                    </div>
+                    <div className="flex items-center gap-3 mt-1">
+                      <Badge variant="outline" className="border-[#1E2448] text-gray-400 text-xs">
+                        {agentLabel(row.agent_type)}
+                      </Badge>
+                      <span className="text-xs text-gray-500">{row.request_count} requests</span>
+                      <span className="text-xs text-gray-500">{row.total_tokens.toLocaleString()} tokens</span>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span className={`text-sm font-bold ${parseFloat(row.total_cost) >= 0.01 ? "text-red-400" : "text-emerald-400"}`}>
+                      ${parseFloat(row.total_cost).toFixed(4)}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-2 max-h-[500px] overflow-y-auto">
+              {detailed.length === 0 && (
+                <p className="text-gray-500 text-sm text-center py-8">
+                  {showExpensive ? "No requests over $0.01 yet." : "No token usage data yet."}
+                </p>
+              )}
+              {detailed.map((row) => (
+                <div key={row.id} className="flex items-center justify-between p-3 bg-[#111633] rounded-lg border border-[#1E2448]" data-testid={`cost-detail-row-${row.id}`}>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-white">{row.user_name}</span>
+                      <Badge variant="outline" className="border-[#1E2448] text-gray-400 text-xs">
+                        {agentLabel(row.agent_type)}
+                      </Badge>
+                      <Badge variant="outline" className={`text-xs ${row.operation_type === "tool_call" ? "border-violet-800 text-violet-400" : "border-blue-800 text-blue-400"}`}>
+                        {row.operation_type}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center gap-3 mt-1">
+                      <span className="text-xs text-gray-500">{row.model}</span>
+                      <span className="text-xs text-gray-500">In: {row.prompt_tokens.toLocaleString()}</span>
+                      <span className="text-xs text-gray-500">Out: {row.completion_tokens.toLocaleString()}</span>
+                      <span className="text-xs text-gray-500">{new Date(row.created_at).toLocaleString()}</span>
+                    </div>
+                  </div>
+                  <span className={`text-sm font-bold ${parseFloat(row.cost_usd) >= 0.01 ? "text-red-400" : "text-emerald-400"}`}>
+                    ${parseFloat(row.cost_usd).toFixed(4)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 export default function AdminPage() {
   const [token, setToken] = useState<string | null>(null);
   const [selectedAgent, setSelectedAgent] = useState(AGENTS[0].slug);
@@ -749,6 +969,10 @@ export default function AdminPage() {
             <TabsTrigger value="messages" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white" data-testid="tab-messages">
               Messages
             </TabsTrigger>
+            <TabsTrigger value="costs" className="data-[state=active]:bg-red-600 data-[state=active]:text-white" data-testid="tab-costs">
+              <DollarSign className="w-3.5 h-3.5 mr-1" />
+              Cost Tracker
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="rag">
@@ -761,6 +985,10 @@ export default function AdminPage() {
 
           <TabsContent value="messages">
             <MessagesPanel token={token} />
+          </TabsContent>
+
+          <TabsContent value="costs">
+            <CostTrackerPanel token={token} />
           </TabsContent>
         </Tabs>
       </div>

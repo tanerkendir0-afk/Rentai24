@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { users, rentals, contactMessages, newsletterSubscribers, leads, agentActions, emailCampaigns, supportTickets, type User, type InsertUser, type Rental, type InsertRental, type ContactMessage, type InsertContactMessage, type NewsletterSubscriber, type Lead, type InsertLead, type AgentAction, type InsertAgentAction, type EmailCampaign, type InsertEmailCampaign, type SupportTicket, type InsertSupportTicket } from "@shared/schema";
+import { users, rentals, contactMessages, newsletterSubscribers, leads, agentActions, emailCampaigns, supportTickets, tokenUsage, type User, type InsertUser, type Rental, type InsertRental, type ContactMessage, type InsertContactMessage, type NewsletterSubscriber, type Lead, type InsertLead, type AgentAction, type InsertAgentAction, type EmailCampaign, type InsertEmailCampaign, type SupportTicket, type InsertSupportTicket, type TokenUsage, type InsertTokenUsage } from "@shared/schema";
 import { eq, and, sql, desc } from "drizzle-orm";
 
 export interface IStorage {
@@ -48,6 +48,10 @@ export interface IStorage {
   getTicketsByUser(userId: number): Promise<SupportTicket[]>;
   getTicketById(id: number, userId: number): Promise<SupportTicket | undefined>;
   updateTicket(id: number, userId: number, updates: Partial<Pick<SupportTicket, "status" | "priority" | "resolution" | "subject" | "description">>): Promise<SupportTicket | undefined>;
+
+  logTokenUsage(usage: InsertTokenUsage): Promise<TokenUsage>;
+  getTokenUsageSummary(): Promise<any[]>;
+  getTokenUsageDetailed(minCostUsd?: number): Promise<any[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -286,6 +290,55 @@ export class DatabaseStorage implements IStorage {
       .where(and(eq(supportTickets.id, id), eq(supportTickets.userId, userId)))
       .returning();
     return updated;
+  }
+
+  async logTokenUsage(usage: InsertTokenUsage): Promise<TokenUsage> {
+    const [created] = await db.insert(tokenUsage).values(usage).returning();
+    return created;
+  }
+
+  async getTokenUsageSummary(): Promise<any[]> {
+    const result = await db.execute(sql`
+      SELECT
+        t.agent_type,
+        COALESCE(u.email, 'anonymous') as user_email,
+        COALESCE(u.full_name, 'Anonymous') as user_name,
+        COUNT(*)::int as request_count,
+        SUM(t.prompt_tokens)::int as total_prompt_tokens,
+        SUM(t.completion_tokens)::int as total_completion_tokens,
+        SUM(t.total_tokens)::int as total_tokens,
+        SUM(CAST(t.cost_usd AS DECIMAL(10,6)))::text as total_cost,
+        MAX(t.created_at) as last_used
+      FROM token_usage t
+      LEFT JOIN users u ON t.user_id = u.id
+      GROUP BY t.agent_type, u.email, u.full_name
+      ORDER BY SUM(CAST(t.cost_usd AS DECIMAL(10,6))) DESC
+    `);
+    return result.rows;
+  }
+
+  async getTokenUsageDetailed(minCostUsd = 0): Promise<any[]> {
+    const result = await db.execute(sql`
+      SELECT
+        t.id,
+        t.user_id,
+        COALESCE(u.email, 'anonymous') as user_email,
+        COALESCE(u.full_name, 'Anonymous') as user_name,
+        t.agent_type,
+        t.model,
+        t.prompt_tokens,
+        t.completion_tokens,
+        t.total_tokens,
+        t.cost_usd,
+        t.operation_type,
+        t.created_at
+      FROM token_usage t
+      LEFT JOIN users u ON t.user_id = u.id
+      WHERE CAST(t.cost_usd AS DECIMAL(10,6)) >= ${minCostUsd}
+      ORDER BY t.created_at DESC
+      LIMIT 500
+    `);
+    return result.rows;
   }
 }
 

@@ -12,14 +12,31 @@ import { processAndStoreDocument, processAndStoreUrl, retrieveRelevantChunks, ge
 import { createFineTuningJob, syncJobStatus, getJobsByAgent, toggleActiveModel, deactivateModel, getActiveModel } from "./fineTuningService";
 import { getToolsForAgent, executeToolCall } from "./agentTools";
 import { getImagePath, chatImageDir } from "./imageService";
+import { db } from "./db";
+import { sql } from "drizzle-orm";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
+import crypto from "crypto";
 
 const openai = new OpenAI({
   apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
   baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
 });
+
+const MODEL_PRICING: Record<string, { input: number; output: number }> = {
+  "gpt-4o": { input: 2.50, output: 10.00 },
+  "gpt-4o-mini": { input: 0.15, output: 0.60 },
+  "gpt-4": { input: 30.00, output: 60.00 },
+  "gpt-3.5-turbo": { input: 0.50, output: 1.50 },
+};
+
+function calculateTokenCost(model: string, promptTokens: number, completionTokens: number): number {
+  const pricing = MODEL_PRICING[model] || MODEL_PRICING["gpt-4o"];
+  const inputCost = (promptTokens / 1_000_000) * pricing.input;
+  const outputCost = (completionTokens / 1_000_000) * pricing.output;
+  return inputCost + outputCost;
+}
 
 const BRAND_CONFIDENTIALITY = `
 CONFIDENTIALITY — ABSOLUTE RULE (NEVER BREAK THIS):
@@ -608,10 +625,15 @@ export async function registerRoutes(
         ...(agentTools ? { tools: agentTools } : {}),
       });
 
+      let totalPromptTokens = response.usage?.prompt_tokens || 0;
+      let totalCompletionTokens = response.usage?.completion_tokens || 0;
+      let operationType = "chat";
+
       let assistantMessage = response.choices[0]?.message;
       const actions: Array<{ type: string; description: string }> = [];
 
       if (assistantMessage?.tool_calls && assistantMessage.tool_calls.length > 0 && req.session.userId) {
+        operationType = "tool_call";
         messages.push(assistantMessage);
 
         for (const toolCall of assistantMessage.tool_calls) {
@@ -642,8 +664,24 @@ export async function registerRoutes(
           temperature: 0.7,
         });
 
+        totalPromptTokens += followUp.usage?.prompt_tokens || 0;
+        totalCompletionTokens += followUp.usage?.completion_tokens || 0;
         assistantMessage = followUp.choices[0]?.message;
       }
+
+      const totalTokens = totalPromptTokens + totalCompletionTokens;
+      const costUsd = calculateTokenCost(modelToUse, totalPromptTokens, totalCompletionTokens);
+
+      storage.logTokenUsage({
+        userId: req.session.userId || null,
+        agentType,
+        model: modelToUse,
+        promptTokens: totalPromptTokens,
+        completionTokens: totalCompletionTokens,
+        totalTokens,
+        costUsd: costUsd.toFixed(6),
+        operationType,
+      }).catch(err => console.error("Token usage log error:", err.message));
 
       const reply = assistantMessage?.content || "Sorry, I couldn't generate a response. Please try again.";
 
@@ -939,7 +977,6 @@ export async function registerRoutes(
     if (password !== adminPassword) {
       return res.status(403).json({ error: "Invalid admin password" });
     }
-    const crypto = require("crypto");
     const token = crypto.randomBytes(32).toString("hex");
     adminTokens.add(token);
     res.json({ success: true, token });
@@ -1073,6 +1110,44 @@ export async function registerRoutes(
     try {
       const subscribers = await storage.getNewsletterSubscribers();
       res.json(subscribers);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/admin/token-usage/summary", requireAdmin, async (_req, res) => {
+    try {
+      const summary = await storage.getTokenUsageSummary();
+      res.json(summary);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/admin/token-usage/detailed", requireAdmin, async (req, res) => {
+    try {
+      const minCost = parseFloat(req.query.minCost as string) || 0;
+      const detailed = await storage.getTokenUsageDetailed(minCost);
+      res.json(detailed);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/admin/token-usage/totals", requireAdmin, async (_req, res) => {
+    try {
+      const result = await db.execute(sql`
+        SELECT
+          COUNT(*)::int as total_requests,
+          COALESCE(SUM(prompt_tokens), 0)::int as total_prompt_tokens,
+          COALESCE(SUM(completion_tokens), 0)::int as total_completion_tokens,
+          COALESCE(SUM(total_tokens), 0)::int as total_tokens,
+          COALESCE(SUM(CAST(cost_usd AS DECIMAL(10,6))), 0)::text as total_cost,
+          COUNT(DISTINCT user_id)::int as unique_users,
+          COUNT(CASE WHEN CAST(cost_usd AS DECIMAL(10,6)) >= 0.01 THEN 1 END)::int as expensive_requests
+        FROM token_usage
+      `);
+      res.json(result.rows[0] || {});
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }

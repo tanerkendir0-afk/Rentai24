@@ -18,6 +18,7 @@ The RentAI 24 platform is built with a modern web stack. The frontend utilizes R
 *   **AI Tooling System:** A generalized tool registry allows AI agents to perform specific actions (e.g., sending emails, creating tickets, generating images). This includes tools for sales (Rex), customer support (Ava), scheduling (Cal), data analysis (DataBot), social media (Maya), bookkeeping (Finn), HR (Harper), and e-commerce (ShopBot).
 *   **RAG & Fine-tuning:** Supports uploading documents for RAG, chunking, embedding using `text-embedding-3-small`, and vector storage via `pgvector`. It also facilitates OpenAI fine-tuning for specialized agent models.
 *   **Image Credits & Uploads:** Users can purchase image credits for AI image generation (DALL-E 3) and stock photo searches. The platform supports in-chat image uploads.
+*   **Token Cost Tracker:** Admin panel tracks all OpenAI API token usage per request — model, prompt/completion tokens, USD cost. Summary and detailed views with $0.01+ expensive request filter. DB table: `token_usage`. Admin APIs: `/api/admin/token-usage/totals`, `/summary`, `/detailed`.
 *   **PWA Support:** The application includes a web app manifest and service worker for PWA capabilities, offering an installable, app-like experience.
 *   **Brand Identity Protection:** AI agents are programmed to never reveal underlying technologies, always attributing their capabilities to "proprietary RentAI 24 AI technology."
 

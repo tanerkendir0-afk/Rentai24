@@ -78,6 +78,24 @@ export const insertUserSchema = createInsertSchema(users).omit({
   createdAt: true,
 });
 
+export const tokenUsage = pgTable("token_usage", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id),
+  agentType: text("agent_type").notNull(),
+  model: text("model").notNull(),
+  promptTokens: integer("prompt_tokens").notNull().default(0),
+  completionTokens: integer("completion_tokens").notNull().default(0),
+  totalTokens: integer("total_tokens").notNull().default(0),
+  costUsd: text("cost_usd").notNull().default("0"),
+  operationType: text("operation_type").notNull().default("chat"),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
+export const insertTokenUsageSchema = createInsertSchema(tokenUsage).omit({
+  id: true,
+  createdAt: true,
+});
+
 export const insertRentalSchema = createInsertSchema(rentals).omit({
   id: true,
   startedAt: true,
@@ -103,6 +121,8 @@ export type AgentDocument = typeof agentDocuments.$inferSelect;
 export type InsertAgentDocument = z.infer<typeof insertAgentDocumentSchema>;
 export type FineTuningJob = typeof fineTuningJobs.$inferSelect;
 export type InsertFineTuningJob = z.infer<typeof insertFineTuningJobSchema>;
+export type TokenUsage = typeof tokenUsage.$inferSelect;
+export type InsertTokenUsage = z.infer<typeof insertTokenUsageSchema>;
 
 export const registerSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters").max(30),

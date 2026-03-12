@@ -84,6 +84,13 @@ export default function Footer() {
                   </span>
                 </Link>
               </li>
+              <li>
+                <Link href="/admin">
+                  <span className="text-sm text-muted-foreground/50 cursor-pointer hover:text-foreground transition-colors" data-testid="footer-link-admin">
+                    Admin
+                  </span>
+                </Link>
+              </li>
             </ul>
           </div>
 

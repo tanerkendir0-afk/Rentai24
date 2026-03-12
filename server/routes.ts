@@ -561,6 +561,8 @@ export async function registerRoutes(
 
     const TOKEN_SPENDING_LIMIT_USD = 5.00;
 
+    let hasActiveRental = false;
+
     if (req.session.userId) {
       const userRentals = await storage.getRentalsByUser(req.session.userId);
       const activeRentals = userRentals.filter(r => r.status === "active");
@@ -569,12 +571,12 @@ export async function registerRoutes(
         const rental = activeRentals.find(r => r.agentType === agentType);
         if (!rental) {
           return res.status(403).json({
-            reply: "You don't have access to this agent. Please hire them from the Workers page.",
+            reply: "Bu ajana erişiminiz yok. Lütfen Workers sayfasından kiralayın.",
           });
         }
         if (rental.messagesUsed >= rental.messagesLimit) {
           return res.status(403).json({
-            reply: "You've reached your message limit for this agent. Please upgrade your plan for more messages.",
+            reply: "Bu ajan için mesaj limitinize ulaştınız. Daha fazla mesaj için planınızı yükseltin.",
           });
         }
         const userSpending = await storage.getTokenSpending(req.session.userId, agentType);
@@ -586,7 +588,18 @@ export async function registerRoutes(
             limit: TOKEN_SPENDING_LIMIT_USD,
           });
         }
+        hasActiveRental = true;
         await storage.incrementUsage(rental.id);
+      } else {
+        const userSpending = await storage.getTokenSpending(req.session.userId);
+        if (userSpending >= TOKEN_SPENDING_LIMIT_USD) {
+          return res.status(403).json({
+            reply: `Demo token harcama limitine ($${TOKEN_SPENDING_LIMIT_USD.toFixed(2)} USD) ulaştınız. Devam etmek için bir ajan kiralayın.`,
+            limitReached: true,
+            spent: userSpending,
+            limit: TOKEN_SPENDING_LIMIT_USD,
+          });
+        }
       }
     } else {
       const sessionSpending = (req.session as any).tokenSpending || 0;
@@ -635,7 +648,7 @@ export async function registerRoutes(
         chatClient = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
       }
 
-      const agentTools = req.session.userId ? getToolsForAgent(agentType) : undefined;
+      const agentTools = hasActiveRental ? getToolsForAgent(agentType) : undefined;
       const isAgenticAgent = !!agentTools;
 
       const response = await chatClient.chat.completions.create({
@@ -653,7 +666,7 @@ export async function registerRoutes(
       let assistantMessage = response.choices[0]?.message;
       const actions: Array<{ type: string; description: string }> = [];
 
-      if (assistantMessage?.tool_calls && assistantMessage.tool_calls.length > 0 && req.session.userId) {
+      if (assistantMessage?.tool_calls && assistantMessage.tool_calls.length > 0 && hasActiveRental) {
         operationType = "tool_call";
         messages.push(assistantMessage);
 

@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -19,8 +20,10 @@ import {
   Trash2,
   BarChart3,
   Package,
+  Lock,
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
+import { useAuth } from "@/lib/auth";
 
 interface Message {
   role: "user" | "assistant";
@@ -45,12 +48,42 @@ const suggestedPrompts = [
   "Generate a report",
 ];
 
+interface RentalData {
+  id: number;
+  agentType: string;
+  status: string;
+}
+
 export default function Demo() {
+  const { user } = useAuth();
   const [selectedAgent, setSelectedAgent] = useState(agentOptions[0].id);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [initialAgentSet, setInitialAgentSet] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const { data: rentals } = useQuery<RentalData[]>({
+    queryKey: ["/api/rentals"],
+    enabled: !!user,
+  });
+
+  const activeRentals = rentals?.filter(r => r.status === "active") || [];
+  const hasRentals = activeRentals.length > 0;
+  const rentedAgentIds = new Set(activeRentals.map(r => r.agentType));
+
+  useEffect(() => {
+    if (user && hasRentals && !initialAgentSet) {
+      const params = new URLSearchParams(window.location.search);
+      const agentParam = params.get("agent");
+      if (agentParam && rentedAgentIds.has(agentParam)) {
+        setSelectedAgent(agentParam);
+      } else {
+        setSelectedAgent(activeRentals[0].agentType);
+      }
+      setInitialAgentSet(true);
+    }
+  }, [user, hasRentals, initialAgentSet]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -112,29 +145,38 @@ export default function Demo() {
               Select AI Worker
             </h2>
             <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-1 gap-2">
-              {agentOptions.map((agent) => (
-                <button
-                  key={agent.id}
-                  onClick={() => {
-                    setSelectedAgent(agent.id);
-                    setMessages([]);
-                  }}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-md text-left text-sm font-medium transition-all ${
-                    selectedAgent === agent.id
-                      ? "bg-blue-500/10 text-blue-400 border border-blue-500/30"
-                      : "bg-card border border-border/50 text-muted-foreground"
-                  }`}
-                  data-testid={`button-agent-${agent.id}`}
-                >
-                  <agent.icon className="w-4 h-4 shrink-0" />
-                  <span className="truncate">{agent.name}</span>
-                  {selectedAgent === agent.id && (
-                    <div className="ml-auto flex items-center gap-1">
-                      <div className="w-2 h-2 rounded-full bg-emerald-400" />
-                    </div>
-                  )}
-                </button>
-              ))}
+              {agentOptions.map((agent) => {
+                const isLocked = user && hasRentals && !rentedAgentIds.has(agent.id);
+                return (
+                  <button
+                    key={agent.id}
+                    onClick={() => {
+                      if (isLocked) return;
+                      setSelectedAgent(agent.id);
+                      setMessages([]);
+                    }}
+                    disabled={!!isLocked}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-md text-left text-sm font-medium transition-all ${
+                      isLocked
+                        ? "bg-card/50 border border-border/30 text-muted-foreground/40 cursor-not-allowed opacity-50"
+                        : selectedAgent === agent.id
+                          ? "bg-blue-500/10 text-blue-400 border border-blue-500/30"
+                          : "bg-card border border-border/50 text-muted-foreground"
+                    }`}
+                    data-testid={`button-agent-${agent.id}`}
+                  >
+                    <agent.icon className="w-4 h-4 shrink-0" />
+                    <span className="truncate">{agent.name}</span>
+                    {isLocked ? (
+                      <Lock className="w-3 h-3 ml-auto shrink-0 text-muted-foreground/40" />
+                    ) : selectedAgent === agent.id ? (
+                      <div className="ml-auto flex items-center gap-1">
+                        <div className="w-2 h-2 rounded-full bg-emerald-400" />
+                      </div>
+                    ) : null}
+                  </button>
+                );
+              })}
             </div>
           </div>
         </motion.aside>

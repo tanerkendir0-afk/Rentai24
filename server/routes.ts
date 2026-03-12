@@ -306,8 +306,16 @@ export async function registerRoutes(
     let systemPrompt = agentSystemPrompts[agentType] || defaultSystemPrompt;
 
     if (req.session.userId) {
-      const rental = await storage.getActiveRental(req.session.userId, agentType);
-      if (rental) {
+      const userRentals = await storage.getRentalsByUser(req.session.userId);
+      const activeRentals = userRentals.filter(r => r.status === "active");
+
+      if (activeRentals.length > 0) {
+        const rental = activeRentals.find(r => r.agentType === agentType);
+        if (!rental) {
+          return res.status(403).json({
+            reply: "You don't have access to this agent. Please hire them from the Workers page.",
+          });
+        }
         if (rental.messagesUsed >= rental.messagesLimit) {
           return res.status(403).json({
             reply: "You've reached your message limit for this agent. Please upgrade your plan for more messages.",

@@ -181,6 +181,7 @@ export const leads = pgTable("leads", {
   email: text("email").notNull(),
   company: text("company"),
   status: text("status").notNull().default("new"),
+  score: text("score"),
   notes: text("notes"),
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
   updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
@@ -196,6 +197,17 @@ export const agentActions = pgTable("agent_actions", {
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
 });
 
+export const emailCampaigns = pgTable("email_campaigns", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  leadId: integer("lead_id").notNull().references(() => leads.id),
+  campaignType: text("campaign_type").notNull().default("standard"),
+  steps: jsonb("steps").notNull(),
+  currentStep: integer("current_step").notNull().default(0),
+  status: text("status").notNull().default("active"),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
 export const insertLeadSchema = createInsertSchema(leads).omit({
   id: true,
   createdAt: true,
@@ -207,7 +219,14 @@ export const insertAgentActionSchema = createInsertSchema(agentActions).omit({
   createdAt: true,
 });
 
+export const insertEmailCampaignSchema = createInsertSchema(emailCampaigns).omit({
+  id: true,
+  createdAt: true,
+});
+
 export type Lead = typeof leads.$inferSelect;
 export type InsertLead = z.infer<typeof insertLeadSchema>;
 export type AgentAction = typeof agentActions.$inferSelect;
 export type InsertAgentAction = z.infer<typeof insertAgentActionSchema>;
+export type EmailCampaign = typeof emailCampaigns.$inferSelect;
+export type InsertEmailCampaign = z.infer<typeof insertEmailCampaignSchema>;

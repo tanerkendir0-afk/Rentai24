@@ -112,17 +112,31 @@ RentAI 24 — the world's first AI staffing agency website. Lets businesses brow
 
 ## Agentic AI (Rex — Sales SDR)
 - Rex (sales-sdr) is a full agentic AI worker with OpenAI tool calling
-- Tools: send_email, add_lead, update_lead, list_leads, schedule_followup, create_meeting
-- Tool definitions in `server/agentTools.ts`
+- 17 tools total in `server/agentTools.ts`:
+  - Core: send_email, add_lead, update_lead, list_leads, schedule_followup, create_meeting
+  - Campaigns: bulk_email, use_template, start_drip_campaign, list_campaigns, list_templates
+  - Analytics: score_leads, pipeline_report
+  - Sales docs: create_proposal, analyze_competitors
 - Email routing: Gmail (OAuth) → Resend (platform) fallback chain (`server/emailService.ts`)
   - Gmail service: `server/gmailService.ts` — sends via user's own Gmail account when connected
   - Resend: platform-level email when Gmail not available
   - GET /api/email-status returns current provider (gmail/platform) + address
+- Email templates: `server/emailTemplates.ts` — 5 pre-built templates (cold_outreach, follow_up, value_proposition, meeting_request, proposal) with {{name}}/{{company}} placeholders
+- Drip campaigns: `email_campaigns` table tracks multi-step automated email sequences
+  - 3 campaign types: standard (3 steps/7 days), aggressive (5 steps/7 days), gentle (3 steps/14 days)
+  - Campaign runner: `server/campaignRunner.ts` — hourly process that auto-sends next drip step
+  - First email sent immediately on campaign start (delayDays: 0)
+- Lead scoring: Rule-based Hot/Warm/Cold scoring based on pipeline status + recency of activity
+  - `score` column on leads table, updated via score_leads tool
+- Pipeline analytics: pipeline_report tool generates totals, status breakdown, conversion rate, weekly/monthly stats
+- Smart alerts: GET /api/smart-alerts returns actionable alerts (stale leads, hot leads, uncontacted new leads)
+- Proposals: create_proposal generates formatted sales proposals stored in agent_actions metadata
+- Competitor analysis: analyze_competitors generates competitive landscape reports
 - Follow-ups: `server/followupScheduler.ts` — in-memory timer-based scheduler that auto-sends follow-up emails via the same Gmail→Resend chain
 - Calendar: `server/calendarService.ts` — creates Google Calendar events via API if connected; gracefully falls back to logging if not connected
 - When Rex uses tools, actions are logged in agent_actions table and shown as action indicators in the chat UI
-- Dashboard shows "Agent Activity Log" section + email connection status badge (Gmail or Platform)
-- Leads stored in `leads` table (user-scoped CRM pipeline with status tracking)
+- Dashboard shows: stats grid (workers, messages, remaining, active campaigns), Smart Alerts section, Agent Activity Log
+- Leads stored in `leads` table (user-scoped CRM with status + score tracking)
 - Action metadata stored as JSONB for rich audit trail
 
 ## Brand Identity Protection
@@ -154,6 +168,8 @@ RentAI 24 — the world's first AI staffing agency website. Lets businesses brow
 - `POST /api/rentals` — Add worker to subscription (requires active Stripe subscription, validated against subscription status)
 - `POST /api/chat` — AI chat via OpenAI GPT-4o (RAG-enhanced, uses fine-tuned model if active)
 - `POST /api/contact` — Contact form submission
+- `GET /api/campaigns` — User's drip campaigns (protected)
+- `GET /api/smart-alerts` — Smart alerts for user's leads (protected)
 - `GET /api/stripe/config` — Stripe publishable key
 - `GET /api/stripe/products` — List products with prices
 - `POST /api/stripe/checkout` — Create Stripe Checkout session (protected)

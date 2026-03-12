@@ -1,9 +1,10 @@
 import { db } from "./db";
-import { users, rentals, contactMessages, newsletterSubscribers, leads, agentActions, type User, type InsertUser, type Rental, type InsertRental, type ContactMessage, type InsertContactMessage, type NewsletterSubscriber, type Lead, type InsertLead, type AgentAction, type InsertAgentAction } from "@shared/schema";
+import { users, rentals, contactMessages, newsletterSubscribers, leads, agentActions, emailCampaigns, type User, type InsertUser, type Rental, type InsertRental, type ContactMessage, type InsertContactMessage, type NewsletterSubscriber, type Lead, type InsertLead, type AgentAction, type InsertAgentAction, type EmailCampaign, type InsertEmailCampaign } from "@shared/schema";
 import { eq, and, sql, desc } from "drizzle-orm";
 
 export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
+  getAllUsers(): Promise<User[]>;
   getUserByEmail(email: string): Promise<User | undefined>;
   getUserById(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
@@ -31,13 +32,22 @@ export interface IStorage {
   createLead(lead: InsertLead): Promise<Lead>;
   getLeadsByUser(userId: number): Promise<Lead[]>;
   getLeadById(id: number, userId: number): Promise<Lead | undefined>;
-  updateLead(id: number, userId: number, updates: Partial<Pick<Lead, "name" | "email" | "company" | "status" | "notes">>): Promise<Lead | undefined>;
+  updateLead(id: number, userId: number, updates: Partial<Pick<Lead, "name" | "email" | "company" | "status" | "notes" | "score">>): Promise<Lead | undefined>;
 
   createAgentAction(action: InsertAgentAction): Promise<AgentAction>;
   getActionsByUser(userId: number): Promise<AgentAction[]>;
+
+  createEmailCampaign(campaign: InsertEmailCampaign): Promise<EmailCampaign>;
+  getCampaignsByUser(userId: number): Promise<EmailCampaign[]>;
+  getActiveCampaigns(userId: number): Promise<EmailCampaign[]>;
+  updateCampaignStep(id: number, userId: number, currentStep: number, status?: string): Promise<EmailCampaign | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
+  async getAllUsers(): Promise<User[]> {
+    return db.select().from(users);
+  }
+
   async createUser(user: InsertUser): Promise<User> {
     const [created] = await db.insert(users).values(user).returning();
     return created;
@@ -191,7 +201,7 @@ export class DatabaseStorage implements IStorage {
     return lead;
   }
 
-  async updateLead(id: number, userId: number, updates: Partial<Pick<Lead, "name" | "email" | "company" | "status" | "notes">>): Promise<Lead | undefined> {
+  async updateLead(id: number, userId: number, updates: Partial<Pick<Lead, "name" | "email" | "company" | "status" | "notes" | "score">>): Promise<Lead | undefined> {
     const [updated] = await db
       .update(leads)
       .set({ ...updates, updatedAt: new Date() })
@@ -207,6 +217,30 @@ export class DatabaseStorage implements IStorage {
 
   async getActionsByUser(userId: number): Promise<AgentAction[]> {
     return db.select().from(agentActions).where(eq(agentActions.userId, userId)).orderBy(desc(agentActions.createdAt));
+  }
+
+  async createEmailCampaign(campaign: InsertEmailCampaign): Promise<EmailCampaign> {
+    const [created] = await db.insert(emailCampaigns).values(campaign).returning();
+    return created;
+  }
+
+  async getCampaignsByUser(userId: number): Promise<EmailCampaign[]> {
+    return db.select().from(emailCampaigns).where(eq(emailCampaigns.userId, userId)).orderBy(desc(emailCampaigns.createdAt));
+  }
+
+  async getActiveCampaigns(userId: number): Promise<EmailCampaign[]> {
+    return db.select().from(emailCampaigns).where(and(eq(emailCampaigns.userId, userId), eq(emailCampaigns.status, "active"))).orderBy(desc(emailCampaigns.createdAt));
+  }
+
+  async updateCampaignStep(id: number, userId: number, currentStep: number, status?: string): Promise<EmailCampaign | undefined> {
+    const updates: Record<string, unknown> = { currentStep };
+    if (status) updates.status = status;
+    const [updated] = await db
+      .update(emailCampaigns)
+      .set(updates)
+      .where(and(eq(emailCampaigns.id, id), eq(emailCampaigns.userId, userId)))
+      .returning();
+    return updated;
   }
 }
 

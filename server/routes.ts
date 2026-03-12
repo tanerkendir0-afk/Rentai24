@@ -45,7 +45,7 @@ ${BRAND_CONFIDENTIALITY}`,
   "sales-sdr": `You are "Rex", a Sales Development Representative AI agent for RentAI 24.
 
 YOUR ROLE: Outbound sales and lead generation ONLY.
-ALLOWED TASKS: Lead generation, cold outreach drafting, follow-up emails, proposal drafting, CRM updates, meeting scheduling, qualifying leads.
+ALLOWED TASKS: Lead generation, cold outreach drafting, follow-up emails, proposal drafting, CRM updates, meeting scheduling, qualifying leads, bulk campaigns, drip sequences, email templates, lead scoring, pipeline analytics, proposals, competitor analysis.
 FORBIDDEN: You CANNOT handle customer complaints, do bookkeeping, manage social media, handle HR tasks, or any non-sales activities.
 
 YOU HAVE REAL TOOLS — USE THEM:
@@ -56,6 +56,15 @@ You are not just a chatbot. You are a real sales agent with the ability to take 
 - list_leads: View the full pipeline
 - schedule_followup: Schedule follow-up emails for later
 - create_meeting: Create meetings/demos with prospects
+- bulk_email: Send personalized emails to ALL leads matching a status (e.g. all "new" leads)
+- use_template: Send a pre-built email template to a specific lead. Templates: cold_outreach, follow_up, value_proposition, meeting_request, proposal
+- start_drip_campaign: Start an automated multi-step email sequence for a lead. Types: standard (3 emails/7 days), aggressive (5 emails/7 days), gentle (3 emails/14 days)
+- list_campaigns: View all drip campaigns and their progress
+- list_templates: Show all available email templates
+- score_leads: Analyze and score all leads as Hot/Warm/Cold based on status and activity
+- pipeline_report: Generate full pipeline analytics (totals, conversion rate, weekly stats)
+- create_proposal: Generate a professional sales proposal for a lead
+- analyze_competitors: Research and analyze competitors in a prospect's industry
 
 WHEN TO USE TOOLS:
 - When the user says "email john@example.com" → use send_email
@@ -64,6 +73,15 @@ WHEN TO USE TOOLS:
 - When the user says "follow up in 3 days" → use schedule_followup
 - When the user wants to schedule a demo/meeting → use create_meeting
 - When the user says to update a lead's status → use update_lead
+- When the user says "email all new leads" or "send bulk outreach" → use bulk_email with a template
+- When the user says "use cold outreach template for lead #5" → use use_template
+- When the user says "start a drip campaign" or "automated sequence" → use start_drip_campaign
+- When the user asks "what campaigns are running" → use list_campaigns
+- When the user asks "what templates do you have" → use list_templates
+- When the user asks "which leads are hot" or "score my leads" → use score_leads
+- When the user asks "how is my pipeline" or "show me stats" → use pipeline_report
+- When the user asks "create a proposal" or "draft a proposal for lead" → use create_proposal
+- When the user asks "analyze competitors" or "competitive landscape" → use analyze_competitors
 
 BEHAVIOR RULES:
 - Be proactive: if the user gives you a prospect's info, add them as a lead AND offer to send outreach
@@ -303,6 +321,49 @@ export async function registerRoutes(
   app.get("/api/agent-actions", requireAuth, async (req, res) => {
     const userActions = await storage.getActionsByUser(req.session.userId!);
     res.json(userActions);
+  });
+
+  app.get("/api/campaigns", requireAuth, async (req, res) => {
+    const campaigns = await storage.getCampaignsByUser(req.session.userId!);
+    res.json(campaigns);
+  });
+
+  app.get("/api/smart-alerts", requireAuth, async (req, res) => {
+    const userId = req.session.userId!;
+    const leads = await storage.getLeadsByUser(userId);
+    const alerts: Array<{ type: string; severity: string; message: string; leadId?: number }> = [];
+
+    const now = Date.now();
+    for (const lead of leads) {
+      const daysSinceUpdate = Math.floor((now - new Date(lead.updatedAt).getTime()) / (1000 * 60 * 60 * 24));
+
+      if (lead.status === "new" && daysSinceUpdate >= 3) {
+        alerts.push({ type: "stale_new", severity: "warning", message: `${lead.name} has been "new" for ${daysSinceUpdate} days — send initial outreach!`, leadId: lead.id });
+      }
+
+      if (lead.status === "contacted" && daysSinceUpdate >= 7) {
+        alerts.push({ type: "stale_contacted", severity: "warning", message: `${lead.name} was contacted ${daysSinceUpdate} days ago — follow up!`, leadId: lead.id });
+      }
+
+      if (lead.status === "qualified" && daysSinceUpdate >= 5) {
+        alerts.push({ type: "qualified_waiting", severity: "info", message: `${lead.name} is qualified but hasn't moved in ${daysSinceUpdate} days — send a proposal!`, leadId: lead.id });
+      }
+
+      if (lead.status === "proposal" && daysSinceUpdate >= 10) {
+        alerts.push({ type: "proposal_stale", severity: "urgent", message: `${lead.name}'s proposal has been pending for ${daysSinceUpdate} days — check in!`, leadId: lead.id });
+      }
+
+      if (lead.score === "hot" && lead.status !== "won" && lead.status !== "lost") {
+        alerts.push({ type: "hot_lead", severity: "success", message: `${lead.name} is a HOT lead — prioritize closing!`, leadId: lead.id });
+      }
+    }
+
+    const newThisWeek = leads.filter(l => (now - new Date(l.createdAt).getTime()) < 7 * 24 * 60 * 60 * 1000).length;
+    if (newThisWeek > 0) {
+      alerts.push({ type: "weekly_summary", severity: "info", message: `${newThisWeek} new lead${newThisWeek > 1 ? "s" : ""} added this week` });
+    }
+
+    res.json(alerts);
   });
 
   app.get("/api/rentals", requireAuth, async (req, res) => {

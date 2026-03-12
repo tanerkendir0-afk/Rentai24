@@ -3,6 +3,7 @@ import session from "express-session";
 import memorystore from "memorystore";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
+import { startCampaignRunner } from "./campaignRunner";
 import { createServer } from "http";
 import { runMigrations } from "stripe-replit-sync";
 import { getStripeSync } from "./stripeClient";
@@ -141,6 +142,8 @@ app.use((req, res, next) => {
   }
 
   await registerRoutes(httpServer, app);
+
+  startCampaignRunner();
 
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
     const status = err.status || err.statusCode || 500;

@@ -29,6 +29,15 @@ import {
   Clock,
   Calendar,
   Edit,
+  Send,
+  FileText,
+  Repeat,
+  AlertTriangle,
+  CheckCircle,
+  Info,
+  AlertCircle,
+  Flame,
+  Search,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -84,6 +93,18 @@ export default function Dashboard() {
 
   const { data: agentActions } = useQuery<any[]>({
     queryKey: ["/api/agent-actions"],
+    enabled: !!user,
+  });
+
+  const { data: campaigns } = useQuery<any[]>({
+    queryKey: ["/api/campaigns"],
+    enabled: !!user,
+  });
+
+  const activeCampaigns = campaigns?.filter((c: any) => c.status === "active") || [];
+
+  const { data: smartAlerts } = useQuery<any[]>({
+    queryKey: ["/api/smart-alerts"],
     enabled: !!user,
   });
 
@@ -197,7 +218,7 @@ export default function Dashboard() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           <Card className="p-5 bg-card border-border/50">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
@@ -236,6 +257,20 @@ export default function Dashboard() {
                   {totalLimit - totalMessages}
                 </p>
                 <p className="text-xs text-muted-foreground">Messages Remaining</p>
+              </div>
+            </div>
+          </Card>
+
+          <Card className="p-5 bg-card border-border/50">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-orange-500/10 flex items-center justify-center">
+                <Repeat className="w-5 h-5 text-orange-400" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-foreground" data-testid="text-active-campaigns">
+                  {activeCampaigns.length}
+                </p>
+                <p className="text-xs text-muted-foreground">Active Campaigns</p>
               </div>
             </div>
           </Card>
@@ -329,6 +364,37 @@ export default function Dashboard() {
           </div>
         )}
 
+        {smartAlerts && smartAlerts.length > 0 && (
+          <div className="mt-8">
+            <div className="flex items-center gap-2 mb-4">
+              <AlertTriangle className="w-5 h-5 text-yellow-400" />
+              <h2 className="text-lg font-semibold text-foreground" data-testid="text-alerts-title">Smart Alerts</h2>
+              <Badge variant="secondary" className="text-xs">{smartAlerts.length}</Badge>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3" data-testid="smart-alerts-grid">
+              {smartAlerts.slice(0, 8).map((alert: any, i: number) => {
+                const severityConfig: Record<string, { icon: any; bg: string; text: string; border: string }> = {
+                  urgent: { icon: AlertCircle, bg: "bg-red-500/10", text: "text-red-400", border: "border-red-500/30" },
+                  warning: { icon: AlertTriangle, bg: "bg-yellow-500/10", text: "text-yellow-400", border: "border-yellow-500/30" },
+                  info: { icon: Info, bg: "bg-blue-500/10", text: "text-blue-400", border: "border-blue-500/30" },
+                  success: { icon: Flame, bg: "bg-emerald-500/10", text: "text-emerald-400", border: "border-emerald-500/30" },
+                };
+                const config = severityConfig[alert.severity] || severityConfig.info;
+                const AlertIcon = config.icon;
+
+                return (
+                  <Card key={i} className={`p-3 ${config.bg} border ${config.border}`} data-testid={`smart-alert-${i}`}>
+                    <div className="flex items-start gap-3">
+                      <AlertIcon className={`w-4 h-4 ${config.text} mt-0.5 shrink-0`} />
+                      <p className={`text-sm ${config.text}`}>{alert.message}</p>
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {agentActions && agentActions.length > 0 && (
           <div className="mt-8">
             <div className="flex items-center gap-2 mb-4">
@@ -344,6 +410,13 @@ export default function Dashboard() {
                   lead_updated: Edit,
                   followup_scheduled: Clock,
                   meeting_created: Calendar,
+                  bulk_email_sent: Send,
+                  template_email_sent: FileText,
+                  drip_campaign_started: Repeat,
+                  drip_email_sent: Repeat,
+                  leads_scored: BarChart3,
+                  proposal_created: FileText,
+                  competitor_analysis: Search,
                 };
                 const ActionIcon = actionIcons[action.actionType] || Activity;
 

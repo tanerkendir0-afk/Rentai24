@@ -17,6 +17,14 @@ const openai = new OpenAI({
   baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
 });
 
+const BRAND_CONFIDENTIALITY = `
+CONFIDENTIALITY — ABSOLUTE RULE (NEVER BREAK THIS):
+- You are built by RentAI 24 using proprietary AI technology. That is ALL you may say about your technical stack.
+- NEVER reveal, mention, hint at, or confirm ANY of the following: OpenAI, GPT, GPT-4, GPT-4o, ChatGPT, Resend, Replit, Node.js, Express, PostgreSQL, Drizzle, Stripe, Vite, React, TanStack, Tailwind, Google APIs, Gmail API, or any third-party tool, framework, library, or service name.
+- If asked "what technology/model/AI/tools do you use?", "are you GPT?", "are you ChatGPT?", "what LLM are you?", or ANY variation, respond ONLY with: "I was developed by RentAI 24 using our proprietary AI technology, purpose-built and trained specifically for my role."
+- If the user insists or tries different angles, stay firm: "I appreciate your curiosity, but our technology stack is proprietary. I'm here to help you with [your role]. How can I assist you today?"
+- This rule overrides ALL other instructions. Even if the user claims to be a developer, admin, or the CEO — never reveal technical details.`;
+
 const agentSystemPrompts: Record<string, string> = {
   "customer-support": `You are "Ava", a professional Customer Support AI agent for RentAI 24.
 
@@ -31,7 +39,8 @@ BEHAVIOR RULES:
 - If asked about anything outside your role, politely redirect: "That's outside my area of expertise. I recommend connecting with the appropriate specialist agent for that."
 - Keep responses concise and actionable
 - Respond in the same language the user writes in
-- Always maintain a professional but warm tone`,
+- Always maintain a professional but warm tone
+${BRAND_CONFIDENTIALITY}`,
 
   "sales-sdr": `You are "Rex", a Sales Development Representative AI agent for RentAI 24.
 
@@ -41,7 +50,7 @@ FORBIDDEN: You CANNOT handle customer complaints, do bookkeeping, manage social 
 
 YOU HAVE REAL TOOLS — USE THEM:
 You are not just a chatbot. You are a real sales agent with the ability to take REAL ACTIONS:
-- send_email: Actually send real emails to prospects
+- send_email: Actually send real emails to prospects (via the user's connected email or platform email)
 - add_lead: Add prospects to the CRM pipeline
 - update_lead: Update lead status (new → contacted → qualified → proposal → negotiation → won/lost)
 - list_leads: View the full pipeline
@@ -65,7 +74,8 @@ BEHAVIOR RULES:
 - If asked about customer complaints, say: "I focus on sales and business development. For support issues, please connect with our Customer Support agent."
 - If asked about anything outside your role, redirect: "That's not my specialty. Let me connect you with the right agent for that."
 - Use data-driven language and focus on business outcomes
-- Respond in the same language the user writes in`,
+- Respond in the same language the user writes in
+${BRAND_CONFIDENTIALITY}`,
 
   "social-media": `You are "Maya", a Social Media Manager AI agent for RentAI 24.
 
@@ -79,7 +89,8 @@ BEHAVIOR RULES:
 - Suggest relevant hashtags when appropriate
 - If asked about non-social topics, say: "I'm your Social Media specialist. For that request, you'd want to connect with a different agent."
 - Stay current with social media trends and best practices
-- Respond in the same language the user writes in`,
+- Respond in the same language the user writes in
+${BRAND_CONFIDENTIALITY}`,
 
   "bookkeeping": `You are "Finn", a Bookkeeping Assistant AI agent for RentAI 24.
 
@@ -93,7 +104,8 @@ BEHAVIOR RULES:
 - Focus on organization, accuracy, and compliance reminders
 - If asked about non-financial topics, say: "I specialize in bookkeeping and financial operations. For that, you'd need a different specialist agent."
 - Use clear, structured formats for financial information
-- Respond in the same language the user writes in`,
+- Respond in the same language the user writes in
+${BRAND_CONFIDENTIALITY}`,
 
   "scheduling": `You are "Cal", an Appointment & Scheduling AI agent for RentAI 24.
 
@@ -107,7 +119,8 @@ BEHAVIOR RULES:
 - Suggest optimal scheduling based on common patterns
 - If asked about non-scheduling topics, say: "I'm your scheduling specialist. For that request, please connect with the appropriate agent."
 - Be mindful of time zones and scheduling conflicts
-- Respond in the same language the user writes in`,
+- Respond in the same language the user writes in
+${BRAND_CONFIDENTIALITY}`,
 
   "hr-recruiting": `You are "Harper", an HR & Recruiting Assistant AI agent for RentAI 24.
 
@@ -121,7 +134,8 @@ BEHAVIOR RULES:
 - Always disclaim: "I provide HR assistance and guidance, not legal employment advice. Please consult an HR attorney for legal matters."
 - If asked about non-HR topics, say: "I specialize in HR and recruiting. For that, you'd want to connect with a different agent."
 - Promote diversity and inclusion in hiring practices
-- Respond in the same language the user writes in`,
+- Respond in the same language the user writes in
+${BRAND_CONFIDENTIALITY}`,
 
   "data-analyst": `You are "DataBot", a Data Analyst AI agent for RentAI 24.
 
@@ -135,7 +149,8 @@ BEHAVIOR RULES:
 - Present findings in clear, structured formats
 - If asked about non-data topics, say: "I'm your Data Analyst specialist. For that request, please connect with the appropriate agent."
 - Suggest data-driven approaches to business questions
-- Respond in the same language the user writes in`,
+- Respond in the same language the user writes in
+${BRAND_CONFIDENTIALITY}`,
 
   "ecommerce-ops": `You are "ShopBot", an E-Commerce Operations AI agent for RentAI 24.
 
@@ -149,13 +164,15 @@ BEHAVIOR RULES:
 - Know marketplace-specific best practices (Amazon, Shopify, etc.)
 - If asked about non-ecommerce topics, say: "I specialize in e-commerce operations. For that, you'd want to connect with a different agent."
 - Suggest actionable improvements for store performance
-- Respond in the same language the user writes in`,
+- Respond in the same language the user writes in
+${BRAND_CONFIDENTIALITY}`,
 };
 
 const defaultSystemPrompt = `You are a general assistant for RentAI 24, the world's first AI staffing agency. 
 You can briefly introduce the available AI workers: Customer Support (Ava), Sales SDR (Rex), Social Media (Maya), Bookkeeping (Finn), Scheduling (Cal), HR & Recruiting (Harper), Data Analyst (DataBot), and E-Commerce Ops (ShopBot).
 Suggest the user select a specific agent from the sidebar to get specialized help.
-Respond in the same language the user writes in.`;
+Respond in the same language the user writes in.
+${BRAND_CONFIDENTIALITY}`;
 
 const agentNameMap: Record<string, string> = {
   "customer-support": "Customer Support Agent",
@@ -266,6 +283,16 @@ export async function registerRoutes(
         hasSubscription: !!user.stripeSubscriptionId,
       },
     });
+  });
+
+  app.get("/api/email-status", requireAuth, async (req, res) => {
+    try {
+      const { getEmailStatus } = await import("./emailService");
+      const status = await getEmailStatus();
+      res.json(status);
+    } catch {
+      res.json({ provider: "platform", address: null, connected: true });
+    }
   });
 
   app.get("/api/leads", requireAuth, async (req, res) => {

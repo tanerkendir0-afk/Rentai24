@@ -87,6 +87,13 @@ export default function Dashboard() {
     enabled: !!user,
   });
 
+  const hasSalesAgent = rentals?.some(r => r.agentType === "sales-sdr" && r.status === "active");
+
+  const { data: emailStatus } = useQuery<{ provider: string; address: string | null; connected: boolean }>({
+    queryKey: ["/api/email-status"],
+    enabled: !!user && !!hasSalesAgent,
+  });
+
   const hasSubscription = !!user?.hasSubscription;
   const subscription = subscriptionData?.subscription;
   const planName = subscription?.metadata?.plan
@@ -140,7 +147,7 @@ export default function Dashboard() {
               <h1 className="text-2xl font-bold text-foreground" data-testid="text-dashboard-welcome">
                 Welcome, {user.fullName}
               </h1>
-              <p className="text-muted-foreground text-sm mt-1 flex items-center gap-2">
+              <p className="text-muted-foreground text-sm mt-1 flex items-center gap-2 flex-wrap">
                 Manage your AI workforce from here
                 {hasSubscription ? (
                   <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-500/20 text-green-400 border border-green-500/30" data-testid="badge-subscription-active">
@@ -150,6 +157,21 @@ export default function Dashboard() {
                 ) : (
                   <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-500/20 text-yellow-400 border border-yellow-500/30" data-testid="badge-no-subscription">
                     No Subscription
+                  </span>
+                )}
+                {emailStatus && hasSalesAgent && (
+                  <span
+                    className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium ${
+                      emailStatus.provider === "gmail"
+                        ? "bg-blue-500/20 text-blue-400 border border-blue-500/30"
+                        : "bg-violet-500/20 text-violet-400 border border-violet-500/30"
+                    }`}
+                    data-testid="badge-email-status"
+                  >
+                    <Mail className="w-3 h-3" />
+                    {emailStatus.provider === "gmail"
+                      ? `Gmail: ${emailStatus.address || "Connected"}`
+                      : "Platform Email"}
                   </span>
                 )}
               </p>

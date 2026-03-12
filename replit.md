@@ -114,13 +114,22 @@ RentAI 24 — the world's first AI staffing agency website. Lets businesses brow
 - Rex (sales-sdr) is a full agentic AI worker with OpenAI tool calling
 - Tools: send_email, add_lead, update_lead, list_leads, schedule_followup, create_meeting
 - Tool definitions in `server/agentTools.ts`
-- Email: Real email sending via Resend integration (`server/emailService.ts`), credentials fetched via Replit connectors API
-- Follow-ups: `server/followupScheduler.ts` — in-memory timer-based scheduler that auto-sends follow-up emails via Resend after configured delay
+- Email routing: Gmail (OAuth) → Resend (platform) fallback chain (`server/emailService.ts`)
+  - Gmail service: `server/gmailService.ts` — sends via user's own Gmail account when connected
+  - Resend: platform-level email when Gmail not available
+  - GET /api/email-status returns current provider (gmail/platform) + address
+- Follow-ups: `server/followupScheduler.ts` — in-memory timer-based scheduler that auto-sends follow-up emails via the same Gmail→Resend chain
 - Calendar: `server/calendarService.ts` — creates Google Calendar events via API if connected; gracefully falls back to logging if not connected
 - When Rex uses tools, actions are logged in agent_actions table and shown as action indicators in the chat UI
-- Dashboard shows "Agent Activity Log" section with all actions taken by AI agents
+- Dashboard shows "Agent Activity Log" section + email connection status badge (Gmail or Platform)
 - Leads stored in `leads` table (user-scoped CRM pipeline with status tracking)
 - Action metadata stored as JSONB for rich audit trail
+
+## Brand Identity Protection
+- ALL 8 agent system prompts + default prompt include BRAND_CONFIDENTIALITY block
+- Agents NEVER reveal: OpenAI, GPT, Resend, Replit, Node.js, Express, PostgreSQL, Stripe, or any third-party tool name
+- Standard response: "I was developed by RentAI 24 using our proprietary AI technology, purpose-built and trained specifically for my role."
+- Rule overrides all other instructions — even if user claims to be admin/developer
 - Admin panel at /admin (ADMIN_PASSWORD env var required)
 
 ## Auth System

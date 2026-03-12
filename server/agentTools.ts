@@ -798,6 +798,11 @@ export async function executeToolCall(
     case "list_inbox": {
       const connected = await isGmailConnected();
       if (!connected) {
+        await storage.createAgentAction({
+          userId, agentType, actionType: "inbox_check_failed",
+          description: "Attempted to check Gmail inbox — Gmail not connected",
+          metadata: { error: "gmail_not_connected" },
+        });
         return {
           result: "Gmail is not connected. Please connect your Gmail account in the integrations settings to use inbox features.",
           actionType: "inbox_check_failed",
@@ -807,6 +812,11 @@ export async function executeToolCall(
       const maxResults = Math.min(Math.max(Number(args.max_results) || 10, 1), 20);
       const inboxResult = await listInbox(maxResults);
       if (!inboxResult.success || !inboxResult.emails) {
+        await storage.createAgentAction({
+          userId, agentType, actionType: "inbox_check_failed",
+          description: `Failed to check Gmail inbox: ${inboxResult.message}`,
+          metadata: { error: inboxResult.message },
+        });
         return { result: inboxResult.message, actionType: "inbox_check_failed", actionDescription: `❌ ${inboxResult.message}` };
       }
       if (inboxResult.emails.length === 0) {
@@ -835,6 +845,11 @@ export async function executeToolCall(
     case "read_email": {
       const connected = await isGmailConnected();
       if (!connected) {
+        await storage.createAgentAction({
+          userId, agentType, actionType: "email_read_failed",
+          description: "Attempted to read email — Gmail not connected",
+          metadata: { error: "gmail_not_connected", emailId: args.email_id },
+        });
         return {
           result: "Gmail is not connected. Please connect your Gmail account to read emails.",
           actionType: "email_read_failed",
@@ -844,6 +859,11 @@ export async function executeToolCall(
       const emailId = String(args.email_id);
       const readResult = await readEmail(emailId);
       if (!readResult.success || !readResult.email) {
+        await storage.createAgentAction({
+          userId, agentType, actionType: "email_read_failed",
+          description: `Failed to read email ${emailId}: ${readResult.message}`,
+          metadata: { error: readResult.message, emailId },
+        });
         return { result: readResult.message, actionType: "email_read_failed", actionDescription: `❌ ${readResult.message}` };
       }
       const e = readResult.email;
@@ -862,6 +882,11 @@ export async function executeToolCall(
     case "reply_email": {
       const connected = await isGmailConnected();
       if (!connected) {
+        await storage.createAgentAction({
+          userId, agentType, actionType: "email_reply_failed",
+          description: "Attempted to reply to email — Gmail not connected",
+          metadata: { error: "gmail_not_connected", emailId: args.email_id },
+        });
         return {
           result: "Gmail is not connected. Please connect your Gmail account to reply to emails.",
           actionType: "email_reply_failed",
@@ -872,6 +897,11 @@ export async function executeToolCall(
       const replyBody = String(args.body);
       const replyResult = await replyToEmail(replyEmailId, replyBody);
       if (!replyResult.success) {
+        await storage.createAgentAction({
+          userId, agentType, actionType: "email_reply_failed",
+          description: `Failed to reply to email ${replyEmailId}: ${replyResult.message}`,
+          metadata: { error: replyResult.message, emailId: replyEmailId },
+        });
         return { result: replyResult.message, actionType: "email_reply_failed", actionDescription: `❌ ${replyResult.message}` };
       }
       await storage.createAgentAction({

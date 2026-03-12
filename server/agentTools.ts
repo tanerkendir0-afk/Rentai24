@@ -788,6 +788,19 @@ export function getToolsForAgent(agentType: string): OpenAI.ChatCompletionTool[]
   return agentToolRegistry[agentType];
 }
 
+const lastInboxResults = new Map<number, string[]>();
+
+function resolveEmailId(rawId: string, userId: number): string {
+  const num = parseInt(rawId, 10);
+  if (!isNaN(num) && num >= 1) {
+    const cached = lastInboxResults.get(userId);
+    if (cached && num <= cached.length) {
+      return cached[num - 1];
+    }
+  }
+  return rawId;
+}
+
 export async function executeToolCall(
   toolName: string,
   args: Record<string, unknown>,
@@ -827,6 +840,7 @@ export async function executeToolCall(
         });
         return { result: "Your inbox is empty. No new emails.", actionType: "inbox_checked", actionDescription: "📬 Inbox checked — empty" };
       }
+      lastInboxResults.set(userId, inboxResult.emails.map(e => e.id));
       const emailList = inboxResult.emails.map((e, i) =>
         `${i + 1}. **From:** ${e.from}\n   **Subject:** ${e.subject}\n   **Date:** ${e.date}\n   **Preview:** ${e.snippet}\n   **Email ID:** \`${e.id}\``
       ).join("\n\n");
@@ -836,7 +850,7 @@ export async function executeToolCall(
         metadata: { count: inboxResult.emails.length, emailIds: inboxResult.emails.map(e => e.id) },
       });
       return {
-        result: `📬 **Gmail Inbox** (${inboxResult.emails.length} emails):\n\n${emailList}\n\nTo read an email's full content, ask me to "read email" and provide the Email ID.`,
+        result: `📬 **Gmail Inbox** (${inboxResult.emails.length} emails):\n\n${emailList}\n\nTo read an email's full content, tell me the email number (e.g. "read email #3") or provide the Email ID.`,
         actionType: "inbox_checked",
         actionDescription: `📬 Checked inbox — ${inboxResult.emails.length} emails`,
       };
@@ -856,7 +870,7 @@ export async function executeToolCall(
           actionDescription: "❌ Gmail not connected",
         };
       }
-      const emailId = String(args.email_id);
+      const emailId = resolveEmailId(String(args.email_id), userId);
       const readResult = await readEmail(emailId);
       if (!readResult.success || !readResult.email) {
         await storage.createAgentAction({
@@ -893,7 +907,7 @@ export async function executeToolCall(
           actionDescription: "❌ Gmail not connected",
         };
       }
-      const replyEmailId = String(args.email_id);
+      const replyEmailId = resolveEmailId(String(args.email_id), userId);
       const replyBody = String(args.body);
       const replyResult = await replyToEmail(replyEmailId, replyBody);
       if (!replyResult.success) {

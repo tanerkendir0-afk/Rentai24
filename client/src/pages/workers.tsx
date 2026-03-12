@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { Link } from "wouter";
 import { motion } from "framer-motion";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -25,8 +26,12 @@ import {
   Plug,
   BarChart3,
   Package,
+  Loader2,
 } from "lucide-react";
 import { agents, categories } from "@/data/agents";
+import { useAuth } from "@/lib/auth";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 import SectionCTA from "@/components/section-cta";
 
 const agentIcons: Record<string, any> = {
@@ -50,6 +55,54 @@ export default function Workers() {
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("All");
   const [priceFilter, setPriceFilter] = useState("all");
+  const [checkingOut, setCheckingOut] = useState<string | null>(null);
+  const { user } = useAuth();
+  const { toast } = useToast();
+
+  const { data: stripeProducts } = useQuery<{ data: any[] }>({
+    queryKey: ["/api/stripe/products"],
+  });
+
+  async function handleHire(agentId: string) {
+    if (!user) {
+      window.location.href = "/login";
+      return;
+    }
+
+    const starterProduct = stripeProducts?.data?.find(
+      (p: any) => p.metadata?.plan === "starter" || p.name?.toLowerCase().includes("starter")
+    );
+    const priceId = starterProduct?.prices?.[0]?.id;
+
+    if (!priceId) {
+      toast({
+        title: "Checkout unavailable",
+        description: "No pricing plan found. Please visit the Pricing page or try again later.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setCheckingOut(agentId);
+    try {
+      const res = await apiRequest("POST", "/api/stripe/checkout", {
+        priceId,
+        agentType: agentId,
+      });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      }
+    } catch {
+      toast({
+        title: "Error",
+        description: "Failed to start checkout. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setCheckingOut(null);
+    }
+  }
 
   const filtered = useMemo(() => {
     return agents.filter((agent) => {
@@ -175,11 +228,21 @@ export default function Workers() {
                             View Profile
                           </Button>
                         </Link>
-                        <Link href="/contact" className="flex-1">
-                          <Button className="w-full bg-gradient-to-r from-blue-500 to-violet-500 text-white border-0" size="sm" data-testid={`button-hire-${agent.id}`}>
-                            Hire Now
+                        <div className="flex-1">
+                          <Button
+                            className="w-full bg-gradient-to-r from-blue-500 to-violet-500 text-white border-0"
+                            size="sm"
+                            disabled={checkingOut === agent.id}
+                            onClick={() => handleHire(agent.id)}
+                            data-testid={`button-hire-${agent.id}`}
+                          >
+                            {checkingOut === agent.id ? (
+                              <><Loader2 className="w-3 h-3 mr-1 animate-spin" />Processing</>
+                            ) : (
+                              "Hire Now"
+                            )}
                           </Button>
-                        </Link>
+                        </div>
                       </div>
                     </div>
                   </Card>

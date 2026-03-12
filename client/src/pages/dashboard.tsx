@@ -1,12 +1,13 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { queryClient } from "@/lib/queryClient";
+import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useLocation, Link } from "wouter";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { agents as allAgents } from "@/data/agents";
 import {
   Bot,
   Headphones,
@@ -51,7 +52,6 @@ import {
   Star,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
 
 interface Rental {
   id: number;
@@ -119,6 +119,38 @@ export default function Dashboard() {
     enabled: !!user,
   });
 
+  const { data: stripeProducts } = useQuery<{ data: any[] }>({
+    queryKey: ["/api/stripe/products"],
+    enabled: !!user,
+  });
+
+  const [installingAgent, setInstallingAgent] = useState<string | null>(null);
+
+  async function handleInstallAgent(agentId: string) {
+    const starterProduct = stripeProducts?.data?.find(
+      (p: any) => p.metadata?.plan === "starter" || p.name?.toLowerCase().includes("starter")
+    );
+    const priceId = starterProduct?.prices?.[0]?.id;
+
+    if (!priceId) {
+      toast({ title: "Checkout unavailable", description: "No pricing plan found. Please visit the Pricing page.", variant: "destructive" });
+      return;
+    }
+
+    setInstallingAgent(agentId);
+    try {
+      const res = await apiRequest("POST", "/api/stripe/checkout", { priceId, agentType: agentId });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      }
+    } catch {
+      toast({ title: "Error", description: "Failed to start checkout. Please try again.", variant: "destructive" });
+    } finally {
+      setInstallingAgent(null);
+    }
+  }
+
   const hasSalesAgent = rentals?.some(r => r.agentType === "sales-sdr" && r.status === "active");
 
   const { data: emailStatus } = useQuery<{ provider: string; address: string | null; connected: boolean }>({
@@ -169,6 +201,8 @@ export default function Dashboard() {
   const activeRentals = rentals?.filter((r) => r.status === "active") || [];
   const totalMessages = activeRentals.reduce((sum, r) => sum + r.messagesUsed, 0);
   const totalLimit = activeRentals.reduce((sum, r) => sum + r.messagesLimit, 0);
+  const rentedAgentIds = new Set(activeRentals.map(r => r.agentType));
+  const availableAgents = allAgents.filter(a => !rentedAgentIds.has(a.id));
 
   return (
     <div className="pt-16 min-h-screen">
@@ -372,6 +406,58 @@ export default function Dashboard() {
                 </motion.div>
               );
             })}
+          </div>
+        )}
+
+        {availableAgents.length > 0 && (
+          <div className="mt-8">
+            <div className="flex items-center gap-2 mb-4">
+              <Plus className="w-5 h-5 text-violet-400" />
+              <h2 className="text-lg font-semibold text-foreground" data-testid="text-available-workers">Available Workers</h2>
+              <Badge variant="secondary" className="text-xs">{availableAgents.length}</Badge>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              {availableAgents.map((agent, i) => {
+                const Icon = agentIcons[agent.id] || Bot;
+                return (
+                  <motion.div
+                    key={agent.id}
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.05 }}
+                  >
+                    <Card className="p-4 bg-card border-border/50 hover:border-violet-500/30 transition-colors" data-testid={`card-available-${agent.id}`}>
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500/20 to-violet-500/20 flex items-center justify-center">
+                          <Icon className="w-4 h-4 text-violet-400" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="text-sm font-semibold text-foreground truncate">{agent.name}</h4>
+                          <p className="text-xs text-muted-foreground">${agent.price}/mo</p>
+                        </div>
+                      </div>
+                      <p className="text-xs text-muted-foreground mb-3 line-clamp-2">{agent.shortDescription}</p>
+                      <Button
+                        size="sm"
+                        className="w-full bg-gradient-to-r from-blue-500 to-violet-500 text-white border-0"
+                        disabled={installingAgent === agent.id}
+                        onClick={() => handleInstallAgent(agent.id)}
+                        data-testid={`button-install-${agent.id}`}
+                      >
+                        {installingAgent === agent.id ? (
+                          <><Loader2 className="w-3 h-3 mr-1 animate-spin" />Processing</>
+                        ) : (
+                          <>
+                            <Plus className="w-3 h-3 mr-1" />
+                            Install
+                          </>
+                        )}
+                      </Button>
+                    </Card>
+                  </motion.div>
+                );
+              })}
+            </div>
           </div>
         )}
 

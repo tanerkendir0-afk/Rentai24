@@ -2,7 +2,14 @@ import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Menu, Bot, User, LayoutDashboard, Download } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { Menu, Bot, User, LayoutDashboard, Download, Smartphone, Wifi, Bell } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { usePwaInstall } from "@/hooks/use-pwa-install";
 
@@ -17,9 +24,19 @@ const navLinks = [
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
+  const [installDialogOpen, setInstallDialogOpen] = useState(false);
   const [location] = useLocation();
   const { user, isLoading } = useAuth();
   const { canInstall, install } = usePwaInstall();
+
+  const handleInstallClick = () => {
+    setInstallDialogOpen(true);
+  };
+
+  const confirmInstall = async () => {
+    setInstallDialogOpen(false);
+    await install();
+  };
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -73,7 +90,7 @@ export default function Navbar() {
                 size="sm"
                 variant="outline"
                 className="hidden sm:flex border-blue-500/30 text-blue-400 hover:bg-blue-500/10"
-                onClick={install}
+                onClick={handleInstallClick}
                 data-testid="button-install-pwa"
               >
                 <Download className="w-4 h-4 mr-1" />
@@ -145,7 +162,7 @@ export default function Navbar() {
                       <Button
                         variant="outline"
                         className="w-full border-blue-500/30 text-blue-400 hover:bg-blue-500/10"
-                        onClick={() => { install(); setOpen(false); }}
+                        onClick={() => { setOpen(false); handleInstallClick(); }}
                         data-testid="button-mobile-install-pwa"
                       >
                         <Download className="w-4 h-4 mr-1" />
@@ -195,6 +212,60 @@ export default function Navbar() {
           </div>
         </div>
       </div>
+      <Dialog open={installDialogOpen} onOpenChange={setInstallDialogOpen}>
+        <DialogContent className="sm:max-w-md bg-card border-border">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-foreground" data-testid="text-install-dialog-title">
+              Install RentAI 24
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              Get the full app experience on your device:
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0">
+                <Smartphone className="w-4 h-4 text-blue-400" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-foreground">Works like a native app</p>
+                <p className="text-xs text-muted-foreground">Opens in its own window — no browser tabs needed.</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-full bg-violet-500/10 flex items-center justify-center shrink-0">
+                <Wifi className="w-4 h-4 text-violet-400" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-foreground">Fast & always accessible</p>
+                <p className="text-xs text-muted-foreground">Launch instantly from your home screen or desktop.</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-full bg-emerald-500/10 flex items-center justify-center shrink-0">
+                <Bell className="w-4 h-4 text-emerald-400" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-foreground">Stay up to date</p>
+                <p className="text-xs text-muted-foreground">Get quick access to your AI workforce anytime.</p>
+              </div>
+            </div>
+          </div>
+          <div className="flex gap-3">
+            <Button
+              className="flex-1 bg-gradient-to-r from-blue-500 to-violet-500 text-white border-0"
+              onClick={confirmInstall}
+              data-testid="button-confirm-install-pwa"
+            >
+              <Download className="w-4 h-4 mr-1" />
+              Install Now
+            </Button>
+            <Button variant="outline" onClick={() => setInstallDialogOpen(false)} data-testid="button-cancel-install">
+              Not Now
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </header>
   );
 }

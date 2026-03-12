@@ -5,6 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import {
   Bot,
   Headphones,
   TrendingUp,
@@ -20,6 +27,8 @@ import {
   Check,
   Zap,
   Loader2,
+  UserPlus,
+  CreditCard,
 } from "lucide-react";
 import { agents } from "@/data/agents";
 import { useAuth } from "@/lib/auth";
@@ -59,6 +68,7 @@ export default function WorkerProfile() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [renting, setRenting] = useState(false);
+  const [signupDialogOpen, setSignupDialogOpen] = useState(false);
 
   const { data: stripeProducts } = useQuery<{ data: StripeProduct[] }>({
     queryKey: ["/api/stripe/products"],
@@ -154,12 +164,15 @@ export default function WorkerProfile() {
                   <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>
               ) : (
-                <Link href="/login">
-                  <Button size="lg" className="bg-gradient-to-r from-blue-500 to-violet-500 text-white border-0" data-testid="button-hire-worker">
-                    Sign In to Rent
-                    <ArrowRight className="w-4 h-4 ml-2" />
-                  </Button>
-                </Link>
+                <Button
+                  size="lg"
+                  className="bg-gradient-to-r from-blue-500 to-violet-500 text-white border-0"
+                  data-testid="button-hire-worker"
+                  onClick={() => setSignupDialogOpen(true)}
+                >
+                  Rent This Worker
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </Button>
               )}
               <Link href={`/demo?agent=${agent.id}`}>
                 <Button size="lg" variant="outline" data-testid="button-try-demo">
@@ -272,6 +285,61 @@ export default function WorkerProfile() {
       </section>
 
       <SectionCTA />
+
+      <Dialog open={signupDialogOpen} onOpenChange={setSignupDialogOpen}>
+        <DialogContent className="sm:max-w-md bg-card border-border">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-foreground" data-testid="text-signup-dialog-title">
+              Ready to Hire {agent.name}?
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              Here's how it works in 3 simple steps:
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0">
+                <UserPlus className="w-4 h-4 text-blue-400" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-foreground">1. Create your account</p>
+                <p className="text-xs text-muted-foreground">Quick signup — takes less than a minute.</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-full bg-violet-500/10 flex items-center justify-center shrink-0">
+                <CreditCard className="w-4 h-4 text-violet-400" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-foreground">2. Choose a plan & pay</p>
+                <p className="text-xs text-muted-foreground">Secure checkout via Stripe. Cancel anytime.</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-full bg-emerald-500/10 flex items-center justify-center shrink-0">
+                <Zap className="w-4 h-4 text-emerald-400" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-foreground">3. Agent activates instantly</p>
+                <p className="text-xs text-muted-foreground">Your AI worker goes live in your dashboard, ready to chat and work.</p>
+              </div>
+            </div>
+          </div>
+          <div className="flex gap-3">
+            <Link href="/register" className="flex-1">
+              <Button className="w-full bg-gradient-to-r from-blue-500 to-violet-500 text-white border-0" data-testid="button-signup-dialog">
+                Sign Up Now
+                <ArrowRight className="w-4 h-4 ml-1" />
+              </Button>
+            </Link>
+            <Link href="/login">
+              <Button variant="outline" data-testid="button-login-dialog">
+                Sign In
+              </Button>
+            </Link>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

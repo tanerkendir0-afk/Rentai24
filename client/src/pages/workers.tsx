@@ -7,6 +7,13 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -27,6 +34,9 @@ import {
   BarChart3,
   Package,
   Loader2,
+  UserPlus,
+  CreditCard,
+  Zap,
 } from "lucide-react";
 import { agents, categories } from "@/data/agents";
 import { useAuth } from "@/lib/auth";
@@ -56,6 +66,8 @@ export default function Workers() {
   const [categoryFilter, setCategoryFilter] = useState("All");
   const [priceFilter, setPriceFilter] = useState("all");
   const [checkingOut, setCheckingOut] = useState<string | null>(null);
+  const [signupDialogOpen, setSignupDialogOpen] = useState(false);
+  const [selectedAgentName, setSelectedAgentName] = useState("");
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -65,7 +77,9 @@ export default function Workers() {
 
   async function handleHire(agentId: string) {
     if (!user) {
-      window.location.href = "/login";
+      const agent = agents.find(a => a.id === agentId);
+      setSelectedAgentName(agent?.name || "this AI worker");
+      setSignupDialogOpen(true);
       return;
     }
 
@@ -262,6 +276,61 @@ export default function Workers() {
       </section>
 
       <SectionCTA />
+
+      <Dialog open={signupDialogOpen} onOpenChange={setSignupDialogOpen}>
+        <DialogContent className="sm:max-w-md bg-card border-border">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-foreground" data-testid="text-signup-dialog-title">
+              Ready to Hire {selectedAgentName}?
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              Here's how it works in 3 simple steps:
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0">
+                <UserPlus className="w-4 h-4 text-blue-400" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-foreground">1. Create your account</p>
+                <p className="text-xs text-muted-foreground">Quick signup — takes less than a minute.</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-full bg-violet-500/10 flex items-center justify-center shrink-0">
+                <CreditCard className="w-4 h-4 text-violet-400" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-foreground">2. Choose a plan & pay</p>
+                <p className="text-xs text-muted-foreground">Secure checkout via Stripe. Cancel anytime.</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-full bg-emerald-500/10 flex items-center justify-center shrink-0">
+                <Zap className="w-4 h-4 text-emerald-400" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-foreground">3. Agent activates instantly</p>
+                <p className="text-xs text-muted-foreground">Your AI worker goes live in your dashboard, ready to chat and work.</p>
+              </div>
+            </div>
+          </div>
+          <div className="flex gap-3">
+            <Link href="/register" className="flex-1">
+              <Button className="w-full bg-gradient-to-r from-blue-500 to-violet-500 text-white border-0" data-testid="button-signup-dialog">
+                Sign Up Now
+                <ArrowRight className="w-4 h-4 ml-1" />
+              </Button>
+            </Link>
+            <Link href="/login">
+              <Button variant="outline" data-testid="button-login-dialog">
+                Sign In
+              </Button>
+            </Link>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -1227,5 +1227,50 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/admin/users", requireAdmin, async (_req, res) => {
+    try {
+      const result = await db.execute(sql`
+        SELECT
+          u.id, u.email, u.full_name, u.company,
+          u.stripe_customer_id, u.stripe_subscription_id,
+          u.image_credits, u.created_at,
+          COUNT(r.id)::int as active_rentals,
+          COALESCE(
+            json_agg(
+              json_build_object('agentType', r.agent_type, 'plan', r.plan, 'status', r.status, 'messagesUsed', r.messages_used, 'messagesLimit', r.messages_limit)
+            ) FILTER (WHERE r.id IS NOT NULL), '[]'
+          ) as rentals
+        FROM users u
+        LEFT JOIN rentals r ON u.id = r.user_id AND r.status = 'active'
+        GROUP BY u.id
+        ORDER BY u.created_at DESC
+      `);
+      res.json(result.rows);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/admin/overview", requireAdmin, async (_req, res) => {
+    try {
+      const [usersResult, rentalsResult, costResult, messagesResult] = await Promise.all([
+        db.execute(sql`SELECT COUNT(*)::int as total FROM users`),
+        db.execute(sql`SELECT COUNT(*)::int as total, COUNT(CASE WHEN status='active' THEN 1 END)::int as active FROM rentals`),
+        db.execute(sql`SELECT COALESCE(SUM(CAST(cost_usd AS DECIMAL(10,6))),0)::text as total_cost, COUNT(*)::int as total_requests FROM token_usage`),
+        db.execute(sql`SELECT COUNT(*)::int as contacts FROM contact_messages`),
+      ]);
+      res.json({
+        totalUsers: (usersResult.rows[0] as any)?.total || 0,
+        totalRentals: (rentalsResult.rows[0] as any)?.total || 0,
+        activeRentals: (rentalsResult.rows[0] as any)?.active || 0,
+        totalCost: (costResult.rows[0] as any)?.total_cost || "0",
+        totalRequests: (costResult.rows[0] as any)?.total_requests || 0,
+        totalContacts: (messagesResult.rows[0] as any)?.contacts || 0,
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   return httpServer;
 }

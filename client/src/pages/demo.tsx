@@ -22,7 +22,6 @@ import {
   Package,
   Lock,
   ImagePlus,
-  Download,
   Coins,
   ShoppingCart,
   X,
@@ -32,6 +31,7 @@ import {
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/lib/auth";
+import ChatMessageContent from "@/components/chat-message";
 
 interface AgentAction {
   type: string;
@@ -452,9 +452,9 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                       </div>
                     )}
                     <div
-                      className={`rounded-md px-4 py-3 text-sm leading-relaxed ${
+                      className={`rounded-2xl px-4 py-3 text-sm ${
                         msg.isLimitWarning ? "bg-red-500/20 border border-red-500/40 text-red-300" :
-                        msg.role === "user" ? "bg-blue-500 text-white" : "bg-muted text-foreground"
+                        msg.role === "user" ? "bg-blue-500 text-white rounded-br-md" : "bg-muted text-foreground rounded-bl-md"
                       }`}
                       data-testid={`chat-message-${i}`}
                     >
@@ -464,34 +464,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                           Token Limit Reached
                         </div>
                       )}
-                      {msg.content.split(/(\!\[.*?\]\(.*?\))/).map((part, pi) => {
-                        const imgMatch = part.match(/^\!\[(.*?)\]\((.*?)\)$/);
-                        if (imgMatch) {
-                          const [, alt, src] = imgMatch;
-                          return (
-                            <div key={pi} className="my-2">
-                              <img
-                                src={src}
-                                alt={alt}
-                                className="rounded-lg max-w-full max-h-64 object-contain border border-border/30"
-                                data-testid={`chat-image-${i}-${pi}`}
-                              />
-                              <a
-                                href={src}
-                                download
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className={`inline-flex items-center gap-1 mt-1 text-xs ${
-                                  msg.role === "user" ? "text-blue-100 hover:text-white" : "text-blue-400 hover:text-blue-300"
-                                }`}
-                              >
-                                <Download className="w-3 h-3" /> Download
-                              </a>
-                            </div>
-                          );
-                        }
-                        return part ? <span key={pi}>{part}</span> : null;
-                      })}
+                      <ChatMessageContent content={msg.content} isUser={msg.role === "user"} />
                     </div>
                   </div>
                 </div>

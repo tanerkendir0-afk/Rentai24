@@ -3,10 +3,15 @@ import fs from "fs";
 import path from "path";
 import https from "https";
 
-const openai = new OpenAI({
-  apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
-  baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
-});
+function getImageClient(): OpenAI {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    throw new Error(
+      "Görsel servisi yapılandırılmamış: OPENAI_API_KEY environment variable tanımlı değil. Lütfen OpenAI API anahtarınızı ayarlayın."
+    );
+  }
+  return new OpenAI({ apiKey });
+}
 
 const imageDir = path.resolve("/tmp/rentai-images");
 if (!fs.existsSync(imageDir)) {
@@ -48,7 +53,8 @@ export async function generateAIImage(
 
     const size = sizeMap[aspectRatio] || "1024x1024";
 
-    const response = await openai.images.generate({
+    const client = getImageClient();
+    const response = await client.images.generate({
       model: "dall-e-3",
       prompt,
       n: 1,
@@ -78,7 +84,8 @@ export async function findStockImages(
   orientation: string = "horizontal"
 ): Promise<{ success: boolean; images?: Array<{ url: string; alt: string }>; error?: string }> {
   try {
-    const response = await openai.images.generate({
+    const client = getImageClient();
+    const response = await client.images.generate({
       model: "dall-e-3",
       prompt: `Professional stock photo style: ${description}. Photorealistic, high quality, clean composition, good lighting. This should look like a real photograph, not an illustration.`,
       n: 1,

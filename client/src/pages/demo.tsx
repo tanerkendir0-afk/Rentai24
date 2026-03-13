@@ -19,7 +19,7 @@ import {
   BarChart3,
   Package,
   Lock,
-  ImagePlus,
+  Plus,
   Coins,
   ShoppingCart,
   X,
@@ -603,7 +603,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                 e.preventDefault();
                 sendMessage();
               }}
-              className="flex items-end gap-2"
+              className="flex items-center gap-2"
             >
               <input
                 type="file"
@@ -614,18 +614,16 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                 data-testid="input-image-upload"
               />
               {user && (
-                <Button
+                <button
                   type="button"
-                  variant="ghost"
-                  size="icon"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={loading || uploading}
-                  className="h-10 w-10 shrink-0 text-muted-foreground hover:text-foreground rounded-full"
-                  title="Upload image"
+                  className="h-9 w-9 rounded-full bg-muted/50 border border-border/50 flex items-center justify-center shrink-0 text-muted-foreground hover:text-foreground hover:bg-muted transition-all disabled:opacity-40"
+                  title="Attach image"
                   data-testid="button-upload-image"
                 >
-                  {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ImagePlus className="w-5 h-5" />}
-                </Button>
+                  {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-5 h-5" />}
+                </button>
               )}
               <div className="flex-1 relative">
                 <input
@@ -637,19 +635,18 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                   className="w-full h-11 px-4 pr-12 rounded-xl bg-muted/50 border border-border/50 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 transition-all disabled:opacity-50"
                   data-testid="input-chat"
                 />
-                <Button
+                <button
                   type="submit"
                   disabled={!input.trim() || loading}
-                  size="icon"
-                  className={`absolute right-1.5 top-1/2 -translate-y-1/2 h-8 w-8 rounded-lg transition-all ${
+                  className={`absolute right-1.5 top-1/2 -translate-y-1/2 h-8 w-8 rounded-lg flex items-center justify-center transition-all disabled:opacity-30 ${
                     input.trim()
                       ? `bg-gradient-to-r ${currentAgent.color} text-white shadow-md hover:shadow-lg`
-                      : "bg-transparent text-muted-foreground/30"
+                      : "text-muted-foreground/30"
                   }`}
                   data-testid="button-send"
                 >
                   <Send className="w-4 h-4" />
-                </Button>
+                </button>
               </div>
             </form>
           </div>

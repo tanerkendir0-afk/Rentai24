@@ -46,6 +46,7 @@ import {
   MessageCircle,
   ChevronDown,
   ExternalLink,
+  Settings2,
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
@@ -208,6 +209,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
   const [socialPlatform, setSocialPlatform] = useState("");
   const [socialUsername, setSocialUsername] = useState("");
   const [socialSaving, setSocialSaving] = useState(false);
+  const [showCargoPanel, setShowCargoPanel] = useState(false);
   const [showHelpPanel, setShowHelpPanel] = useState(false);
   const [helpView, setHelpView] = useState<"menu" | "report" | "tickets">("menu");
   const [helpCategory, setHelpCategory] = useState("bug");
@@ -238,10 +240,16 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
 
   const imageCredits = creditsData?.credits ?? 0;
   const isSocialMediaAgent = selectedAgent === "social-media";
+  const isEcommerceAgent = selectedAgent === "ecommerce-ops";
 
   const { data: socialAccounts = [] } = useQuery<{ id: number; platform: string; username: string; profileUrl: string | null; status: string }[]>({
     queryKey: ["/api/social-accounts"],
     enabled: !!user && isSocialMediaAgent,
+  });
+
+  const { data: shippingProviders = [] } = useQuery<{ id: number; provider: string; apiKey: string; status: string }[]>({
+    queryKey: ["/api/shipping-providers"],
+    enabled: !!user && isEcommerceAgent,
   });
 
   const { data: supportTickets = [] } = useQuery<{ id: number; subject: string; description: string; category: string; agentType: string | null; status: string; priority: string; adminReply: string | null; createdAt: string }[]>({
@@ -927,12 +935,91 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                 <span className="hidden sm:inline">Tasks</span>
               </Button>
             )}
+            {user && isEcommerceAgent && (
+              <div className="relative">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => { setShowCargoPanel(!showCargoPanel); setShowCreditsPanel(false); setShowSocialPanel(false); setShowHelpPanel(false); }}
+                  className="h-8 text-xs gap-1.5 text-muted-foreground"
+                  data-testid="button-cargo"
+                >
+                  <Package className="w-3.5 h-3.5 text-orange-500" />
+                  <span className="hidden sm:inline">Cargo</span>
+                  {shippingProviders.length > 0 && (
+                    <Badge variant="secondary" className="h-4 px-1 text-[10px] bg-orange-500/20 text-orange-400">
+                      {shippingProviders.length}
+                    </Badge>
+                  )}
+                </Button>
+                {showCargoPanel && (
+                  <div className="absolute right-0 sm:right-0 top-full mt-2 w-[calc(100vw-2rem)] sm:w-80 max-w-[320px] bg-card border border-border rounded-xl shadow-2xl z-50 p-4" data-testid="cargo-panel">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="font-semibold text-sm flex items-center gap-2">
+                        <Package className="w-4 h-4 text-orange-500" />
+                        Shipping Providers
+                      </h4>
+                      <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => setShowCargoPanel(false)}>
+                        <X className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+
+                    {shippingProviders.length === 0 ? (
+                      <div className="text-center py-4">
+                        <Package className="w-8 h-8 text-muted-foreground/30 mx-auto mb-2" />
+                        <p className="text-xs text-muted-foreground mb-3">No shipping providers connected</p>
+                        <Button size="sm" onClick={() => { setShowCargoPanel(false); window.location.href = "/settings"; }} className="bg-orange-500 hover:bg-orange-600 text-white text-xs" data-testid="button-cargo-settings">
+                          <Settings2 className="w-3 h-3 mr-1" /> Connect in Settings
+                        </Button>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="space-y-1.5 mb-3">
+                          {shippingProviders.map((sp) => {
+                            const providerNames: Record<string, { name: string; icon: string }> = {
+                              aras: { name: "Aras Kargo", icon: "📦" }, yurtici: { name: "Yurtici Kargo", icon: "🚛" },
+                              mng: { name: "MNG Kargo", icon: "📮" }, surat: { name: "Surat Kargo", icon: "⚡" },
+                              ptt: { name: "PTT Kargo", icon: "🏤" }, ups: { name: "UPS", icon: "🟤" },
+                              fedex: { name: "FedEx", icon: "📬" }, dhl: { name: "DHL", icon: "✈️" },
+                            };
+                            const cfg = providerNames[sp.provider] || { name: sp.provider, icon: "📦" };
+                            return (
+                              <div key={sp.id} className="flex items-center justify-between p-2 rounded-lg bg-muted/30 group" data-testid={`cargo-item-${sp.id}`}>
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <span className="text-base shrink-0">{cfg.icon}</span>
+                                  <div className="min-w-0">
+                                    <p className="text-xs font-medium truncate">{cfg.name}</p>
+                                    <p className="text-[10px] text-muted-foreground truncate">API: ****{sp.apiKey.slice(-4)}</p>
+                                  </div>
+                                </div>
+                                <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/30 text-[9px] shrink-0">
+                                  {sp.status}
+                                </Badge>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => { setShowCargoPanel(false); window.location.href = "/settings"; }}
+                          className="w-full h-8 text-xs text-muted-foreground hover:text-orange-400 gap-1"
+                          data-testid="button-cargo-manage"
+                        >
+                          <Settings2 className="w-3 h-3" /> Manage in Settings
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
             {user && (
               <div className="relative">
                 <Button
                   size="sm"
                   variant="ghost"
-                  onClick={() => { setShowHelpPanel(!showHelpPanel); setShowCreditsPanel(false); setShowSocialPanel(false); }}
+                  onClick={() => { setShowHelpPanel(!showHelpPanel); setShowCreditsPanel(false); setShowSocialPanel(false); setShowCargoPanel(false); }}
                   className="h-8 text-xs gap-1 text-muted-foreground hover:text-foreground"
                   title="Help & Support"
                   data-testid="button-help"

@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { users, rentals, contactMessages, newsletterSubscribers, leads, agentActions, emailCampaigns, supportTickets, tokenUsage, agentTasks, chatMessages, conversations, teamMembers, bossNotifications, socialAccounts, systemSettings, type User, type InsertUser, type Rental, type InsertRental, type ContactMessage, type InsertContactMessage, type NewsletterSubscriber, type Lead, type InsertLead, type AgentAction, type InsertAgentAction, type EmailCampaign, type InsertEmailCampaign, type SupportTicket, type InsertSupportTicket, type TokenUsage, type InsertTokenUsage, type AgentTask, type InsertAgentTask, type ChatMessage, type InsertChatMessage, type ConversationRecord, type InsertConversation, type TeamMember, type InsertTeamMember, type BossNotification, type InsertBossNotification, type SocialAccount, type InsertSocialAccount } from "@shared/schema";
+import { users, rentals, contactMessages, newsletterSubscribers, leads, agentActions, emailCampaigns, supportTickets, tokenUsage, agentTasks, chatMessages, conversations, teamMembers, bossNotifications, socialAccounts, shippingProviders, systemSettings, type User, type InsertUser, type Rental, type InsertRental, type ContactMessage, type InsertContactMessage, type NewsletterSubscriber, type Lead, type InsertLead, type AgentAction, type InsertAgentAction, type EmailCampaign, type InsertEmailCampaign, type SupportTicket, type InsertSupportTicket, type TokenUsage, type InsertTokenUsage, type AgentTask, type InsertAgentTask, type ChatMessage, type InsertChatMessage, type ConversationRecord, type InsertConversation, type TeamMember, type InsertTeamMember, type BossNotification, type InsertBossNotification, type SocialAccount, type InsertSocialAccount, type ShippingProvider, type InsertShippingProvider } from "@shared/schema";
 import { eq, and, sql, desc, gte, lte } from "drizzle-orm";
 
 export interface IStorage {
@@ -88,6 +88,11 @@ export interface IStorage {
   addSocialAccount(account: InsertSocialAccount): Promise<SocialAccount>;
   updateSocialAccount(id: number, userId: number, updates: Partial<Pick<SocialAccount, "username" | "profileUrl" | "accessToken" | "status">>): Promise<SocialAccount | undefined>;
   deleteSocialAccount(id: number, userId: number): Promise<boolean>;
+
+  getShippingProviders(userId: number): Promise<ShippingProvider[]>;
+  addShippingProvider(provider: InsertShippingProvider): Promise<ShippingProvider>;
+  updateShippingProvider(id: number, userId: number, updates: Partial<Pick<ShippingProvider, "apiKey" | "customerCode" | "username" | "password" | "accountNumber" | "siteId" | "status">>): Promise<ShippingProvider | undefined>;
+  deleteShippingProvider(id: number, userId: number): Promise<boolean>;
 
   getSystemSetting(key: string): Promise<string | null>;
   setSystemSetting(key: string, value: string): Promise<void>;
@@ -616,6 +621,25 @@ export class DatabaseStorage implements IStorage {
     const [deleted] = await db.delete(socialAccounts)
       .where(and(eq(socialAccounts.id, id), eq(socialAccounts.userId, userId)))
       .returning();
+    return !!deleted;
+  }
+
+  async getShippingProviders(userId: number): Promise<ShippingProvider[]> {
+    return db.select().from(shippingProviders).where(eq(shippingProviders.userId, userId)).orderBy(desc(shippingProviders.createdAt));
+  }
+
+  async addShippingProvider(provider: InsertShippingProvider): Promise<ShippingProvider> {
+    const [created] = await db.insert(shippingProviders).values(provider).returning();
+    return created;
+  }
+
+  async updateShippingProvider(id: number, userId: number, updates: Partial<Pick<ShippingProvider, "apiKey" | "customerCode" | "username" | "password" | "accountNumber" | "siteId" | "status">>): Promise<ShippingProvider | undefined> {
+    const [updated] = await db.update(shippingProviders).set(updates).where(and(eq(shippingProviders.id, id), eq(shippingProviders.userId, userId))).returning();
+    return updated;
+  }
+
+  async deleteShippingProvider(id: number, userId: number): Promise<boolean> {
+    const [deleted] = await db.delete(shippingProviders).where(and(eq(shippingProviders.id, id), eq(shippingProviders.userId, userId))).returning();
     return !!deleted;
   }
 

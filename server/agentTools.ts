@@ -783,6 +783,18 @@ export const ecommerceOpsTools: OpenAI.ChatCompletionTool[] = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "list_shipping_providers",
+      description: "Check which shipping/cargo providers the user has connected. Returns a list of providers with connection status. Use this to understand the user's shipping setup and suggest connecting providers if needed.",
+      parameters: {
+        type: "object",
+        properties: {},
+        required: [],
+      },
+    },
+  },
 ];
 
 export const realEstateTools: OpenAI.ChatCompletionTool[] = [
@@ -960,6 +972,7 @@ const TOOL_KEYWORD_MAP: Record<string, string[]> = {
   send_reminder: ["reminder", "hatırlatma", "remind"],
   schedule_followup_reminder: ["follow", "reminder", "hatırlat", "takip"],
   list_connected_accounts: ["account", "hesap", "connect", "bağla", "social", "sosyal", "platform", "instagram", "twitter", "linkedin", "facebook", "tiktok", "youtube", "profile", "profil"],
+  list_shipping_providers: ["kargo", "cargo", "shipping", "gönderi", "takip", "tracking", "teslimat", "delivery", "aras", "yurtiçi", "mng", "sürat", "ptt", "ups", "fedex", "dhl", "shipment", "paket", "package", "lojistik", "logistics"],
   generate_image: ["image", "visual", "görsel", "photo", "graphic", "design", "resim", "oluştur"],
   find_stock_image: ["stock", "photo", "image", "görsel", "fotoğraf"],
   create_post: ["post", "gönderi", "content", "içerik", "yaz", "write"],
@@ -2261,6 +2274,41 @@ ${activeRentals.map(r => `  ${r.agentType}: ${r.messagesUsed}/${r.messagesLimit}
         result: `📱 **Connected Social Media Accounts** (${accounts.length}):\n\n${accountList}${suggestion}`,
         actionType: "social_accounts_checked",
         actionDescription: `📱 ${accounts.length} social accounts connected`,
+      };
+    }
+
+    case "list_shipping_providers": {
+      const providers = await storage.getShippingProviders(userId);
+      await storage.createAgentAction({
+        userId, agentType, actionType: "shipping_providers_checked",
+        description: `Checked connected shipping providers — ${providers.length} found`,
+        metadata: { count: providers.length, providers: providers.map(p => p.provider) },
+      });
+      const providerNames: Record<string, string> = {
+        aras: "Aras Kargo", yurtici: "Yurtiçi Kargo", mng: "MNG Kargo",
+        surat: "Sürat Kargo", ptt: "PTT Kargo", ups: "UPS", fedex: "FedEx", dhl: "DHL"
+      };
+      if (providers.length === 0) {
+        return {
+          result: "No shipping/cargo providers are connected yet. The user should go to **Settings > Shipping Providers** to connect their cargo API. Supported providers: Aras Kargo, Yurtiçi Kargo, MNG Kargo, Sürat Kargo, PTT Kargo, UPS, FedEx, DHL.",
+          actionType: "shipping_providers_checked",
+          actionDescription: "📦 No shipping providers connected",
+        };
+      }
+      const providerList = providers.map(p =>
+        `- **${providerNames[p.provider] || p.provider}** — Status: ${p.status}`
+      ).join("\n");
+      const allProviders = ["aras", "yurtici", "mng", "surat", "ptt", "ups", "fedex", "dhl"];
+      const connectedProviders = providers.map(p => p.provider);
+      const missing = allProviders.filter(p => !connectedProviders.includes(p));
+      let suggestion = "";
+      if (missing.length > 0) {
+        suggestion = `\n\nOther available providers: ${missing.map(p => providerNames[p] || p).join(", ")}. Add them in Settings > Shipping Providers.`;
+      }
+      return {
+        result: `📦 **Connected Shipping Providers** (${providers.length}):\n\n${providerList}${suggestion}`,
+        actionType: "shipping_providers_checked",
+        actionDescription: `📦 ${providers.length} shipping providers connected`,
       };
     }
 

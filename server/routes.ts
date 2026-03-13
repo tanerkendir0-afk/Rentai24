@@ -245,8 +245,9 @@ STYLE: Analytical, precise, insight-driven. Structured formats with actual numbe
 ${BRAND_CONFIDENTIALITY}${ONBOARDING_GUIDANCE}`,
 
   "ecommerce-ops": `You are "ShopBot", E-Commerce Operations AI for RentAI 24.
-ROLE: E-commerce operations only — product listings, pricing, reviews, marketplace optimization. Redirect non-ecommerce topics.
-TOOLS: optimize_listing, price_analysis, draft_review_response. Always use tools for real content and analysis.
+ROLE: E-commerce operations only — product listings, pricing, reviews, marketplace optimization, shipping/cargo management. Redirect non-ecommerce topics.
+TOOLS: optimize_listing, price_analysis, draft_review_response, list_shipping_providers. Always use tools for real content and analysis.
+SHIPPING: If user has connected shipping providers, you can help with tracking, label generation guidance, and shipping cost calculations. If no provider is connected, suggest connecting one in Settings. Supported providers: Aras Kargo, Yurtiçi Kargo, MNG Kargo, Sürat Kargo, PTT Kargo, UPS, FedEx, DHL.
 STYLE: Detail-oriented, conversion-focused, marketplace-savvy. Respond in user's language.
 ${BRAND_CONFIDENTIALITY}${ONBOARDING_GUIDANCE}`,
 
@@ -677,6 +678,68 @@ export async function registerRoutes(
     res.json({ success: true });
   });
 
+  app.get("/api/shipping-providers", requireAuth, async (req, res) => {
+    const providers = await storage.getShippingProviders(req.session.userId!);
+    const sanitized = providers.map(p => ({
+      id: p.id,
+      userId: p.userId,
+      provider: p.provider,
+      apiKey: p.apiKey ? `****${p.apiKey.slice(-4)}` : "",
+      hasPassword: !!p.password,
+      hasCustomerCode: !!p.customerCode,
+      hasUsername: !!p.username,
+      hasAccountNumber: !!p.accountNumber,
+      hasSiteId: !!p.siteId,
+      status: p.status,
+      createdAt: p.createdAt,
+    }));
+    res.json(sanitized);
+  });
+
+  app.post("/api/shipping-providers", requireAuth, async (req, res) => {
+    const { provider, apiKey, customerCode, username, password, accountNumber, siteId } = req.body;
+    if (!provider || !apiKey) return res.status(400).json({ error: "Provider and API key are required" });
+    const validProviders = ["aras", "yurtici", "mng", "surat", "ptt", "ups", "fedex", "dhl"];
+    if (!validProviders.includes(provider)) return res.status(400).json({ error: "Invalid shipping provider" });
+    const created = await storage.addShippingProvider({
+      userId: req.session.userId!,
+      provider,
+      apiKey,
+      customerCode: customerCode || null,
+      username: username || null,
+      password: password || null,
+      accountNumber: accountNumber || null,
+      siteId: siteId || null,
+      status: "active",
+    });
+    res.json(created);
+  });
+
+  app.patch("/api/shipping-providers/:id", requireAuth, async (req, res) => {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ error: "Invalid provider ID" });
+    const { apiKey, customerCode, username, password, accountNumber, siteId, status } = req.body;
+    const updates: any = {};
+    if (apiKey !== undefined) updates.apiKey = apiKey;
+    if (customerCode !== undefined) updates.customerCode = customerCode;
+    if (username !== undefined) updates.username = username;
+    if (password !== undefined) updates.password = password;
+    if (accountNumber !== undefined) updates.accountNumber = accountNumber;
+    if (siteId !== undefined) updates.siteId = siteId;
+    if (status !== undefined) updates.status = status;
+    const updated = await storage.updateShippingProvider(id, req.session.userId!, updates);
+    if (!updated) return res.status(404).json({ error: "Provider not found" });
+    res.json(updated);
+  });
+
+  app.delete("/api/shipping-providers/:id", requireAuth, async (req, res) => {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ error: "Invalid provider ID" });
+    const deleted = await storage.deleteShippingProvider(id, req.session.userId!);
+    if (!deleted) return res.status(404).json({ error: "Provider not found" });
+    res.json({ success: true });
+  });
+
   app.get("/api/boss/notifications", requireAuth, async (req, res) => {
     const limit = parseInt(req.query.limit as string) || 50;
     const notifications = await storage.getBossNotifications(req.session.userId!, limit);
@@ -945,6 +1008,22 @@ ${members.map(m => `- ${m.name} (${m.email})${m.position ? ` — ${m.position}` 
       }
     }
 
+    if (agentType === "ecommerce-ops" && req.session.userId) {
+      const providerNames: Record<string, string> = {
+        aras: "Aras Kargo", yurtici: "Yurtici Kargo", mng: "MNG Kargo",
+        surat: "Surat Kargo", ptt: "PTT Kargo", ups: "UPS", fedex: "FedEx", dhl: "DHL"
+      };
+      const shippingList = await storage.getShippingProviders(req.session.userId);
+      if (shippingList.length > 0) {
+        const providersStr = shippingList.map(p =>
+          `- ${providerNames[p.provider] || p.provider} (${p.status})`
+        ).join("\n");
+        systemPrompt += `\n\nCONNECTED SHIPPING PROVIDERS:\n${providersStr}\n- User has cargo integrations set up. Help with tracking, shipping cost calculations, and logistics optimization.`;
+      } else {
+        systemPrompt += `\n\nSHIPPING STATUS: No shipping/cargo providers connected yet. On first interaction, suggest the user connect their shipping provider API in Settings > Shipping Providers for cargo tracking and logistics support. Supported: Aras Kargo, Yurtici Kargo, MNG Kargo, Surat Kargo, PTT Kargo, UPS, FedEx, DHL.`;
+      }
+    }
+
     const TOKEN_SPENDING_LIMIT_USD = 5.00;
 
     let hasActiveRental = false;
@@ -1009,7 +1088,7 @@ ${members.map(m => `- ${m.name} (${m.email})${m.position ? ` — ${m.position}` 
         "scheduling": "appointment scheduling, meeting management, reminders, calendar coordination",
         "hr-recruiting": "job posting creation, resume screening, interview preparation, candidate communication",
         "data-analyst": "data queries, report generation, lead/campaign/rental analytics, performance insights",
-        "ecommerce-ops": "product listing optimization, price analysis, review response drafting, SEO",
+        "ecommerce-ops": "product listing optimization, price analysis, review response drafting, SEO, shipping/cargo provider integration and tracking",
         "real-estate": "property search, listing evaluation, neighborhood analysis, lease review, market reports",
       };
       const caps = demoCapabilities[agentType] || "various business tasks";

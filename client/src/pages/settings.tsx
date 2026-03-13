@@ -35,6 +35,7 @@ import {
   Phone,
   Briefcase,
   Bell,
+  Package,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
@@ -73,6 +74,20 @@ interface SocialAccount {
   connectedAt: string;
 }
 
+interface ShippingProvider {
+  id: number;
+  userId: number;
+  provider: string;
+  apiKey: string;
+  customerCode: string | null;
+  username: string | null;
+  password: string | null;
+  accountNumber: string | null;
+  siteId: string | null;
+  status: string;
+  createdAt: string;
+}
+
 export default function Settings() {
   const { user, isLoading: authLoading } = useAuth();
   const [, setLocation] = useLocation();
@@ -99,6 +114,10 @@ export default function Settings() {
 
   const [showAddSocial, setShowAddSocial] = useState(false);
   const [socialForm, setSocialForm] = useState({ platform: "", username: "", profileUrl: "" });
+
+  const [showAddShipping, setShowAddShipping] = useState(false);
+  const [shippingForm, setShippingForm] = useState({ provider: "", apiKey: "", customerCode: "", username: "", password: "", accountNumber: "", siteId: "" });
+  const [showShippingApiKey, setShowShippingApiKey] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -145,6 +164,11 @@ export default function Settings() {
 
   const { data: socialAccountsData, isLoading: socialLoading } = useQuery<SocialAccount[]>({
     queryKey: ["/api/social-accounts"],
+    enabled: !!user,
+  });
+
+  const { data: shippingProvidersData, isLoading: shippingLoading } = useQuery<ShippingProvider[]>({
+    queryKey: ["/api/shipping-providers"],
     enabled: !!user,
   });
 
@@ -307,6 +331,76 @@ export default function Settings() {
       toast({ title: "Account removed", description: `${platform} @${username} has been disconnected.` });
     } catch (err: any) {
       toast({ title: "Error", description: err.message || "Failed to remove account", variant: "destructive" });
+    }
+  };
+
+  const shippingProviderConfig: Record<string, { name: string; icon: string; color: string; bgColor: string; fields: string[]; guide: string }> = {
+    aras: { name: "Aras Kargo", icon: "📦", color: "text-orange-400", bgColor: "bg-orange-500/10",
+      fields: ["apiKey", "customerCode"],
+      guide: "Aras Kargo API panel: araskargoapi.com > Developer > API Keys" },
+    yurtici: { name: "Yurtici Kargo", icon: "🚛", color: "text-blue-400", bgColor: "bg-blue-500/10",
+      fields: ["apiKey", "username", "password"],
+      guide: "Yurtici Kargo API: yurticikargo.com > Kurumsal > API Entegrasyonu" },
+    mng: { name: "MNG Kargo", icon: "📮", color: "text-red-400", bgColor: "bg-red-500/10",
+      fields: ["apiKey", "customerCode"],
+      guide: "MNG Kargo API: mngkargo.com.tr > Kurumsal > API Basvuru" },
+    surat: { name: "Surat Kargo", icon: "⚡", color: "text-yellow-400", bgColor: "bg-yellow-500/10",
+      fields: ["apiKey", "customerCode"],
+      guide: "Surat Kargo API: suratkargo.com.tr > Kurumsal > Teknoloji" },
+    ptt: { name: "PTT Kargo", icon: "🏤", color: "text-amber-400", bgColor: "bg-amber-500/10",
+      fields: ["apiKey", "username"],
+      guide: "PTT Kargo API: ptt.gov.tr > e-Hizmetler > API Basvuru" },
+    ups: { name: "UPS", icon: "🟤", color: "text-amber-600", bgColor: "bg-amber-600/10",
+      fields: ["apiKey", "username", "password"],
+      guide: "UPS Developer Kit: developer.ups.com > Apps > Create App" },
+    fedex: { name: "FedEx", icon: "📬", color: "text-purple-400", bgColor: "bg-purple-500/10",
+      fields: ["apiKey", "accountNumber"],
+      guide: "FedEx Developer: developer.fedex.com > My Apps > Create API Key" },
+    dhl: { name: "DHL", icon: "✈️", color: "text-yellow-500", bgColor: "bg-yellow-600/10",
+      fields: ["apiKey", "siteId"],
+      guide: "DHL Developer: developer.dhl.com > MyDHL API > Get Started" },
+  };
+
+  const shippingFieldLabels: Record<string, string> = {
+    apiKey: "API Key",
+    customerCode: "Customer Code",
+    username: "Username",
+    password: "Password",
+    accountNumber: "Account Number",
+    siteId: "Site ID",
+  };
+
+  const handleAddShippingProvider = async () => {
+    if (!shippingForm.provider || !shippingForm.apiKey.trim()) {
+      toast({ title: "Error", description: "Provider and API key are required", variant: "destructive" });
+      return;
+    }
+    try {
+      const body: any = { provider: shippingForm.provider, apiKey: shippingForm.apiKey.trim() };
+      if (shippingForm.customerCode.trim()) body.customerCode = shippingForm.customerCode.trim();
+      if (shippingForm.username.trim()) body.username = shippingForm.username.trim();
+      if (shippingForm.password.trim()) body.password = shippingForm.password.trim();
+      if (shippingForm.accountNumber.trim()) body.accountNumber = shippingForm.accountNumber.trim();
+      if (shippingForm.siteId.trim()) body.siteId = shippingForm.siteId.trim();
+      await apiRequest("POST", "/api/shipping-providers", body);
+      queryClient.invalidateQueries({ queryKey: ["/api/shipping-providers"] });
+      setShippingForm({ provider: "", apiKey: "", customerCode: "", username: "", password: "", accountNumber: "", siteId: "" });
+      setShowAddShipping(false);
+      const cfg = shippingProviderConfig[shippingForm.provider];
+      toast({ title: "Provider connected", description: `${cfg?.name || shippingForm.provider} has been added.` });
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message || "Failed to add provider", variant: "destructive" });
+    }
+  };
+
+  const handleDeleteShippingProvider = async (id: number, providerKey: string) => {
+    const cfg = shippingProviderConfig[providerKey];
+    try {
+      await apiRequest("DELETE", `/api/shipping-providers/${id}`);
+      queryClient.invalidateQueries({ queryKey: ["/api/shipping-providers"] });
+      toast({ title: "Provider removed", description: `${cfg?.name || providerKey} has been disconnected.` });
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message || "Failed to remove provider", variant: "destructive" });
     }
   };
 
@@ -974,6 +1068,158 @@ export default function Settings() {
               </div>
               <p className="text-sm">No social accounts connected</p>
               <p className="text-xs mt-1">Connect your accounts so Maya can create tailored content for your profiles</p>
+            </div>
+          )}
+        </Card>
+
+        <Card className="p-6 bg-card border-border/50" data-testid="card-shipping-providers">
+          <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center gap-2">
+              <Package className="w-5 h-5 text-orange-400" />
+              <h2 className="text-lg font-semibold text-foreground">Shipping Providers</h2>
+              {shippingProvidersData && shippingProvidersData.length > 0 && (
+                <Badge variant="secondary" className="ml-1" data-testid="badge-shipping-count">{shippingProvidersData.length}</Badge>
+              )}
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 text-xs border-orange-500/30 text-orange-400 hover:bg-orange-500/10"
+              onClick={() => { setShippingForm({ provider: "", apiKey: "", customerCode: "", username: "", password: "", accountNumber: "", siteId: "" }); setShowAddShipping(true); setShowShippingApiKey(false); }}
+              data-testid="button-add-shipping"
+            >
+              <Plus className="w-3.5 h-3.5 mr-1" />Connect Provider
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground mb-4">
+            Connect your cargo/shipping provider API so ShopBot (E-Commerce AI) can help with tracking, logistics, and shipping management.
+          </p>
+
+          {showAddShipping && (
+            <div className="mb-4 p-4 rounded-lg bg-muted/30 border border-orange-500/20 space-y-3">
+              <p className="text-sm font-medium text-foreground">Connect Shipping Provider</p>
+              <div>
+                <Label className="text-xs text-muted-foreground">Provider *</Label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-1.5">
+                  {Object.entries(shippingProviderConfig).map(([key, cfg]) => (
+                    <button
+                      key={key}
+                      onClick={() => setShippingForm(p => ({ ...p, provider: key, customerCode: "", username: "", password: "", accountNumber: "", siteId: "" }))}
+                      className={`p-2 rounded-lg border text-center transition-all ${
+                        shippingForm.provider === key
+                          ? `border-orange-500 ${cfg.bgColor} ring-1 ring-orange-500/30`
+                          : "border-border/50 hover:border-orange-500/50"
+                      }`}
+                      data-testid={`button-shipping-${key}`}
+                    >
+                      <span className="text-lg">{cfg.icon}</span>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">{cfg.name}</p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {shippingForm.provider && (
+                <>
+                  <div className="p-2 rounded bg-orange-500/5 border border-orange-500/10">
+                    <p className="text-[10px] text-orange-400">{shippingProviderConfig[shippingForm.provider]?.guide}</p>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {shippingProviderConfig[shippingForm.provider]?.fields.map((field) => (
+                      <div key={field}>
+                        <Label className="text-xs text-muted-foreground">{shippingFieldLabels[field]} *</Label>
+                        <div className="relative">
+                          <Input
+                            type={(field === "apiKey" || field === "password") && !showShippingApiKey ? "password" : "text"}
+                            value={(shippingForm as any)[field] || ""}
+                            onChange={(e) => setShippingForm(p => ({ ...p, [field]: e.target.value }))}
+                            placeholder={shippingFieldLabels[field]}
+                            className="mt-1 h-8 text-sm pr-8"
+                            data-testid={`input-shipping-${field}`}
+                          />
+                          {(field === "apiKey" || field === "password") && (
+                            <button
+                              type="button"
+                              onClick={() => setShowShippingApiKey(!showShippingApiKey)}
+                              className="absolute right-2 top-1/2 -translate-y-1/2 mt-0.5 text-muted-foreground hover:text-foreground"
+                            >
+                              {showShippingApiKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+
+              <div className="flex gap-2 pt-1">
+                <Button
+                  size="sm"
+                  onClick={handleAddShippingProvider}
+                  disabled={!shippingForm.provider || !shippingForm.apiKey.trim()}
+                  className="bg-gradient-to-r from-orange-500 to-amber-500 text-white border-0"
+                  data-testid="button-save-shipping"
+                >
+                  <Link2 className="w-3.5 h-3.5 mr-1" />Connect
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setShowAddShipping(false)}
+                  data-testid="button-cancel-shipping"
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {shippingLoading ? (
+            <div className="flex justify-center py-6">
+              <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+            </div>
+          ) : shippingProvidersData && shippingProvidersData.length > 0 ? (
+            <div className="space-y-2">
+              {shippingProvidersData.map((sp) => {
+                const cfg = shippingProviderConfig[sp.provider] || { icon: "📦", name: sp.provider, color: "text-gray-400", bgColor: "bg-gray-500/10" };
+                return (
+                  <div key={sp.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-border/50 group" data-testid={`card-shipping-${sp.id}`}>
+                    <div className="flex items-center gap-3">
+                      <div className={`w-9 h-9 rounded-full ${cfg.bgColor} flex items-center justify-center shrink-0`}>
+                        <span className="text-base">{cfg.icon}</span>
+                      </div>
+                      <div>
+                        <p className={`text-sm font-medium ${cfg.color}`} data-testid={`text-shipping-name-${sp.id}`}>
+                          {cfg.name}
+                        </p>
+                        <p className="text-xs text-muted-foreground">API Key: ****{sp.apiKey.slice(-4)}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/30 text-[10px]">
+                        <CheckCircle2 className="w-2.5 h-2.5 mr-0.5" />
+                        {sp.status}
+                      </Badge>
+                      <button
+                        onClick={() => handleDeleteShippingProvider(sp.id, sp.provider)}
+                        className="p-1.5 rounded hover:bg-red-500/10 text-muted-foreground hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
+                        data-testid={`button-delete-shipping-${sp.id}`}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="text-center py-6 text-muted-foreground">
+              <div className="flex justify-center gap-2 mb-2 opacity-30 text-2xl">
+                <span>📦</span><span>🚛</span><span>📮</span><span>✈️</span>
+              </div>
+              <p className="text-sm">No shipping providers connected</p>
+              <p className="text-xs mt-1">Connect your cargo API so ShopBot can help with shipping and logistics</p>
             </div>
           )}
         </Card>

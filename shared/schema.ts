@@ -434,6 +434,28 @@ export const insertSocialAccountSchema = createInsertSchema(socialAccounts).omit
 export type SocialAccount = typeof socialAccounts.$inferSelect;
 export type InsertSocialAccount = z.infer<typeof insertSocialAccountSchema>;
 
+export const shippingProviders = pgTable("shipping_providers", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  provider: text("provider").notNull(),
+  apiKey: text("api_key").notNull(),
+  customerCode: text("customer_code"),
+  username: text("username"),
+  password: text("password"),
+  accountNumber: text("account_number"),
+  siteId: text("site_id"),
+  status: text("status").notNull().default("active"),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
+export const insertShippingProviderSchema = createInsertSchema(shippingProviders).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type ShippingProvider = typeof shippingProviders.$inferSelect;
+export type InsertShippingProvider = z.infer<typeof insertShippingProviderSchema>;
+
 export type Lead = typeof leads.$inferSelect;
 export type InsertLead = z.infer<typeof insertLeadSchema>;
 export type AgentAction = typeof agentActions.$inferSelect;

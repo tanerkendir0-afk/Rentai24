@@ -855,6 +855,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                 e.preventDefault();
                 sendMessage();
               }}
+              noValidate
               className="flex items-center gap-2"
             >
               <input

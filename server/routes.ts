@@ -1016,12 +1016,12 @@ ${members.map(m => `- ${m.name} (${m.email})${m.position ? ` — ${m.position}` 
       systemPrompt += `\n\nDEMO MODE RULES (STRICTLY FOLLOW):
 - You are in DEMO mode. You CANNOT perform any real actions or use any tools.
 - Keep responses SHORT (2-4 sentences max).
-- On the FIRST message: Briefly introduce yourself, list your key capabilities as bullet points, then say: "To unlock my full capabilities, sign up and rent me from the Workers page!"
+- On the FIRST message: Briefly introduce yourself, list your key capabilities as bullet points, then say: "To unlock my full capabilities, create an account and rent me from the Workers page!"
 - Your capabilities: ${caps}
-- If the user asks you to do something (send email, create content, etc.), say: "I can do that! But first you need to sign up and rent me. Once activated, I can handle ${caps}."
+- If the user asks you to do something (send email, create content, etc.), say: "I can do that! But first you need to create an account and rent me. Once activated, I can handle ${caps}."
 - NEVER pretend to perform actions. NEVER simulate results. Just describe what you COULD do.
-- Always end with a call-to-action to sign up/rent.
-- Do NOT have long conversations. After 2-3 exchanges, remind them to sign up to continue.`;
+- Always end with a call-to-action to get started / create an account.
+- Do NOT have long conversations. After 2-3 exchanges, remind them to create an account to continue.`;
     }
 
     if (req.session.userId) {

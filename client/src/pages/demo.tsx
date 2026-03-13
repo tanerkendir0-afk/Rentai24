@@ -1217,7 +1217,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                 {!isWorkspace && !user && (
                   <div className="mb-4 p-3 rounded-xl bg-gradient-to-r from-blue-500/10 to-violet-500/10 border border-blue-500/20">
                     <p className="text-xs text-blue-300 text-center">
-                      This is a demo preview. <Link href="/login"><span className="font-semibold underline cursor-pointer">Sign up</span></Link> and rent this agent to unlock all features!
+                      This is a demo preview. <Link href="/login"><span className="font-semibold underline cursor-pointer">Create an account</span></Link> and rent this agent to unlock all features!
                     </p>
                   </div>
                 )}
@@ -1359,10 +1359,10 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
             )}
             {!user && messages.length >= 4 && (
               <div className="mb-2 p-3 rounded-xl bg-gradient-to-r from-blue-500/10 to-violet-500/10 border border-blue-500/20 text-center" data-testid="demo-signup-banner">
-                <p className="text-xs text-blue-300 mb-2">Want to unlock full capabilities? Sign up and rent your AI worker!</p>
+                <p className="text-xs text-blue-300 mb-2">Want to unlock full capabilities? Create an account and rent your AI worker!</p>
                 <Link href="/login">
                   <Button size="sm" className="bg-gradient-to-r from-blue-500 to-violet-500 text-white text-xs h-8 px-4" data-testid="button-demo-signup">
-                    Sign Up Free
+                    Get Started
                   </Button>
                 </Link>
               </div>

@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "uYD672xsf3lo4y_SBlwoU"
+uri = "file://RentAI24-Admin-Kullanim-Kilavuzu.md"
+type = "text"
+title = "RentAI 24 — Admin Paneli & Boss AI Kullanma Kılavuzu"

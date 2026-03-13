@@ -84,7 +84,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
   const [uploadedImage, setUploadedImage] = useState<{ url: string; name: string } | null>(null);
   const [uploading, setUploading] = useState(false);
   const [showCreditsPanel, setShowCreditsPanel] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth >= 1024);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -229,14 +229,20 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
 
   return (
     <div className="fixed inset-0 pt-16 flex bg-background">
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
       <AnimatePresence mode="wait">
         {sidebarOpen && (
           <motion.aside
-            initial={{ width: 0, opacity: 0 }}
-            animate={{ width: 280, opacity: 1 }}
-            exit={{ width: 0, opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="h-full border-r border-border/50 bg-card/50 flex flex-col overflow-hidden shrink-0"
+            initial={{ x: -280, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: -280, opacity: 0 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            className="h-full w-[280px] border-r border-border/50 bg-card flex flex-col overflow-hidden shrink-0 fixed lg:relative z-50 lg:z-auto"
           >
             <div className="p-4 border-b border-border/50">
               <div className="flex items-center justify-between mb-3">
@@ -283,6 +289,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                     onClick={() => {
                       if (isLocked || isPending) return;
                       setSelectedAgent(agent.id);
+                      if (window.innerWidth < 1024) setSidebarOpen(false);
                       setTimeout(() => inputRef.current?.focus(), 100);
                     }}
                     disabled={!!isLocked || !!isPending}

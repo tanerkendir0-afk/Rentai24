@@ -522,15 +522,32 @@ export async function registerRoutes(
   });
 
   app.post("/api/integrations/gmail/disconnect", requireAuth, async (req, res) => {
-    const { setGmailDisabled } = await import("./emailService");
-    setGmailDisabled(true);
-    res.json({ success: true, message: "Gmail disconnected" });
+    try {
+      const { setGmailDisabled } = await import("./emailService");
+      await setGmailDisabled(true);
+      res.json({ success: true, message: "Gmail disconnected" });
+    } catch (error: unknown) {
+      const errMsg = error instanceof Error ? error.message : String(error);
+      res.status(500).json({ success: false, message: `Failed to disconnect Gmail: ${errMsg}` });
+    }
   });
 
   app.post("/api/integrations/gmail/reconnect", requireAuth, async (req, res) => {
-    const { setGmailDisabled } = await import("./emailService");
-    setGmailDisabled(false);
-    res.json({ success: true, message: "Gmail reconnected" });
+    try {
+      const { clearGmailConnectionCache, verifyGmailConnection } = await import("./gmailService");
+      clearGmailConnectionCache();
+      const verification = await verifyGmailConnection();
+      if (!verification.valid || !verification.address) {
+        res.status(400).json({ success: false, message: "Gmail connection could not be verified. Please check your Gmail integration in Replit." });
+        return;
+      }
+      const { setGmailDisabled } = await import("./emailService");
+      await setGmailDisabled(false);
+      res.json({ success: true, message: "Gmail reconnected", address: verification.address });
+    } catch (error: unknown) {
+      const errMsg = error instanceof Error ? error.message : String(error);
+      res.status(500).json({ success: false, message: `Failed to reconnect Gmail: ${errMsg}` });
+    }
   });
 
   app.get("/api/leads", requireAuth, async (req, res) => {

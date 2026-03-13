@@ -119,6 +119,17 @@ app.use((req, res, next) => {
         console.warn("pgvector extension setup:", err.message)
       );
 
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS system_settings (
+          id SERIAL PRIMARY KEY,
+          key TEXT NOT NULL UNIQUE,
+          value TEXT NOT NULL,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+        )
+      `).catch((err: any) =>
+        console.warn("system_settings table setup:", err.message)
+      );
+
       console.log('Initializing Stripe schema...');
       await runMigrations({ databaseUrl, schema: 'stripe' });
       console.log('Stripe schema ready');

@@ -10,6 +10,10 @@ interface GmailConnectionSettings {
 
 let connectionSettings: GmailConnectionSettings | null = null;
 
+export function clearGmailConnectionCache() {
+  connectionSettings = null;
+}
+
 async function getAccessToken(): Promise<string> {
   if (
     connectionSettings &&
@@ -66,6 +70,17 @@ export async function isGmailConnected(): Promise<boolean> {
     return true;
   } catch {
     return false;
+  }
+}
+
+export async function verifyGmailConnection(): Promise<{ valid: boolean; address: string | null }> {
+  try {
+    const gmail = await getGmailClient();
+    const profile = await gmail.users.getProfile({ userId: "me" });
+    const address = profile.data.emailAddress || null;
+    return { valid: !!address, address };
+  } catch {
+    return { valid: false, address: null };
   }
 }
 

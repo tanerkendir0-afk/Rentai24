@@ -323,6 +323,15 @@ export const insertBossConversationSchema = createInsertSchema(bossConversations
 export type BossConversation = typeof bossConversations.$inferSelect;
 export type InsertBossConversation = z.infer<typeof insertBossConversationSchema>;
 
+export const systemSettings = pgTable("system_settings", {
+  id: serial("id").primaryKey(),
+  key: text("key").notNull().unique(),
+  value: text("value").notNull(),
+  updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
+export type SystemSetting = typeof systemSettings.$inferSelect;
+
 export type Lead = typeof leads.$inferSelect;
 export type InsertLead = z.infer<typeof insertLeadSchema>;
 export type AgentAction = typeof agentActions.$inferSelect;

@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { users, rentals, contactMessages, newsletterSubscribers, leads, agentActions, emailCampaigns, supportTickets, tokenUsage, agentTasks, chatMessages, type User, type InsertUser, type Rental, type InsertRental, type ContactMessage, type InsertContactMessage, type NewsletterSubscriber, type Lead, type InsertLead, type AgentAction, type InsertAgentAction, type EmailCampaign, type InsertEmailCampaign, type SupportTicket, type InsertSupportTicket, type TokenUsage, type InsertTokenUsage, type AgentTask, type InsertAgentTask, type ChatMessage, type InsertChatMessage } from "@shared/schema";
+import { users, rentals, contactMessages, newsletterSubscribers, leads, agentActions, emailCampaigns, supportTickets, tokenUsage, agentTasks, chatMessages, systemSettings, type User, type InsertUser, type Rental, type InsertRental, type ContactMessage, type InsertContactMessage, type NewsletterSubscriber, type Lead, type InsertLead, type AgentAction, type InsertAgentAction, type EmailCampaign, type InsertEmailCampaign, type SupportTicket, type InsertSupportTicket, type TokenUsage, type InsertTokenUsage, type AgentTask, type InsertAgentTask, type ChatMessage, type InsertChatMessage } from "@shared/schema";
 import { eq, and, sql, desc, gte, lte } from "drizzle-orm";
 
 export interface IStorage {
@@ -64,6 +64,9 @@ export interface IStorage {
   saveChatMessage(message: InsertChatMessage): Promise<ChatMessage>;
   getChatMessagesByAgent(agentType: string, filters?: { startDate?: Date; endDate?: Date }): Promise<ChatMessage[]>;
   getChatSessionsByAgent(agentType: string, filters?: { startDate?: Date; endDate?: Date; minTurns?: number; toolUsageOnly?: boolean }): Promise<{ sessionId: string; messages: ChatMessage[] }[]>;
+
+  getSystemSetting(key: string): Promise<string | null>;
+  setSystemSetting(key: string, value: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -456,6 +459,21 @@ export class DatabaseStorage implements IStorage {
     }
 
     return sessions;
+  }
+
+  async getSystemSetting(key: string): Promise<string | null> {
+    const [row] = await db.select().from(systemSettings).where(eq(systemSettings.key, key));
+    return row?.value ?? null;
+  }
+
+  async setSystemSetting(key: string, value: string): Promise<void> {
+    await db
+      .insert(systemSettings)
+      .values({ key, value, updatedAt: new Date() })
+      .onConflictDoUpdate({
+        target: systemSettings.key,
+        set: { value, updatedAt: new Date() },
+      });
   }
 }
 

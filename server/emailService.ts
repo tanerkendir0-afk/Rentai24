@@ -1,16 +1,21 @@
 import { Resend } from "resend";
 import { storage } from "./storage";
-import { isGmailConnected, sendViaGmail } from "./gmailService";
+import { isGmailConnected, sendViaGmail, clearGmailConnectionCache } from "./gmailService";
 
 let resendConnectionSettings: Record<string, string> | null = null;
-let gmailDisabledByUser = false;
 
-export function setGmailDisabled(disabled: boolean) {
-  gmailDisabledByUser = disabled;
+const GMAIL_DISABLED_KEY = "gmail_disabled";
+
+export async function setGmailDisabled(disabled: boolean): Promise<void> {
+  await storage.setSystemSetting(GMAIL_DISABLED_KEY, disabled ? "true" : "false");
+  if (disabled) {
+    clearGmailConnectionCache();
+  }
 }
 
-export function isGmailDisabledByUser(): boolean {
-  return gmailDisabledByUser;
+export async function isGmailDisabledByUser(): Promise<boolean> {
+  const value = await storage.getSystemSetting(GMAIL_DISABLED_KEY);
+  return value === "true";
 }
 
 async function getResendCredentials(): Promise<{ apiKey: string; fromEmail: string }> {
@@ -82,7 +87,8 @@ export async function sendEmail(params: {
   agentType: string;
 }): Promise<{ success: boolean; message: string; provider?: string }> {
   try {
-    const gmailAvailable = !gmailDisabledByUser && await isGmailConnected();
+    const disabled = await isGmailDisabledByUser();
+    const gmailAvailable = !disabled && await isGmailConnected();
 
     if (gmailAvailable) {
       const gmailResult = await sendViaGmail({
@@ -139,14 +145,14 @@ export async function sendEmail(params: {
 }
 
 export async function getEmailStatus(): Promise<{ provider: string; address: string | null; connected: boolean }> {
-  if (gmailDisabledByUser) {
+  const disabled = await isGmailDisabledByUser();
+  if (disabled) {
     return { provider: "platform", address: null, connected: true };
   }
-  const gmailConnected = await isGmailConnected();
-  if (gmailConnected) {
-    const { getGmailAddress } = await import("./gmailService");
-    const address = await getGmailAddress();
-    return { provider: "gmail", address, connected: true };
+  const { verifyGmailConnection } = await import("./gmailService");
+  const verification = await verifyGmailConnection();
+  if (verification.valid && verification.address) {
+    return { provider: "gmail", address: verification.address, connected: true };
   }
   return { provider: "platform", address: null, connected: true };
 }

@@ -52,6 +52,8 @@ export default function Settings() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
+  const [gmailDisconnecting, setGmailDisconnecting] = useState(false);
+  const [gmailReconnecting, setGmailReconnecting] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -255,18 +257,22 @@ export default function Settings() {
                       size="sm"
                       variant="outline"
                       className="h-7 text-xs text-red-400 border-red-500/30 hover:bg-red-500/10 hover:text-red-300"
+                      disabled={gmailDisconnecting}
                       onClick={async () => {
+                        setGmailDisconnecting(true);
                         try {
                           await apiRequest("POST", "/api/integrations/gmail/disconnect");
                           queryClient.invalidateQueries({ queryKey: ["/api/email-status"] });
                           toast({ title: "Gmail disconnected", description: "Gmail integration has been deactivated." });
                         } catch {
                           toast({ title: "Error", description: "Failed to disconnect Gmail.", variant: "destructive" });
+                        } finally {
+                          setGmailDisconnecting(false);
                         }
                       }}
                       data-testid="button-disconnect-gmail"
                     >
-                      Disconnect
+                      {gmailDisconnecting ? <><Loader2 className="w-3 h-3 animate-spin mr-1" />Disconnecting...</> : "Disconnect"}
                     </Button>
                   </>
                 ) : (
@@ -279,18 +285,23 @@ export default function Settings() {
                       size="sm"
                       variant="outline"
                       className="h-7 text-xs text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10 hover:text-emerald-300"
+                      disabled={gmailReconnecting}
                       onClick={async () => {
+                        setGmailReconnecting(true);
                         try {
-                          await apiRequest("POST", "/api/integrations/gmail/reconnect");
+                          const res = await apiRequest("POST", "/api/integrations/gmail/reconnect");
+                          const data = await res.json();
                           queryClient.invalidateQueries({ queryKey: ["/api/email-status"] });
-                          toast({ title: "Gmail reconnected", description: "Gmail integration has been reactivated." });
+                          toast({ title: "Gmail reconnected", description: data.address ? `Connected as ${data.address}` : "Gmail integration has been reactivated." });
                         } catch {
-                          toast({ title: "Error", description: "Failed to reconnect Gmail.", variant: "destructive" });
+                          toast({ title: "Connection Failed", description: "Gmail connection could not be verified. Please check your Gmail integration.", variant: "destructive" });
+                        } finally {
+                          setGmailReconnecting(false);
                         }
                       }}
                       data-testid="button-reconnect-gmail"
                     >
-                      Reconnect
+                      {gmailReconnecting ? <><Loader2 className="w-3 h-3 animate-spin mr-1" />Connecting...</> : "Reconnect"}
                     </Button>
                   </>
                 )}

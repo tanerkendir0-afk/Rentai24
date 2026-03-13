@@ -146,7 +146,7 @@ export const chatMessageSchema = z.object({
   })).max(20).optional(),
 });
 
-export type ChatMessage = z.infer<typeof chatMessageSchema>;
+export type ChatMessageInput = z.infer<typeof chatMessageSchema>;
 
 export const contactFormSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -285,17 +285,24 @@ export const insertAgentTaskSchema = createInsertSchema(agentTasks).omit({
 export type AgentTask = typeof agentTasks.$inferSelect;
 export type InsertAgentTask = z.infer<typeof insertAgentTaskSchema>;
 
-export const chatLogs = pgTable("chat_logs", {
+export const chatMessages = pgTable("chat_messages", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").references(() => users.id),
   agentType: text("agent_type").notNull(),
-  messages: jsonb("messages").notNull(),
-  toolsUsed: boolean("tools_used").notNull().default(false),
-  messageCount: integer("message_count").notNull().default(0),
+  sessionId: text("session_id").notNull(),
+  role: text("role").notNull(),
+  content: text("content").notNull(),
+  usedTool: boolean("used_tool").notNull().default(false),
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
 });
 
-export type ChatLog = typeof chatLogs.$inferSelect;
+export const insertChatMessageSchema = createInsertSchema(chatMessages).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type ChatMessage = typeof chatMessages.$inferSelect;
+export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
 
 export type Lead = typeof leads.$inferSelect;
 export type InsertLead = z.infer<typeof insertLeadSchema>;

@@ -1,6 +1,6 @@
 import { db } from "./db";
-import { users, rentals, contactMessages, newsletterSubscribers, leads, agentActions, emailCampaigns, supportTickets, tokenUsage, agentTasks, type User, type InsertUser, type Rental, type InsertRental, type ContactMessage, type InsertContactMessage, type NewsletterSubscriber, type Lead, type InsertLead, type AgentAction, type InsertAgentAction, type EmailCampaign, type InsertEmailCampaign, type SupportTicket, type InsertSupportTicket, type TokenUsage, type InsertTokenUsage, type AgentTask, type InsertAgentTask } from "@shared/schema";
-import { eq, and, sql, desc } from "drizzle-orm";
+import { users, rentals, contactMessages, newsletterSubscribers, leads, agentActions, emailCampaigns, supportTickets, tokenUsage, agentTasks, chatMessages, type User, type InsertUser, type Rental, type InsertRental, type ContactMessage, type InsertContactMessage, type NewsletterSubscriber, type Lead, type InsertLead, type AgentAction, type InsertAgentAction, type EmailCampaign, type InsertEmailCampaign, type SupportTicket, type InsertSupportTicket, type TokenUsage, type InsertTokenUsage, type AgentTask, type InsertAgentTask, type ChatMessage, type InsertChatMessage } from "@shared/schema";
+import { eq, and, sql, desc, gte, lte } from "drizzle-orm";
 
 export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
@@ -60,6 +60,10 @@ export interface IStorage {
   getTokenUsageSummary(): Promise<any[]>;
   getTokenUsageDetailed(minCostUsd?: number): Promise<any[]>;
   getTokenSpending(userId: number | null, agentType?: string): Promise<number>;
+
+  saveChatMessage(message: InsertChatMessage): Promise<ChatMessage>;
+  getChatMessagesByAgent(agentType: string, filters?: { startDate?: Date; endDate?: Date }): Promise<ChatMessage[]>;
+  getChatSessionsByAgent(agentType: string, filters?: { startDate?: Date; endDate?: Date; minTurns?: number; toolUsageOnly?: boolean }): Promise<{ sessionId: string; messages: ChatMessage[] }[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -405,6 +409,53 @@ export class DatabaseStorage implements IStorage {
   async deleteAgentTask(id: number, userId: number): Promise<boolean> {
     const result = await db.delete(agentTasks).where(and(eq(agentTasks.id, id), eq(agentTasks.userId, userId))).returning();
     return result.length > 0;
+  }
+
+  async saveChatMessage(message: InsertChatMessage): Promise<ChatMessage> {
+    const [created] = await db.insert(chatMessages).values(message).returning();
+    return created;
+  }
+
+  async getChatMessagesByAgent(agentType: string, filters?: { startDate?: Date; endDate?: Date }): Promise<ChatMessage[]> {
+    const conditions = [eq(chatMessages.agentType, agentType)];
+    if (filters?.startDate) conditions.push(gte(chatMessages.createdAt, filters.startDate));
+    if (filters?.endDate) conditions.push(lte(chatMessages.createdAt, filters.endDate));
+    return db.select().from(chatMessages).where(and(...conditions)).orderBy(chatMessages.sessionId, chatMessages.createdAt);
+  }
+
+  async getChatSessionsByAgent(
+    agentType: string,
+    filters?: { startDate?: Date; endDate?: Date; minTurns?: number; toolUsageOnly?: boolean }
+  ): Promise<{ sessionId: string; messages: ChatMessage[] }[]> {
+    const allMessages = await this.getChatMessagesByAgent(agentType, {
+      startDate: filters?.startDate,
+      endDate: filters?.endDate,
+    });
+
+    const sessionsMap = new Map<string, ChatMessage[]>();
+    for (const msg of allMessages) {
+      const existing = sessionsMap.get(msg.sessionId) || [];
+      existing.push(msg);
+      sessionsMap.set(msg.sessionId, existing);
+    }
+
+    let sessions = Array.from(sessionsMap.entries()).map(([sessionId, messages]) => ({
+      sessionId,
+      messages,
+    }));
+
+    if (filters?.minTurns && filters.minTurns > 0) {
+      sessions = sessions.filter((s) => {
+        const userTurns = s.messages.filter((m) => m.role === "user").length;
+        return userTurns >= (filters.minTurns || 1);
+      });
+    }
+
+    if (filters?.toolUsageOnly) {
+      sessions = sessions.filter((s) => s.messages.some((m) => m.usedTool));
+    }
+
+    return sessions;
   }
 }
 

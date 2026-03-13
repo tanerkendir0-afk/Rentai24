@@ -9,7 +9,8 @@ import { useToast } from "@/hooks/use-toast";
 import {
   Shield, Upload, FileText, Link2, Trash2, RefreshCw, Cpu, ToggleLeft, ToggleRight,
   Lock, Brain, Database, Zap, MessageSquare, Mail, DollarSign, AlertTriangle,
-  Users, BarChart3, CreditCard, LogOut, Activity, ShoppingCart, UserCheck
+  Users, BarChart3, CreditCard, LogOut, Activity, ShoppingCart, UserCheck,
+  Download, FileDown, CheckCircle, XCircle, Filter
 } from "lucide-react";
 
 const AGENTS = [
@@ -1207,6 +1208,219 @@ function CostTrackerPanel({ token }: { token: string }) {
   );
 }
 
+function TrainingDataPanel({ agentType, token }: { agentType: string; token: string }) {
+  const [toolUsageOnly, setToolUsageOnly] = useState(false);
+  const [previewData, setPreviewData] = useState<{ exampleCount: number; validationErrors: string[]; warnings: string[]; isValid: boolean } | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+  const { toast } = useToast();
+
+  const headers = { Authorization: `Bearer ${token}` };
+
+  const buildFilterParams = () => {
+    const params = new URLSearchParams();
+    if (toolUsageOnly) params.set("toolUsageOnly", "true");
+    return params;
+  };
+
+  const handlePreview = async () => {
+    setLoading(true);
+    try {
+      const params = buildFilterParams();
+      const res = await fetch(`/api/admin/agents/${agentType}/export-training-data?${params}`, { headers });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setPreviewData(data);
+    } catch (err: any) {
+      toast({ title: "Preview failed", description: err.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDownload = async () => {
+    setDownloading(true);
+    try {
+      const params = buildFilterParams();
+      const res = await fetch(`/api/admin/agents/${agentType}/download-training-data?${params}`, { headers });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error);
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${agentType}_training_data.jsonl`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast({ title: "Training data downloaded", description: `${agentType}_training_data.jsonl` });
+    } catch (err: any) {
+      toast({ title: "Download failed", description: err.message, variant: "destructive" });
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  const agentLabel = AGENTS.find(a => a.slug === agentType)?.name || agentType;
+
+  return (
+    <div className="space-y-6">
+      <Card className="bg-[#0A0E27] border-[#1E2448]">
+        <CardHeader>
+          <CardTitle className="text-lg text-white flex items-center gap-2">
+            <FileDown className="w-5 h-5 text-emerald-400" />
+            Export Training Data — {agentLabel}
+          </CardTitle>
+          <CardDescription className="text-gray-400">
+            Generate OpenAI fine-tuning compatible JSONL training data from agent rules, sample conversations, and logged actions.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex flex-wrap gap-4 items-center">
+            <label className="flex items-center gap-2 cursor-pointer" data-testid="filter-tool-usage">
+              <input
+                type="checkbox"
+                checked={toolUsageOnly}
+                onChange={(e) => setToolUsageOnly(e.target.checked)}
+                className="rounded border-[#1E2448] bg-[#111633] text-blue-500"
+              />
+              <span className="text-sm text-gray-300 flex items-center gap-1">
+                <Filter className="w-3.5 h-3.5" />
+                Tool usage conversations only
+              </span>
+            </label>
+          </div>
+
+          <div className="flex gap-3">
+            <Button
+              onClick={handlePreview}
+              disabled={loading}
+              variant="outline"
+              className="border-[#1E2448] text-gray-300 hover:text-white hover:border-emerald-500/50"
+              data-testid="button-preview-training-data"
+            >
+              {loading ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <FileText className="w-4 h-4 mr-2" />}
+              Preview & Validate
+            </Button>
+            <Button
+              onClick={handleDownload}
+              disabled={downloading}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white"
+              data-testid="button-download-training-data"
+            >
+              {downloading ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
+              Download JSONL
+            </Button>
+          </div>
+
+          {previewData && (
+            <div className="mt-4 p-4 bg-[#111633] rounded-lg border border-[#1E2448] space-y-3">
+              <div className="flex items-center gap-3">
+                {previewData.isValid ? (
+                  <Badge className="bg-green-900/30 text-green-400 border-green-800 gap-1">
+                    <CheckCircle className="w-3 h-3" /> Valid
+                  </Badge>
+                ) : (
+                  <Badge className="bg-yellow-900/30 text-yellow-400 border-yellow-800 gap-1">
+                    <XCircle className="w-3 h-3" /> Has Warnings
+                  </Badge>
+                )}
+                <span className="text-sm text-gray-300">
+                  {previewData.exampleCount} training examples
+                </span>
+              </div>
+
+              {previewData.warnings && previewData.warnings.length > 0 && (
+                <div className="space-y-1">
+                  <p className="text-xs font-medium text-blue-400">Info:</p>
+                  {previewData.warnings.map((w, i) => (
+                    <p key={i} className="text-xs text-gray-400">• {w}</p>
+                  ))}
+                </div>
+              )}
+
+              {previewData.validationErrors.length > 0 && (
+                <div className="space-y-1">
+                  <p className="text-xs font-medium text-yellow-400">Validation Notes:</p>
+                  {previewData.validationErrors.map((err, i) => (
+                    <p key={i} className="text-xs text-gray-400">• {err}</p>
+                  ))}
+                </div>
+              )}
+
+              <p className="text-xs text-gray-500">
+                Format: OpenAI fine-tuning JSONL — {`{"messages": [{"role": "system", ...}, {"role": "user", ...}, {"role": "assistant", ...}]}`}
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="bg-[#0A0E27] border-[#1E2448]">
+        <CardHeader>
+          <CardTitle className="text-lg text-white flex items-center gap-2">
+            <FileText className="w-5 h-5 text-blue-400" />
+            Agent Rules PDF
+          </CardTitle>
+          <CardDescription className="text-gray-400">
+            Download a comprehensive PDF containing all 9 agents' rules, tools, forbidden zones, and behavior guidelines.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <AgentRulesPDFButton token={token} />
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function AgentRulesPDFButton({ token }: { token: string }) {
+  const [downloading, setDownloading] = useState(false);
+  const { toast } = useToast();
+
+  const handleDownload = async () => {
+    setDownloading(true);
+    try {
+      const res = await fetch("/api/admin/agent-rules-pdf", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error);
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "RentAI24_Agent_Rules.pdf";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast({ title: "PDF downloaded", description: "RentAI24_Agent_Rules.pdf" });
+    } catch (err: any) {
+      toast({ title: "Download failed", description: err.message, variant: "destructive" });
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  return (
+    <Button
+      onClick={handleDownload}
+      disabled={downloading}
+      className="bg-blue-600 hover:bg-blue-700 text-white"
+      data-testid="button-download-rules-pdf"
+    >
+      {downloading ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
+      Download Agent Rules PDF
+    </Button>
+  );
+}
+
 export default function AdminPage() {
   const [token, setToken] = useState<string | null>(null);
   const [selectedAgent, setSelectedAgent] = useState(AGENTS[0].slug);
@@ -1324,7 +1538,11 @@ export default function AdminPage() {
             <TabsTrigger value="fine-tuning" className="data-[state=active]:bg-violet-600 data-[state=active]:text-white" data-testid="tab-fine-tuning">
               Fine-Tuning
             </TabsTrigger>
-            <TabsTrigger value="messages" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white" data-testid="tab-messages">
+            <TabsTrigger value="training-data" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white" data-testid="tab-training-data">
+              <FileDown className="w-3.5 h-3.5 mr-1" />
+              Training Data
+            </TabsTrigger>
+            <TabsTrigger value="messages" className="data-[state=active]:bg-teal-600 data-[state=active]:text-white" data-testid="tab-messages">
               Messages
             </TabsTrigger>
             <TabsTrigger value="costs" className="data-[state=active]:bg-red-600 data-[state=active]:text-white" data-testid="tab-costs">
@@ -1351,6 +1569,10 @@ export default function AdminPage() {
 
           <TabsContent value="fine-tuning">
             <FineTuningPanel key={`ft-${selectedAgent}`} agentType={selectedAgent} token={token} />
+          </TabsContent>
+
+          <TabsContent value="training-data">
+            <TrainingDataPanel key={`td-${selectedAgent}`} agentType={selectedAgent} token={token} />
           </TabsContent>
 
           <TabsContent value="messages">

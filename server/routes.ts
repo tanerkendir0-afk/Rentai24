@@ -2,7 +2,7 @@ import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import OpenAI from "openai";
 import bcrypt from "bcrypt";
-import { chatMessageSchema, contactFormSchema, registerSchema, loginSchema, newsletterSchema, chatLogs } from "@shared/schema";
+import { chatMessageSchema, contactFormSchema, registerSchema, loginSchema, newsletterSchema } from "@shared/schema";
 import { z } from "zod";
 import { storage } from "./storage";
 import { requireAuth } from "./auth";
@@ -11,6 +11,7 @@ import { getPublishableKey } from "./stripeClient";
 import { uploadDocument, uploadTrainingFile } from "./upload";
 import { processAndStoreDocument, processAndStoreUrl, retrieveRelevantChunks, getDocumentsByAgent, deleteDocument, getDocumentCount } from "./ragService";
 import { createFineTuningJob, syncJobStatus, getJobsByAgent, toggleActiveModel, deactivateModel, getActiveModel } from "./fineTuningService";
+import { generateAgentRulesPDF, generateTrainingDataFromChatLogs, validateJSONL, getAgentDefinitions } from "./trainingDataService";
 import { getToolsForAgent, executeToolCall } from "./agentTools";
 import { getImagePath, chatImageDir } from "./imageService";
 import { db } from "./db";
@@ -925,25 +926,28 @@ export async function registerRoutes(
 
       const reply = assistantMessage?.content || "Sorry, I couldn't generate a response. Please try again.";
 
-      if (req.session.userId) {
-        const fullConversation = [
-          ...(conversationHistory || []).map((m: any) => ({ role: m.role, content: m.content })),
-          { role: "user", content: message },
-          { role: "assistant", content: reply },
-        ];
-        const messageCount = fullConversation.filter((m: any) => m.role === "user").length;
-        if (messageCount >= 2) {
-          db.insert(chatLogs).values({
-            userId: req.session.userId,
-            agentType,
-            messages: fullConversation,
-            toolsUsed: actions.length > 0,
-            messageCount,
-          }).catch(err => console.error("Chat log save error:", err.message));
-        }
-      }
+      const chatSessionId = req.body.sessionId || `session-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
+      const usedTool = operationType === "tool_call";
 
-      res.json({ reply, actions: actions.length > 0 ? actions : undefined });
+      storage.saveChatMessage({
+        userId: req.session.userId || null,
+        agentType,
+        sessionId: chatSessionId,
+        role: "user",
+        content: message,
+        usedTool: false,
+      }).catch(err => console.error("Chat message save error:", err.message));
+
+      storage.saveChatMessage({
+        userId: req.session.userId || null,
+        agentType,
+        sessionId: chatSessionId,
+        role: "assistant",
+        content: reply,
+        usedTool,
+      }).catch(err => console.error("Chat message save error:", err.message));
+
+      res.json({ reply, actions: actions.length > 0 ? actions : undefined, sessionId: chatSessionId });
     } catch (error: any) {
       console.error("Chat API error:", error?.message || error);
       res.status(502).json({
@@ -1438,6 +1442,83 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/admin/agent-rules-pdf", requireAdmin, async (_req, res) => {
+    try {
+      const pdfBuffer = await generateAgentRulesPDF();
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader("Content-Disposition", "attachment; filename=RentAI24_Agent_Rules.pdf");
+      res.send(pdfBuffer);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  function parseTrainingDataFilters(query: Record<string, unknown>) {
+    return {
+      toolUsageOnly: query.toolUsageOnly === "true",
+      startDate: (query.startDate as string) || undefined,
+      endDate: (query.endDate as string) || undefined,
+      minTurns: parseInt(query.minTurns as string) || undefined,
+    };
+  }
+
+  app.get("/api/admin/agents/:agentType/export-training-data", requireAdmin, async (req, res) => {
+    try {
+      const { agentType } = req.params;
+      const filters = parseTrainingDataFilters(req.query);
+
+      const result = await generateTrainingDataFromChatLogs(agentType, filters);
+
+      res.json({
+        exampleCount: result.exampleCount,
+        validationErrors: result.validationErrors,
+        warnings: result.warnings,
+        isValid: result.validationErrors.length === 0,
+      });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Unknown error";
+      res.status(500).json({ error: message });
+    }
+  });
+
+  app.get("/api/admin/agents/:agentType/download-training-data", requireAdmin, async (req, res) => {
+    try {
+      const { agentType } = req.params;
+      const filters = parseTrainingDataFilters(req.query);
+
+      const result = await generateTrainingDataFromChatLogs(agentType, filters);
+
+      if (!result.jsonl) {
+        return res.status(404).json({ error: "No training data available for this agent." });
+      }
+
+      res.setHeader("Content-Type", "application/jsonl");
+      res.setHeader("Content-Disposition", `attachment; filename=${agentType}_training_data.jsonl`);
+      res.send(result.jsonl);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Unknown error";
+      res.status(500).json({ error: message });
+    }
+  });
+
+  app.post("/api/admin/validate-training-data", requireAdmin, async (req, res) => {
+    try {
+      const { jsonlContent } = req.body;
+      if (!jsonlContent || typeof jsonlContent !== "string") {
+        return res.status(400).json({ error: "jsonlContent is required" });
+      }
+      const errors = validateJSONL(jsonlContent);
+      const lineCount = jsonlContent.trim().split("\n").filter((l: string) => l.trim()).length;
+      res.json({
+        isValid: errors.length === 0,
+        lineCount,
+        errors,
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.get("/api/admin/contact-messages", requireAdmin, async (_req, res) => {
     try {
       const messages = await storage.getContactMessages();
@@ -1578,48 +1659,35 @@ export async function registerRoutes(
   app.get("/api/admin/export-training-data/:agentType", requireAdmin, async (req, res) => {
     try {
       const { agentType } = req.params;
-      const minTurns = Math.min(Math.max(parseInt(req.query.minTurns as string) || 2, 1), 20);
-      const toolsOnly = req.query.toolsOnly === "true";
+      const filters = {
+        minTurns: Math.min(Math.max(parseInt(req.query.minTurns as string) || 2, 1), 20),
+        toolUsageOnly: req.query.toolsOnly === "true",
+        startDate: req.query.startDate as string,
+        endDate: req.query.endDate as string,
+      };
 
-      let query = db.select().from(chatLogs).where(eq(chatLogs.agentType, agentType));
+      const result = await generateTrainingDataFromChatLogs(agentType, filters);
       
-      const logs = await query.orderBy(desc(chatLogs.createdAt));
-      
-      const systemPrompt = agentSystemPrompts[agentType] || defaultSystemPrompt;
-      
-      const jsonlLines: string[] = [];
-      
-      for (const log of logs) {
-        const msgs = log.messages as Array<{ role: string; content: string }>;
-        if (!msgs || !Array.isArray(msgs)) continue;
-        
-        const userCount = msgs.filter(m => m.role === "user").length;
-        if (userCount < minTurns) continue;
-        if (toolsOnly && !log.toolsUsed) continue;
-        
-        const trainingMessages = [
-          { role: "system", content: systemPrompt },
-          ...msgs.map(m => ({ role: m.role, content: m.content })),
-        ];
-        
-        jsonlLines.push(JSON.stringify({ messages: trainingMessages }));
-      }
-      
-      if (jsonlLines.length === 0) {
-        return res.status(404).json({ error: "No training data found matching filters. Need more chat conversations." });
+      if (!result.jsonl || result.exampleCount === 0) {
+        return res.status(404).json({ 
+          error: "No training data found matching filters.", 
+          warnings: result.warnings 
+        });
       }
       
       const validation = {
-        totalExamples: jsonlLines.length,
-        meetsMinimum: jsonlLines.length >= 10,
+        totalExamples: result.exampleCount,
+        meetsMinimum: result.exampleCount >= 10,
         agentType,
-        filters: { minTurns, toolsOnly },
+        filters,
+        warnings: result.warnings,
+        isValid: result.validationErrors.length === 0
       };
       
       res.setHeader("Content-Type", "application/x-ndjson");
       res.setHeader("Content-Disposition", `attachment; filename="training-${agentType}-${Date.now()}.jsonl"`);
       res.setHeader("X-Training-Validation", JSON.stringify(validation));
-      res.send(jsonlLines.join("\n"));
+      res.send(result.jsonl);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
@@ -1628,17 +1696,19 @@ export async function registerRoutes(
   app.get("/api/admin/export-training-data/:agentType/stats", requireAdmin, async (req, res) => {
     try {
       const { agentType } = req.params;
-      const result = await db.execute(sql`
-        SELECT 
-          COUNT(*)::int as total_conversations,
-          COUNT(CASE WHEN tools_used THEN 1 END)::int as with_tools,
-          COALESCE(AVG(message_count), 0)::int as avg_messages,
-          MIN(created_at)::text as earliest,
-          MAX(created_at)::text as latest
-        FROM chat_logs
-        WHERE agent_type = ${agentType}
-      `);
-      res.json(result.rows[0] || { total_conversations: 0, with_tools: 0, avg_messages: 0 });
+      const stats = await storage.getChatSessionsByAgent(agentType);
+      
+      const totalConversations = stats.length;
+      const withTools = stats.filter(s => s.usedTool).length;
+      const avgMessages = totalConversations > 0 
+        ? Math.round(stats.reduce((acc, s) => acc + (s as any).messageCount, 0) / totalConversations)
+        : 0;
+
+      res.json({ 
+        total_conversations: totalConversations, 
+        with_tools: withTools, 
+        avg_messages: avgMessages 
+      });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }

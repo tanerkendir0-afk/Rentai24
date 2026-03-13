@@ -145,6 +145,12 @@ app.use((req, res, next) => {
       );
 
       await pool.query(`
+        ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS used_tool BOOLEAN DEFAULT FALSE
+      `).catch((err: unknown) =>
+        console.warn("chat_messages used_tool column:", err instanceof Error ? err.message : String(err))
+      );
+
+      await pool.query(`
         CREATE TABLE IF NOT EXISTS boss_conversations (
           id SERIAL PRIMARY KEY,
           topic TEXT NOT NULL,

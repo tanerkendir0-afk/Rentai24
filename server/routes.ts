@@ -782,6 +782,7 @@ export async function registerRoutes(
     const TOKEN_SPENDING_LIMIT_USD = 5.00;
 
     let hasActiveRental = false;
+    let isLoggedIn = !!req.session.userId;
 
     if (req.session.userId) {
       const userRentals = await storage.getRentalsByUser(req.session.userId);
@@ -831,6 +832,17 @@ export async function registerRoutes(
           limit: TOKEN_SPENDING_LIMIT_USD,
         });
       }
+    }
+
+    if (!hasActiveRental) {
+      systemPrompt += `\n\nCRITICAL TOOL RESTRICTION:
+You do NOT have access to any tools right now. The user has NOT purchased/rented you yet.
+- Do NOT attempt to send emails, check inbox, create invoices, search data, or perform ANY action.
+- Do NOT say "I'm sending it now" or "Let me check" — you CANNOT do these things.
+- If the user asks you to perform an action (send email, check inbox, create a document, etc.), respond ONLY with:
+  "Bu işlemi gerçekleştirebilmem için önce hesap oluşturmanız ve beni kiralamanız gerekiyor. RentAI 24'te kayıt olup bir plan satın aldıktan sonra tüm yeteneklerimi kullanabilirsiniz! 🚀"
+- You may ONLY have a general conversation, answer questions about your capabilities, and guide the user to sign up.
+- NEVER pretend to execute actions you cannot perform.`;
     }
 
     try {

@@ -415,8 +415,17 @@ export class DatabaseStorage implements IStorage {
   }
 
   async saveChatMessage(message: InsertChatMessage): Promise<ChatMessage> {
-    const [created] = await db.insert(chatMessages).values(message).returning();
-    return created;
+    try {
+      const [created] = await db.insert(chatMessages).values(message).returning();
+      return created;
+    } catch (err: any) {
+      if (err.message?.includes('used_tool') || err.message?.includes('column')) {
+        const { usedTool, ...withoutTool } = message as any;
+        const [created] = await db.insert(chatMessages).values(withoutTool).returning();
+        return created;
+      }
+      throw err;
+    }
   }
 
   async getChatMessagesByAgent(agentType: string, filters?: { startDate?: Date; endDate?: Date }): Promise<ChatMessage[]> {

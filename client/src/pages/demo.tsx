@@ -593,8 +593,12 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                           <Input
                             placeholder="4242 4242 4242 4242"
                             value={creditCard.number}
-                            onChange={(e) => setCreditCard(prev => ({ ...prev, number: e.target.value }))}
+                            onChange={(e) => {
+                              const digits = e.target.value.replace(/\D/g, "").slice(0, 16);
+                              setCreditCard(prev => ({ ...prev, number: digits.replace(/(\d{4})(?=\d)/g, "$1 ") }));
+                            }}
                             className="h-9 text-sm"
+                            maxLength={19}
                             data-testid="input-credit-card-number"
                           />
                         </div>
@@ -602,10 +606,14 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                           <div>
                             <label className="text-xs text-muted-foreground mb-1 block">Expiry</label>
                             <Input
-                              placeholder="12/28"
+                              placeholder="MM/YY"
                               value={creditCard.expiry}
-                              onChange={(e) => setCreditCard(prev => ({ ...prev, expiry: e.target.value }))}
+                              onChange={(e) => {
+                                const digits = e.target.value.replace(/\D/g, "").slice(0, 4);
+                                setCreditCard(prev => ({ ...prev, expiry: digits.length >= 3 ? digits.slice(0, 2) + "/" + digits.slice(2) : digits }));
+                              }}
                               className="h-9 text-sm"
+                              maxLength={5}
                               data-testid="input-credit-expiry"
                             />
                           </div>
@@ -614,8 +622,11 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                             <Input
                               placeholder="123"
                               value={creditCard.cvc}
-                              onChange={(e) => setCreditCard(prev => ({ ...prev, cvc: e.target.value }))}
+                              onChange={(e) => {
+                                setCreditCard(prev => ({ ...prev, cvc: e.target.value.replace(/\D/g, "").slice(0, 4) }));
+                              }}
                               className="h-9 text-sm"
+                              maxLength={4}
                               data-testid="input-credit-cvc"
                             />
                           </div>
@@ -885,21 +896,9 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                   onChange={(e) => setInput(e.target.value)}
                   placeholder={`Message ${currentAgent.persona}...`}
                   disabled={loading}
-                  className="w-full h-11 px-4 pr-12 rounded-xl bg-muted/50 border border-border/50 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 transition-all disabled:opacity-50"
+                  className="w-full h-11 px-4 rounded-xl bg-muted/50 border border-border/50 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 transition-all disabled:opacity-50"
                   data-testid="input-chat"
                 />
-                <button
-                  type="submit"
-                  disabled={!input.trim() || loading}
-                  className={`absolute right-1.5 top-1/2 -translate-y-1/2 h-8 w-8 rounded-lg flex items-center justify-center transition-all disabled:opacity-30 ${
-                    input.trim()
-                      ? `bg-gradient-to-r ${currentAgent.color} text-white shadow-md hover:shadow-lg`
-                      : "text-muted-foreground/30"
-                  }`}
-                  data-testid="button-send"
-                >
-                  <Send className="w-4 h-4" />
-                </button>
               </div>
             </form>
           </div>

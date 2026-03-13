@@ -500,8 +500,12 @@ export default function Settings() {
                   <Input
                     placeholder="4242 4242 4242 4242"
                     value={creditCard.number}
-                    onChange={(e) => setCreditCard(prev => ({ ...prev, number: e.target.value }))}
+                    onChange={(e) => {
+                      const digits = e.target.value.replace(/\D/g, "").slice(0, 16);
+                      setCreditCard(prev => ({ ...prev, number: digits.replace(/(\d{4})(?=\d)/g, "$1 ") }));
+                    }}
                     className="mt-1"
+                    maxLength={19}
                     data-testid="input-settings-credit-card"
                   />
                 </div>
@@ -509,10 +513,14 @@ export default function Settings() {
                   <div>
                     <Label className="text-xs text-muted-foreground">Expiry</Label>
                     <Input
-                      placeholder="12/28"
+                      placeholder="MM/YY"
                       value={creditCard.expiry}
-                      onChange={(e) => setCreditCard(prev => ({ ...prev, expiry: e.target.value }))}
+                      onChange={(e) => {
+                        const digits = e.target.value.replace(/\D/g, "").slice(0, 4);
+                        setCreditCard(prev => ({ ...prev, expiry: digits.length >= 3 ? digits.slice(0, 2) + "/" + digits.slice(2) : digits }));
+                      }}
                       className="mt-1"
+                      maxLength={5}
                       data-testid="input-settings-credit-expiry"
                     />
                   </div>
@@ -521,8 +529,11 @@ export default function Settings() {
                     <Input
                       placeholder="123"
                       value={creditCard.cvc}
-                      onChange={(e) => setCreditCard(prev => ({ ...prev, cvc: e.target.value }))}
+                      onChange={(e) => {
+                        setCreditCard(prev => ({ ...prev, cvc: e.target.value.replace(/\D/g, "").slice(0, 4) }));
+                      }}
                       className="mt-1"
+                      maxLength={4}
                       data-testid="input-settings-credit-cvc"
                     />
                   </div>

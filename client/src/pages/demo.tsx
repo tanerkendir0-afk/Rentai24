@@ -1211,8 +1211,16 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                 </h2>
                 <p className="text-muted-foreground mb-1 text-xs sm:text-sm">{currentAgent.name} Agent</p>
                 <p className="text-muted-foreground/60 text-xs mb-6 sm:mb-8">
-                  {isWorkspace ? "Your AI worker is ready. Start a conversation below." : "Try this agent in demo mode. Send a message to get started."}
+                  {isWorkspace ? "Your AI worker is ready. Start a conversation below." : "Preview mode — ask what I can do!"}
                 </p>
+
+                {!isWorkspace && !user && (
+                  <div className="mb-4 p-3 rounded-xl bg-gradient-to-r from-blue-500/10 to-violet-500/10 border border-blue-500/20">
+                    <p className="text-xs text-blue-300 text-center">
+                      This is a demo preview. <Link href="/login"><span className="font-semibold underline cursor-pointer">Sign up</span></Link> and rent this agent to unlock all features!
+                    </p>
+                  </div>
+                )}
 
                 <div className="space-y-2">
                   {quickPrompts.map((prompt) => (
@@ -1349,6 +1357,16 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                 </Button>
               </div>
             )}
+            {!user && messages.length >= 4 && (
+              <div className="mb-2 p-3 rounded-xl bg-gradient-to-r from-blue-500/10 to-violet-500/10 border border-blue-500/20 text-center" data-testid="demo-signup-banner">
+                <p className="text-xs text-blue-300 mb-2">Want to unlock full capabilities? Sign up and rent your AI worker!</p>
+                <Link href="/login">
+                  <Button size="sm" className="bg-gradient-to-r from-blue-500 to-violet-500 text-white text-xs h-8 px-4" data-testid="button-demo-signup">
+                    Sign Up Free
+                  </Button>
+                </Link>
+              </div>
+            )}
             <form
               onSubmit={(e) => {
                 e.preventDefault();
@@ -1382,7 +1400,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                   ref={inputRef}
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  placeholder={`Message ${currentAgent.persona}...`}
+                  placeholder={!user ? `Ask ${currentAgent.persona} what it can do...` : `Message ${currentAgent.persona}...`}
                   disabled={loading}
                   className="w-full h-11 px-4 pr-12 rounded-xl bg-muted/50 border border-border/50 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 transition-all disabled:opacity-50"
                   data-testid="input-chat"

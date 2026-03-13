@@ -1001,7 +1001,27 @@ ${members.map(m => `- ${m.name} (${m.email})${m.position ? ` — ${m.position}` 
     }
 
     if (!hasActiveRental) {
-      systemPrompt += `\nNO TOOLS: User hasn't rented you yet. Cannot perform actions. If asked, say: "Bu işlemi gerçekleştirebilmem için önce hesap oluşturmanız ve beni kiralamanız gerekiyor. RentAI 24'te kayıt olup bir plan satın aldıktan sonra tüm yeteneklerimi kullanabilirsiniz! 🚀" Only chat and guide to sign up.`;
+      const demoCapabilities: Record<string, string> = {
+        "customer-support": "live chat support, email responses, complaint handling, ticket management, FAQ handling, order tracking, refund processing",
+        "sales-sdr": "lead management, pipeline tracking, email outreach, follow-up scheduling, drip campaigns, proposal creation, competitor analysis",
+        "social-media": "social media content creation, post scheduling, content calendars, hashtag generation, AI image generation, platform-specific content",
+        "bookkeeping": "invoice creation, expense logging, financial summaries & reports, budget tracking",
+        "scheduling": "appointment scheduling, meeting management, reminders, calendar coordination",
+        "hr-recruiting": "job posting creation, resume screening, interview preparation, candidate communication",
+        "data-analyst": "data queries, report generation, lead/campaign/rental analytics, performance insights",
+        "ecommerce-ops": "product listing optimization, price analysis, review response drafting, SEO",
+        "real-estate": "property search, listing evaluation, neighborhood analysis, lease review, market reports",
+      };
+      const caps = demoCapabilities[agentType] || "various business tasks";
+      systemPrompt += `\n\nDEMO MODE RULES (STRICTLY FOLLOW):
+- You are in DEMO mode. You CANNOT perform any real actions or use any tools.
+- Keep responses SHORT (2-4 sentences max).
+- On the FIRST message: Briefly introduce yourself, list your key capabilities as bullet points, then say: "To unlock my full capabilities, sign up and rent me from the Workers page!"
+- Your capabilities: ${caps}
+- If the user asks you to do something (send email, create content, etc.), say: "I can do that! But first you need to sign up and rent me. Once activated, I can handle ${caps}."
+- NEVER pretend to perform actions. NEVER simulate results. Just describe what you COULD do.
+- Always end with a call-to-action to sign up/rent.
+- Do NOT have long conversations. After 2-3 exchanges, remind them to sign up to continue.`;
     }
 
     if (req.session.userId) {

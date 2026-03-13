@@ -76,3 +76,7 @@ STRIPE_PUBLISHABLE_KEY = "pk_test_51T9tQDLgdtb00uf4P6EWupf7fu9JyiIEXE8UHuZHaxH8Q
 
 [objectStorage]
 defaultBucketID = "replit-objstore-a68804e3-baab-48a3-b4ca-7de80d968cc3"
+
+[postMerge]
+path = "scripts/post-merge.sh"
+timeoutMs = 20000

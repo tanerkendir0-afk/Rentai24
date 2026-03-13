@@ -144,7 +144,7 @@ export async function sendEmail(params: {
   }
 }
 
-export async function getEmailStatus(): Promise<{ provider: string; address: string | null; connected: boolean }> {
+export async function getEmailStatus(): Promise<{ provider: string; address: string | null; connected: boolean; canRead?: boolean; canSend?: boolean }> {
   const disabled = await isGmailDisabledByUser();
   if (disabled) {
     return { provider: "platform", address: null, connected: true };
@@ -152,7 +152,13 @@ export async function getEmailStatus(): Promise<{ provider: string; address: str
   const { verifyGmailConnection } = await import("./gmailService");
   const verification = await verifyGmailConnection();
   if (verification.valid) {
-    return { provider: "gmail", address: verification.address || "Connected", connected: true };
+    return {
+      provider: "gmail",
+      address: verification.address || "Connected",
+      connected: true,
+      canRead: verification.canRead,
+      canSend: verification.canSend,
+    };
   }
   return { provider: "platform", address: null, connected: true };
 }

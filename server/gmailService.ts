@@ -73,19 +73,26 @@ export async function isGmailConnected(): Promise<boolean> {
   }
 }
 
-export async function verifyGmailConnection(): Promise<{ valid: boolean; address: string | null }> {
+export async function verifyGmailConnection(): Promise<{ valid: boolean; address: string | null; canRead: boolean; canSend: boolean }> {
   try {
     const gmail = await getGmailClient();
+    let address: string | null = null;
+    let canRead = false;
+    const canSend = true;
+
     try {
       const profile = await gmail.users.getProfile({ userId: "me" });
-      const address = profile.data.emailAddress || null;
-      return { valid: !!address, address };
-    } catch {
-      await getAccessToken();
-      return { valid: true, address: null };
-    }
+      address = profile.data.emailAddress || null;
+    } catch {}
+
+    try {
+      await gmail.users.messages.list({ userId: "me", maxResults: 1 });
+      canRead = true;
+    } catch {}
+
+    return { valid: true, address, canRead, canSend };
   } catch {
-    return { valid: false, address: null };
+    return { valid: false, address: null, canRead: false, canSend: false };
   }
 }
 
@@ -197,6 +204,10 @@ export async function listInbox(maxResults: number = 10): Promise<{ success: boo
     return { success: true, emails, message: `Found ${emails.length} emails in inbox.` };
   } catch (error: unknown) {
     const errMsg = error instanceof Error ? error.message : String(error);
+    if (errMsg.includes("Insufficient Permission")) {
+      console.error("Gmail listInbox: insufficient scope for inbox reading");
+      return { success: false, message: "Gmail inbox reading is not available — the current Gmail integration only supports sending emails. Inbox reading requires additional permissions." };
+    }
     console.error("Gmail listInbox error:", errMsg);
     return { success: false, message: `Failed to list inbox: ${errMsg}` };
   }
@@ -227,6 +238,9 @@ export async function readEmail(messageId: string): Promise<{ success: boolean; 
     return { success: true, email, message: "Email retrieved successfully." };
   } catch (error: unknown) {
     const errMsg = error instanceof Error ? error.message : String(error);
+    if (errMsg.includes("Insufficient Permission")) {
+      return { success: false, message: "Gmail email reading is not available — the current integration only supports sending emails." };
+    }
     console.error("Gmail readEmail error:", errMsg);
     return { success: false, message: `Failed to read email: ${errMsg}` };
   }

@@ -73,7 +73,7 @@ export default function Settings() {
     enabled: !!user,
   });
 
-  const { data: emailStatus } = useQuery<{ provider: string; address: string | null; connected: boolean }>({
+  const { data: emailStatus } = useQuery<{ provider: string; address: string | null; connected: boolean; canRead?: boolean; canSend?: boolean }>({
     queryKey: ["/api/email-status"],
     enabled: !!user,
   });
@@ -240,10 +240,20 @@ export default function Settings() {
                 <div>
                   <p className="text-sm font-medium text-foreground">Gmail</p>
                   <p className="text-xs text-muted-foreground">
-                    {emailStatus?.provider === "gmail" && emailStatus.address
-                      ? emailStatus.address
+                    {emailStatus?.provider === "gmail"
+                      ? (emailStatus.address && emailStatus.address !== "Connected" ? emailStatus.address : "Connected")
                       : "Send and receive emails via Gmail"}
                   </p>
+                  {emailStatus?.provider === "gmail" && (
+                    <div className="flex gap-2 mt-1">
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded ${emailStatus.canSend ? "bg-emerald-500/10 text-emerald-400" : "bg-red-500/10 text-red-400"}`}>
+                        {emailStatus.canSend ? "✓ Send" : "✗ Send"}
+                      </span>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded ${emailStatus.canRead ? "bg-emerald-500/10 text-emerald-400" : "bg-yellow-500/10 text-yellow-400"}`}>
+                        {emailStatus.canRead ? "✓ Read Inbox" : "⚠ Read Inbox (limited)"}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
               <div className="flex items-center gap-2">

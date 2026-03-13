@@ -1738,6 +1738,271 @@ BEHAVIOR:
     return result.rows as DbRow[];
   }
 
+  const collaborationAgents: { slug: string; name: string; perspective: string }[] = [
+    { slug: "customer-support", name: "Ava", perspective: "customer experience, support operations, user satisfaction" },
+    { slug: "sales-sdr", name: "Rex", perspective: "sales strategy, revenue growth, lead generation, market positioning" },
+    { slug: "social-media", name: "Maya", perspective: "brand awareness, social engagement, content strategy, viral potential" },
+    { slug: "bookkeeping", name: "Finn", perspective: "financial impact, cost analysis, ROI, budget considerations" },
+    { slug: "scheduling", name: "Cal", perspective: "time management, workflow efficiency, resource scheduling" },
+    { slug: "hr-recruiting", name: "Harper", perspective: "team impact, hiring needs, workplace culture, talent acquisition" },
+    { slug: "data-analyst", name: "DataBot", perspective: "data-driven insights, metrics, KPIs, analytics recommendations" },
+    { slug: "ecommerce-ops", name: "ShopBot", perspective: "e-commerce optimization, conversion, inventory, online sales" },
+    { slug: "real-estate", name: "Reno", perspective: "property market, location strategy, real estate opportunities" },
+  ];
+
+  app.post("/api/admin/agent-collaboration", requireAdmin, async (req, res) => {
+    try {
+      const { topic, selectedAgents } = req.body;
+      if (!topic || typeof topic !== "string") {
+        return res.status(400).json({ error: "Topic is required" });
+      }
+      if (topic.length > 500) {
+        return res.status(400).json({ error: "Topic must be under 500 characters" });
+      }
+
+      const agentsToUse = selectedAgents && Array.isArray(selectedAgents) && selectedAgents.length > 0
+        ? collaborationAgents.filter(a => selectedAgents.includes(a.slug))
+        : collaborationAgents;
+
+      if (agentsToUse.length === 0) {
+        return res.status(400).json({ error: "At least one agent must be selected" });
+      }
+
+      const agentPromises = agentsToUse.map(async (agent) => {
+        const systemPrompt = `You are ${agent.name}, an AI specialist focused on ${agent.perspective}.
+You are in a team brainstorming session with other AI specialists. The team needs your expert perspective.
+
+RULES:
+- Provide your unique perspective based on your specialty area
+- Be concise but insightful (3-5 key points)
+- Include specific, actionable recommendations
+- Consider how your area intersects with others
+- Respond in the same language as the topic/question
+- Format with bullet points for clarity`;
+
+        try {
+          const response = await openai.chat.completions.create({
+            model: "gpt-4o-mini",
+            messages: [
+              { role: "system", content: systemPrompt },
+              { role: "user", content: `Team brainstorming topic: "${topic}"\n\nProvide your expert perspective and recommendations.` },
+            ],
+            temperature: 0.8,
+            max_tokens: 500,
+          });
+
+          const usage = response.usage;
+          let costUsd = 0;
+          if (usage) {
+            costUsd = calculateTokenCost("gpt-4o-mini", usage.prompt_tokens, usage.completion_tokens);
+            await storage.logTokenUsage({
+              userId: 0,
+              agentType: agent.slug,
+              model: "gpt-4o-mini",
+              promptTokens: usage.prompt_tokens,
+              completionTokens: usage.completion_tokens,
+              totalTokens: usage.total_tokens,
+              costUsd: costUsd.toFixed(6),
+              operationType: "collaboration",
+            });
+          }
+
+          return {
+            slug: agent.slug,
+            name: agent.name,
+            perspective: agent.perspective,
+            response: response.choices[0]?.message?.content || "",
+            tokens: usage?.total_tokens || 0,
+            cost: costUsd,
+          };
+        } catch (err: unknown) {
+          const errMsg = err instanceof Error ? err.message : String(err);
+          return {
+            slug: agent.slug,
+            name: agent.name,
+            perspective: agent.perspective,
+            response: `Error: ${errMsg}`,
+            tokens: 0,
+            cost: 0,
+            error: true,
+          };
+        }
+      });
+
+      const agentResponses = await Promise.all(agentPromises);
+
+      const successfulResponses = agentResponses.filter(r => !r.error);
+      let synthesis = "";
+      let synthesisCost = 0;
+      let synthesisTokens = 0;
+
+      if (successfulResponses.length > 0) {
+        const perspectivesSummary = successfulResponses
+          .map(r => `**${r.name}** (${r.perspective}):\n${r.response}`)
+          .join("\n\n---\n\n");
+
+        const synthesisResponse = await openai.chat.completions.create({
+          model: "gpt-4o",
+          messages: [
+            {
+              role: "system",
+              content: `You are the Boss AI moderator of a brainstorming session. ${successfulResponses.length} specialist agents have provided their perspectives on a topic. Your job is to:
+1. Synthesize all perspectives into a unified strategic recommendation
+2. Highlight the strongest ideas and common themes
+3. Identify potential conflicts or trade-offs between perspectives
+4. Provide a prioritized action plan (top 3-5 steps)
+5. Respond in the same language as the original topic
+
+Be decisive and actionable. Format with clear sections.`,
+            },
+            {
+              role: "user",
+              content: `Topic: "${topic}"\n\nAgent Perspectives:\n\n${perspectivesSummary}\n\nProvide a unified synthesis and action plan.`,
+            },
+          ],
+          temperature: 0.7,
+          max_tokens: 1000,
+        });
+
+        synthesis = synthesisResponse.choices[0]?.message?.content || "";
+        const synthUsage = synthesisResponse.usage;
+        if (synthUsage) {
+          synthesisCost = calculateTokenCost("gpt-4o", synthUsage.prompt_tokens, synthUsage.completion_tokens);
+          synthesisTokens = synthUsage.total_tokens;
+          await storage.logTokenUsage({
+            userId: 0,
+            agentType: "boss-collaboration",
+            model: "gpt-4o",
+            promptTokens: synthUsage.prompt_tokens,
+            completionTokens: synthUsage.completion_tokens,
+            totalTokens: synthUsage.total_tokens,
+            costUsd: synthesisCost.toFixed(6),
+            operationType: "collaboration",
+          });
+        }
+      }
+
+      const totalCost = agentResponses.reduce((sum, r) => sum + r.cost, 0) + synthesisCost;
+      const totalTokens = agentResponses.reduce((sum, r) => sum + r.tokens, 0) + synthesisTokens;
+
+      res.json({
+        topic,
+        synthesis,
+        agentResponses,
+        meta: {
+          totalCost: totalCost.toFixed(6),
+          totalTokens,
+          agentCount: agentResponses.length,
+          successCount: successfulResponses.length,
+        },
+      });
+    } catch (error: unknown) {
+      const errMsg = error instanceof Error ? error.message : String(error);
+      console.error("Collaboration error:", errMsg);
+      res.status(500).json({ error: errMsg });
+    }
+  });
+
+  app.get("/api/admin/spend-analysis", requireAdmin, async (_req, res) => {
+    try {
+      const overallResult = await db.execute(sql`
+        SELECT 
+          COUNT(*)::int as total_requests,
+          COALESCE(SUM(CAST(cost_usd AS DECIMAL(10,6))),0)::text as total_cost,
+          COALESCE(SUM(total_tokens),0)::bigint as total_tokens,
+          COALESCE(SUM(prompt_tokens),0)::bigint as total_prompt_tokens,
+          COALESCE(SUM(completion_tokens),0)::bigint as total_completion_tokens,
+          COUNT(DISTINCT user_id)::int as unique_users,
+          COALESCE(AVG(CAST(cost_usd AS DECIMAL(10,6))),0)::text as avg_cost_per_request
+        FROM token_usage
+      `);
+
+      const perAgentResult = await db.execute(sql`
+        SELECT 
+          agent_type,
+          COUNT(*)::int as total_requests,
+          COALESCE(SUM(CAST(cost_usd AS DECIMAL(10,6))),0)::text as total_cost,
+          COALESCE(SUM(total_tokens),0)::bigint as total_tokens,
+          COALESCE(SUM(prompt_tokens),0)::bigint as prompt_tokens,
+          COALESCE(SUM(completion_tokens),0)::bigint as completion_tokens,
+          COUNT(DISTINCT user_id)::int as unique_users,
+          COALESCE(AVG(CAST(cost_usd AS DECIMAL(10,6))),0)::text as avg_cost_per_request,
+          COALESCE(MAX(CAST(cost_usd AS DECIMAL(10,6))),0)::text as max_single_cost
+        FROM token_usage
+        GROUP BY agent_type
+        ORDER BY total_cost DESC
+      `);
+
+      const byModelResult = await db.execute(sql`
+        SELECT 
+          model,
+          COUNT(*)::int as total_requests,
+          COALESCE(SUM(CAST(cost_usd AS DECIMAL(10,6))),0)::text as total_cost,
+          COALESCE(SUM(total_tokens),0)::bigint as total_tokens
+        FROM token_usage
+        GROUP BY model
+        ORDER BY total_cost DESC
+      `);
+
+      const byOperationResult = await db.execute(sql`
+        SELECT 
+          operation_type,
+          COUNT(*)::int as total_requests,
+          COALESCE(SUM(CAST(cost_usd AS DECIMAL(10,6))),0)::text as total_cost,
+          COALESCE(SUM(total_tokens),0)::bigint as total_tokens
+        FROM token_usage
+        GROUP BY operation_type
+        ORDER BY total_cost DESC
+      `);
+
+      const dailyTrendResult = await db.execute(sql`
+        SELECT 
+          DATE(created_at)::text as day,
+          COUNT(*)::int as requests,
+          COALESCE(SUM(CAST(cost_usd AS DECIMAL(10,6))),0)::text as cost,
+          COALESCE(SUM(total_tokens),0)::bigint as tokens
+        FROM token_usage
+        WHERE created_at > NOW() - INTERVAL '30 days'
+        GROUP BY DATE(created_at)
+        ORDER BY day DESC
+      `);
+
+      const perAgentDailyResult = await db.execute(sql`
+        SELECT 
+          agent_type,
+          DATE(created_at)::text as day,
+          COUNT(*)::int as requests,
+          COALESCE(SUM(CAST(cost_usd AS DECIMAL(10,6))),0)::text as cost
+        FROM token_usage
+        WHERE created_at > NOW() - INTERVAL '7 days'
+        GROUP BY agent_type, DATE(created_at)
+        ORDER BY agent_type, day DESC
+      `);
+
+      const collaborationResult = await db.execute(sql`
+        SELECT 
+          COUNT(*)::int as total_requests,
+          COALESCE(SUM(CAST(cost_usd AS DECIMAL(10,6))),0)::text as total_cost,
+          COALESCE(SUM(total_tokens),0)::bigint as total_tokens
+        FROM token_usage
+        WHERE operation_type = 'collaboration'
+      `);
+
+      res.json({
+        overall: overallResult.rows[0] || {},
+        perAgent: perAgentResult.rows,
+        byModel: byModelResult.rows,
+        byOperation: byOperationResult.rows,
+        dailyTrend: dailyTrendResult.rows,
+        perAgentDaily: perAgentDailyResult.rows,
+        collaboration: collaborationResult.rows[0] || {},
+      });
+    } catch (error: unknown) {
+      const errMsg = error instanceof Error ? error.message : String(error);
+      res.status(500).json({ error: errMsg });
+    }
+  });
+
   app.post("/api/admin/boss-chat", requireAdmin, async (req, res) => {
     try {
       const { message, conversationHistory } = req.body;

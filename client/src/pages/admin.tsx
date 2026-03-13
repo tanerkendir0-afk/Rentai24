@@ -1225,6 +1225,524 @@ interface BossConversation {
   updatedAt: string;
 }
 
+interface AgentCollabResponse {
+  slug: string;
+  name: string;
+  perspective: string;
+  response: string;
+  tokens: number;
+  cost: number;
+  error?: boolean;
+}
+
+interface CollaborationResult {
+  topic: string;
+  synthesis: string;
+  agentResponses: AgentCollabResponse[];
+  meta: {
+    totalCost: string;
+    totalTokens: number;
+    agentCount: number;
+    successCount: number;
+  };
+}
+
+function CollaborationPanel({ token }: { token: string }) {
+  const [topic, setTopic] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<CollaborationResult | null>(null);
+  const [selectedAgents, setSelectedAgents] = useState<string[]>(AGENTS.map(a => a.slug));
+  const [progress, setProgress] = useState(0);
+  const { toast } = useToast();
+
+  const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
+
+  const toggleAgent = (slug: string) => {
+    setSelectedAgents(prev =>
+      prev.includes(slug) ? prev.filter(s => s !== slug) : [...prev, slug]
+    );
+  };
+
+  const startBrainstorm = async () => {
+    if (!topic.trim()) return;
+    if (selectedAgents.length === 0) {
+      toast({ title: "Error", description: "Select at least one agent", variant: "destructive" });
+      return;
+    }
+    setLoading(true);
+    setResult(null);
+    setProgress(10);
+
+    const progressInterval = setInterval(() => {
+      setProgress(prev => Math.min(prev + 8, 90));
+    }, 1000);
+
+    try {
+      const res = await fetch("/api/admin/agent-collaboration", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ topic: topic.trim(), selectedAgents }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Collaboration failed");
+      }
+      const data: CollaborationResult = await res.json();
+      setResult(data);
+      setProgress(100);
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      toast({ title: "Error", description: errMsg, variant: "destructive" });
+    } finally {
+      clearInterval(progressInterval);
+      setLoading(false);
+      setTimeout(() => setProgress(0), 1000);
+    }
+  };
+
+  const agentColors: Record<string, string> = {
+    "customer-support": "from-blue-500 to-blue-600",
+    "sales-sdr": "from-red-500 to-red-600",
+    "social-media": "from-pink-500 to-pink-600",
+    "bookkeeping": "from-green-500 to-green-600",
+    "scheduling": "from-yellow-500 to-yellow-600",
+    "hr-recruiting": "from-purple-500 to-purple-600",
+    "data-analyst": "from-cyan-500 to-cyan-600",
+    "ecommerce-ops": "from-orange-500 to-orange-600",
+    "real-estate": "from-teal-500 to-teal-600",
+  };
+
+  const agentIcons: Record<string, string> = {
+    "customer-support": "🎧",
+    "sales-sdr": "📈",
+    "social-media": "📱",
+    "bookkeeping": "📊",
+    "scheduling": "📅",
+    "hr-recruiting": "👥",
+    "data-analyst": "🔬",
+    "ecommerce-ops": "🛒",
+    "real-estate": "🏠",
+  };
+
+  const formatCollabText = (text: string) => {
+    return text.split("\n").map((line, i) => {
+      if (line.startsWith("# ")) return <h2 key={i} className="text-xl font-bold text-white mt-4 mb-2">{line.slice(2)}</h2>;
+      if (line.startsWith("## ")) return <h3 key={i} className="text-lg font-semibold text-white mt-3 mb-1">{line.slice(3)}</h3>;
+      if (line.startsWith("### ")) return <h4 key={i} className="text-md font-semibold text-gray-200 mt-2 mb-1">{line.slice(4)}</h4>;
+      if (line.startsWith("- ") || line.startsWith("• ")) return <li key={i} className="text-gray-300 ml-4 list-disc">{line.slice(2)}</li>;
+      if (line.match(/^\d+\.\s/)) return <li key={i} className="text-gray-300 ml-4 list-decimal">{line.replace(/^\d+\.\s/, "")}</li>;
+      if (line.trim() === "") return <br key={i} />;
+      const formatted = line.replace(/\*\*(.*?)\*\*/g, '<strong class="text-white">$1</strong>');
+      return <p key={i} className="text-gray-300" dangerouslySetInnerHTML={{ __html: formatted }} />;
+    });
+  };
+
+  return (
+    <div className="space-y-6">
+      <Card className="bg-gradient-to-r from-indigo-900/50 to-purple-900/50 border-indigo-500/30">
+        <CardHeader>
+          <CardTitle className="text-xl text-white flex items-center gap-2">
+            <Brain className="w-6 h-6 text-indigo-400" />
+            Agent Collaboration — Brainstorming
+          </CardTitle>
+          <CardDescription className="text-gray-300">
+            Bring your AI agents together for a team brainstorming session. Each agent provides their unique perspective, then Boss AI synthesizes everything into an action plan.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <label className="text-sm text-gray-400 mb-2 block">Select Agents for Brainstorm</label>
+            <div className="flex flex-wrap gap-2">
+              {AGENTS.map(agent => (
+                <button
+                  key={agent.slug}
+                  onClick={() => toggleAgent(agent.slug)}
+                  className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
+                    selectedAgents.includes(agent.slug)
+                      ? `bg-gradient-to-r ${agentColors[agent.slug]} text-white shadow-lg`
+                      : "bg-[#1E2448] text-gray-400 hover:text-gray-200"
+                  }`}
+                  data-testid={`toggle-agent-${agent.slug}`}
+                >
+                  {agentIcons[agent.slug]} {agent.name.split(" — ")[0]}
+                </button>
+              ))}
+              <button
+                onClick={() => setSelectedAgents(selectedAgents.length === AGENTS.length ? [] : AGENTS.map(a => a.slug))}
+                className="px-3 py-1.5 rounded-full text-sm font-medium bg-[#0A0E27] text-gray-400 hover:text-white border border-[#1E2448]"
+                data-testid="toggle-all-agents"
+              >
+                {selectedAgents.length === AGENTS.length ? "Deselect All" : "Select All"}
+              </button>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Input
+              value={topic}
+              onChange={(e) => setTopic(e.target.value)}
+              placeholder="Enter a topic, question, or challenge for the team..."
+              className="bg-[#0A0E27] border-[#1E2448] text-white flex-1"
+              onKeyDown={(e) => e.key === "Enter" && !loading && startBrainstorm()}
+              disabled={loading}
+              data-testid="input-collaboration-topic"
+            />
+            <Button
+              onClick={startBrainstorm}
+              disabled={loading || !topic.trim() || selectedAgents.length === 0}
+              className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white px-6"
+              data-testid="button-start-brainstorm"
+            >
+              {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Zap className="w-4 h-4 mr-2" />}
+              {loading ? "Thinking..." : "Brainstorm"}
+            </Button>
+          </div>
+
+          {loading && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-sm text-indigo-300">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                {selectedAgents.length} agents are analyzing the topic...
+              </div>
+              <div className="w-full bg-[#0A0E27] rounded-full h-2">
+                <div
+                  className="bg-gradient-to-r from-indigo-500 to-purple-500 h-2 rounded-full transition-all duration-500"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {result && (
+        <>
+          <Card className="bg-gradient-to-r from-amber-900/30 to-orange-900/30 border-amber-500/30">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg text-white flex items-center gap-2">
+                  <Crown className="w-5 h-5 text-amber-400" />
+                  Boss AI — Unified Synthesis
+                </CardTitle>
+                <div className="flex items-center gap-2">
+                  <Badge className="bg-indigo-600/30 text-indigo-300 border-indigo-500/30">
+                    {result.meta.successCount}/{result.meta.agentCount} agents
+                  </Badge>
+                  <Badge className="bg-green-600/30 text-green-300 border-green-500/30">
+                    ${parseFloat(result.meta.totalCost).toFixed(4)} cost
+                  </Badge>
+                  <Badge className="bg-violet-600/30 text-violet-300 border-violet-500/30">
+                    {result.meta.totalTokens.toLocaleString()} tokens
+                  </Badge>
+                </div>
+              </div>
+              <CardDescription className="text-gray-400 mt-1">
+                Topic: "{result.topic}"
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="prose prose-invert max-w-none" data-testid="text-synthesis">
+                {formatCollabText(result.synthesis)}
+              </div>
+            </CardContent>
+          </Card>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {result.agentResponses.map((agent) => (
+              <Card
+                key={agent.slug}
+                className={`bg-[#0A0E27] border-[#1E2448] ${agent.error ? "opacity-60" : ""}`}
+                data-testid={`card-agent-response-${agent.slug}`}
+              >
+                <CardHeader className="pb-2">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
+                      <span className={`w-8 h-8 rounded-full bg-gradient-to-r ${agentColors[agent.slug]} flex items-center justify-center text-lg`}>
+                        {agentIcons[agent.slug]}
+                      </span>
+                      {agent.name}
+                    </CardTitle>
+                    {!agent.error && (
+                      <Badge className="bg-[#1E2448] text-gray-400 text-xs">
+                        ${agent.cost.toFixed(4)}
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">{agent.perspective}</p>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-sm max-h-60 overflow-y-auto" data-testid={`text-agent-perspective-${agent.slug}`}>
+                    {agent.error ? (
+                      <p className="text-red-400">{agent.response}</p>
+                    ) : (
+                      formatCollabText(agent.response)
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+interface SpendOverall {
+  total_requests: number;
+  total_cost: string;
+  total_tokens: string;
+  total_prompt_tokens: string;
+  total_completion_tokens: string;
+  unique_users: number;
+  avg_cost_per_request: string;
+}
+
+interface SpendPerAgent {
+  agent_type: string;
+  total_requests: number;
+  total_cost: string;
+  total_tokens: string;
+  prompt_tokens: string;
+  completion_tokens: string;
+  unique_users: number;
+  avg_cost_per_request: string;
+  max_single_cost: string;
+}
+
+interface SpendByModel {
+  model: string;
+  total_requests: number;
+  total_cost: string;
+  total_tokens: string;
+}
+
+interface SpendByOp {
+  operation_type: string;
+  total_requests: number;
+  total_cost: string;
+  total_tokens: string;
+}
+
+interface SpendDaily {
+  day: string;
+  requests: number;
+  cost: string;
+  tokens: string;
+}
+
+interface SpendData {
+  overall: SpendOverall;
+  perAgent: SpendPerAgent[];
+  byModel: SpendByModel[];
+  byOperation: SpendByOp[];
+  dailyTrend: SpendDaily[];
+  perAgentDaily: { agent_type: string; day: string; requests: number; cost: string }[];
+  collaboration: { total_requests: number; total_cost: string; total_tokens: string };
+}
+
+function SpendAnalysisPanel({ token }: { token: string }) {
+  const [data, setData] = useState<SpendData | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const headers = { Authorization: `Bearer ${token}` };
+
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/admin/spend-analysis", { headers });
+      if (res.ok) {
+        const d: SpendData = await res.json();
+        setData(d);
+      }
+    } catch {
+    } finally {
+      setLoading(false);
+    }
+  }, [token]);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
+
+  const agentLabel = (slug: string) => AGENTS.find(a => a.slug === slug)?.name || slug;
+
+  const maxAgentCost = data?.perAgent.length
+    ? Math.max(...data.perAgent.map(a => parseFloat(a.total_cost)))
+    : 1;
+
+  if (loading && !data) {
+    return (
+      <div className="flex items-center justify-center py-20 text-gray-400">
+        <Loader2 className="w-6 h-6 animate-spin mr-2" /> Loading spend analysis...
+      </div>
+    );
+  }
+
+  if (!data) return null;
+
+  const totalCost = parseFloat(data.overall.total_cost);
+  const collabCost = parseFloat(data.collaboration.total_cost);
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card className="bg-[#0A0E27] border-[#1E2448]">
+          <CardContent className="p-4">
+            <p className="text-xs text-gray-400">Total Spend</p>
+            <p className="text-2xl font-bold text-red-400" data-testid="text-spend-total">${totalCost.toFixed(4)}</p>
+            <p className="text-xs text-gray-500 mt-1">{data.overall.total_requests} requests</p>
+          </CardContent>
+        </Card>
+        <Card className="bg-[#0A0E27] border-[#1E2448]">
+          <CardContent className="p-4">
+            <p className="text-xs text-gray-400">Total Tokens</p>
+            <p className="text-2xl font-bold text-violet-400" data-testid="text-spend-tokens">{parseInt(data.overall.total_tokens).toLocaleString()}</p>
+            <p className="text-xs text-gray-500 mt-1">Prompt: {parseInt(data.overall.total_prompt_tokens).toLocaleString()}</p>
+          </CardContent>
+        </Card>
+        <Card className="bg-[#0A0E27] border-[#1E2448]">
+          <CardContent className="p-4">
+            <p className="text-xs text-gray-400">Avg Cost/Request</p>
+            <p className="text-2xl font-bold text-blue-400" data-testid="text-spend-avg">${parseFloat(data.overall.avg_cost_per_request).toFixed(4)}</p>
+            <p className="text-xs text-gray-500 mt-1">{data.overall.unique_users} users</p>
+          </CardContent>
+        </Card>
+        <Card className="bg-[#0A0E27] border-[#1E2448]">
+          <CardContent className="p-4">
+            <p className="text-xs text-gray-400">Collaboration Cost</p>
+            <p className="text-2xl font-bold text-indigo-400" data-testid="text-spend-collab">${collabCost.toFixed(4)}</p>
+            <p className="text-xs text-gray-500 mt-1">{data.collaboration.total_requests} sessions</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card className="bg-[#0A0E27] border-[#1E2448]">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg text-white flex items-center gap-2">
+              <BarChart3 className="w-5 h-5 text-emerald-400" />
+              Per-Agent Spend Breakdown
+            </CardTitle>
+            <Button size="sm" variant="outline" onClick={fetchData} className="border-[#1E2448] text-gray-300" data-testid="button-refresh-spend">
+              <RefreshCw className="w-3.5 h-3.5 mr-1" /> Refresh
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {data.perAgent.length === 0 ? (
+            <p className="text-gray-500 text-center py-8">No usage data yet</p>
+          ) : (
+            data.perAgent.map((agent) => {
+              const cost = parseFloat(agent.total_cost);
+              const pct = maxAgentCost > 0 ? (cost / maxAgentCost) * 100 : 0;
+              const costPctOfTotal = totalCost > 0 ? ((cost / totalCost) * 100).toFixed(1) : "0";
+              return (
+                <div key={agent.agent_type} className="bg-[#131740] rounded-lg p-3" data-testid={`spend-agent-${agent.agent_type}`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-white">{agentLabel(agent.agent_type)}</span>
+                      <Badge className="bg-[#1E2448] text-gray-400 text-xs">{costPctOfTotal}%</Badge>
+                    </div>
+                    <div className="flex items-center gap-3 text-xs text-gray-400">
+                      <span>{agent.total_requests} reqs</span>
+                      <span>{parseInt(agent.total_tokens).toLocaleString()} tokens</span>
+                      <span className="text-red-400 font-semibold">${cost.toFixed(4)}</span>
+                    </div>
+                  </div>
+                  <div className="w-full bg-[#0A0E27] rounded-full h-2">
+                    <div
+                      className="bg-gradient-to-r from-emerald-500 to-emerald-600 h-2 rounded-full transition-all"
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between mt-1 text-xs text-gray-500">
+                    <span>Avg: ${parseFloat(agent.avg_cost_per_request).toFixed(4)}/req</span>
+                    <span>Max: ${parseFloat(agent.max_single_cost).toFixed(4)}</span>
+                    <span>{agent.unique_users} users</span>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </CardContent>
+      </Card>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Card className="bg-[#0A0E27] border-[#1E2448]">
+          <CardHeader>
+            <CardTitle className="text-md text-white flex items-center gap-2">
+              <Cpu className="w-4 h-4 text-cyan-400" /> Cost by Model
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {data.byModel.map((m) => (
+              <div key={m.model} className="flex items-center justify-between p-2 bg-[#131740] rounded" data-testid={`spend-model-${m.model}`}>
+                <span className="text-sm text-white font-mono">{m.model}</span>
+                <div className="flex items-center gap-3 text-xs text-gray-400">
+                  <span>{m.total_requests} reqs</span>
+                  <span className="text-red-400 font-semibold">${parseFloat(m.total_cost).toFixed(4)}</span>
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+
+        <Card className="bg-[#0A0E27] border-[#1E2448]">
+          <CardHeader>
+            <CardTitle className="text-md text-white flex items-center gap-2">
+              <Activity className="w-4 h-4 text-yellow-400" /> Cost by Operation
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {data.byOperation.map((op) => (
+              <div key={op.operation_type} className="flex items-center justify-between p-2 bg-[#131740] rounded" data-testid={`spend-op-${op.operation_type}`}>
+                <span className="text-sm text-white capitalize">{op.operation_type}</span>
+                <div className="flex items-center gap-3 text-xs text-gray-400">
+                  <span>{op.total_requests} reqs</span>
+                  <span className="text-red-400 font-semibold">${parseFloat(op.total_cost).toFixed(4)}</span>
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card className="bg-[#0A0E27] border-[#1E2448]">
+        <CardHeader>
+          <CardTitle className="text-md text-white flex items-center gap-2">
+            <Clock className="w-4 h-4 text-blue-400" /> Daily Trend (Last 30 Days)
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {data.dailyTrend.length === 0 ? (
+            <p className="text-gray-500 text-center py-4">No daily data yet</p>
+          ) : (
+            <div className="space-y-1">
+              {data.dailyTrend.slice(0, 14).map((day) => {
+                const dayCost = parseFloat(day.cost);
+                const maxDayCost = Math.max(...data.dailyTrend.map(d => parseFloat(d.cost)));
+                const barWidth = maxDayCost > 0 ? (dayCost / maxDayCost) * 100 : 0;
+                return (
+                  <div key={day.day} className="flex items-center gap-3" data-testid={`spend-day-${day.day}`}>
+                    <span className="text-xs text-gray-400 w-24 shrink-0">{day.day}</span>
+                    <div className="flex-1 bg-[#131740] rounded-full h-4 relative">
+                      <div
+                        className="bg-gradient-to-r from-blue-500 to-blue-600 h-4 rounded-full transition-all flex items-center justify-end pr-2"
+                        style={{ width: `${Math.max(barWidth, 5)}%` }}
+                      >
+                        <span className="text-[10px] text-white font-medium">${dayCost.toFixed(4)}</span>
+                      </div>
+                    </div>
+                    <span className="text-xs text-gray-500 w-16 text-right">{day.requests} reqs</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 function BossAIPanel({ token }: { token: string }) {
   const [messages, setMessages] = useState<BossMessage[]>([]);
   const [input, setInput] = useState("");
@@ -1771,6 +2289,14 @@ export default function AdminPage() {
             <TabsTrigger value="messages" className="data-[state=active]:bg-teal-600 data-[state=active]:text-white" data-testid="tab-messages">
               Messages
             </TabsTrigger>
+            <TabsTrigger value="collaboration" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:to-purple-600 data-[state=active]:text-white" data-testid="tab-collaboration">
+              <Brain className="w-3.5 h-3.5 mr-1" />
+              Collaboration
+            </TabsTrigger>
+            <TabsTrigger value="spend-analysis" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-500 data-[state=active]:to-teal-600 data-[state=active]:text-white" data-testid="tab-spend-analysis">
+              <BarChart3 className="w-3.5 h-3.5 mr-1" />
+              Spend Analysis
+            </TabsTrigger>
             <TabsTrigger value="costs" className="data-[state=active]:bg-red-600 data-[state=active]:text-white" data-testid="tab-costs">
               <DollarSign className="w-3.5 h-3.5 mr-1" />
               Cost Tracker
@@ -1803,6 +2329,14 @@ export default function AdminPage() {
 
           <TabsContent value="messages">
             <MessagesPanel token={token} />
+          </TabsContent>
+
+          <TabsContent value="collaboration">
+            <CollaborationPanel token={token} />
+          </TabsContent>
+
+          <TabsContent value="spend-analysis">
+            <SpendAnalysisPanel token={token} />
           </TabsContent>
 
           <TabsContent value="costs">

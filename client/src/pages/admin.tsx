@@ -496,6 +496,204 @@ function DocumentsPanel({ agentType, token }: { agentType: string; token: string
   );
 }
 
+function TrainingDataPanel({ agentType, token }: { agentType: string; token: string }) {
+  const [stats, setStats] = useState<{ total_conversations: number; with_tools: number; avg_messages: number; earliest: string | null; latest: string | null } | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [minTurns, setMinTurns] = useState("2");
+  const [toolsOnly, setToolsOnly] = useState(false);
+  const { toast } = useToast();
+
+  const headers = { Authorization: `Bearer ${token}` };
+
+  const fetchStats = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/admin/export-training-data/${agentType}/stats`, { headers });
+      if (!res.ok) throw new Error("Failed to fetch stats");
+      const data = await res.json();
+      if (typeof data.total_conversations === "number") {
+        setStats(data);
+      }
+    } catch (err: any) {
+      toast({ title: "Stats Error", description: err.message, variant: "destructive" });
+      setStats(null);
+    } finally { setLoading(false); }
+  }, [agentType, token]);
+
+  useEffect(() => { fetchStats(); }, [fetchStats]);
+
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      const params = new URLSearchParams({ minTurns, toolsOnly: String(toolsOnly) });
+      const res = await fetch(`/api/admin/export-training-data/${agentType}?${params}`, { headers });
+      if (!res.ok) {
+        let errorMsg = "Export failed";
+        try { const err = await res.json(); errorMsg = err.error || errorMsg; } catch {}
+        throw new Error(errorMsg);
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `training-${agentType}-${Date.now()}.jsonl`;
+      a.click();
+      URL.revokeObjectURL(url);
+
+      const validation = res.headers.get("X-Training-Validation");
+      if (validation) {
+        const v = JSON.parse(validation);
+        toast({
+          title: "Training Data Exported",
+          description: `${v.totalExamples} conversations exported. ${v.meetsMinimum ? "✅ Meets minimum (10+)" : "⚠️ Below minimum (need 10+)"}`,
+        });
+      }
+    } catch (err: any) {
+      toast({ title: "Export Failed", description: err.message, variant: "destructive" });
+    } finally { setExporting(false); }
+  };
+
+  const handleDownloadRules = async () => {
+    try {
+      const res = await fetch("/api/admin/agent-rules-doc", { headers });
+      if (!res.ok) throw new Error("Download failed");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `RentAI24-Agent-Rules.txt`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast({ title: "Rules Document Downloaded", description: "All 9 agent rules exported successfully." });
+    } catch (err: any) {
+      toast({ title: "Download Failed", description: err.message, variant: "destructive" });
+    }
+  };
+
+  const agentName = AGENTS.find(a => a.slug === agentType)?.name || agentType;
+
+  return (
+    <div className="space-y-6">
+      <Card className="bg-[#111633] border-[#1E2448]">
+        <CardHeader>
+          <CardTitle className="text-white flex items-center gap-2">
+            <FileText className="w-5 h-5 text-blue-400" />
+            Agent Rules Document
+          </CardTitle>
+          <CardDescription className="text-gray-400">
+            Download complete documentation of all 9 agent rules, tools, and behavior guidelines
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button
+            onClick={handleDownloadRules}
+            className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600"
+            data-testid="button-download-rules"
+          >
+            <FileText className="w-4 h-4 mr-2" />
+            Download Agent Rules (.txt)
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card className="bg-[#111633] border-[#1E2448]">
+        <CardHeader>
+          <CardTitle className="text-white flex items-center gap-2">
+            <Database className="w-5 h-5 text-violet-400" />
+            Export Training Data — {agentName}
+          </CardTitle>
+          <CardDescription className="text-gray-400">
+            Export chat conversations as JSONL for OpenAI fine-tuning
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {loading ? (
+            <div className="flex items-center gap-2 text-gray-400">
+              <RefreshCw className="w-4 h-4 animate-spin" /> Loading stats...
+            </div>
+          ) : stats ? (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="bg-[#0A0E27] rounded-lg p-3 border border-[#1E2448]">
+                <p className="text-xs text-gray-400">Total Conversations</p>
+                <p className="text-xl font-bold text-white" data-testid="text-total-conversations">{stats.total_conversations}</p>
+              </div>
+              <div className="bg-[#0A0E27] rounded-lg p-3 border border-[#1E2448]">
+                <p className="text-xs text-gray-400">With Tool Usage</p>
+                <p className="text-xl font-bold text-violet-400">{stats.with_tools}</p>
+              </div>
+              <div className="bg-[#0A0E27] rounded-lg p-3 border border-[#1E2448]">
+                <p className="text-xs text-gray-400">Avg Messages/Conv</p>
+                <p className="text-xl font-bold text-cyan-400">{stats.avg_messages}</p>
+              </div>
+              <div className="bg-[#0A0E27] rounded-lg p-3 border border-[#1E2448]">
+                <p className="text-xs text-gray-400">Status</p>
+                <p className="text-xl font-bold">{stats.total_conversations >= 10 ? (
+                  <span className="text-green-400">Ready</span>
+                ) : stats.total_conversations > 0 ? (
+                  <span className="text-yellow-400">Need more</span>
+                ) : (
+                  <span className="text-gray-500">No data</span>
+                )}</p>
+              </div>
+            </div>
+          ) : null}
+
+          <div className="flex flex-col sm:flex-row gap-3 items-end">
+            <div className="flex-1">
+              <label className="text-xs text-gray-400 mb-1 block">Min Conversation Turns</label>
+              <Select value={minTurns} onValueChange={setMinTurns}>
+                <SelectTrigger className="bg-[#0A0E27] border-[#1E2448] text-white" data-testid="select-min-turns">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-[#111633] border-[#1E2448]">
+                  <SelectItem value="1" className="text-white">1+ turns</SelectItem>
+                  <SelectItem value="2" className="text-white">2+ turns</SelectItem>
+                  <SelectItem value="3" className="text-white">3+ turns</SelectItem>
+                  <SelectItem value="5" className="text-white">5+ turns</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex-1">
+              <label className="flex items-center gap-2 text-xs text-gray-400 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={toolsOnly}
+                  onChange={(e) => setToolsOnly(e.target.checked)}
+                  className="rounded border-[#1E2448]"
+                  data-testid="checkbox-tools-only"
+                />
+                Only conversations with tool usage
+              </label>
+            </div>
+            <Button
+              onClick={handleExport}
+              disabled={exporting || !stats || stats.total_conversations === 0}
+              className="bg-gradient-to-r from-violet-500 to-purple-500 hover:from-violet-600 hover:to-purple-600"
+              data-testid="button-export-training"
+            >
+              {exporting ? (
+                <><RefreshCw className="w-4 h-4 mr-2 animate-spin" /> Exporting...</>
+              ) : (
+                <><Zap className="w-4 h-4 mr-2" /> Export JSONL</>
+              )}
+            </Button>
+          </div>
+
+          {stats && stats.total_conversations < 10 && stats.total_conversations > 0 && (
+            <div className="flex items-start gap-2 bg-yellow-900/20 border border-yellow-800/50 rounded-lg p-3">
+              <AlertTriangle className="w-4 h-4 text-yellow-400 mt-0.5 shrink-0" />
+              <p className="text-xs text-yellow-400">
+                {stats.total_conversations} conversations collected. OpenAI recommends at least 50 for good results. Keep chatting with this agent to build more training data.
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 function FineTuningPanel({ agentType, token }: { agentType: string; token: string }) {
   const [jobs, setJobs] = useState<FineTuningJob[]>([]);
   const [loading, setLoading] = useState(false);
@@ -1044,7 +1242,7 @@ export default function AdminPage() {
     return <AdminLoginForm onLogin={handleLogin} />;
   }
 
-  const showAgentSelector = activeTab === "rag" || activeTab === "fine-tuning";
+  const showAgentSelector = activeTab === "rag" || activeTab === "fine-tuning" || activeTab === "training-data";
 
   return (
     <div className="min-h-screen bg-[#0A0E27] pt-20">
@@ -1119,6 +1317,10 @@ export default function AdminPage() {
             <TabsTrigger value="rag" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white" data-testid="tab-rag">
               Knowledge Base
             </TabsTrigger>
+            <TabsTrigger value="training-data" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white" data-testid="tab-training-data">
+              <Database className="w-3.5 h-3.5 mr-1" />
+              Training Data
+            </TabsTrigger>
             <TabsTrigger value="fine-tuning" className="data-[state=active]:bg-violet-600 data-[state=active]:text-white" data-testid="tab-fine-tuning">
               Fine-Tuning
             </TabsTrigger>
@@ -1141,6 +1343,10 @@ export default function AdminPage() {
 
           <TabsContent value="rag">
             <DocumentsPanel key={`docs-${selectedAgent}`} agentType={selectedAgent} token={token} />
+          </TabsContent>
+
+          <TabsContent value="training-data">
+            <TrainingDataPanel key={`td-${selectedAgent}`} agentType={selectedAgent} token={token} />
           </TabsContent>
 
           <TabsContent value="fine-tuning">

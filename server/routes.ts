@@ -2,7 +2,7 @@ import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import OpenAI from "openai";
 import bcrypt from "bcrypt";
-import { chatMessageSchema, contactFormSchema, registerSchema, loginSchema, newsletterSchema } from "@shared/schema";
+import { chatMessageSchema, contactFormSchema, registerSchema, loginSchema, newsletterSchema, chatLogs } from "@shared/schema";
 import { z } from "zod";
 import { storage } from "./storage";
 import { requireAuth } from "./auth";
@@ -14,7 +14,7 @@ import { createFineTuningJob, syncJobStatus, getJobsByAgent, toggleActiveModel, 
 import { getToolsForAgent, executeToolCall } from "./agentTools";
 import { getImagePath, chatImageDir } from "./imageService";
 import { db } from "./db";
-import { sql } from "drizzle-orm";
+import { sql, eq, desc } from "drizzle-orm";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
@@ -925,6 +925,24 @@ export async function registerRoutes(
 
       const reply = assistantMessage?.content || "Sorry, I couldn't generate a response. Please try again.";
 
+      if (req.session.userId) {
+        const fullConversation = [
+          ...(conversationHistory || []).map((m: any) => ({ role: m.role, content: m.content })),
+          { role: "user", content: message },
+          { role: "assistant", content: reply },
+        ];
+        const messageCount = fullConversation.filter((m: any) => m.role === "user").length;
+        if (messageCount >= 2) {
+          db.insert(chatLogs).values({
+            userId: req.session.userId,
+            agentType,
+            messages: fullConversation,
+            toolsUsed: actions.length > 0,
+            messageCount,
+          }).catch(err => console.error("Chat log save error:", err.message));
+        }
+      }
+
       res.json({ reply, actions: actions.length > 0 ? actions : undefined });
     } catch (error: any) {
       console.error("Chat API error:", error?.message || error);
@@ -1552,6 +1570,163 @@ export async function registerRoutes(
         totalRequests: (costResult.rows[0] as any)?.total_requests || 0,
         totalContacts: (messagesResult.rows[0] as any)?.contacts || 0,
       });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/admin/export-training-data/:agentType", requireAdmin, async (req, res) => {
+    try {
+      const { agentType } = req.params;
+      const minTurns = Math.min(Math.max(parseInt(req.query.minTurns as string) || 2, 1), 20);
+      const toolsOnly = req.query.toolsOnly === "true";
+
+      let query = db.select().from(chatLogs).where(eq(chatLogs.agentType, agentType));
+      
+      const logs = await query.orderBy(desc(chatLogs.createdAt));
+      
+      const systemPrompt = agentSystemPrompts[agentType] || defaultSystemPrompt;
+      
+      const jsonlLines: string[] = [];
+      
+      for (const log of logs) {
+        const msgs = log.messages as Array<{ role: string; content: string }>;
+        if (!msgs || !Array.isArray(msgs)) continue;
+        
+        const userCount = msgs.filter(m => m.role === "user").length;
+        if (userCount < minTurns) continue;
+        if (toolsOnly && !log.toolsUsed) continue;
+        
+        const trainingMessages = [
+          { role: "system", content: systemPrompt },
+          ...msgs.map(m => ({ role: m.role, content: m.content })),
+        ];
+        
+        jsonlLines.push(JSON.stringify({ messages: trainingMessages }));
+      }
+      
+      if (jsonlLines.length === 0) {
+        return res.status(404).json({ error: "No training data found matching filters. Need more chat conversations." });
+      }
+      
+      const validation = {
+        totalExamples: jsonlLines.length,
+        meetsMinimum: jsonlLines.length >= 10,
+        agentType,
+        filters: { minTurns, toolsOnly },
+      };
+      
+      res.setHeader("Content-Type", "application/x-ndjson");
+      res.setHeader("Content-Disposition", `attachment; filename="training-${agentType}-${Date.now()}.jsonl"`);
+      res.setHeader("X-Training-Validation", JSON.stringify(validation));
+      res.send(jsonlLines.join("\n"));
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/admin/export-training-data/:agentType/stats", requireAdmin, async (req, res) => {
+    try {
+      const { agentType } = req.params;
+      const result = await db.execute(sql`
+        SELECT 
+          COUNT(*)::int as total_conversations,
+          COUNT(CASE WHEN tools_used THEN 1 END)::int as with_tools,
+          COALESCE(AVG(message_count), 0)::int as avg_messages,
+          MIN(created_at)::text as earliest,
+          MAX(created_at)::text as latest
+        FROM chat_logs
+        WHERE agent_type = ${agentType}
+      `);
+      res.json(result.rows[0] || { total_conversations: 0, with_tools: 0, avg_messages: 0 });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/admin/agent-rules-doc", requireAdmin, async (_req, res) => {
+    try {
+      const agentRules = Object.entries(agentSystemPrompts).map(([key, prompt]) => {
+        const nameMatch = prompt.match(/You are "([^"]+)"/);
+        const roleMatch = prompt.match(/YOUR ROLE: (.+?)(?:\n|ONLY)/);
+        const allowedMatch = prompt.match(/ALLOWED TASKS: (.+?)(?:\n|FORBIDDEN)/s);
+        const forbiddenMatch = prompt.match(/FORBIDDEN: (.+?)(?:\n\n|YOU HAVE)/s);
+        const toolsMatch = prompt.match(/REAL ACTIONS:\n([\s\S]+?)(?:\n\nIMPORTANT|WHEN TO USE)/);
+        const behaviorMatch = prompt.match(/BEHAVIOR RULES:\n([\s\S]+?)(?:\nCONFIDENTIALITY|$)/);
+        
+        return {
+          agentType: key,
+          persona: nameMatch?.[1] || key,
+          displayName: agentNameMap[key] || key,
+          role: roleMatch?.[1]?.trim() || "",
+          allowedTasks: allowedMatch?.[1]?.trim() || "",
+          forbidden: forbiddenMatch?.[1]?.trim() || "",
+          tools: toolsMatch?.[1]?.trim().split("\n").map(t => t.replace(/^- /, "").trim()).filter(Boolean) || [],
+          behaviorRules: behaviorMatch?.[1]?.trim().split("\n").map(r => r.replace(/^- /, "").trim()).filter(Boolean) || [],
+        };
+      });
+
+      let textContent = "═══════════════════════════════════════════════════════════════\n";
+      textContent += "                    RENTAI 24 — AI AGENT RULES\n";
+      textContent += "                    Complete Documentation\n";
+      textContent += `                    Generated: ${new Date().toISOString().split("T")[0]}\n`;
+      textContent += "═══════════════════════════════════════════════════════════════\n\n";
+
+      textContent += "SHARED RULES (All Agents)\n";
+      textContent += "─────────────────────────\n";
+      textContent += "1. BRAND CONFIDENTIALITY: Never reveal OpenAI, GPT, or any third-party technology.\n";
+      textContent += "   Always say: 'Built by RentAI 24 using proprietary AI technology.'\n\n";
+      textContent += "2. ONBOARDING GUIDANCE: Break tasks into steps, use tools proactively,\n";
+      textContent += "   ask clarifying questions, summarize after actions, redirect outside scope.\n\n";
+      textContent += "3. LANGUAGE: Respond in the same language the user writes in.\n\n";
+      textContent += "═══════════════════════════════════════════════════════════════\n\n";
+
+      for (const agent of agentRules) {
+        textContent += `▶ ${agent.persona} — ${agent.displayName}\n`;
+        textContent += "─────────────────────────\n";
+        textContent += `Agent Type: ${agent.agentType}\n`;
+        textContent += `Role: ${agent.role}\n\n`;
+        
+        if (agent.allowedTasks) {
+          textContent += `ALLOWED: ${agent.allowedTasks}\n\n`;
+        }
+        if (agent.forbidden) {
+          textContent += `FORBIDDEN: ${agent.forbidden}\n\n`;
+        }
+        
+        if (agent.tools.length > 0) {
+          textContent += "TOOLS:\n";
+          for (const tool of agent.tools) {
+            textContent += `  • ${tool}\n`;
+          }
+          textContent += "\n";
+        }
+        
+        if (agent.behaviorRules.length > 0) {
+          textContent += "BEHAVIOR RULES:\n";
+          for (const rule of agent.behaviorRules) {
+            textContent += `  • ${rule}\n`;
+          }
+          textContent += "\n";
+        }
+        
+        textContent += "═══════════════════════════════════════════════════════════════\n\n";
+      }
+
+      textContent += "\n── FINE-TUNING GUIDE ──\n\n";
+      textContent += "1. Collect chat logs (Export Training Data from Admin Panel)\n";
+      textContent += "2. Minimum 50 conversations per agent recommended\n";
+      textContent += "3. JSONL format: {\"messages\": [{\"role\": \"system\", ...}, {\"role\": \"user\", ...}, {\"role\": \"assistant\", ...}]}\n";
+      textContent += "4. Upload JSONL in Admin > Agent > Fine-Tuning tab\n";
+      textContent += "5. Model: gpt-4o-mini (suffix: rentai-{agentType})\n";
+      textContent += "6. After training succeeds, activate the fine-tuned model\n";
+      textContent += "7. Deactivate to revert to base model\n\n";
+      textContent += `Total Agents: ${agentRules.length}\n`;
+      textContent += `Document Generated: ${new Date().toISOString()}\n`;
+
+      res.setHeader("Content-Type", "text/plain; charset=utf-8");
+      res.setHeader("Content-Disposition", `attachment; filename="RentAI24-Agent-Rules-${Date.now()}.txt"`);
+      res.send(textContent);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }

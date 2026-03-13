@@ -285,6 +285,18 @@ export const insertAgentTaskSchema = createInsertSchema(agentTasks).omit({
 export type AgentTask = typeof agentTasks.$inferSelect;
 export type InsertAgentTask = z.infer<typeof insertAgentTaskSchema>;
 
+export const chatLogs = pgTable("chat_logs", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id),
+  agentType: text("agent_type").notNull(),
+  messages: jsonb("messages").notNull(),
+  toolsUsed: boolean("tools_used").notNull().default(false),
+  messageCount: integer("message_count").notNull().default(0),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
+export type ChatLog = typeof chatLogs.$inferSelect;
+
 export type Lead = typeof leads.$inferSelect;
 export type InsertLead = z.infer<typeof insertLeadSchema>;
 export type AgentAction = typeof agentActions.$inferSelect;

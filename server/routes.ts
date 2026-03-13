@@ -2,7 +2,9 @@ import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import OpenAI from "openai";
 import bcrypt from "bcrypt";
-import { chatMessageSchema, contactFormSchema, registerSchema, loginSchema, newsletterSchema, bossConversations, collaborationSessions } from "@shared/schema";
+import passport from "passport";
+import { Strategy as GoogleStrategy } from "passport-google-oauth20";
+import { chatMessageSchema, contactFormSchema, registerSchema, loginSchema, newsletterSchema, bossConversations, collaborationSessions, type User } from "@shared/schema";
 import { z } from "zod";
 import { storage } from "./storage";
 import { requireAuth } from "./auth";
@@ -314,7 +316,7 @@ export async function registerRoutes(
     req.session.userId = user.id;
     req.session.save(() => {
       res.json({
-        user: { id: user.id, username: user.username, email: user.email, fullName: user.fullName, company: user.company },
+        user: { id: user.id, username: user.username, email: user.email, fullName: user.fullName, company: user.company, role: user.role },
       });
     });
   });
@@ -332,6 +334,10 @@ export async function registerRoutes(
       return res.status(401).json({ error: "Invalid email or password" });
     }
 
+    if (!user.password) {
+      return res.status(401).json({ error: "This account uses Google sign-in. Please sign in with Google instead." });
+    }
+
     const valid = await bcrypt.compare(password, user.password);
     if (!valid) {
       return res.status(401).json({ error: "Invalid email or password" });
@@ -344,7 +350,7 @@ export async function registerRoutes(
       req.session.userId = user.id;
       req.session.save(() => {
         res.json({
-          user: { id: user.id, username: user.username, email: user.email, fullName: user.fullName, company: user.company },
+          user: { id: user.id, username: user.username, email: user.email, fullName: user.fullName, company: user.company, role: user.role },
         });
       });
     });
@@ -374,10 +380,70 @@ export async function registerRoutes(
         email: user.email,
         fullName: user.fullName,
         company: user.company,
+        role: user.role,
         hasSubscription: !!user.stripeSubscriptionId,
       },
     });
   });
+
+  if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+    passport.use(
+      new GoogleStrategy(
+        {
+          clientID: process.env.GOOGLE_CLIENT_ID,
+          clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+          callbackURL: "/api/auth/google/callback",
+          state: true,
+        },
+        async (_accessToken, _refreshToken, profile, done) => {
+          try {
+            const email = profile.emails?.[0]?.value;
+            if (!email) {
+              return done(new Error("No email found in Google profile"));
+            }
+
+            let user = await storage.getUserByEmail(email);
+            if (!user) {
+              const username = email.split("@")[0] + "_" + Date.now().toString(36);
+              user = await storage.createUser({
+                username,
+                email,
+                password: null,
+                fullName: profile.displayName || email.split("@")[0],
+                company: null,
+              });
+            }
+            return done(null, user);
+          } catch (err) {
+            return done(err as Error);
+          }
+        }
+      )
+    );
+
+    passport.serializeUser((user, done) => done(null, (user as User).id));
+    passport.deserializeUser(async (id: number, done) => {
+      const user = await storage.getUserById(id);
+      done(null, user || undefined);
+    });
+
+    app.get(
+      "/api/auth/google",
+      passport.authenticate("google", { scope: ["profile", "email"] })
+    );
+
+    app.get(
+      "/api/auth/google/callback",
+      passport.authenticate("google", { failureRedirect: "/login" }),
+      (req, res) => {
+        const user = req.user as User;
+        req.session.userId = user.id;
+        req.session.save(() => {
+          res.redirect("/dashboard");
+        });
+      }
+    );
+  }
 
   const profileUpdateSchema = z.object({
     fullName: z.string().transform(s => s.trim()).pipe(z.string().min(1, "Full name is required")),
@@ -401,6 +467,7 @@ export async function registerRoutes(
         email: updated.email,
         fullName: updated.fullName,
         company: updated.company,
+        role: updated.role,
         hasSubscription: !!updated.stripeSubscriptionId,
       },
     });
@@ -420,6 +487,9 @@ export async function registerRoutes(
     const user = await storage.getUserById(req.session.userId!);
     if (!user) {
       return res.status(404).json({ error: "User not found" });
+    }
+    if (!user.password) {
+      return res.status(400).json({ error: "This account uses Google sign-in and has no password set. Please sign in with Google." });
     }
     const valid = await bcrypt.compare(currentPassword, user.password);
     if (!valid) {

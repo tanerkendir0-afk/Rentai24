@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Bot, Loader2, Eye, EyeOff } from "lucide-react";
+import { SiGoogle } from "react-icons/si";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Login() {
@@ -88,6 +89,27 @@ export default function Login() {
             Sign In
           </Button>
         </form>
+
+        <div className="relative my-6">
+          <div className="absolute inset-0 flex items-center">
+            <span className="w-full border-t border-border" />
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-card px-2 text-muted-foreground">or</span>
+          </div>
+        </div>
+
+        <Button
+          variant="outline"
+          className="w-full"
+          asChild
+          data-testid="button-google-login"
+        >
+          <a href="/api/auth/google">
+            <SiGoogle className="w-4 h-4 mr-2" />
+            Sign in with Google
+          </a>
+        </Button>
 
         <p className="text-center text-sm text-muted-foreground mt-6">
           Don't have an account?{" "}

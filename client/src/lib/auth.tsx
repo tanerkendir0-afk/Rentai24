@@ -8,6 +8,7 @@ interface AuthUser {
   email: string;
   fullName: string;
   company: string | null;
+  role: "user" | "agent_manager" | "admin";
   hasSubscription: boolean;
 }
 

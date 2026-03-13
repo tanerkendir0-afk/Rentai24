@@ -1,6 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
-import memorystore from "memorystore";
+import connectPgSimple from "connect-pg-simple";
+import passport from "passport";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { startCampaignRunner } from "./campaignRunner";
@@ -52,7 +53,7 @@ app.use(
 
 app.use(express.urlencoded({ extended: false }));
 
-const MemoryStore = memorystore(session);
+const PgStore = connectPgSimple(session);
 
 const isProduction = process.env.NODE_ENV === "production";
 
@@ -63,7 +64,10 @@ app.use(
     secret: process.env.SESSION_SECRET || "rentai24-dev-secret",
     resave: false,
     saveUninitialized: false,
-    store: new MemoryStore({ checkPeriod: 86400000 }),
+    store: new PgStore({
+      pool: pool as unknown as import("pg").Pool,
+      createTableIfMissing: true,
+    }),
     cookie: {
       secure: isProduction,
       httpOnly: true,
@@ -72,6 +76,9 @@ app.use(
     },
   }),
 );
+
+app.use(passport.initialize());
+app.use(passport.session());
 
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {

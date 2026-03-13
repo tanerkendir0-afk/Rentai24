@@ -481,6 +481,18 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/integrations/gmail/disconnect", requireAuth, async (req, res) => {
+    const { setGmailDisabled } = await import("./emailService");
+    setGmailDisabled(true);
+    res.json({ success: true, message: "Gmail disconnected" });
+  });
+
+  app.post("/api/integrations/gmail/reconnect", requireAuth, async (req, res) => {
+    const { setGmailDisabled } = await import("./emailService");
+    setGmailDisabled(false);
+    res.json({ success: true, message: "Gmail reconnected" });
+  });
+
   app.get("/api/leads", requireAuth, async (req, res) => {
     const userLeads = await storage.getLeadsByUser(req.session.userId!);
     res.json(userLeads);

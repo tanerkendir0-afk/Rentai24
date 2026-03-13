@@ -3,6 +3,15 @@ import { storage } from "./storage";
 import { isGmailConnected, sendViaGmail } from "./gmailService";
 
 let resendConnectionSettings: Record<string, string> | null = null;
+let gmailDisabledByUser = false;
+
+export function setGmailDisabled(disabled: boolean) {
+  gmailDisabledByUser = disabled;
+}
+
+export function isGmailDisabledByUser(): boolean {
+  return gmailDisabledByUser;
+}
 
 async function getResendCredentials(): Promise<{ apiKey: string; fromEmail: string }> {
   const hostname = process.env.REPLIT_CONNECTORS_HOSTNAME;
@@ -73,7 +82,7 @@ export async function sendEmail(params: {
   agentType: string;
 }): Promise<{ success: boolean; message: string; provider?: string }> {
   try {
-    const gmailAvailable = await isGmailConnected();
+    const gmailAvailable = !gmailDisabledByUser && await isGmailConnected();
 
     if (gmailAvailable) {
       const gmailResult = await sendViaGmail({
@@ -130,6 +139,9 @@ export async function sendEmail(params: {
 }
 
 export async function getEmailStatus(): Promise<{ provider: string; address: string | null; connected: boolean }> {
+  if (gmailDisabledByUser) {
+    return { provider: "platform", address: null, connected: true };
+  }
   const gmailConnected = await isGmailConnected();
   if (gmailConnected) {
     const { getGmailAddress } = await import("./gmailService");

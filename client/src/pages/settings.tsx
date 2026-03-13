@@ -246,15 +246,53 @@ export default function Settings() {
               </div>
               <div className="flex items-center gap-2">
                 {emailStatus?.provider === "gmail" ? (
-                  <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/30 gap-1" data-testid="badge-gmail-connected">
-                    <CheckCircle2 className="w-3 h-3" />
-                    Connected
-                  </Badge>
+                  <>
+                    <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/30 gap-1" data-testid="badge-gmail-connected">
+                      <CheckCircle2 className="w-3 h-3" />
+                      Connected
+                    </Badge>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs text-red-400 border-red-500/30 hover:bg-red-500/10 hover:text-red-300"
+                      onClick={async () => {
+                        try {
+                          await apiRequest("POST", "/api/integrations/gmail/disconnect");
+                          queryClient.invalidateQueries({ queryKey: ["/api/email-status"] });
+                          toast({ title: "Gmail disconnected", description: "Gmail integration has been deactivated." });
+                        } catch {
+                          toast({ title: "Error", description: "Failed to disconnect Gmail.", variant: "destructive" });
+                        }
+                      }}
+                      data-testid="button-disconnect-gmail"
+                    >
+                      Disconnect
+                    </Button>
+                  </>
                 ) : (
-                  <Badge variant="secondary" className="bg-muted text-muted-foreground gap-1" data-testid="badge-gmail-disconnected">
-                    <XCircle className="w-3 h-3" />
-                    Not Connected
-                  </Badge>
+                  <>
+                    <Badge variant="secondary" className="bg-muted text-muted-foreground gap-1" data-testid="badge-gmail-disconnected">
+                      <XCircle className="w-3 h-3" />
+                      Not Connected
+                    </Badge>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10 hover:text-emerald-300"
+                      onClick={async () => {
+                        try {
+                          await apiRequest("POST", "/api/integrations/gmail/reconnect");
+                          queryClient.invalidateQueries({ queryKey: ["/api/email-status"] });
+                          toast({ title: "Gmail reconnected", description: "Gmail integration has been reactivated." });
+                        } catch {
+                          toast({ title: "Error", description: "Failed to reconnect Gmail.", variant: "destructive" });
+                        }
+                      }}
+                      data-testid="button-reconnect-gmail"
+                    >
+                      Reconnect
+                    </Button>
+                  </>
                 )}
               </div>
             </div>
@@ -268,10 +306,23 @@ export default function Settings() {
                   <p className="text-xs text-muted-foreground">Fallback email service for agent communications</p>
                 </div>
               </div>
-              <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/30 gap-1" data-testid="badge-platform-email">
-                <CheckCircle2 className="w-3 h-3" />
-                Active
-              </Badge>
+              <div className="flex items-center gap-2">
+                <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/30 gap-1" data-testid="badge-platform-email">
+                  <CheckCircle2 className="w-3 h-3" />
+                  Active
+                </Badge>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-xs text-red-400 border-red-500/30 hover:bg-red-500/10 hover:text-red-300"
+                  onClick={async () => {
+                    toast({ title: "Cannot deactivate", description: "Platform email is the default fallback and cannot be disabled.", variant: "destructive" });
+                  }}
+                  data-testid="button-deactivate-platform-email"
+                >
+                  Deactivate
+                </Button>
+              </div>
             </div>
           </div>
         </Card>

@@ -36,6 +36,10 @@ import {
   Briefcase,
   Bell,
   Package,
+  KeyRound,
+  RefreshCw,
+  ShieldCheck,
+  ChevronDown,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
@@ -118,6 +122,11 @@ export default function Settings() {
   const [showAddShipping, setShowAddShipping] = useState(false);
   const [shippingForm, setShippingForm] = useState({ provider: "", apiKey: "", customerCode: "", username: "", password: "", accountNumber: "", siteId: "" });
   const [showShippingApiKey, setShowShippingApiKey] = useState(false);
+
+  const [editingSecretId, setEditingSecretId] = useState<number | null>(null);
+  const [secretForm, setSecretForm] = useState<Record<string, string>>({});
+  const [secretSaving, setSecretSaving] = useState(false);
+  const [visibleSecretFields, setVisibleSecretFields] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     if (user) {
@@ -390,6 +399,31 @@ export default function Settings() {
       toast({ title: "Provider connected", description: `${cfg?.name || shippingForm.provider} has been added.` });
     } catch (err: any) {
       toast({ title: "Error", description: err.message || "Failed to add provider", variant: "destructive" });
+    }
+  };
+
+  const handleUpdateSecret = async (id: number, providerKey: string) => {
+    const nonEmpty: Record<string, string> = {};
+    for (const [k, v] of Object.entries(secretForm)) {
+      if (v.trim()) nonEmpty[k] = v.trim();
+    }
+    if (Object.keys(nonEmpty).length === 0) {
+      toast({ title: "No changes", description: "Enter at least one field to update", variant: "destructive" });
+      return;
+    }
+    setSecretSaving(true);
+    try {
+      await apiRequest("PATCH", `/api/shipping-providers/${id}`, nonEmpty);
+      queryClient.invalidateQueries({ queryKey: ["/api/shipping-providers"] });
+      setEditingSecretId(null);
+      setSecretForm({});
+      setVisibleSecretFields({});
+      const cfg = shippingProviderConfig[providerKey];
+      toast({ title: "Secrets updated", description: `${cfg?.name || providerKey} credentials have been updated.` });
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message || "Failed to update secrets", variant: "destructive" });
+    } finally {
+      setSecretSaving(false);
     }
   };
 
@@ -1223,6 +1257,146 @@ export default function Settings() {
             </div>
           )}
         </Card>
+
+        {shippingProvidersData && shippingProvidersData.length > 0 && (
+          <Card className="p-6 bg-card border-border/50" data-testid="card-api-secrets">
+            <div className="flex items-center gap-2 mb-2">
+              <KeyRound className="w-5 h-5 text-red-400" />
+              <h2 className="text-lg font-semibold text-foreground">API Secrets</h2>
+              <ShieldCheck className="w-4 h-4 text-emerald-500 ml-1" />
+            </div>
+            <p className="text-xs text-muted-foreground mb-4">
+              Manage your shipping provider API credentials securely. Click on a provider to view or update its secrets.
+            </p>
+
+            <div className="space-y-2">
+              {shippingProvidersData.map((sp) => {
+                const cfg = shippingProviderConfig[sp.provider] || { icon: "📦", name: sp.provider, color: "text-gray-400", bgColor: "bg-gray-500/10", fields: ["apiKey"], guide: "" };
+                const isEditing = editingSecretId === sp.id;
+                const fieldList = cfg.fields || ["apiKey"];
+
+                return (
+                  <div key={sp.id} className="rounded-lg border border-border/50 overflow-hidden" data-testid={`secret-provider-${sp.id}`}>
+                    <button
+                      onClick={() => {
+                        if (isEditing) {
+                          setEditingSecretId(null);
+                          setSecretForm({});
+                          setVisibleSecretFields({});
+                        } else {
+                          setEditingSecretId(sp.id);
+                          setSecretForm({});
+                          setVisibleSecretFields({});
+                        }
+                      }}
+                      className="w-full flex items-center justify-between p-3 bg-muted/20 hover:bg-muted/40 transition-colors"
+                      data-testid={`button-secret-toggle-${sp.id}`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`w-8 h-8 rounded-full ${cfg.bgColor} flex items-center justify-center shrink-0`}>
+                          <span className="text-sm">{cfg.icon}</span>
+                        </div>
+                        <div className="text-left">
+                          <p className={`text-sm font-medium ${cfg.color}`}>{cfg.name}</p>
+                          <p className="text-[10px] text-muted-foreground">{fieldList.length} credential{fieldList.length > 1 ? "s" : ""} stored</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Lock className="w-3.5 h-3.5 text-muted-foreground" />
+                        <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${isEditing ? "rotate-180" : ""}`} />
+                      </div>
+                    </button>
+
+                    {isEditing && (
+                      <div className="p-4 border-t border-border/50 space-y-3 bg-muted/10">
+                        <div className="flex items-center gap-2 mb-1">
+                          <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
+                          <p className="text-[10px] text-emerald-400 font-medium">Stored credentials (values are encrypted)</p>
+                        </div>
+
+                        {fieldList.map((field) => {
+                          const isSensitive = field === "apiKey" || field === "password";
+                          const fieldKey = `${sp.id}-${field}`;
+                          const isVisible = visibleSecretFields[fieldKey] || false;
+
+                          const currentMasked = field === "apiKey" ? sp.apiKey : (
+                            (sp as any)[`has${field.charAt(0).toUpperCase() + field.slice(1)}`]
+                              ? "********"
+                              : ""
+                          );
+                          const hasValue = field === "apiKey" ? !!sp.apiKey : !!(sp as any)[`has${field.charAt(0).toUpperCase() + field.slice(1)}`];
+
+                          return (
+                            <div key={field} className="space-y-1">
+                              <div className="flex items-center justify-between">
+                                <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+                                  {isSensitive && <Lock className="w-2.5 h-2.5" />}
+                                  {shippingFieldLabels[field]}
+                                </Label>
+                                {hasValue && (
+                                  <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/30 text-[9px] h-4">
+                                    <CheckCircle2 className="w-2 h-2 mr-0.5" />set
+                                  </Badge>
+                                )}
+                              </div>
+                              <div className="flex gap-2">
+                                <div className="relative flex-1">
+                                  <Input
+                                    type={isSensitive && !isVisible ? "password" : "text"}
+                                    placeholder={hasValue ? `Current: ${currentMasked}` : `Enter ${shippingFieldLabels[field]}`}
+                                    value={secretForm[field] || ""}
+                                    onChange={(e) => setSecretForm(p => ({ ...p, [field]: e.target.value }))}
+                                    className="h-8 text-sm pr-8 font-mono bg-background/50"
+                                    data-testid={`input-secret-${field}-${sp.id}`}
+                                  />
+                                  {isSensitive && (
+                                    <button
+                                      type="button"
+                                      onClick={() => setVisibleSecretFields(p => ({ ...p, [fieldKey]: !isVisible }))}
+                                      className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                                    >
+                                      {isVisible ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+
+                        <div className="flex gap-2 pt-2 border-t border-border/30">
+                          <Button
+                            size="sm"
+                            onClick={() => handleUpdateSecret(sp.id, sp.provider)}
+                            disabled={secretSaving || Object.values(secretForm).every(v => !v.trim())}
+                            className="bg-gradient-to-r from-red-500 to-orange-500 text-white border-0"
+                            data-testid={`button-save-secret-${sp.id}`}
+                          >
+                            {secretSaving ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5 mr-1" />}
+                            Update Secrets
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => { setEditingSecretId(null); setSecretForm({}); setVisibleSecretFields({}); }}
+                            data-testid={`button-cancel-secret-${sp.id}`}
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+
+                        <p className="text-[9px] text-muted-foreground/60 flex items-center gap-1">
+                          <Lock className="w-2.5 h-2.5" />
+                          Leave fields empty to keep current values. Only filled fields will be updated.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </Card>
+        )}
 
         <Card className="p-6 bg-card border-border/50" data-testid="card-subscription">
           <div className="flex items-center gap-2 mb-5">

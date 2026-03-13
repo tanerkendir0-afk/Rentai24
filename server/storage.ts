@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { users, rentals, contactMessages, newsletterSubscribers, leads, agentActions, emailCampaigns, supportTickets, tokenUsage, agentTasks, chatMessages, systemSettings, type User, type InsertUser, type Rental, type InsertRental, type ContactMessage, type InsertContactMessage, type NewsletterSubscriber, type Lead, type InsertLead, type AgentAction, type InsertAgentAction, type EmailCampaign, type InsertEmailCampaign, type SupportTicket, type InsertSupportTicket, type TokenUsage, type InsertTokenUsage, type AgentTask, type InsertAgentTask, type ChatMessage, type InsertChatMessage } from "@shared/schema";
+import { users, rentals, contactMessages, newsletterSubscribers, leads, agentActions, emailCampaigns, supportTickets, tokenUsage, agentTasks, chatMessages, conversations, systemSettings, type User, type InsertUser, type Rental, type InsertRental, type ContactMessage, type InsertContactMessage, type NewsletterSubscriber, type Lead, type InsertLead, type AgentAction, type InsertAgentAction, type EmailCampaign, type InsertEmailCampaign, type SupportTicket, type InsertSupportTicket, type TokenUsage, type InsertTokenUsage, type AgentTask, type InsertAgentTask, type ChatMessage, type InsertChatMessage, type ConversationRecord, type InsertConversation } from "@shared/schema";
 import { eq, and, sql, desc, gte, lte } from "drizzle-orm";
 
 export interface IStorage {
@@ -64,6 +64,12 @@ export interface IStorage {
   saveChatMessage(message: InsertChatMessage): Promise<ChatMessage>;
   getChatMessagesByAgent(agentType: string, filters?: { startDate?: Date; endDate?: Date }): Promise<ChatMessage[]>;
   getChatSessionsByAgent(agentType: string, filters?: { startDate?: Date; endDate?: Date; minTurns?: number; toolUsageOnly?: boolean }): Promise<{ sessionId: string; messages: ChatMessage[] }[]>;
+
+  getConversationsByUser(userId: number, agentType: string): Promise<ConversationRecord[]>;
+  createConversation(convo: InsertConversation): Promise<ConversationRecord>;
+  updateConversationTitle(id: number, userId: number, title: string): Promise<ConversationRecord | undefined>;
+  deleteConversation(id: number, userId: number): Promise<boolean>;
+  getConversationMessages(userId: number, visibleId: string): Promise<ChatMessage[]>;
 
   getSystemSetting(key: string): Promise<string | null>;
   setSystemSetting(key: string, value: string): Promise<void>;
@@ -468,6 +474,38 @@ export class DatabaseStorage implements IStorage {
     }
 
     return sessions;
+  }
+
+  async getConversationsByUser(userId: number, agentType: string): Promise<ConversationRecord[]> {
+    return db.select().from(conversations)
+      .where(and(eq(conversations.userId, userId), eq(conversations.agentType, agentType)))
+      .orderBy(desc(conversations.createdAt));
+  }
+
+  async createConversation(convo: InsertConversation): Promise<ConversationRecord> {
+    const [created] = await db.insert(conversations).values(convo).returning();
+    return created;
+  }
+
+  async updateConversationTitle(id: number, userId: number, title: string): Promise<ConversationRecord | undefined> {
+    const [updated] = await db.update(conversations)
+      .set({ title })
+      .where(and(eq(conversations.id, id), eq(conversations.userId, userId)))
+      .returning();
+    return updated;
+  }
+
+  async deleteConversation(id: number, userId: number): Promise<boolean> {
+    const [deleted] = await db.delete(conversations)
+      .where(and(eq(conversations.id, id), eq(conversations.userId, userId)))
+      .returning();
+    return !!deleted;
+  }
+
+  async getConversationMessages(userId: number, visibleId: string): Promise<ChatMessage[]> {
+    return db.select().from(chatMessages)
+      .where(and(eq(chatMessages.sessionId, visibleId), eq(chatMessages.userId, userId)))
+      .orderBy(chatMessages.createdAt);
   }
 
   async getSystemSetting(key: string): Promise<string | null> {

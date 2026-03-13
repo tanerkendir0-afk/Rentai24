@@ -521,6 +521,47 @@ export async function registerRoutes(
     res.json({ success: true });
   });
 
+  app.get("/api/conversations", requireAuth, async (req, res) => {
+    const agentType = req.query.agentType as string;
+    if (!agentType) return res.status(400).json({ error: "agentType is required" });
+    const convos = await storage.getConversationsByUser(req.session.userId!, agentType);
+    res.json(convos);
+  });
+
+  app.post("/api/conversations", requireAuth, async (req, res) => {
+    const { agentType, visibleId, title } = req.body;
+    if (!agentType || !visibleId) return res.status(400).json({ error: "agentType and visibleId are required" });
+    const convo = await storage.createConversation({
+      visibleId,
+      userId: req.session.userId!,
+      agentType,
+      title: title || "New Chat",
+    });
+    res.json(convo);
+  });
+
+  app.patch("/api/conversations/:id", requireAuth, async (req, res) => {
+    const id = parseInt(req.params.id);
+    const { title } = req.body;
+    if (!title) return res.status(400).json({ error: "title is required" });
+    const updated = await storage.updateConversationTitle(id, req.session.userId!, title);
+    if (!updated) return res.status(404).json({ error: "Conversation not found" });
+    res.json(updated);
+  });
+
+  app.delete("/api/conversations/:id", requireAuth, async (req, res) => {
+    const id = parseInt(req.params.id);
+    const deleted = await storage.deleteConversation(id, req.session.userId!);
+    if (!deleted) return res.status(404).json({ error: "Conversation not found" });
+    res.json({ success: true });
+  });
+
+  app.get("/api/conversations/:visibleId/messages", requireAuth, async (req, res) => {
+    const { visibleId } = req.params;
+    const messages = await storage.getConversationMessages(req.session.userId!, visibleId);
+    res.json(messages);
+  });
+
   app.get("/api/campaigns", requireAuth, async (req, res) => {
     const campaigns = await storage.getCampaignsByUser(req.session.userId!);
     res.json(campaigns);

@@ -64,6 +64,7 @@ interface Message {
 
 interface Conversation {
   id: string;
+  dbId?: number;
   messages: Message[];
   title: string;
   createdAt: number;
@@ -91,117 +92,98 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
   const { user } = useAuth();
   const [selectedAgent, setSelectedAgent] = useState(agentOptions[0].id);
 
-  const createConversation = (): Conversation => ({
-    id: Date.now().toString() + Math.random().toString(36).slice(2, 6),
-    messages: [],
-    title: "New Chat",
-    createdAt: Date.now(),
+  const generateVisibleId = () => Date.now().toString() + Math.random().toString(36).slice(2, 6);
+
+  const [activeConvoId, setActiveConvoId] = useState<Record<string, string>>({});
+  const [localMessages, setLocalMessages] = useState<Record<string, Message[]>>({});
+
+  const { data: serverConversations = [], isLoading: convosLoading } = useQuery<any[]>({
+    queryKey: ['/api/conversations', selectedAgent],
+    queryFn: () => fetch(`/api/conversations?agentType=${selectedAgent}`).then(r => r.json()),
+    enabled: !!user,
+    staleTime: 5000,
   });
 
-  const [agentConversations, setAgentConversations] = useState<Record<string, Conversation[]>>(() => {
-    try {
-      const saved = localStorage.getItem("rentai_conversations");
-      return saved ? JSON.parse(saved) : {};
-    } catch { return {}; }
-  });
-  const [activeConvoId, setActiveConvoId] = useState<Record<string, string>>(() => {
-    try {
-      const saved = localStorage.getItem("rentai_active_convo");
-      return saved ? JSON.parse(saved) : {};
-    } catch { return {}; }
-  });
+  const conversations: Conversation[] = serverConversations.map((c: any) => ({
+    id: c.visibleId,
+    dbId: c.id,
+    messages: localMessages[c.visibleId] || [],
+    title: c.title,
+    createdAt: new Date(c.createdAt).getTime(),
+  }));
 
-  const prevUserRef = useRef<string | null>(null);
-  useEffect(() => {
-    const currentUserId = user?.id?.toString() || null;
-    if (prevUserRef.current !== null && prevUserRef.current !== currentUserId) {
-      const newConvo = createConversation();
-      setAgentConversations(prev => {
-        const updated = { ...prev };
-        for (const agentId of Object.keys(updated)) {
-          updated[agentId] = [newConvo, ...updated[agentId]];
-        }
-        if (!updated[selectedAgent]) {
-          updated[selectedAgent] = [newConvo];
-        }
-        return updated;
-      });
-      setActiveConvoId(prev => {
-        const updated = { ...prev };
-        for (const agentId of Object.keys(updated)) {
-          updated[agentId] = newConvo.id;
-        }
-        updated[selectedAgent] = newConvo.id;
-        return updated;
-      });
-    }
-    prevUserRef.current = currentUserId;
-  }, [user?.id]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem("rentai_conversations", JSON.stringify(agentConversations));
-    } catch {}
-  }, [agentConversations]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem("rentai_active_convo", JSON.stringify(activeConvoId));
-    } catch {}
-  }, [activeConvoId]);
-
-  const getConversations = (agentId: string): Conversation[] => {
-    if (!agentConversations[agentId] || agentConversations[agentId].length === 0) {
-      const initial = createConversation();
-      setAgentConversations(prev => ({ ...prev, [agentId]: [initial] }));
-      setActiveConvoId(prev => ({ ...prev, [agentId]: initial.id }));
-      return [initial];
-    }
-    return agentConversations[agentId];
-  };
-
-  const conversations = getConversations(selectedAgent);
   const currentConvoId = activeConvoId[selectedAgent] || conversations[0]?.id;
   const currentConvo = conversations.find(c => c.id === currentConvoId) || conversations[0];
-  const messages = currentConvo?.messages || [];
+
+  const { data: serverMessages = [] } = useQuery<any[]>({
+    queryKey: ['/api/conversations', currentConvoId, 'messages'],
+    queryFn: () => fetch(`/api/conversations/${currentConvoId}/messages`).then(r => r.json()),
+    enabled: !!user && !!currentConvoId,
+    staleTime: 10000,
+  });
+
+  useEffect(() => {
+    if (currentConvoId && serverMessages.length > 0 && !localMessages[currentConvoId]) {
+      const mapped: Message[] = serverMessages.map((m: any) => ({
+        role: m.role as "user" | "assistant",
+        content: m.content,
+      }));
+      setLocalMessages(prev => ({ ...prev, [currentConvoId]: mapped }));
+    }
+  }, [serverMessages, currentConvoId]);
+
+  const messages = localMessages[currentConvoId] || [];
 
   const setMessages = (msgs: Message[] | ((prev: Message[]) => Message[])) => {
-    setAgentConversations(prev => {
-      const convos = prev[selectedAgent] || [];
-      return {
-        ...prev,
-        [selectedAgent]: convos.map(c => {
-          if (c.id !== currentConvoId) return c;
-          const newMsgs = typeof msgs === 'function' ? msgs(c.messages) : msgs;
-          const title = c.title === "New Chat" && newMsgs.length > 0
-            ? newMsgs.find(m => m.role === "user")?.content.slice(0, 30) || c.title
-            : c.title;
-          return { ...c, messages: newMsgs, title };
-        }),
-      };
+    if (!currentConvoId) return;
+    setLocalMessages(prev => {
+      const current = prev[currentConvoId] || [];
+      const newMsgs = typeof msgs === 'function' ? msgs(current) : msgs;
+      return { ...prev, [currentConvoId]: newMsgs };
     });
-  };
-
-  const startNewConversation = () => {
-    const newConvo = createConversation();
-    setAgentConversations(prev => ({
-      ...prev,
-      [selectedAgent]: [newConvo, ...(prev[selectedAgent] || [])],
-    }));
-    setActiveConvoId(prev => ({ ...prev, [selectedAgent]: newConvo.id }));
-  };
-
-  const deleteConversation = (convoId: string) => {
-    const convos = agentConversations[selectedAgent] || [];
-    if (convos.length <= 1) return;
-    const idx = convos.findIndex(c => c.id === convoId);
-    const filtered = convos.filter(c => c.id !== convoId);
-    setAgentConversations(prev => ({ ...prev, [selectedAgent]: filtered }));
-    if (currentConvoId === convoId) {
-      const newIdx = Math.min(idx, filtered.length - 1);
-      setActiveConvoId(prev => ({ ...prev, [selectedAgent]: filtered[newIdx].id }));
+    if (currentConvo && currentConvo.title === "New Chat") {
+      const newMsgs = typeof msgs === 'function' ? msgs(messages) : msgs;
+      const firstUserMsg = newMsgs.find(m => m.role === "user")?.content.slice(0, 30);
+      if (firstUserMsg && currentConvo.dbId) {
+        apiRequest("PATCH", `/api/conversations/${currentConvo.dbId}`, { title: firstUserMsg }).then(() => {
+          queryClient.invalidateQueries({ queryKey: ['/api/conversations', selectedAgent] });
+        }).catch(() => {});
+      }
     }
   };
+
+  const startNewConversation = async () => {
+    const visibleId = generateVisibleId();
+    try {
+      await apiRequest("POST", "/api/conversations", { agentType: selectedAgent, visibleId });
+      queryClient.invalidateQueries({ queryKey: ['/api/conversations', selectedAgent] });
+      setActiveConvoId(prev => ({ ...prev, [selectedAgent]: visibleId }));
+    } catch {}
+  };
+
+  const deleteConversation = async (convoId: string) => {
+    if (conversations.length <= 1) return;
+    const convo = conversations.find(c => c.id === convoId);
+    if (!convo?.dbId) return;
+    try {
+      await apiRequest("DELETE", `/api/conversations/${convo.dbId}`);
+      queryClient.invalidateQueries({ queryKey: ['/api/conversations', selectedAgent] });
+      if (currentConvoId === convoId) {
+        const remaining = conversations.filter(c => c.id !== convoId);
+        if (remaining.length > 0) {
+          setActiveConvoId(prev => ({ ...prev, [selectedAgent]: remaining[0].id }));
+        }
+      }
+    } catch {}
+  };
+
+  const hasAutoCreated = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (user && conversations.length === 0 && !convosLoading && !hasAutoCreated.current.has(selectedAgent)) {
+      hasAutoCreated.current.add(selectedAgent);
+      startNewConversation();
+    }
+  }, [user, conversations.length, convosLoading, selectedAgent]);
 
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -690,7 +672,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                   onClick={() => setActiveConvoId(prev => ({ ...prev, [selectedAgent]: convo.id }))}
                   data-testid={`tab-convo-${convo.id}`}
                 >
-                  <span>{convo.messages.length === 0 ? "New Chat" : convo.title}</span>
+                  <span>{convo.title || "New Chat"}</span>
                   {conversations.length > 1 && (
                     <button
                       onClick={(e) => { e.stopPropagation(); deleteConversation(convo.id); }}

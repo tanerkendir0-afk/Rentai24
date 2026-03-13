@@ -286,6 +286,23 @@ export const insertAgentTaskSchema = createInsertSchema(agentTasks).omit({
 export type AgentTask = typeof agentTasks.$inferSelect;
 export type InsertAgentTask = z.infer<typeof insertAgentTaskSchema>;
 
+export const conversations = pgTable("conversations", {
+  id: serial("id").primaryKey(),
+  visibleId: text("visible_id").notNull(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  agentType: text("agent_type").notNull(),
+  title: text("title").notNull().default("New Chat"),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
+export const insertConversationSchema = createInsertSchema(conversations).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type ConversationRecord = typeof conversations.$inferSelect;
+export type InsertConversation = z.infer<typeof insertConversationSchema>;
+
 export const chatMessages = pgTable("chat_messages", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").references(() => users.id),

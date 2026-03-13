@@ -52,6 +52,7 @@ const agentIcons: Record<string, any> = {
   "hr-recruiting": Users,
   "data-analyst": BarChart3,
   "ecommerce-ops": Package,
+  "real-estate": Building2,
 };
 
 const industryIcons: Record<string, any> = {

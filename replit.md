@@ -11,11 +11,11 @@ The RentAI 24 platform is built with a modern web stack. The frontend utilizes R
 
 **Key Features:**
 
-*   **AI Worker Catalog:** A dedicated section showcasing 8 distinct AI agents, each with a specific persona (e.g., Ava the Customer Support Agent, Rex the Sales Development Rep).
+*   **AI Worker Catalog:** A dedicated section showcasing 9 distinct AI agents, each with a specific persona (e.g., Ava the Customer Support Agent, Rex the Sales Development Rep, Reno the Real Estate Agent).
 *   **User Authentication & Authorization:** Session-based authentication using `express-session` and `bcrypt` for secure user management, including login, registration, and protected routes.
 *   **Customer Dashboard:** A personalized dashboard for users to manage rented AI workers, monitor usage statistics, and handle billing.
 *   **Admin Panel:** A password-protected interface for administrators to manage RAG (Retrieval Augmented Generation) documents, fine-tune AI models, and monitor system activity.
-*   **AI Tooling System:** A generalized tool registry allows AI agents to perform specific actions (e.g., sending emails, creating tickets, generating images). This includes tools for sales (Rex), customer support (Ava), scheduling (Cal), data analysis (DataBot), social media (Maya), bookkeeping (Finn), HR (Harper), and e-commerce (ShopBot).
+*   **AI Tooling System:** A generalized tool registry allows AI agents to perform specific actions (e.g., sending emails, creating tickets, generating images). This includes tools for sales (Rex), customer support (Ava), scheduling (Cal), data analysis (DataBot), social media (Maya), bookkeeping (Finn), HR (Harper), e-commerce (ShopBot), and real estate (Reno).
 *   **RAG & Fine-tuning:** Supports uploading documents for RAG, chunking, embedding using `text-embedding-3-small`, and vector storage via `pgvector`. It also facilitates OpenAI fine-tuning for specialized agent models.
 *   **Image Credits & Uploads:** Users can purchase image credits for AI image generation (DALL-E 3) and stock photo searches. The platform supports in-chat image uploads.
 *   **Token Cost Tracker:** Admin panel tracks all OpenAI API token usage per request — model, prompt/completion tokens, USD cost. Summary and detailed views with $0.01+ expensive request filter. DB table: `token_usage`. Admin APIs: `/api/admin/token-usage/totals`, `/summary`, `/detailed`.

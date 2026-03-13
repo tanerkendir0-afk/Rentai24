@@ -19,6 +19,7 @@ import {
   MessageSquarePlus,
   BarChart3,
   Package,
+  Building2,
   Lock,
   Plus,
   Coins,
@@ -77,6 +78,7 @@ const agentOptions = [
   { id: "hr-recruiting", name: "HR & Recruiting", persona: "Harper", icon: Users, color: "from-teal-500 to-cyan-500", accent: "text-teal-400", bg: "bg-teal-500/10" },
   { id: "data-analyst", name: "Data Analyst", persona: "DataBot", icon: BarChart3, color: "from-indigo-500 to-blue-500", accent: "text-indigo-400", bg: "bg-indigo-500/10" },
   { id: "ecommerce-ops", name: "E-Commerce Ops", persona: "ShopBot", icon: Package, color: "from-amber-500 to-yellow-500", accent: "text-amber-400", bg: "bg-amber-500/10" },
+  { id: "real-estate", name: "Real Estate", persona: "Reno", icon: Building2, color: "from-rose-500 to-red-500", accent: "text-rose-400", bg: "bg-rose-500/10" },
 ];
 
 interface RentalData {

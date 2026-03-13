@@ -24,6 +24,7 @@ import {
   Globe,
   BarChart3,
   Package,
+  Building2,
   Check,
   Zap,
   Loader2,
@@ -45,6 +46,7 @@ const agentIcons: Record<string, any> = {
   "hr-recruiting": Users,
   "data-analyst": BarChart3,
   "ecommerce-ops": Package,
+  "real-estate": Building2,
 };
 
 export default function WorkerProfile() {

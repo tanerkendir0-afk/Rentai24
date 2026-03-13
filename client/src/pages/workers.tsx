@@ -33,6 +33,7 @@ import {
   Plug,
   BarChart3,
   Package,
+  Building2,
   Loader2,
   UserPlus,
   CreditCard,
@@ -53,6 +54,7 @@ const agentIcons: Record<string, any> = {
   "hr-recruiting": Users,
   "data-analyst": BarChart3,
   "ecommerce-ops": Package,
+  "real-estate": Building2,
 };
 
 const stagger = {

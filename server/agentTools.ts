@@ -773,6 +773,136 @@ export const ecommerceOpsTools: OpenAI.ChatCompletionTool[] = [
   },
 ];
 
+export const realEstateTools: OpenAI.ChatCompletionTool[] = [
+  {
+    type: "function",
+    function: {
+      name: "search_properties",
+      description: "Search for rental properties and apartments matching specific criteria. Returns listings with addresses, prices, and key details.",
+      parameters: {
+        type: "object",
+        properties: {
+          city: { type: "string", description: "City or neighborhood to search in" },
+          bedrooms: { type: "number", description: "Number of bedrooms (1-5)" },
+          max_budget: { type: "number", description: "Maximum monthly rent budget" },
+          property_type: { type: "string", enum: ["apartment", "condo", "townhouse", "house", "studio", "any"], description: "Type of property (default: any)" },
+          preferences: { type: "string", description: "Additional preferences (e.g. parking, pets, furnished, waterfront)" },
+        },
+        required: ["city"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "evaluate_listing",
+      description: "Evaluate a property listing for value, red flags, scam indicators, and overall quality. Provides a rating and recommendation.",
+      parameters: {
+        type: "object",
+        properties: {
+          address: { type: "string", description: "Property address" },
+          price: { type: "number", description: "Monthly rent price" },
+          bedrooms: { type: "number", description: "Number of bedrooms" },
+          bathrooms: { type: "number", description: "Number of bathrooms" },
+          sqft: { type: "number", description: "Square footage" },
+          description: { type: "string", description: "Listing description text" },
+          source: { type: "string", description: "Where the listing was found (e.g. Zillow, Craigslist, Facebook)" },
+        },
+        required: ["address", "price"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "neighborhood_analysis",
+      description: "Analyze a neighborhood for safety, amenities, transit access, schools, walkability, and overall livability.",
+      parameters: {
+        type: "object",
+        properties: {
+          neighborhood: { type: "string", description: "Neighborhood or area name" },
+          city: { type: "string", description: "City name" },
+          priorities: { type: "string", description: "What matters most (e.g. safety, transit, nightlife, schools, parks)" },
+        },
+        required: ["neighborhood", "city"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "create_listing",
+      description: "Create a professional property listing with compelling description, features, and pricing recommendations.",
+      parameters: {
+        type: "object",
+        properties: {
+          address: { type: "string", description: "Property address" },
+          property_type: { type: "string", description: "Type of property (apartment, house, condo, etc.)" },
+          bedrooms: { type: "number", description: "Number of bedrooms" },
+          bathrooms: { type: "number", description: "Number of bathrooms" },
+          sqft: { type: "number", description: "Square footage" },
+          features: { type: "string", description: "Key features (comma-separated)" },
+          target_rent: { type: "number", description: "Target monthly rent" },
+        },
+        required: ["address", "property_type", "bedrooms"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "lease_review",
+      description: "Review lease terms and flag potential issues, unfavorable clauses, or red flags for tenants.",
+      parameters: {
+        type: "object",
+        properties: {
+          lease_terms: { type: "string", description: "Key lease terms to review (duration, rent, deposit, clauses, etc.)" },
+          monthly_rent: { type: "number", description: "Monthly rent amount" },
+          deposit: { type: "number", description: "Security deposit amount" },
+          lease_duration: { type: "string", description: "Lease duration (e.g. 12 months, month-to-month)" },
+        },
+        required: ["lease_terms"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "market_report",
+      description: "Generate a local real estate market report with trends, average pricing, and forecasts for a specific area.",
+      parameters: {
+        type: "object",
+        properties: {
+          city: { type: "string", description: "City name" },
+          neighborhood: { type: "string", description: "Specific neighborhood (optional)" },
+          property_type: { type: "string", description: "Property type to focus on (apartment, house, condo)" },
+        },
+        required: ["city"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "calculate_costs",
+      description: "Calculate total move-in costs, monthly living expenses, and true cost comparison for a rental property.",
+      parameters: {
+        type: "object",
+        properties: {
+          monthly_rent: { type: "number", description: "Monthly rent amount" },
+          deposit: { type: "number", description: "Security deposit" },
+          city: { type: "string", description: "City (for utility estimates)" },
+          parking: { type: "number", description: "Monthly parking cost (if any)" },
+          utilities_included: { type: "boolean", description: "Whether utilities are included in rent" },
+          pet_deposit: { type: "number", description: "Pet deposit if applicable" },
+        },
+        required: ["monthly_rent"],
+      },
+    },
+  },
+  ...gmailInboxTools,
+];
+
 export const agentToolRegistry: Record<string, OpenAI.ChatCompletionTool[]> = {
   "sales-sdr": salesSdrTools,
   "customer-support": customerSupportTools,
@@ -782,6 +912,7 @@ export const agentToolRegistry: Record<string, OpenAI.ChatCompletionTool[]> = {
   "bookkeeping": bookkeepingTools,
   "hr-recruiting": hrRecruitingTools,
   "ecommerce-ops": ecommerceOpsTools,
+  "real-estate": realEstateTools,
 };
 
 export function getToolsForAgent(agentType: string): OpenAI.ChatCompletionTool[] | undefined {
@@ -2339,6 +2470,159 @@ ${activeRentals.map(r => `  ${r.agentType}: ${r.messagesUsed}/${r.messagesLimit}
         result: `Drafting response to ${rating}/5 star review for "${productName}".\n\nReview: "${reviewText.substring(0, 300)}${reviewText.length > 300 ? "..." : ""}"\n\nI'll create an appropriate, professional response that ${rating >= 4 ? "thanks the customer and encourages loyalty" : rating >= 3 ? "acknowledges feedback and offers to improve" : "addresses concerns empathetically and offers resolution"}.`,
         actionType: "review_response_drafted",
         actionDescription: `${ratingEmoji} Review response: ${productName} (${rating}★)`,
+      };
+    }
+
+    case "search_properties": {
+      const city = String(args.city);
+      const bedrooms = args.bedrooms ? Number(args.bedrooms) : null;
+      const maxBudget = args.max_budget ? Number(args.max_budget) : null;
+      const propertyType = args.property_type ? String(args.property_type) : "any";
+      const preferences = args.preferences ? String(args.preferences) : "";
+
+      await storage.createAgentAction({
+        userId, agentType,
+        actionType: "property_search",
+        description: `🏠 Property search: ${bedrooms || "Any"}BR in ${city}${maxBudget ? ` under $${maxBudget}/mo` : ""}`,
+        metadata: { city, bedrooms, maxBudget, propertyType, preferences },
+      });
+
+      return {
+        result: `🔍 PROPERTY SEARCH\n\nLocation: ${city}\nBedrooms: ${bedrooms || "Any"}\nBudget: ${maxBudget ? `$${maxBudget}/mo max` : "Open"}\nType: ${propertyType}\n${preferences ? `Preferences: ${preferences}\n` : ""}\nSearching major listing sites (Zillow, Apartments.com, Redfin, Craigslist) for matching properties. I'll present the best options grouped by value tier with addresses, prices, features, and direct links.`,
+        actionType: "property_search",
+        actionDescription: `🏠 Searching ${bedrooms || "any"}BR in ${city}`,
+      };
+    }
+
+    case "evaluate_listing": {
+      const address = String(args.address);
+      const price = Number(args.price);
+      const bedrooms = args.bedrooms ? Number(args.bedrooms) : null;
+      const bathrooms = args.bathrooms ? Number(args.bathrooms) : null;
+      const sqft = args.sqft ? Number(args.sqft) : null;
+      const description = args.description ? String(args.description) : "";
+      const source = args.source ? String(args.source) : "Unknown";
+
+      const pricePerSqft = sqft ? (price / sqft).toFixed(2) : "N/A";
+
+      await storage.createAgentAction({
+        userId, agentType,
+        actionType: "listing_evaluated",
+        description: `🔍 Listing evaluated: ${address} — $${price}/mo`,
+        metadata: { address, price, bedrooms, bathrooms, sqft, source, pricePerSqft },
+      });
+
+      return {
+        result: `🔍 LISTING EVALUATION\n\nAddress: ${address}\nPrice: $${price}/mo\n${bedrooms ? `Bedrooms: ${bedrooms}` : ""}${bathrooms ? ` | Bathrooms: ${bathrooms}` : ""}\n${sqft ? `Size: ${sqft} sq ft ($${pricePerSqft}/sq ft)\n` : ""}Source: ${source}\n\nI'll analyze this listing for:\n- Fair market value comparison\n- Scam indicators and red flags\n- Hidden costs assessment\n- Overall recommendation`,
+        actionType: "listing_evaluated",
+        actionDescription: `🔍 Evaluated: ${address} ($${price}/mo)`,
+      };
+    }
+
+    case "neighborhood_analysis": {
+      const neighborhood = String(args.neighborhood);
+      const city = String(args.city);
+      const priorities = args.priorities ? String(args.priorities) : "safety, transit, amenities";
+
+      await storage.createAgentAction({
+        userId, agentType,
+        actionType: "neighborhood_analyzed",
+        description: `📍 Neighborhood analysis: ${neighborhood}, ${city}`,
+        metadata: { neighborhood, city, priorities },
+      });
+
+      return {
+        result: `📍 NEIGHBORHOOD ANALYSIS: ${neighborhood}, ${city}\n\nPriorities: ${priorities}\n\nAnalyzing:\n- Safety & crime statistics\n- Public transit access\n- Walkability score\n- Nearby amenities (grocery, restaurants, parks)\n- School ratings\n- Noise levels & livability\n- Average rents in the area\n- Pros and cons summary`,
+        actionType: "neighborhood_analyzed",
+        actionDescription: `📍 Analyzed: ${neighborhood}, ${city}`,
+      };
+    }
+
+    case "create_listing": {
+      const address = String(args.address);
+      const propertyType = String(args.property_type);
+      const bedrooms = Number(args.bedrooms);
+      const bathrooms = args.bathrooms ? Number(args.bathrooms) : null;
+      const sqft = args.sqft ? Number(args.sqft) : null;
+      const features = args.features ? String(args.features) : "";
+      const targetRent = args.target_rent ? Number(args.target_rent) : null;
+
+      await storage.createAgentAction({
+        userId, agentType,
+        actionType: "listing_created",
+        description: `📝 Property listing created: ${bedrooms}BR ${propertyType} at ${address}`,
+        metadata: { address, propertyType, bedrooms, bathrooms, sqft, features, targetRent },
+      });
+
+      return {
+        result: `📝 PROPERTY LISTING DRAFT\n\nAddress: ${address}\nType: ${propertyType}\nBedrooms: ${bedrooms}${bathrooms ? ` | Bathrooms: ${bathrooms}` : ""}\n${sqft ? `Size: ${sqft} sq ft\n` : ""}${features ? `Features: ${features}\n` : ""}${targetRent ? `Target Rent: $${targetRent}/mo\n` : ""}\nI'll create a professional listing with:\n- Compelling headline and description\n- Feature highlights\n- Pricing recommendation based on market data\n- Photography and staging tips`,
+        actionType: "listing_created",
+        actionDescription: `📝 Listing created: ${address}`,
+      };
+    }
+
+    case "lease_review": {
+      const leaseTerms = String(args.lease_terms);
+      const monthlyRent = args.monthly_rent ? Number(args.monthly_rent) : null;
+      const deposit = args.deposit ? Number(args.deposit) : null;
+      const leaseDuration = args.lease_duration ? String(args.lease_duration) : null;
+
+      await storage.createAgentAction({
+        userId, agentType,
+        actionType: "lease_reviewed",
+        description: `📋 Lease review completed${monthlyRent ? ` — $${monthlyRent}/mo` : ""}`,
+        metadata: { monthlyRent, deposit, leaseDuration, termsPreview: leaseTerms.substring(0, 300) },
+      });
+
+      return {
+        result: `📋 LEASE REVIEW\n\n${monthlyRent ? `Rent: $${monthlyRent}/mo\n` : ""}${deposit ? `Deposit: $${deposit}\n` : ""}${leaseDuration ? `Duration: ${leaseDuration}\n` : ""}\nTerms provided: "${leaseTerms.substring(0, 500)}${leaseTerms.length > 500 ? "..." : ""}"\n\nI'll review for:\n- Unfavorable or unusual clauses\n- Hidden fees and penalties\n- Early termination conditions\n- Maintenance responsibilities\n- Red flags and recommendations\n\n⚠️ Note: This is guidance only, not legal advice. Consult an attorney for official lease review.`,
+        actionType: "lease_reviewed",
+        actionDescription: `📋 Lease reviewed${monthlyRent ? ` ($${monthlyRent}/mo)` : ""}`,
+      };
+    }
+
+    case "market_report": {
+      const city = String(args.city);
+      const neighborhood = args.neighborhood ? String(args.neighborhood) : null;
+      const propertyType = args.property_type ? String(args.property_type) : "all";
+
+      await storage.createAgentAction({
+        userId, agentType,
+        actionType: "market_report",
+        description: `📊 Market report generated: ${neighborhood ? `${neighborhood}, ` : ""}${city}`,
+        metadata: { city, neighborhood, propertyType },
+      });
+
+      return {
+        result: `📊 MARKET REPORT: ${neighborhood ? `${neighborhood}, ` : ""}${city}\n\nProperty Type: ${propertyType}\n\nGenerating report with:\n- Average rental prices by bedroom count\n- Price trends (3-month, 6-month, YoY)\n- Vacancy rates\n- Supply vs demand analysis\n- Seasonal patterns\n- Forecast and recommendations`,
+        actionType: "market_report",
+        actionDescription: `📊 Market report: ${city}`,
+      };
+    }
+
+    case "calculate_costs": {
+      const monthlyRent = Number(args.monthly_rent);
+      const deposit = args.deposit ? Number(args.deposit) : monthlyRent;
+      const city = args.city ? String(args.city) : "Unknown";
+      const parking = args.parking ? Number(args.parking) : 0;
+      const utilitiesIncluded = args.utilities_included === true;
+      const petDeposit = args.pet_deposit ? Number(args.pet_deposit) : 0;
+
+      const estimatedUtilities = utilitiesIncluded ? 0 : 150;
+      const totalMonthly = monthlyRent + parking + estimatedUtilities;
+      const moveInCost = monthlyRent + deposit + petDeposit;
+
+      await storage.createAgentAction({
+        userId, agentType,
+        actionType: "costs_calculated",
+        description: `💰 Cost calculation: $${monthlyRent}/mo rent → $${totalMonthly}/mo total`,
+        metadata: { monthlyRent, deposit, parking, utilitiesIncluded, petDeposit, totalMonthly, moveInCost, city },
+      });
+
+      return {
+        result: `💰 COST CALCULATION\n\n**Move-In Costs:**\nFirst Month: $${monthlyRent}\nDeposit: $${deposit}\n${petDeposit ? `Pet Deposit: $${petDeposit}\n` : ""}Total Move-In: $${moveInCost}\n\n**Monthly Costs:**\nRent: $${monthlyRent}\n${parking ? `Parking: $${parking}\n` : ""}Utilities: ${utilitiesIncluded ? "Included" : `~$${estimatedUtilities} (estimated for ${city})`}\n**Total Monthly: $${totalMonthly}**\n\n**Annual Cost: $${(totalMonthly * 12).toLocaleString()}**\n\nI'll provide a detailed breakdown with area-specific utility estimates and additional cost considerations.`,
+        actionType: "costs_calculated",
+        actionDescription: `💰 Costs: $${totalMonthly}/mo total (${city})`,
       };
     }
 

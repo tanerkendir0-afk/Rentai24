@@ -18,6 +18,7 @@ import {
   Users,
   BarChart3,
   Package,
+  Building2,
   MessageSquare,
   Plus,
   LogOut,
@@ -75,6 +76,7 @@ const agentIcons: Record<string, any> = {
   "hr-recruiting": Users,
   "data-analyst": BarChart3,
   "ecommerce-ops": Package,
+  "real-estate": Building2,
 };
 
 const agentPersonas: Record<string, string> = {
@@ -86,6 +88,7 @@ const agentPersonas: Record<string, string> = {
   "hr-recruiting": "Harper",
   "data-analyst": "DataBot",
   "ecommerce-ops": "ShopBot",
+  "real-estate": "Reno",
 };
 
 export default function Dashboard() {

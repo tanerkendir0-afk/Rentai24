@@ -231,6 +231,32 @@ export const agents: Agent[] = [
       { label: "Languages", value: "4" },
     ],
   },
+  {
+    id: "real-estate",
+    slug: "real-estate-property-agent",
+    name: "Real Estate & Property Agent",
+    role: "Property Operations Specialist",
+    shortDescription: "Finds apartments, evaluates listings, analyzes neighborhoods, reviews leases, and manages property operations.",
+    fullDescription: "This AI agent handles all your real estate and property needs. From searching rental listings and evaluating properties to analyzing neighborhoods, reviewing lease terms, and calculating true costs of living, Reno is your dedicated property specialist working around the clock.",
+    skills: ["Property Search", "Listing Evaluation", "Neighborhood Analysis", "Lease Review", "Market Reports", "Cost Calculator", "Scam Detection"],
+    integrations: ["Zillow", "Apartments.com", "Redfin", "Craigslist", "Google Maps"],
+    languages: ["English", "Spanish", "Turkish", "German"],
+    price: 139,
+    priceLabel: "$139/mo",
+    category: "Operations",
+    useCases: [
+      "Real estate agencies managing multiple listings",
+      "Property managers with rental portfolios",
+      "Tenants searching for apartments or homes",
+      "Landlords optimizing rental pricing",
+    ],
+    metrics: [
+      { label: "Listings Scanned", value: "1000+/day" },
+      { label: "Scam Detection", value: "99.2%" },
+      { label: "Market Coverage", value: "50+ Cities" },
+      { label: "Languages", value: "4" },
+    ],
+  },
 ];
 
 export const categories = [

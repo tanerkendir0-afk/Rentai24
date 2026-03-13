@@ -21,6 +21,7 @@ const AGENTS = [
   { slug: "hr-recruiting", name: "Harper — HR & Recruiting" },
   { slug: "data-analyst", name: "DataBot — Data Analyst" },
   { slug: "ecommerce-ops", name: "ShopBot — E-Commerce" },
+  { slug: "real-estate", name: "Reno — Real Estate" },
 ];
 
 interface AgentDocument {

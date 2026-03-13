@@ -1,4 +1,6 @@
 import { google } from "googleapis";
+import { ImapFlow } from "imapflow";
+import { simpleParser } from "mailparser";
 
 interface GmailConnectionSettings {
   settings: {
@@ -76,13 +78,13 @@ export async function isGmailConnected(): Promise<boolean> {
 export async function verifyGmailConnection(): Promise<{ valid: boolean; address: string | null; canRead: boolean; canSend: boolean }> {
   try {
     const gmail = await getGmailClient();
-    let address: string | null = null;
-    let canRead = false;
+    let address: string | null = process.env.GMAIL_ADDRESS || null;
+    let canRead = isImapConfigured();
     const canSend = true;
 
     try {
       const profile = await gmail.users.getProfile({ userId: "me" });
-      address = profile.data.emailAddress || null;
+      address = profile.data.emailAddress || address;
     } catch {}
 
     try {
@@ -92,6 +94,9 @@ export async function verifyGmailConnection(): Promise<{ valid: boolean; address
 
     return { valid: true, address, canRead, canSend };
   } catch {
+    if (isImapConfigured()) {
+      return { valid: true, address: process.env.GMAIL_ADDRESS || null, canRead: true, canSend: false };
+    }
     return { valid: false, address: null, canRead: false, canSend: false };
   }
 }
@@ -169,6 +174,105 @@ function extractPlainTextBody(payload: any): string {
   return "";
 }
 
+function getImapCredentials(): { user: string; pass: string } | null {
+  const user = process.env.GMAIL_ADDRESS;
+  const pass = process.env.GMAIL_APP_PASSWORD;
+  if (!user || !pass) return null;
+  return { user, pass };
+}
+
+export function isImapConfigured(): boolean {
+  return !!getImapCredentials();
+}
+
+async function getImapClient(): Promise<ImapFlow> {
+  const creds = getImapCredentials();
+  if (!creds) throw new Error("IMAP not configured");
+  const client = new ImapFlow({
+    host: "imap.gmail.com",
+    port: 993,
+    secure: true,
+    auth: { user: creds.user, pass: creds.pass },
+    logger: false,
+  });
+  await client.connect();
+  return client;
+}
+
+async function listInboxViaImap(maxResults: number): Promise<{ success: boolean; emails?: InboxEmail[]; message: string }> {
+  let client: ImapFlow | null = null;
+  try {
+    client = await getImapClient();
+    const lock = await client.getMailboxLock("INBOX");
+    try {
+      const total = client.mailbox?.exists || 0;
+      if (total === 0) {
+        return { success: true, emails: [], message: "Inbox is empty." };
+      }
+      const startSeq = Math.max(1, total - maxResults + 1);
+      const emails: InboxEmail[] = [];
+      for await (const msg of client.fetch(`${startSeq}:*`, { envelope: true, uid: true })) {
+        const env = msg.envelope;
+        emails.push({
+          id: String(msg.uid),
+          threadId: String(msg.uid),
+          from: env.from?.[0] ? `${env.from[0].name || ""} <${env.from[0].address || ""}>`.trim() : "Unknown",
+          subject: env.subject || "(no subject)",
+          snippet: "",
+          date: env.date ? new Date(env.date).toUTCString() : "",
+        });
+      }
+      emails.reverse();
+      return { success: true, emails, message: `Found ${emails.length} emails in inbox.` };
+    } finally {
+      lock.release();
+    }
+  } catch (error: unknown) {
+    const errMsg = error instanceof Error ? error.message : String(error);
+    console.error("IMAP listInbox error:", errMsg);
+    return { success: false, message: `Failed to list inbox via IMAP: ${errMsg}` };
+  } finally {
+    if (client) try { await client.logout(); } catch {}
+  }
+}
+
+async function readEmailViaImap(emailUid: string): Promise<{ success: boolean; email?: FullEmail; message: string }> {
+  let client: ImapFlow | null = null;
+  try {
+    client = await getImapClient();
+    const lock = await client.getMailboxLock("INBOX");
+    try {
+      const uid = parseInt(emailUid, 10);
+      if (isNaN(uid)) {
+        return { success: false, message: `Invalid email ID: ${emailUid}` };
+      }
+      const msg = await client.fetchOne(String(uid), { source: true, envelope: true, uid: true }, { uid: true });
+      if (!msg || !msg.source) {
+        return { success: false, message: `Email not found with ID: ${emailUid}` };
+      }
+      const parsed = await simpleParser(msg.source);
+      const email: FullEmail = {
+        id: emailUid,
+        threadId: emailUid,
+        from: parsed.from?.text || "Unknown",
+        to: parsed.to ? (Array.isArray(parsed.to) ? parsed.to.map((a: any) => a.text).join(", ") : (parsed.to as any).text || "") : "",
+        subject: parsed.subject || "(no subject)",
+        body: parsed.text || parsed.html?.replace(/<[^>]+>/g, "").substring(0, 3000) || "(no content)",
+        date: parsed.date ? parsed.date.toUTCString() : "",
+      };
+      return { success: true, email, message: "Email retrieved successfully." };
+    } finally {
+      lock.release();
+    }
+  } catch (error: unknown) {
+    const errMsg = error instanceof Error ? error.message : String(error);
+    console.error("IMAP readEmail error:", errMsg);
+    return { success: false, message: `Failed to read email via IMAP: ${errMsg}` };
+  } finally {
+    if (client) try { await client.logout(); } catch {}
+  }
+}
+
 export async function listInbox(maxResults: number = 10): Promise<{ success: boolean; emails?: InboxEmail[]; message: string }> {
   try {
     const gmail = await getGmailClient();
@@ -204,9 +308,12 @@ export async function listInbox(maxResults: number = 10): Promise<{ success: boo
     return { success: true, emails, message: `Found ${emails.length} emails in inbox.` };
   } catch (error: unknown) {
     const errMsg = error instanceof Error ? error.message : String(error);
-    if (errMsg.includes("Insufficient Permission")) {
-      console.error("Gmail listInbox: insufficient scope for inbox reading");
-      return { success: false, message: "Gmail inbox reading is not available — the current Gmail integration only supports sending emails. Inbox reading requires additional permissions." };
+    if (errMsg.includes("Insufficient Permission") || errMsg.includes("Request had insufficient authentication scopes")) {
+      if (isImapConfigured()) {
+        console.log("Gmail API insufficient scope, falling back to IMAP for inbox reading");
+        return listInboxViaImap(maxResults);
+      }
+      return { success: false, message: "Gmail inbox reading requires IMAP configuration. Please set GMAIL_ADDRESS and GMAIL_APP_PASSWORD in your environment settings." };
     }
     console.error("Gmail listInbox error:", errMsg);
     return { success: false, message: `Failed to list inbox: ${errMsg}` };
@@ -238,8 +345,12 @@ export async function readEmail(messageId: string): Promise<{ success: boolean; 
     return { success: true, email, message: "Email retrieved successfully." };
   } catch (error: unknown) {
     const errMsg = error instanceof Error ? error.message : String(error);
-    if (errMsg.includes("Insufficient Permission")) {
-      return { success: false, message: "Gmail email reading is not available — the current integration only supports sending emails." };
+    if (errMsg.includes("Insufficient Permission") || errMsg.includes("Request had insufficient authentication scopes")) {
+      if (isImapConfigured()) {
+        console.log("Gmail API insufficient scope, falling back to IMAP for email reading");
+        return readEmailViaImap(messageId);
+      }
+      return { success: false, message: "Gmail email reading requires IMAP configuration. Please set GMAIL_ADDRESS and GMAIL_APP_PASSWORD in your environment settings." };
     }
     console.error("Gmail readEmail error:", errMsg);
     return { success: false, message: `Failed to read email: ${errMsg}` };
@@ -267,8 +378,11 @@ export async function replyToEmail(messageId: string, body: string): Promise<{ s
     const emailMatch = originalFromRaw.match(/<([^>]+)>/);
     const replyTo = emailMatch ? emailMatch[1] : originalFromRaw;
 
-    const profile = await gmail.users.getProfile({ userId: "me" });
-    const myAddress = profile.data.emailAddress || "me";
+    let myAddress = process.env.GMAIL_ADDRESS || "me";
+    try {
+      const profile = await gmail.users.getProfile({ userId: "me" });
+      myAddress = profile.data.emailAddress || myAddress;
+    } catch {}
 
     const replySubject = originalSubject.startsWith("Re:") ? originalSubject : `Re: ${originalSubject}`;
     const references = existingReferences
@@ -312,8 +426,11 @@ export async function sendViaGmail(params: {
 }): Promise<{ success: boolean; message: string; messageId?: string; fromAddress?: string }> {
   try {
     const gmail = await getGmailClient();
-    const profile = await gmail.users.getProfile({ userId: "me" });
-    const fromAddress = profile.data.emailAddress || "me";
+    let fromAddress = process.env.GMAIL_ADDRESS || "me";
+    try {
+      const profile = await gmail.users.getProfile({ userId: "me" });
+      fromAddress = profile.data.emailAddress || fromAddress;
+    } catch {}
 
     const raw = buildRawEmail(fromAddress, params.to, params.subject, params.body);
 

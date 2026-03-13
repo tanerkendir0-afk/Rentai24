@@ -2,7 +2,7 @@ import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import OpenAI from "openai";
 import bcrypt from "bcrypt";
-import { chatMessageSchema, contactFormSchema, registerSchema, loginSchema, newsletterSchema, bossConversations } from "@shared/schema";
+import { chatMessageSchema, contactFormSchema, registerSchema, loginSchema, newsletterSchema, bossConversations, collaborationSessions } from "@shared/schema";
 import { z } from "zod";
 import { storage } from "./storage";
 import { requireAuth } from "./auth";
@@ -1902,7 +1902,20 @@ Be decisive and actionable. Format with clear sections.`,
       const totalCost = agentResponses.reduce((sum, r) => sum + r.cost, 0) + synthesisCost;
       const totalTokens = agentResponses.reduce((sum, r) => sum + r.tokens, 0) + synthesisTokens;
 
+      const [savedSession] = await db
+        .insert(collaborationSessions)
+        .values({
+          topic,
+          synthesis,
+          agentResponses: agentResponses,
+          agentCount: agentResponses.length,
+          totalCost: totalCost.toFixed(6),
+          totalTokens,
+        })
+        .returning();
+
       res.json({
+        id: savedSession.id,
         topic,
         synthesis,
         agentResponses,
@@ -1916,6 +1929,35 @@ Be decisive and actionable. Format with clear sections.`,
     } catch (error: unknown) {
       const errMsg = error instanceof Error ? error.message : String(error);
       console.error("Collaboration error:", errMsg);
+      res.status(500).json({ error: errMsg });
+    }
+  });
+
+  app.get("/api/admin/collaboration-sessions", requireAdmin, async (_req, res) => {
+    try {
+      const sessions = await db
+        .select()
+        .from(collaborationSessions)
+        .orderBy(desc(collaborationSessions.createdAt));
+      res.json(sessions);
+    } catch (error: unknown) {
+      const errMsg = error instanceof Error ? error.message : String(error);
+      res.status(500).json({ error: errMsg });
+    }
+  });
+
+  app.delete("/api/admin/collaboration-sessions/:id", requireAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ error: "Invalid ID" });
+      const [session] = await db
+        .delete(collaborationSessions)
+        .where(eq(collaborationSessions.id, id))
+        .returning();
+      if (!session) return res.status(404).json({ error: "Session not found" });
+      res.json({ success: true });
+    } catch (error: unknown) {
+      const errMsg = error instanceof Error ? error.message : String(error);
       res.status(500).json({ error: errMsg });
     }
   });

@@ -323,6 +323,25 @@ export const insertBossConversationSchema = createInsertSchema(bossConversations
 export type BossConversation = typeof bossConversations.$inferSelect;
 export type InsertBossConversation = z.infer<typeof insertBossConversationSchema>;
 
+export const collaborationSessions = pgTable("collaboration_sessions", {
+  id: serial("id").primaryKey(),
+  topic: text("topic").notNull(),
+  synthesis: text("synthesis").notNull().default(""),
+  agentResponses: jsonb("agent_responses").notNull().default([]),
+  agentCount: integer("agent_count").notNull().default(0),
+  totalCost: text("total_cost").notNull().default("0"),
+  totalTokens: integer("total_tokens").notNull().default(0),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
+export const insertCollaborationSessionSchema = createInsertSchema(collaborationSessions).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type CollaborationSession = typeof collaborationSessions.$inferSelect;
+export type InsertCollaborationSession = z.infer<typeof insertCollaborationSessionSchema>;
+
 export const systemSettings = pgTable("system_settings", {
   id: serial("id").primaryKey(),
   key: text("key").notNull().unique(),

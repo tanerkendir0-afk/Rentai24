@@ -1247,15 +1247,66 @@ interface CollaborationResult {
   };
 }
 
+interface SavedCollabSession {
+  id: number;
+  topic: string;
+  synthesis: string;
+  agentResponses: AgentCollabResponse[];
+  agentCount: number;
+  totalCost: string;
+  totalTokens: number;
+  createdAt: string;
+}
+
 function CollaborationPanel({ token }: { token: string }) {
   const [topic, setTopic] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<CollaborationResult | null>(null);
   const [selectedAgents, setSelectedAgents] = useState<string[]>(AGENTS.map(a => a.slug));
   const [progress, setProgress] = useState(0);
+  const [sessions, setSessions] = useState<SavedCollabSession[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
   const { toast } = useToast();
 
   const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
+
+  const fetchSessions = useCallback(async () => {
+    try {
+      const res = await fetch("/api/admin/collaboration-sessions", { headers: { Authorization: `Bearer ${token}` } });
+      if (res.ok) {
+        const data: SavedCollabSession[] = await res.json();
+        setSessions(data);
+      }
+    } catch {}
+  }, [token]);
+
+  useEffect(() => { fetchSessions(); }, [fetchSessions]);
+
+  const loadSession = (session: SavedCollabSession) => {
+    setResult({
+      topic: session.topic,
+      synthesis: session.synthesis,
+      agentResponses: session.agentResponses,
+      meta: {
+        totalCost: session.totalCost,
+        totalTokens: session.totalTokens,
+        agentCount: session.agentCount,
+        successCount: session.agentCount,
+      },
+    });
+    setTopic(session.topic);
+    setShowHistory(false);
+  };
+
+  const deleteSession = async (id: number) => {
+    try {
+      const res = await fetch(`/api/admin/collaboration-sessions/${id}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
+      if (res.ok) {
+        setSessions(prev => prev.filter(s => s.id !== id));
+        toast({ title: "Deleted", description: "Session removed" });
+      }
+    } catch {}
+  };
 
   const toggleAgent = (slug: string) => {
     setSelectedAgents(prev =>
@@ -1290,6 +1341,7 @@ function CollaborationPanel({ token }: { token: string }) {
       const data: CollaborationResult = await res.json();
       setResult(data);
       setProgress(100);
+      fetchSessions();
     } catch (err: unknown) {
       const errMsg = err instanceof Error ? err.message : String(err);
       toast({ title: "Error", description: errMsg, variant: "destructive" });
@@ -1341,10 +1393,22 @@ function CollaborationPanel({ token }: { token: string }) {
     <div className="space-y-6">
       <Card className="bg-gradient-to-r from-indigo-900/50 to-purple-900/50 border-indigo-500/30">
         <CardHeader>
-          <CardTitle className="text-xl text-white flex items-center gap-2">
-            <Brain className="w-6 h-6 text-indigo-400" />
-            Agent Collaboration — Brainstorming
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-xl text-white flex items-center gap-2">
+              <Brain className="w-6 h-6 text-indigo-400" />
+              Agent Collaboration — Brainstorming
+            </CardTitle>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowHistory(!showHistory)}
+              className={`border-[#1E2448] ${showHistory ? "bg-indigo-600 text-white" : "text-gray-300"}`}
+              data-testid="button-collab-history"
+            >
+              <History className="w-3.5 h-3.5 mr-1" />
+              History ({sessions.length})
+            </Button>
+          </div>
           <CardDescription className="text-gray-300">
             Bring your AI agents together for a team brainstorming session. Each agent provides their unique perspective, then Boss AI synthesizes everything into an action plan.
           </CardDescription>
@@ -1413,6 +1477,51 @@ function CollaborationPanel({ token }: { token: string }) {
           )}
         </CardContent>
       </Card>
+
+      {showHistory && (
+        <Card className="bg-[#0A0E27] border-[#1E2448]">
+          <CardHeader>
+            <CardTitle className="text-lg text-white flex items-center gap-2">
+              <History className="w-5 h-5 text-indigo-400" />
+              Past Brainstorming Sessions
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {sessions.length === 0 ? (
+              <p className="text-gray-500 text-center py-6">No saved sessions yet. Start a brainstorm to save it automatically.</p>
+            ) : (
+              <div className="space-y-2 max-h-80 overflow-y-auto">
+                {sessions.map(session => (
+                  <div
+                    key={session.id}
+                    className="flex items-center justify-between p-3 bg-[#131740] rounded-lg hover:bg-[#1a1f50] cursor-pointer transition-colors"
+                    onClick={() => loadSession(session)}
+                    data-testid={`collab-session-${session.id}`}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-white font-medium truncate">{session.topic}</p>
+                      <div className="flex items-center gap-3 mt-1 text-xs text-gray-400">
+                        <span>{session.agentCount} agents</span>
+                        <span>${parseFloat(session.totalCost).toFixed(4)}</span>
+                        <span>{new Date(session.createdAt).toLocaleDateString()}</span>
+                      </div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 w-7 p-0 text-gray-500 hover:text-red-400 shrink-0"
+                      onClick={(e) => { e.stopPropagation(); deleteSession(session.id); }}
+                      data-testid={`collab-session-delete-${session.id}`}
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {result && (
         <>

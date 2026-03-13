@@ -198,6 +198,11 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
   const [creditPurchasing, setCreditPurchasing] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth >= 1024);
   const [showTasksPanel, setShowTasksPanel] = useState(false);
+  const [showSocialPanel, setShowSocialPanel] = useState(false);
+  const [socialAddMode, setSocialAddMode] = useState(false);
+  const [socialPlatform, setSocialPlatform] = useState("");
+  const [socialUsername, setSocialUsername] = useState("");
+  const [socialSaving, setSocialSaving] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const dragCounterRef = useRef(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -222,6 +227,11 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
 
   const imageCredits = creditsData?.credits ?? 0;
   const isSocialMediaAgent = selectedAgent === "social-media";
+
+  const { data: socialAccounts = [] } = useQuery<{ id: number; platform: string; username: string; profileUrl: string | null; status: string }[]>({
+    queryKey: ["/api/social-accounts"],
+    enabled: !!user && isSocialMediaAgent,
+  });
 
   const { data: spendingData } = useQuery<{ spent: number; limit: number; remaining: number; limitReached: boolean }>({
     queryKey: ["/api/token-spending", selectedAgent],
@@ -275,6 +285,40 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
     } catch {
     } finally {
       setCreditPurchasing(false);
+    }
+  };
+
+  const platformIcons: Record<string, string> = {
+    instagram: "📸", twitter: "𝕏", linkedin: "💼", facebook: "📘", tiktok: "🎵", youtube: "▶️",
+  };
+
+  const handleAddSocial = async () => {
+    if (!socialPlatform || !socialUsername.trim()) return;
+    setSocialSaving(true);
+    try {
+      await apiRequest("POST", "/api/social-accounts", {
+        platform: socialPlatform,
+        username: socialUsername.trim(),
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/social-accounts"] });
+      setSocialPlatform("");
+      setSocialUsername("");
+      setSocialAddMode(false);
+      toast({ title: "Connected", description: `${socialPlatform} account added successfully` });
+    } catch {
+      toast({ title: "Error", description: "Failed to add account", variant: "destructive" });
+    } finally {
+      setSocialSaving(false);
+    }
+  };
+
+  const handleDeleteSocial = async (id: number) => {
+    try {
+      await apiRequest("DELETE", `/api/social-accounts/${id}`);
+      queryClient.invalidateQueries({ queryKey: ["/api/social-accounts"] });
+      toast({ title: "Disconnected", description: "Account removed" });
+    } catch {
+      toast({ title: "Error", description: "Failed to remove account", variant: "destructive" });
     }
   };
 
@@ -566,7 +610,137 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                 <Button
                   size="sm"
                   variant="ghost"
-                  onClick={() => setShowCreditsPanel(!showCreditsPanel)}
+                  onClick={() => { setShowSocialPanel(!showSocialPanel); setShowCreditsPanel(false); }}
+                  className="h-8 text-xs gap-1.5 text-muted-foreground"
+                  data-testid="button-social-accounts"
+                >
+                  <Share2 className="w-3.5 h-3.5 text-violet-500" />
+                  <span className="hidden sm:inline">Social</span>
+                  {socialAccounts.length > 0 && (
+                    <Badge variant="secondary" className="h-4 px-1 text-[10px] bg-violet-500/20 text-violet-400">
+                      {socialAccounts.length}
+                    </Badge>
+                  )}
+                </Button>
+                {showSocialPanel && (
+                  <div className="absolute right-0 sm:right-0 top-full mt-2 w-[calc(100vw-2rem)] sm:w-80 max-w-[320px] bg-card border border-border rounded-xl shadow-2xl z-50 p-4" data-testid="social-panel">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="font-semibold text-sm flex items-center gap-2">
+                        <Share2 className="w-4 h-4 text-violet-500" />
+                        Connected Accounts
+                      </h4>
+                      <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => { setShowSocialPanel(false); setSocialAddMode(false); }}>
+                        <X className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+
+                    {socialAccounts.length === 0 && !socialAddMode && (
+                      <div className="text-center py-4">
+                        <Share2 className="w-8 h-8 text-muted-foreground/30 mx-auto mb-2" />
+                        <p className="text-xs text-muted-foreground mb-3">No social accounts connected yet</p>
+                        <Button size="sm" onClick={() => setSocialAddMode(true)} className="bg-violet-500 hover:bg-violet-600 text-white text-xs" data-testid="button-social-add-first">
+                          <Plus className="w-3 h-3 mr-1" /> Connect Account
+                        </Button>
+                      </div>
+                    )}
+
+                    {socialAccounts.length > 0 && (
+                      <div className="space-y-1.5 mb-3">
+                        {socialAccounts.map((acc) => (
+                          <div key={acc.id} className="flex items-center justify-between p-2 rounded-lg bg-muted/30 group" data-testid={`social-item-${acc.id}`}>
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className="text-base shrink-0">{platformIcons[acc.platform] || "🌐"}</span>
+                              <div className="min-w-0">
+                                <p className="text-xs font-medium truncate capitalize">{acc.platform === "twitter" ? "X (Twitter)" : acc.platform}</p>
+                                <p className="text-[10px] text-muted-foreground truncate">@{acc.username}</p>
+                              </div>
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleDeleteSocial(acc.id)}
+                              className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 hover:bg-red-500/20 hover:text-red-400 transition-all shrink-0"
+                              data-testid={`button-remove-social-${acc.id}`}
+                            >
+                              <X className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {socialAddMode ? (
+                      <div className="space-y-2 border-t border-border/50 pt-3">
+                        <p className="text-xs font-medium text-muted-foreground">Select platform:</p>
+                        <div className="grid grid-cols-3 gap-1.5">
+                          {(["instagram", "twitter", "linkedin", "facebook", "tiktok", "youtube"] as const).map((p) => (
+                            <button
+                              key={p}
+                              onClick={() => setSocialPlatform(p)}
+                              className={`flex flex-col items-center gap-0.5 p-2 rounded-lg border text-xs transition-all ${
+                                socialPlatform === p
+                                  ? "border-violet-500 bg-violet-500/10 text-violet-400"
+                                  : "border-border/50 hover:border-violet-500/30 text-muted-foreground"
+                              }`}
+                              data-testid={`button-social-platform-${p}`}
+                            >
+                              <span className="text-base">{platformIcons[p]}</span>
+                              <span className="capitalize text-[10px]">{p === "twitter" ? "X" : p}</span>
+                            </button>
+                          ))}
+                        </div>
+                        {socialPlatform && (
+                          <div className="space-y-2">
+                            <Input
+                              placeholder={`@username`}
+                              value={socialUsername}
+                              onChange={(e) => setSocialUsername(e.target.value.replace(/^@/, ""))}
+                              className="h-8 text-xs"
+                              data-testid="input-social-username-chat"
+                            />
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => { setSocialAddMode(false); setSocialPlatform(""); setSocialUsername(""); }}
+                                className="flex-1 h-8 text-xs"
+                              >
+                                Cancel
+                              </Button>
+                              <Button
+                                size="sm"
+                                onClick={handleAddSocial}
+                                disabled={socialSaving || !socialUsername.trim()}
+                                className="flex-1 h-8 text-xs bg-violet-500 hover:bg-violet-600 text-white"
+                                data-testid="button-social-save-chat"
+                              >
+                                {socialSaving ? <Loader2 className="w-3 h-3 animate-spin" /> : "Connect"}
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ) : socialAccounts.length > 0 ? (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setSocialAddMode(true)}
+                        className="w-full h-8 text-xs text-muted-foreground hover:text-violet-400 gap-1"
+                        data-testid="button-social-add-more"
+                      >
+                        <Plus className="w-3 h-3" /> Add Account
+                      </Button>
+                    ) : null}
+                  </div>
+                )}
+              </div>
+            )}
+            {user && isSocialMediaAgent && (
+              <div className="relative">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => { setShowCreditsPanel(!showCreditsPanel); setShowSocialPanel(false); }}
                   className="h-8 text-xs gap-1.5 text-muted-foreground"
                   data-testid="button-image-credits"
                 >

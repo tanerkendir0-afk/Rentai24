@@ -503,6 +503,51 @@ export async function registerRoutes(
     res.json(userActions);
   });
 
+  app.get("/api/agent-tasks", requireAuth, async (req, res) => {
+    const agentType = req.query.agentType as string | undefined;
+    const tasks = await storage.getAgentTasksByUser(req.session.userId!, agentType);
+    res.json(tasks);
+  });
+
+  app.post("/api/agent-tasks", requireAuth, async (req, res) => {
+    const { title, description, agentType, priority, dueDate, project } = req.body;
+    if (!title || !agentType) {
+      return res.status(400).json({ error: "Title and agentType are required" });
+    }
+    const task = await storage.createAgentTask({
+      userId: req.session.userId!,
+      agentType,
+      title,
+      description: description || null,
+      priority: priority || "medium",
+      dueDate: dueDate ? new Date(dueDate) : null,
+      project: project || null,
+      status: "todo",
+    });
+    res.json(task);
+  });
+
+  app.patch("/api/agent-tasks/:id", requireAuth, async (req, res) => {
+    const id = parseInt(req.params.id);
+    const updates: Record<string, unknown> = {};
+    if (req.body.title !== undefined) updates.title = req.body.title;
+    if (req.body.description !== undefined) updates.description = req.body.description;
+    if (req.body.status !== undefined) updates.status = req.body.status;
+    if (req.body.priority !== undefined) updates.priority = req.body.priority;
+    if (req.body.project !== undefined) updates.project = req.body.project;
+    if (req.body.dueDate !== undefined) updates.dueDate = req.body.dueDate ? new Date(req.body.dueDate) : null;
+    const task = await storage.updateAgentTask(id, req.session.userId!, updates as any);
+    if (!task) return res.status(404).json({ error: "Task not found" });
+    res.json(task);
+  });
+
+  app.delete("/api/agent-tasks/:id", requireAuth, async (req, res) => {
+    const id = parseInt(req.params.id);
+    const deleted = await storage.deleteAgentTask(id, req.session.userId!);
+    if (!deleted) return res.status(404).json({ error: "Task not found" });
+    res.json({ success: true });
+  });
+
   app.get("/api/campaigns", requireAuth, async (req, res) => {
     const campaigns = await storage.getCampaignsByUser(req.session.userId!);
     res.json(campaigns);

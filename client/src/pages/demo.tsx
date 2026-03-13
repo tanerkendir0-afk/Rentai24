@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import {
   Bot,
   Send,
@@ -31,12 +32,22 @@ import {
   Sparkles,
   ChevronRight,
   ArrowLeft,
+  ListTodo,
+  Calendar,
+  ChevronLeft,
+  Check,
+  Circle,
+  Clock,
+  Trash2,
+  Flag,
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/lib/auth";
 import ChatMessageContent from "@/components/chat-message";
 import { Link } from "wouter";
+import type { AgentTask } from "@shared/schema";
+import TasksPanel from "@/components/tasks-panel";
 
 interface AgentAction {
   type: string;
@@ -129,6 +140,18 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
     setActiveConvoId(prev => ({ ...prev, [selectedAgent]: newConvo.id }));
   };
 
+  const deleteConversation = (convoId: string) => {
+    const convos = agentConversations[selectedAgent] || [];
+    if (convos.length <= 1) return;
+    const idx = convos.findIndex(c => c.id === convoId);
+    const filtered = convos.filter(c => c.id !== convoId);
+    setAgentConversations(prev => ({ ...prev, [selectedAgent]: filtered }));
+    if (currentConvoId === convoId) {
+      const newIdx = Math.min(idx, filtered.length - 1);
+      setActiveConvoId(prev => ({ ...prev, [selectedAgent]: filtered[newIdx].id }));
+    }
+  };
+
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [initialAgentSet, setInitialAgentSet] = useState(false);
@@ -136,6 +159,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
   const [uploading, setUploading] = useState(false);
   const [showCreditsPanel, setShowCreditsPanel] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth >= 1024);
+  const [showTasksPanel, setShowTasksPanel] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -400,7 +424,8 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
         )}
       </AnimatePresence>
 
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex min-w-0">
+       <div className="flex-1 flex flex-col min-w-0">
         <div className={`h-14 border-b border-border/50 flex items-center gap-3 px-4 bg-card/30 backdrop-blur-sm shrink-0`}>
           {!sidebarOpen && (
             <Button
@@ -492,6 +517,19 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
               <MessageSquarePlus className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">New Chat</span>
             </Button>
+            {user && (
+              <Button
+                size="sm"
+                variant={showTasksPanel ? "default" : "ghost"}
+                onClick={() => setShowTasksPanel(!showTasksPanel)}
+                className={`h-8 text-xs gap-1 ${showTasksPanel ? "bg-blue-500/20 text-blue-400" : "text-muted-foreground hover:text-foreground"}`}
+                title="Tasks & Projects"
+                data-testid="button-toggle-tasks"
+              >
+                <ListTodo className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Tasks</span>
+              </Button>
+            )}
           </div>
         </div>
 
@@ -499,18 +537,27 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
           <div className="border-b border-border/50 bg-card/20 shrink-0">
             <div className="max-w-3xl mx-auto w-full flex items-center gap-1 px-4 py-1.5 overflow-x-auto scrollbar-hide">
               {conversations.map((convo) => (
-                <button
+                <div
                   key={convo.id}
-                  onClick={() => setActiveConvoId(prev => ({ ...prev, [selectedAgent]: convo.id }))}
-                  className={`px-3 py-1.5 rounded-lg text-xs whitespace-nowrap transition-all shrink-0 ${
+                  className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs whitespace-nowrap transition-all shrink-0 group cursor-pointer ${
                     convo.id === currentConvoId
                       ? "bg-muted text-foreground font-medium"
                       : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                   }`}
+                  onClick={() => setActiveConvoId(prev => ({ ...prev, [selectedAgent]: convo.id }))}
                   data-testid={`tab-convo-${convo.id}`}
                 >
-                  {convo.messages.length === 0 ? "New Chat" : convo.title}
-                </button>
+                  <span>{convo.messages.length === 0 ? "New Chat" : convo.title}</span>
+                  {conversations.length > 1 && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); deleteConversation(convo.id); }}
+                      className="w-4 h-4 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-red-500/20 hover:text-red-400 transition-all"
+                      data-testid={`button-delete-convo-${convo.id}`}
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
               ))}
             </div>
           </div>
@@ -724,6 +771,15 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
             </form>
           </div>
         </div>
+       </div>
+
+        {showTasksPanel && user && (
+          <TasksPanel
+            agentType={selectedAgent}
+            agentColor={currentAgent.color}
+            onClose={() => setShowTasksPanel(false)}
+          />
+        )}
       </div>
     </div>
   );

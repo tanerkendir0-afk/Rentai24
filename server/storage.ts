@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { users, rentals, contactMessages, newsletterSubscribers, leads, agentActions, emailCampaigns, supportTickets, tokenUsage, type User, type InsertUser, type Rental, type InsertRental, type ContactMessage, type InsertContactMessage, type NewsletterSubscriber, type Lead, type InsertLead, type AgentAction, type InsertAgentAction, type EmailCampaign, type InsertEmailCampaign, type SupportTicket, type InsertSupportTicket, type TokenUsage, type InsertTokenUsage } from "@shared/schema";
+import { users, rentals, contactMessages, newsletterSubscribers, leads, agentActions, emailCampaigns, supportTickets, tokenUsage, agentTasks, type User, type InsertUser, type Rental, type InsertRental, type ContactMessage, type InsertContactMessage, type NewsletterSubscriber, type Lead, type InsertLead, type AgentAction, type InsertAgentAction, type EmailCampaign, type InsertEmailCampaign, type SupportTicket, type InsertSupportTicket, type TokenUsage, type InsertTokenUsage, type AgentTask, type InsertAgentTask } from "@shared/schema";
 import { eq, and, sql, desc } from "drizzle-orm";
 
 export interface IStorage {
@@ -50,6 +50,11 @@ export interface IStorage {
   getTicketsByUser(userId: number): Promise<SupportTicket[]>;
   getTicketById(id: number, userId: number): Promise<SupportTicket | undefined>;
   updateTicket(id: number, userId: number, updates: Partial<Pick<SupportTicket, "status" | "priority" | "resolution" | "subject" | "description">>): Promise<SupportTicket | undefined>;
+
+  createAgentTask(task: InsertAgentTask): Promise<AgentTask>;
+  getAgentTasksByUser(userId: number, agentType?: string): Promise<AgentTask[]>;
+  updateAgentTask(id: number, userId: number, updates: Partial<Pick<AgentTask, "title" | "description" | "status" | "priority" | "dueDate" | "project">>): Promise<AgentTask | undefined>;
+  deleteAgentTask(id: number, userId: number): Promise<boolean>;
 
   logTokenUsage(usage: InsertTokenUsage): Promise<TokenUsage>;
   getTokenUsageSummary(): Promise<any[]>;
@@ -378,6 +383,28 @@ export class DatabaseStorage implements IStorage {
       `);
     }
     return parseFloat((result.rows[0] as any)?.total || "0");
+  }
+
+  async createAgentTask(task: InsertAgentTask): Promise<AgentTask> {
+    const [created] = await db.insert(agentTasks).values(task).returning();
+    return created;
+  }
+
+  async getAgentTasksByUser(userId: number, agentType?: string): Promise<AgentTask[]> {
+    if (agentType) {
+      return db.select().from(agentTasks).where(and(eq(agentTasks.userId, userId), eq(agentTasks.agentType, agentType))).orderBy(desc(agentTasks.createdAt));
+    }
+    return db.select().from(agentTasks).where(eq(agentTasks.userId, userId)).orderBy(desc(agentTasks.createdAt));
+  }
+
+  async updateAgentTask(id: number, userId: number, updates: Partial<Pick<AgentTask, "title" | "description" | "status" | "priority" | "dueDate" | "project">>): Promise<AgentTask | undefined> {
+    const [updated] = await db.update(agentTasks).set(updates).where(and(eq(agentTasks.id, id), eq(agentTasks.userId, userId))).returning();
+    return updated;
+  }
+
+  async deleteAgentTask(id: number, userId: number): Promise<boolean> {
+    const result = await db.delete(agentTasks).where(and(eq(agentTasks.id, id), eq(agentTasks.userId, userId))).returning();
+    return result.length > 0;
   }
 }
 

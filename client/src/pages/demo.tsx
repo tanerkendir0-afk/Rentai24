@@ -1,10 +1,8 @@
 import { useState, useRef, useEffect } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import {
   Bot,
   Send,
@@ -27,11 +25,18 @@ import {
   X,
   AlertTriangle,
   Gauge,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Zap,
+  Sparkles,
+  ChevronRight,
+  ArrowLeft,
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/lib/auth";
 import ChatMessageContent from "@/components/chat-message";
+import { Link } from "wouter";
 
 interface AgentAction {
   type: string;
@@ -46,21 +51,14 @@ interface Message {
 }
 
 const agentOptions = [
-  { id: "customer-support", name: "Customer Support", persona: "Ava", icon: Headphones },
-  { id: "sales-sdr", name: "Sales SDR", persona: "Rex", icon: TrendingUp },
-  { id: "social-media", name: "Social Media", persona: "Maya", icon: Share2 },
-  { id: "bookkeeping", name: "Bookkeeping", persona: "Finn", icon: Calculator },
-  { id: "scheduling", name: "Scheduling", persona: "Cal", icon: CalendarCheck },
-  { id: "hr-recruiting", name: "HR & Recruiting", persona: "Harper", icon: Users },
-  { id: "data-analyst", name: "Data Analyst", persona: "DataBot", icon: BarChart3 },
-  { id: "ecommerce-ops", name: "E-Commerce Ops", persona: "ShopBot", icon: Package },
-];
-
-const suggestedPrompts = [
-  "What can you do?",
-  "Handle a complaint",
-  "Schedule a meeting",
-  "Generate a report",
+  { id: "customer-support", name: "Customer Support", persona: "Ava", icon: Headphones, color: "from-pink-500 to-rose-500", accent: "text-pink-400", bg: "bg-pink-500/10" },
+  { id: "sales-sdr", name: "Sales SDR", persona: "Rex", icon: TrendingUp, color: "from-blue-500 to-cyan-500", accent: "text-blue-400", bg: "bg-blue-500/10" },
+  { id: "social-media", name: "Social Media", persona: "Maya", icon: Share2, color: "from-violet-500 to-purple-500", accent: "text-violet-400", bg: "bg-violet-500/10" },
+  { id: "bookkeeping", name: "Bookkeeping", persona: "Finn", icon: Calculator, color: "from-emerald-500 to-green-500", accent: "text-emerald-400", bg: "bg-emerald-500/10" },
+  { id: "scheduling", name: "Scheduling", persona: "Cal", icon: CalendarCheck, color: "from-orange-500 to-amber-500", accent: "text-orange-400", bg: "bg-orange-500/10" },
+  { id: "hr-recruiting", name: "HR & Recruiting", persona: "Harper", icon: Users, color: "from-teal-500 to-cyan-500", accent: "text-teal-400", bg: "bg-teal-500/10" },
+  { id: "data-analyst", name: "Data Analyst", persona: "DataBot", icon: BarChart3, color: "from-indigo-500 to-blue-500", accent: "text-indigo-400", bg: "bg-indigo-500/10" },
+  { id: "ecommerce-ops", name: "E-Commerce Ops", persona: "ShopBot", icon: Package, color: "from-amber-500 to-yellow-500", accent: "text-amber-400", bg: "bg-amber-500/10" },
 ];
 
 interface RentalData {
@@ -86,8 +84,10 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
   const [uploadedImage, setUploadedImage] = useState<{ url: string; name: string } | null>(null);
   const [uploading, setUploading] = useState(false);
   const [showCreditsPanel, setShowCreditsPanel] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const { data: rentals, isLoading: rentalsLoading } = useQuery<RentalData[]>({
     queryKey: ["/api/rentals"],
@@ -218,354 +218,435 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
     }
   };
 
-  const currentAgent = agentOptions.find((a) => a.id === selectedAgent);
+  const currentAgent = agentOptions.find((a) => a.id === selectedAgent)!;
+  const CurrentIcon = currentAgent.icon;
+
+  const quickPrompts = [
+    { label: "Capabilities", text: "What can you do?" },
+    { label: "Get started", text: "Help me get started" },
+    { label: "Quick task", text: "I have a quick task for you" },
+  ];
 
   return (
-    <div className="pt-16 min-h-screen flex flex-col">
-      {isWorkspace ? (
-        <div className="bg-gradient-to-r from-emerald-500/10 to-blue-500/10 border-b border-border/50">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
-            <div className="flex items-center gap-2 justify-center text-sm text-emerald-400">
-              <div className="w-2 h-2 rounded-full bg-emerald-400" />
-              <span data-testid="text-workspace-banner">
-                AI Workspace — Full access active. Your agents are ready to work.
-              </span>
+    <div className="fixed inset-0 pt-16 flex bg-background">
+      <AnimatePresence mode="wait">
+        {sidebarOpen && (
+          <motion.aside
+            initial={{ width: 0, opacity: 0 }}
+            animate={{ width: 280, opacity: 1 }}
+            exit={{ width: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="h-full border-r border-border/50 bg-card/50 flex flex-col overflow-hidden shrink-0"
+          >
+            <div className="p-4 border-b border-border/50">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground" data-testid="text-agent-select-title">
+                  {isWorkspace ? "Your Workers" : "AI Workers"}
+                </h2>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                  onClick={() => setSidebarOpen(false)}
+                  data-testid="button-close-sidebar"
+                >
+                  <PanelLeftClose className="w-4 h-4" />
+                </Button>
+              </div>
+              {isWorkspace && (
+                <Link href="/dashboard">
+                  <span className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground cursor-pointer transition-colors">
+                    <ArrowLeft className="w-3 h-3" />
+                    Back to Dashboard
+                  </span>
+                </Link>
+              )}
+              {!isWorkspace && (
+                <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-blue-500/5 border border-blue-500/10">
+                  <Info className="w-3 h-3 text-blue-400 shrink-0" />
+                  <span className="text-[10px] text-blue-400/80" data-testid="text-demo-banner">Demo Mode</span>
+                </div>
+              )}
             </div>
-          </div>
-        </div>
-      ) : (
-        <div className="bg-gradient-to-r from-blue-500/10 to-violet-500/10 border-b border-border/50">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
-            <div className="flex items-center gap-2 justify-center text-sm text-muted-foreground">
-              <Info className="w-4 h-4 text-blue-400 shrink-0" />
-              <span data-testid="text-demo-banner">
-                This is a demo version. Our production AI workers are significantly more capable and customizable.
-              </span>
-            </div>
-          </div>
-        </div>
-      )}
 
-      <div className="flex-1 flex flex-col lg:flex-row max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 gap-6">
-        <motion.aside
-          className="w-full lg:w-72 shrink-0"
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5 }}
-        >
-          <div className="lg:sticky lg:top-24">
-            <h2 className="text-sm font-semibold text-foreground uppercase tracking-wider mb-3" data-testid="text-agent-select-title">
-              {isWorkspace ? "Your AI Workers" : "Select AI Worker"}
-            </h2>
-            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-1 gap-2">
+            <div className="flex-1 overflow-y-auto p-2 space-y-0.5">
               {agentOptions.map((agent) => {
                 const isLocked = user && rentalsReady && hasRentals && !rentedAgentIds.has(agent.id);
                 const isPending = user && !rentalsReady;
+                const isActive = selectedAgent === agent.id;
+                const AgentIcon = agent.icon;
+                const hasMessages = (conversationMap[agent.id] || []).length > 0;
+
                 return (
                   <button
                     key={agent.id}
                     onClick={() => {
                       if (isLocked || isPending) return;
                       setSelectedAgent(agent.id);
+                      setTimeout(() => inputRef.current?.focus(), 100);
                     }}
                     disabled={!!isLocked || !!isPending}
-                    className={`flex items-center gap-3 px-4 py-3 rounded-md text-left text-sm font-medium transition-all ${
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-sm transition-all group ${
                       isLocked
-                        ? "bg-card/50 border border-border/30 text-muted-foreground/40 cursor-not-allowed opacity-50"
+                        ? "text-muted-foreground/30 cursor-not-allowed"
                         : isPending
-                          ? "bg-card/50 border border-border/30 text-muted-foreground/60 cursor-wait opacity-60"
-                          : selectedAgent === agent.id
-                          ? "bg-blue-500/10 text-blue-400 border border-blue-500/30"
-                          : "bg-card border border-border/50 text-muted-foreground"
+                          ? "text-muted-foreground/50 cursor-wait"
+                          : isActive
+                            ? "bg-gradient-to-r " + agent.color + " text-white shadow-lg shadow-blue-500/10"
+                            : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
                     }`}
                     data-testid={`button-agent-${agent.id}`}
                   >
-                    <agent.icon className="w-4 h-4 shrink-0" />
-                    <span className="truncate">{agent.name}</span>
-                    {isLocked ? (
-                      <Lock className="w-3 h-3 ml-auto shrink-0 text-muted-foreground/40" />
-                    ) : selectedAgent === agent.id ? (
-                      <div className="ml-auto flex items-center gap-1">
-                        <div className="w-2 h-2 rounded-full bg-emerald-400" />
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
+                      isActive ? "bg-white/20" : agent.bg
+                    }`}>
+                      <AgentIcon className={`w-4 h-4 ${isActive ? "text-white" : agent.accent}`} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-medium truncate">{agent.persona}</span>
+                        {hasMessages && !isActive && (
+                          <span className="w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0" />
+                        )}
                       </div>
-                    ) : null}
+                      <span className={`text-[11px] truncate block ${isActive ? "text-white/70" : "text-muted-foreground/60"}`}>
+                        {agent.name}
+                      </span>
+                    </div>
+                    {isLocked && <Lock className="w-3.5 h-3.5 shrink-0 opacity-30" />}
                   </button>
                 );
               })}
             </div>
-          </div>
-        </motion.aside>
 
-        <motion.div
-          className="flex-1 flex flex-col min-h-0"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-        >
-          <Card className="flex-1 flex flex-col bg-card border-border/50 min-h-[500px]">
-            <div className="flex items-center justify-between gap-3 px-6 py-4 border-b border-border/50">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-violet-500 flex items-center justify-center">
-                  <Bot className="w-5 h-5 text-white" />
+            {spendingData && (
+              <div className="p-3 border-t border-border/50">
+                <div className="flex items-center justify-between text-[11px] text-muted-foreground mb-1.5">
+                  <span className="flex items-center gap-1"><Gauge className="w-3 h-3" />Token Usage</span>
+                  <span>${spendingData.spent.toFixed(2)} / ${spendingData.limit.toFixed(2)}</span>
                 </div>
-                <div>
-                  <h3 className="font-semibold text-foreground text-sm" data-testid="text-chat-agent-name">
-                    {currentAgent?.persona} — {currentAgent?.name}
-                  </h3>
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-2 h-2 rounded-full bg-emerald-400" />
-                    <span className="text-xs text-muted-foreground">Online</span>
-                  </div>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                {spendingData && (
-                  <Badge
-                    variant="outline"
-                    className={`text-xs gap-1 ${spendingData.limitReached ? "border-red-500/50 text-red-400 bg-red-500/10" : spendingData.remaining < 1 ? "border-yellow-500/50 text-yellow-400 bg-yellow-500/10" : "border-emerald-500/50 text-emerald-400 bg-emerald-500/10"}`}
-                    data-testid="badge-token-spending"
-                  >
-                    <Gauge className="w-3 h-3" />
-                    ${spendingData.spent.toFixed(2)} / ${spendingData.limit.toFixed(2)}
-                  </Badge>
-                )}
-                {user && isSocialMediaAgent && (
-                  <div className="relative">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setShowCreditsPanel(!showCreditsPanel)}
-                      className="text-xs gap-1.5"
-                      data-testid="button-image-credits"
-                    >
-                      <Coins className="w-3.5 h-3.5 text-yellow-500" />
-                      <span>{imageCredits} credit{imageCredits !== 1 ? "s" : ""}</span>
-                    </Button>
-                    {showCreditsPanel && (
-                      <div className="absolute right-0 top-full mt-2 w-72 bg-card border border-border rounded-lg shadow-xl z-50 p-4" data-testid="credits-panel">
-                        <div className="flex items-center justify-between mb-3">
-                          <h4 className="font-semibold text-sm">Image Credits</h4>
-                          <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => setShowCreditsPanel(false)}>
-                            <X className="w-3.5 h-3.5" />
-                          </Button>
-                        </div>
-                        <p className="text-xs text-muted-foreground mb-3">
-                          Each AI image generation or stock photo search uses 1 credit ($3.00).
-                          Buy in bulk to save!
-                        </p>
-                        <div className="space-y-2">
-                          {(creditPrices || []).map((price) => (
-                            <button
-                              key={price.id}
-                              onClick={() => buyCredits(price.id)}
-                              className="w-full flex items-center justify-between p-2.5 rounded-md border border-border/50 hover:border-blue-500/50 hover:bg-blue-500/5 transition-colors text-left"
-                              data-testid={`button-buy-credits-${price.credits}`}
-                            >
-                              <div>
-                                <span className="text-sm font-medium">{price.credits} Credit{price.credits !== 1 ? "s" : ""}</span>
-                                {price.credits > 1 && (
-                                  <span className="text-xs text-muted-foreground ml-1.5">
-                                    (${(price.amount / price.credits / 100).toFixed(2)}/ea)
-                                  </span>
-                                )}
-                              </div>
-                              <div className="flex items-center gap-1.5">
-                                <span className="text-sm font-semibold text-blue-400">${(price.amount / 100).toFixed(2)}</span>
-                                <ShoppingCart className="w-3.5 h-3.5 text-muted-foreground" />
-                              </div>
-                            </button>
-                          ))}
-                        </div>
-                        {(!creditPrices || creditPrices.length === 0) && (
-                          <div className="text-center py-3 text-xs text-muted-foreground">Loading prices...</div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )}
-                {messages.length > 0 && (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => setMessages([])}
-                    className="text-muted-foreground"
-                    data-testid="button-clear-chat"
-                  >
-                    <Trash2 className="w-4 h-4 mr-1" />
-                    Clear
-                  </Button>
-                )}
-              </div>
-            </div>
-
-            <div className="flex-1 overflow-y-auto p-6 space-y-4" data-testid="chat-messages">
-              {messages.length === 0 && (
-                <div className="flex flex-col items-center justify-center h-full text-center">
-                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500/20 to-violet-500/20 flex items-center justify-center mb-4">
-                    <Bot className="w-8 h-8 text-blue-400" />
-                  </div>
-                  <h3 className="font-semibold text-foreground mb-2" data-testid="text-chat-empty">
-                    Chat with {currentAgent?.persona}
-                  </h3>
-                  <p className="text-sm text-muted-foreground max-w-sm mb-6">
-                    Start a conversation to see this AI worker in action. Try one of the prompts below.
-                  </p>
-                  <div className="flex flex-wrap justify-center gap-2">
-                    {suggestedPrompts.map((prompt) => (
-                      <Button
-                        key={prompt}
-                        size="sm"
-                        variant="outline"
-                        onClick={() => sendMessage(prompt)}
-                        className="text-xs"
-                        data-testid={`button-prompt-${prompt.split(" ")[0].toLowerCase()}`}
-                      >
-                        {prompt}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {messages.map((msg, i) => (
-                <div key={i} className={`flex gap-3 ${msg.role === "user" ? "flex-row-reverse" : ""}`}>
+                <div className="h-1 bg-muted rounded-full overflow-hidden">
                   <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
-                      msg.role === "user" ? "bg-muted" : "bg-gradient-to-br from-blue-500 to-violet-500"
+                    className={`h-full rounded-full transition-all ${
+                      spendingData.limitReached ? "bg-red-500" :
+                      spendingData.remaining < 1 ? "bg-yellow-500" :
+                      "bg-gradient-to-r from-blue-500 to-violet-500"
                     }`}
-                  >
-                    {msg.role === "user" ? <User className="w-4 h-4 text-muted-foreground" /> : <Bot className="w-4 h-4 text-white" />}
-                  </div>
-                  <div className="max-w-[75%] flex flex-col gap-2">
-                    {msg.actions && msg.actions.length > 0 && (
-                      <div className="flex flex-col gap-1" data-testid={`chat-actions-${i}`}>
-                        {msg.actions.map((action, ai) => (
-                          <div
-                            key={ai}
-                            className="flex items-center gap-2 rounded-md px-3 py-1.5 text-xs font-medium bg-gradient-to-r from-blue-500/10 to-violet-500/10 border border-blue-500/20 text-blue-400"
-                            data-testid={`chat-action-${i}-${ai}`}
-                          >
-                            <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-                            {action.description}
+                    style={{ width: `${Math.min((spendingData.spent / spendingData.limit) * 100, 100)}%` }}
+                  />
+                </div>
+              </div>
+            )}
+          </motion.aside>
+        )}
+      </AnimatePresence>
+
+      <div className="flex-1 flex flex-col min-w-0">
+        <div className={`h-14 border-b border-border/50 flex items-center gap-3 px-4 bg-card/30 backdrop-blur-sm shrink-0`}>
+          {!sidebarOpen && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-muted-foreground"
+              onClick={() => setSidebarOpen(true)}
+              data-testid="button-open-sidebar"
+            >
+              <PanelLeftOpen className="w-4 h-4" />
+            </Button>
+          )}
+
+          <div className={`w-9 h-9 rounded-full bg-gradient-to-br ${currentAgent.color} flex items-center justify-center shadow-md`}>
+            <CurrentIcon className="w-4.5 h-4.5 text-white" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="font-semibold text-foreground text-sm truncate" data-testid="text-chat-agent-name">
+              {currentAgent.persona}
+            </h3>
+            <div className="flex items-center gap-1.5">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+              </span>
+              <span className="text-[11px] text-emerald-400">{currentAgent.name}</span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            {user && isSocialMediaAgent && (
+              <div className="relative">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setShowCreditsPanel(!showCreditsPanel)}
+                  className="h-8 text-xs gap-1.5 text-muted-foreground"
+                  data-testid="button-image-credits"
+                >
+                  <Coins className="w-3.5 h-3.5 text-yellow-500" />
+                  {imageCredits}
+                </Button>
+                {showCreditsPanel && (
+                  <div className="absolute right-0 top-full mt-2 w-72 bg-card border border-border rounded-xl shadow-2xl z-50 p-4" data-testid="credits-panel">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="font-semibold text-sm">Image Credits</h4>
+                      <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => setShowCreditsPanel(false)}>
+                        <X className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground mb-3">
+                      Each AI image generation or stock photo search uses 1 credit ($3.00).
+                    </p>
+                    <div className="space-y-2">
+                      {(creditPrices || []).map((price) => (
+                        <button
+                          key={price.id}
+                          onClick={() => buyCredits(price.id)}
+                          className="w-full flex items-center justify-between p-2.5 rounded-lg border border-border/50 hover:border-blue-500/50 hover:bg-blue-500/5 transition-colors text-left"
+                          data-testid={`button-buy-credits-${price.credits}`}
+                        >
+                          <div>
+                            <span className="text-sm font-medium">{price.credits} Credit{price.credits !== 1 ? "s" : ""}</span>
+                            {price.credits > 1 && (
+                              <span className="text-xs text-muted-foreground ml-1.5">
+                                (${(price.amount / price.credits / 100).toFixed(2)}/ea)
+                              </span>
+                            )}
                           </div>
-                        ))}
-                      </div>
+                          <span className="text-sm font-semibold text-blue-400">${(price.amount / 100).toFixed(2)}</span>
+                        </button>
+                      ))}
+                    </div>
+                    {(!creditPrices || creditPrices.length === 0) && (
+                      <div className="text-center py-3 text-xs text-muted-foreground">Loading prices...</div>
                     )}
-                    <div
-                      className={`rounded-2xl px-4 py-3 text-sm ${
-                        msg.isLimitWarning ? "bg-red-500/20 border border-red-500/40 text-red-300" :
-                        msg.role === "user" ? "bg-blue-500 text-white rounded-br-md" : "bg-muted text-foreground rounded-bl-md"
-                      }`}
-                      data-testid={`chat-message-${i}`}
+                  </div>
+                )}
+              </div>
+            )}
+            {messages.length > 0 && (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setMessages([])}
+                className="h-8 text-xs text-muted-foreground hover:text-red-400"
+                data-testid="button-clear-chat"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </Button>
+            )}
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto" data-testid="chat-messages">
+          {messages.length === 0 ? (
+            <div className="h-full flex flex-col items-center justify-center p-8">
+              <motion.div
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ duration: 0.4 }}
+                className="text-center max-w-md"
+              >
+                <div className={`w-20 h-20 rounded-2xl bg-gradient-to-br ${currentAgent.color} flex items-center justify-center mx-auto mb-6 shadow-xl`}>
+                  <CurrentIcon className="w-10 h-10 text-white" />
+                </div>
+                <h2 className="text-2xl font-bold text-foreground mb-2" data-testid="text-chat-empty">
+                  {currentAgent.persona}
+                </h2>
+                <p className="text-muted-foreground mb-1 text-sm">{currentAgent.name} Agent</p>
+                <p className="text-muted-foreground/60 text-xs mb-8">
+                  {isWorkspace ? "Your AI worker is ready. Start a conversation below." : "Try this agent in demo mode. Send a message to get started."}
+                </p>
+
+                <div className="space-y-2">
+                  {quickPrompts.map((prompt) => (
+                    <button
+                      key={prompt.text}
+                      onClick={() => sendMessage(prompt.text)}
+                      className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-border/50 bg-card/50 hover:bg-card hover:border-blue-500/30 hover:shadow-md transition-all text-left group"
+                      data-testid={`button-prompt-${prompt.label.split(" ")[0].toLowerCase()}`}
                     >
-                      {msg.isLimitWarning && (
-                        <div className="flex items-center gap-2 mb-2 text-red-400 font-medium">
-                          <AlertTriangle className="w-4 h-4" />
-                          Token Limit Reached
+                      <Sparkles className={`w-4 h-4 ${currentAgent.accent} shrink-0`} />
+                      <span className="text-sm text-muted-foreground group-hover:text-foreground transition-colors">{prompt.text}</span>
+                      <ChevronRight className="w-4 h-4 text-muted-foreground/30 ml-auto group-hover:text-muted-foreground transition-colors" />
+                    </button>
+                  ))}
+                </div>
+              </motion.div>
+            </div>
+          ) : (
+            <div className="max-w-3xl mx-auto w-full px-4 py-6 space-y-1">
+              {messages.map((msg, i) => {
+                const isUser = msg.role === "user";
+                const showAvatar = i === 0 || messages[i - 1].role !== msg.role;
+
+                return (
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className={`flex gap-2 ${isUser ? "flex-row-reverse" : ""} ${showAvatar ? "mt-4" : "mt-0.5"}`}
+                  >
+                    <div className="w-8 shrink-0">
+                      {showAvatar && (
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                          isUser ? "bg-muted" : `bg-gradient-to-br ${currentAgent.color} shadow-md`
+                        }`}>
+                          {isUser ? (
+                            <User className="w-4 h-4 text-muted-foreground" />
+                          ) : (
+                            <CurrentIcon className="w-4 h-4 text-white" />
+                          )}
                         </div>
                       )}
-                      <ChatMessageContent content={msg.content} isUser={msg.role === "user"} />
                     </div>
-                  </div>
-                </div>
-              ))}
+
+                    <div className={`max-w-[80%] flex flex-col gap-1.5 ${isUser ? "items-end" : "items-start"}`}>
+                      {showAvatar && (
+                        <span className={`text-[11px] font-medium px-1 ${isUser ? "text-muted-foreground" : currentAgent.accent}`}>
+                          {isUser ? (user?.fullName?.split(" ")[0] || "You") : currentAgent.persona}
+                        </span>
+                      )}
+
+                      {msg.actions && msg.actions.length > 0 && (
+                        <div className="flex flex-col gap-1 w-full" data-testid={`chat-actions-${i}`}>
+                          {msg.actions.map((action, ai) => (
+                            <div
+                              key={ai}
+                              className={`flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium border ${currentAgent.bg} border-current/10 ${currentAgent.accent}`}
+                              data-testid={`chat-action-${i}-${ai}`}
+                            >
+                              <Zap className="w-3 h-3 shrink-0" />
+                              <span className="flex-1">{action.description}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      <div
+                        className={`rounded-2xl px-4 py-2.5 ${
+                          msg.isLimitWarning
+                            ? "bg-red-500/10 border border-red-500/30 text-red-300"
+                            : isUser
+                              ? "bg-blue-500 text-white rounded-tr-md"
+                              : "bg-muted/70 text-foreground rounded-tl-md border border-border/30"
+                        }`}
+                        data-testid={`chat-message-${i}`}
+                      >
+                        {msg.isLimitWarning && (
+                          <div className="flex items-center gap-2 mb-2 text-red-400 font-medium text-xs">
+                            <AlertTriangle className="w-3.5 h-3.5" />
+                            Token Limit Reached
+                          </div>
+                        )}
+                        <ChatMessageContent content={msg.content} isUser={isUser} />
+                      </div>
+                    </div>
+                  </motion.div>
+                );
+              })}
 
               {loading && (
-                <div className="flex gap-3">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-violet-500 flex items-center justify-center shrink-0">
-                    <Bot className="w-4 h-4 text-white" />
+                <motion.div
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex gap-2 mt-4"
+                >
+                  <div className={`w-8 h-8 rounded-full bg-gradient-to-br ${currentAgent.color} flex items-center justify-center shrink-0 shadow-md`}>
+                    <CurrentIcon className="w-4 h-4 text-white" />
                   </div>
-                  <div className="bg-muted rounded-md px-4 py-3 flex items-center gap-2">
-                    <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
-                    <span className="text-sm text-muted-foreground">Agent is typing...</span>
+                  <div className="flex flex-col gap-1.5">
+                    <span className={`text-[11px] font-medium px-1 ${currentAgent.accent}`}>
+                      {currentAgent.persona}
+                    </span>
+                    <div className="bg-muted/70 rounded-2xl rounded-tl-md border border-border/30 px-4 py-3">
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-muted-foreground/40 animate-bounce" style={{ animationDelay: "0ms" }} />
+                        <span className="w-2 h-2 rounded-full bg-muted-foreground/40 animate-bounce" style={{ animationDelay: "150ms" }} />
+                        <span className="w-2 h-2 rounded-full bg-muted-foreground/40 animate-bounce" style={{ animationDelay: "300ms" }} />
+                      </div>
+                    </div>
                   </div>
-                </div>
+                </motion.div>
               )}
 
               <div ref={messagesEndRef} />
             </div>
+          )}
+        </div>
 
-            <div className="px-6 py-4 border-t border-border/50">
-              {messages.length > 0 && (
-                <div className="flex flex-wrap gap-2 mb-3">
-                  {suggestedPrompts.map((prompt) => (
-                    <Button
-                      key={prompt}
-                      size="sm"
-                      variant="outline"
-                      onClick={() => sendMessage(prompt)}
-                      className="text-xs"
-                      disabled={loading}
-                    >
-                      {prompt}
-                    </Button>
-                  ))}
-                </div>
+        <div className="border-t border-border/50 bg-card/30 backdrop-blur-sm shrink-0">
+          <div className="max-w-3xl mx-auto w-full px-4 py-3">
+            {uploadedImage && (
+              <div className="flex items-center gap-2 mb-2 p-2 rounded-lg bg-blue-500/10 border border-blue-500/20" data-testid="upload-preview">
+                <img src={uploadedImage.url} alt="Uploaded" className="w-10 h-10 rounded-lg object-cover" />
+                <span className="text-xs text-muted-foreground flex-1 truncate">{uploadedImage.name}</span>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-6 w-6 p-0 text-muted-foreground hover:text-red-400"
+                  onClick={() => setUploadedImage(null)}
+                  data-testid="button-remove-upload"
+                >
+                  <X className="w-3 h-3" />
+                </Button>
+              </div>
+            )}
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                sendMessage();
+              }}
+              className="flex items-end gap-2"
+            >
+              <input
+                type="file"
+                ref={fileInputRef}
+                className="hidden"
+                accept="image/*"
+                onChange={handleImageUpload}
+                data-testid="input-image-upload"
+              />
+              {user && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={loading || uploading}
+                  className="h-10 w-10 shrink-0 text-muted-foreground hover:text-foreground rounded-full"
+                  title="Upload image"
+                  data-testid="button-upload-image"
+                >
+                  {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ImagePlus className="w-5 h-5" />}
+                </Button>
               )}
-              {uploadedImage && (
-                <div className="flex items-center gap-2 mb-2 p-2 rounded-md bg-blue-500/10 border border-blue-500/20" data-testid="upload-preview">
-                  <img src={uploadedImage.url} alt="Uploaded" className="w-10 h-10 rounded object-cover" />
-                  <span className="text-xs text-muted-foreground flex-1 truncate">{uploadedImage.name}</span>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="h-6 w-6 p-0 text-muted-foreground hover:text-red-400"
-                    onClick={() => setUploadedImage(null)}
-                    data-testid="button-remove-upload"
-                  >
-                    <Trash2 className="w-3 h-3" />
-                  </Button>
-                </div>
-              )}
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  sendMessage();
-                }}
-                className="flex gap-3"
-              >
+              <div className="flex-1 relative">
                 <input
-                  type="file"
-                  ref={fileInputRef}
-                  className="hidden"
-                  accept="image/*"
-                  onChange={handleImageUpload}
-                  data-testid="input-image-upload"
-                />
-                {user && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={loading || uploading}
-                    className="shrink-0"
-                    title="Upload image"
-                    data-testid="button-upload-image"
-                  >
-                    {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ImagePlus className="w-4 h-4" />}
-                  </Button>
-                )}
-                <Input
+                  ref={inputRef}
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  placeholder="Type your message..."
+                  placeholder={`Message ${currentAgent.persona}...`}
                   disabled={loading}
-                  className="flex-1"
+                  className="w-full h-11 px-4 pr-12 rounded-xl bg-muted/50 border border-border/50 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 transition-all disabled:opacity-50"
                   data-testid="input-chat"
                 />
                 <Button
                   type="submit"
                   disabled={!input.trim() || loading}
-                  className="bg-gradient-to-r from-blue-500 to-violet-500 text-white border-0"
+                  size="icon"
+                  className={`absolute right-1.5 top-1/2 -translate-y-1/2 h-8 w-8 rounded-lg transition-all ${
+                    input.trim()
+                      ? `bg-gradient-to-r ${currentAgent.color} text-white shadow-md hover:shadow-lg`
+                      : "bg-transparent text-muted-foreground/30"
+                  }`}
                   data-testid="button-send"
                 >
                   <Send className="w-4 h-4" />
                 </Button>
-              </form>
-            </div>
-          </Card>
-        </motion.div>
+              </div>
+            </form>
+          </div>
+        </div>
       </div>
     </div>
   );

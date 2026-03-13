@@ -2092,11 +2092,14 @@ Be decisive and actionable. Format with clear sections.`,
         ORDER BY count DESC LIMIT 20
       `);
 
-      const recentChatResult = await db.execute(sql`
-        SELECT agent_type, role, LEFT(content, 100) as content_preview, created_at
-        FROM chat_messages
-        ORDER BY created_at DESC LIMIT 10
-      `);
+      let recentChatResult: { rows: Record<string, unknown>[] } = { rows: [] };
+      try {
+        recentChatResult = await db.execute(sql`
+          SELECT agent_type, role, LEFT(content, 100) as content_preview, created_at
+          FROM chat_messages
+          ORDER BY created_at DESC LIMIT 10
+        `);
+      } catch {}
 
       const activeCampaignsResult = await db.execute(sql`
         SELECT COUNT(*)::int as active FROM email_campaigns WHERE status = 'active'
@@ -2282,8 +2285,11 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
                 const limit = args.limit || 10;
                 const recentUsers = await db.execute(sql`SELECT email, full_name, created_at FROM users ORDER BY created_at DESC LIMIT ${limit}`);
                 const recentActions = await db.execute(sql`SELECT agent_type, action_type, created_at FROM agent_actions ORDER BY created_at DESC LIMIT ${limit}`);
-                const recentMessages = await db.execute(sql`SELECT agent_type, role, content, created_at FROM chat_messages ORDER BY created_at DESC LIMIT ${limit}`);
-                toolResult = JSON.stringify({ recentUsers: recentUsers.rows, recentActions: recentActions.rows, recentMessages: recentMessages.rows });
+                let recentMsgs: { rows: Record<string, unknown>[] } = { rows: [] };
+                try {
+                  recentMsgs = await db.execute(sql`SELECT agent_type, role, content, created_at FROM chat_messages ORDER BY created_at DESC LIMIT ${limit}`);
+                } catch {}
+                toolResult = JSON.stringify({ recentUsers: recentUsers.rows, recentActions: recentActions.rows, recentMessages: recentMsgs.rows });
                 break;
               }
               case "query_cost_breakdown": {
@@ -2309,7 +2315,7 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
                     (SELECT COUNT(*)::int FROM rentals) as rentals_count,
                     (SELECT COUNT(*)::int FROM agent_actions) as actions_count,
                     (SELECT COUNT(*)::int FROM token_usage) as token_usage_count,
-                    (SELECT COUNT(*)::int FROM chat_messages) as chat_messages_count,
+                    (SELECT COUNT(*)::int FROM information_schema.tables WHERE table_name='chat_messages' AND table_schema='public') as chat_messages_exists,
                     (SELECT COUNT(*)::int FROM boss_conversations) as boss_conversations_count,
                     (SELECT COUNT(*)::int FROM support_tickets WHERE status IN ('open','in_progress')) as open_tickets
                 `);

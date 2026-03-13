@@ -126,8 +126,51 @@ app.use((req, res, next) => {
           value TEXT NOT NULL,
           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
         )
-      `).catch((err: any) =>
-        console.warn("system_settings table setup:", err.message)
+      `).catch((err: unknown) =>
+        console.warn("system_settings table setup:", err instanceof Error ? err.message : String(err))
+      );
+
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS chat_messages (
+          id SERIAL PRIMARY KEY,
+          user_id INTEGER,
+          session_id TEXT,
+          agent_type TEXT NOT NULL,
+          role TEXT NOT NULL,
+          content TEXT NOT NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+        )
+      `).catch((err: unknown) =>
+        console.warn("chat_messages table setup:", err instanceof Error ? err.message : String(err))
+      );
+
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS boss_conversations (
+          id SERIAL PRIMARY KEY,
+          topic TEXT NOT NULL,
+          messages JSONB NOT NULL DEFAULT '[]',
+          message_count INTEGER NOT NULL DEFAULT 0,
+          tools_used BOOLEAN NOT NULL DEFAULT false,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+        )
+      `).catch((err: unknown) =>
+        console.warn("boss_conversations table setup:", err instanceof Error ? err.message : String(err))
+      );
+
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS collaboration_sessions (
+          id SERIAL PRIMARY KEY,
+          topic TEXT NOT NULL,
+          synthesis TEXT NOT NULL DEFAULT '',
+          agent_responses JSONB NOT NULL DEFAULT '[]',
+          agent_count INTEGER NOT NULL DEFAULT 0,
+          total_cost TEXT NOT NULL DEFAULT '0',
+          total_tokens INTEGER NOT NULL DEFAULT 0,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+        )
+      `).catch((err: unknown) =>
+        console.warn("collaboration_sessions table setup:", err instanceof Error ? err.message : String(err))
       );
 
       console.log('Initializing Stripe schema...');

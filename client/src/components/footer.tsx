@@ -112,7 +112,6 @@ export default function Footer() {
                   className="flex-1"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  required
                   data-testid="input-newsletter"
                 />
                 <Button

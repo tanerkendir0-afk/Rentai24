@@ -49,7 +49,7 @@ function Router() {
 
 function AppContent() {
   const [location] = useLocation();
-  const hideFooter = location === "/chat" || location === "/demo";
+  const hideFooter = location.startsWith("/chat") || location.startsWith("/demo");
 
   return (
     <>

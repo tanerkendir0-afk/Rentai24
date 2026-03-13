@@ -13,6 +13,7 @@ import { processAndStoreDocument, processAndStoreUrl, retrieveRelevantChunks, ge
 import { createFineTuningJob, syncJobStatus, getJobsByAgent, toggleActiveModel, deactivateModel, getActiveModel } from "./fineTuningService";
 import { generateAgentRulesPDF, generateTrainingDataFromChatLogs, validateJSONL, getAgentDefinitions } from "./trainingDataService";
 import { getRelevantToolsForMessage, executeToolCall } from "./agentTools";
+import { checkInput, sanitizeOutput, logGuardrailBlock } from "./guardrails";
 import { getImagePath, chatImageDir } from "./imageService";
 import { db } from "./db";
 import { sql, eq, desc } from "drizzle-orm";
@@ -781,6 +782,16 @@ export async function registerRoutes(
     res.json(updated);
   });
 
+  app.get("/api/admin/guardrail-logs", requireAdmin, async (req, res) => {
+    const { agentType, ruleType, limit } = req.query;
+    const logs = await storage.getGuardrailLogs({
+      agentType: agentType as string | undefined,
+      ruleType: ruleType as string | undefined,
+      limit: limit ? parseInt(limit as string) : 100,
+    });
+    res.json(logs);
+  });
+
   app.get("/api/campaigns", requireAuth, async (req, res) => {
     const campaigns = await storage.getCampaignsByUser(req.session.userId!);
     res.json(campaigns);
@@ -957,6 +968,23 @@ export async function registerRoutes(
     }
 
     const { message, agentType, conversationHistory, sessionId: clientSessionId } = parsed.data;
+
+    const clientIp = (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() || req.socket.remoteAddress || "unknown";
+    const guardrailResult = await checkInput(message, agentType, req.session.userId || null, clientIp);
+    if (!guardrailResult.allowed) {
+      logGuardrailBlock(
+        req.session.userId || null,
+        agentType,
+        guardrailResult.ruleType || "unknown",
+        guardrailResult.reason || "Blocked",
+        message
+      );
+      return res.status(403).json({
+        reply: guardrailResult.reason,
+        code: "GUARDRAIL_BLOCKED",
+      });
+    }
+
     let systemPrompt = agentSystemPrompts[agentType] || defaultSystemPrompt;
 
     let userName: string | null = null;
@@ -1229,7 +1257,8 @@ ${members.map(m => `- ${m.name} (${m.email})${m.position ? ` — ${m.position}` 
         operationType,
       }).catch(err => console.error("Token usage log error:", err.message));
 
-      const reply = assistantMessage?.content || "Sorry, I couldn't generate a response. Please try again.";
+      const rawReply = assistantMessage?.content || "Sorry, I couldn't generate a response. Please try again.";
+      const reply = sanitizeOutput(rawReply, agentType);
 
       const usedTool = operationType === "tool_call";
 

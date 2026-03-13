@@ -140,7 +140,7 @@ export const loginSchema = z.object({
 });
 
 export const chatMessageSchema = z.object({
-  message: z.string().min(1).max(2000),
+  message: z.string().min(1).max(8000),
   agentType: z.string().min(1),
   conversationHistory: z.array(z.object({
     role: z.enum(["user", "assistant"]),
@@ -455,6 +455,24 @@ export const insertShippingProviderSchema = createInsertSchema(shippingProviders
 
 export type ShippingProvider = typeof shippingProviders.$inferSelect;
 export type InsertShippingProvider = z.infer<typeof insertShippingProviderSchema>;
+
+export const guardrailLogs = pgTable("guardrail_logs", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id),
+  agentType: text("agent_type").notNull(),
+  ruleType: text("rule_type").notNull(),
+  reason: text("reason").notNull(),
+  inputPreview: text("input_preview"),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
+export const insertGuardrailLogSchema = createInsertSchema(guardrailLogs).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type GuardrailLog = typeof guardrailLogs.$inferSelect;
+export type InsertGuardrailLog = z.infer<typeof insertGuardrailLogSchema>;
 
 export type Lead = typeof leads.$inferSelect;
 export type InsertLead = z.infer<typeof insertLeadSchema>;

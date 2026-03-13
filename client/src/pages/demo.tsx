@@ -478,7 +478,9 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
         }),
       });
       const data = await res.json();
-      if (data.limitReached) {
+      if (data.code === "GUARDRAIL_BLOCKED") {
+        setMessages((prev) => [...prev, { role: "assistant", content: `⚠️ ${data.reply}`, isLimitWarning: true }]);
+      } else if (data.limitReached) {
         setMessages((prev) => [...prev, { role: "assistant", content: data.reply, isLimitWarning: true }]);
       } else {
         setMessages((prev) => [...prev, { role: "assistant", content: data.reply, actions: data.actions }]);

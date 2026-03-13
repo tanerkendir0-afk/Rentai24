@@ -2488,6 +2488,183 @@ function BossAIPanel({ token }: { token: string }) {
   );
 }
 
+function GuardrailsPanel({ token }: { token: string }) {
+  const [logs, setLogs] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [agentFilter, setAgentFilter] = useState("all");
+  const [ruleFilter, setRuleFilter] = useState("all");
+
+  const fetchLogs = useCallback(async () => {
+    try {
+      setLoading(true);
+      const params = new URLSearchParams();
+      if (agentFilter !== "all") params.set("agentType", agentFilter);
+      if (ruleFilter !== "all") params.set("ruleType", ruleFilter);
+      const res = await fetch(`/api/admin/guardrail-logs?${params}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) setLogs(await res.json());
+    } catch { } finally { setLoading(false); }
+  }, [token, agentFilter, ruleFilter]);
+
+  useEffect(() => { fetchLogs(); }, [fetchLogs]);
+
+  const ruleTypes = [
+    { value: "all", label: "All Rules" },
+    { value: "prompt_injection", label: "Prompt Injection" },
+    { value: "blocked_topic", label: "Blocked Topic" },
+    { value: "input_length", label: "Input Length" },
+    { value: "rate_limit", label: "Rate Limit" },
+    { value: "daily_limit", label: "Daily Limit" },
+  ];
+
+  const ruleColors: Record<string, string> = {
+    prompt_injection: "bg-red-500/20 text-red-400 border-red-500/30",
+    blocked_topic: "bg-orange-500/20 text-orange-400 border-orange-500/30",
+    input_length: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
+    rate_limit: "bg-blue-500/20 text-blue-400 border-blue-500/30",
+    daily_limit: "bg-purple-500/20 text-purple-400 border-purple-500/30",
+  };
+
+  const todayCount = logs.filter(l => {
+    const d = new Date(l.createdAt);
+    const now = new Date();
+    return d.toDateString() === now.toDateString();
+  }).length;
+
+  const topRule = logs.length > 0
+    ? Object.entries(logs.reduce((acc: Record<string, number>, l: any) => {
+        acc[l.ruleType] = (acc[l.ruleType] || 0) + 1;
+        return acc;
+      }, {})).sort((a, b) => b[1] - a[1])[0]?.[0] || "-"
+    : "-";
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card className="bg-[#0D1129] border-[#1E2448]">
+          <CardContent className="pt-4 pb-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-red-500/20">
+                <Shield className="w-5 h-5 text-red-400" />
+              </div>
+              <div>
+                <p className="text-xs text-slate-400" data-testid="text-guardrail-today-label">Today's Blocks</p>
+                <p className="text-2xl font-bold text-white" data-testid="text-guardrail-today-count">{todayCount}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="bg-[#0D1129] border-[#1E2448]">
+          <CardContent className="pt-4 pb-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-orange-500/20">
+                <AlertTriangle className="w-5 h-5 text-orange-400" />
+              </div>
+              <div>
+                <p className="text-xs text-slate-400" data-testid="text-guardrail-total-label">Total Blocks</p>
+                <p className="text-2xl font-bold text-white" data-testid="text-guardrail-total-count">{logs.length}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="bg-[#0D1129] border-[#1E2448]">
+          <CardContent className="pt-4 pb-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-cyan-500/20">
+                <Activity className="w-5 h-5 text-cyan-400" />
+              </div>
+              <div>
+                <p className="text-xs text-slate-400" data-testid="text-guardrail-toprule-label">Most Triggered</p>
+                <p className="text-lg font-bold text-white" data-testid="text-guardrail-toprule">{topRule.replace("_", " ")}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card className="bg-[#0D1129] border-[#1E2448]">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <CardTitle className="text-lg text-white flex items-center gap-2">
+              <Shield className="w-5 h-5 text-red-400" />
+              Guardrail Logs
+            </CardTitle>
+            <div className="flex gap-2 flex-wrap">
+              <Select value={agentFilter} onValueChange={setAgentFilter}>
+                <SelectTrigger className="w-[180px] bg-[#111633] border-[#1E2448] text-white" data-testid="select-guardrail-agent">
+                  <SelectValue placeholder="All Agents" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Agents</SelectItem>
+                  {AGENTS.map(a => (
+                    <SelectItem key={a.slug} value={a.slug}>{a.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={ruleFilter} onValueChange={setRuleFilter}>
+                <SelectTrigger className="w-[180px] bg-[#111633] border-[#1E2448] text-white" data-testid="select-guardrail-rule">
+                  <SelectValue placeholder="All Rules" />
+                </SelectTrigger>
+                <SelectContent>
+                  {ruleTypes.map(r => (
+                    <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button size="sm" variant="outline" onClick={fetchLogs} className="border-[#1E2448] text-slate-300" data-testid="button-refresh-guardrails">
+                <RefreshCw className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
+            </div>
+          ) : logs.length === 0 ? (
+            <div className="text-center py-8 text-slate-400">
+              <Shield className="w-10 h-10 mx-auto mb-2 opacity-30" />
+              <p>No guardrail blocks recorded</p>
+            </div>
+          ) : (
+            <div className="space-y-2 max-h-[500px] overflow-y-auto">
+              {logs.map((log: any) => (
+                <div key={log.id} className="flex items-start gap-3 p-3 rounded-lg bg-[#111633] border border-[#1E2448]" data-testid={`guardrail-log-${log.id}`}>
+                  <div className="mt-0.5">
+                    <Shield className="w-4 h-4 text-red-400" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap mb-1">
+                      <Badge className={`text-xs ${ruleColors[log.ruleType] || "bg-slate-500/20 text-slate-400"}`} data-testid={`badge-rule-${log.id}`}>
+                        {log.ruleType?.replace("_", " ")}
+                      </Badge>
+                      <Badge variant="outline" className="text-xs border-[#1E2448] text-slate-300" data-testid={`badge-agent-${log.id}`}>
+                        {AGENTS.find(a => a.slug === log.agentType)?.name || log.agentType}
+                      </Badge>
+                      {log.userId && (
+                        <span className="text-xs text-slate-500">User #{log.userId}</span>
+                      )}
+                    </div>
+                    <p className="text-sm text-slate-300 mb-1">{log.reason}</p>
+                    {log.inputPreview && (
+                      <p className="text-xs text-slate-500 truncate">{log.inputPreview}</p>
+                    )}
+                  </div>
+                  <span className="text-xs text-slate-500 whitespace-nowrap">
+                    {new Date(log.createdAt).toLocaleString()}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 function SupportTicketsPanel({ token }: { token: string }) {
   const [tickets, setTickets] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -2815,6 +2992,10 @@ export default function AdminPage() {
               <HelpCircle className="w-3.5 h-3.5 mr-1" />
               Support Tickets
             </TabsTrigger>
+            <TabsTrigger value="guardrails" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-500 data-[state=active]:to-rose-600 data-[state=active]:text-white" data-testid="tab-guardrails">
+              <Shield className="w-3.5 h-3.5 mr-1" />
+              Guardrails
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="boss-ai">
@@ -2863,6 +3044,10 @@ export default function AdminPage() {
 
           <TabsContent value="support-tickets">
             <SupportTicketsPanel token={token} />
+          </TabsContent>
+
+          <TabsContent value="guardrails">
+            <GuardrailsPanel token={token} />
           </TabsContent>
         </Tabs>
       </div>

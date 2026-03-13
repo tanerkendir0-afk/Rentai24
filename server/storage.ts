@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { users, rentals, contactMessages, newsletterSubscribers, leads, agentActions, emailCampaigns, supportTickets, tokenUsage, agentTasks, chatMessages, conversations, teamMembers, bossNotifications, socialAccounts, shippingProviders, systemSettings, type User, type InsertUser, type Rental, type InsertRental, type ContactMessage, type InsertContactMessage, type NewsletterSubscriber, type Lead, type InsertLead, type AgentAction, type InsertAgentAction, type EmailCampaign, type InsertEmailCampaign, type SupportTicket, type InsertSupportTicket, type TokenUsage, type InsertTokenUsage, type AgentTask, type InsertAgentTask, type ChatMessage, type InsertChatMessage, type ConversationRecord, type InsertConversation, type TeamMember, type InsertTeamMember, type BossNotification, type InsertBossNotification, type SocialAccount, type InsertSocialAccount, type ShippingProvider, type InsertShippingProvider } from "@shared/schema";
+import { users, rentals, contactMessages, newsletterSubscribers, leads, agentActions, emailCampaigns, supportTickets, tokenUsage, agentTasks, chatMessages, conversations, teamMembers, bossNotifications, socialAccounts, shippingProviders, guardrailLogs, systemSettings, type User, type InsertUser, type Rental, type InsertRental, type ContactMessage, type InsertContactMessage, type NewsletterSubscriber, type Lead, type InsertLead, type AgentAction, type InsertAgentAction, type EmailCampaign, type InsertEmailCampaign, type SupportTicket, type InsertSupportTicket, type TokenUsage, type InsertTokenUsage, type AgentTask, type InsertAgentTask, type ChatMessage, type InsertChatMessage, type ConversationRecord, type InsertConversation, type TeamMember, type InsertTeamMember, type BossNotification, type InsertBossNotification, type SocialAccount, type InsertSocialAccount, type ShippingProvider, type InsertShippingProvider, type GuardrailLog } from "@shared/schema";
 import { eq, and, sql, desc, gte, lte } from "drizzle-orm";
 
 export interface IStorage {
@@ -93,6 +93,8 @@ export interface IStorage {
   addShippingProvider(provider: InsertShippingProvider): Promise<ShippingProvider>;
   updateShippingProvider(id: number, userId: number, updates: Partial<Pick<ShippingProvider, "apiKey" | "customerCode" | "username" | "password" | "accountNumber" | "siteId" | "status">>): Promise<ShippingProvider | undefined>;
   deleteShippingProvider(id: number, userId: number): Promise<boolean>;
+
+  getGuardrailLogs(filters?: { agentType?: string; ruleType?: string; limit?: number }): Promise<GuardrailLog[]>;
 
   getSystemSetting(key: string): Promise<string | null>;
   setSystemSetting(key: string, value: string): Promise<void>;
@@ -646,6 +648,18 @@ export class DatabaseStorage implements IStorage {
   async getSystemSetting(key: string): Promise<string | null> {
     const [row] = await db.select().from(systemSettings).where(eq(systemSettings.key, key));
     return row?.value ?? null;
+  }
+
+  async getGuardrailLogs(filters?: { agentType?: string; ruleType?: string; limit?: number }): Promise<GuardrailLog[]> {
+    const conditions = [];
+    if (filters?.agentType) conditions.push(eq(guardrailLogs.agentType, filters.agentType));
+    if (filters?.ruleType) conditions.push(eq(guardrailLogs.ruleType, filters.ruleType));
+
+    const query = db.select().from(guardrailLogs);
+    if (conditions.length > 0) {
+      return query.where(and(...conditions)).orderBy(desc(guardrailLogs.createdAt)).limit(filters?.limit || 100);
+    }
+    return query.orderBy(desc(guardrailLogs.createdAt)).limit(filters?.limit || 100);
   }
 
   async setSystemSetting(key: string, value: string): Promise<void> {

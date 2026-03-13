@@ -98,8 +98,57 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
     createdAt: Date.now(),
   });
 
-  const [agentConversations, setAgentConversations] = useState<Record<string, Conversation[]>>({});
-  const [activeConvoId, setActiveConvoId] = useState<Record<string, string>>({});
+  const [agentConversations, setAgentConversations] = useState<Record<string, Conversation[]>>(() => {
+    try {
+      const saved = localStorage.getItem("rentai_conversations");
+      return saved ? JSON.parse(saved) : {};
+    } catch { return {}; }
+  });
+  const [activeConvoId, setActiveConvoId] = useState<Record<string, string>>(() => {
+    try {
+      const saved = localStorage.getItem("rentai_active_convo");
+      return saved ? JSON.parse(saved) : {};
+    } catch { return {}; }
+  });
+
+  const prevUserRef = useRef<string | null>(null);
+  useEffect(() => {
+    const currentUserId = user?.id?.toString() || null;
+    if (prevUserRef.current !== null && prevUserRef.current !== currentUserId) {
+      const newConvo = createConversation();
+      setAgentConversations(prev => {
+        const updated = { ...prev };
+        for (const agentId of Object.keys(updated)) {
+          updated[agentId] = [newConvo, ...updated[agentId]];
+        }
+        if (!updated[selectedAgent]) {
+          updated[selectedAgent] = [newConvo];
+        }
+        return updated;
+      });
+      setActiveConvoId(prev => {
+        const updated = { ...prev };
+        for (const agentId of Object.keys(updated)) {
+          updated[agentId] = newConvo.id;
+        }
+        updated[selectedAgent] = newConvo.id;
+        return updated;
+      });
+    }
+    prevUserRef.current = currentUserId;
+  }, [user?.id]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("rentai_conversations", JSON.stringify(agentConversations));
+    } catch {}
+  }, [agentConversations]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("rentai_active_convo", JSON.stringify(activeConvoId));
+    } catch {}
+  }, [activeConvoId]);
 
   const getConversations = (agentId: string): Conversation[] => {
     if (!agentConversations[agentId] || agentConversations[agentId].length === 0) {

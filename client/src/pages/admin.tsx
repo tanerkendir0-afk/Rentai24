@@ -10,7 +10,8 @@ import {
   Shield, Upload, FileText, Link2, Trash2, RefreshCw, Cpu, ToggleLeft, ToggleRight,
   Lock, Brain, Database, Zap, MessageSquare, Mail, DollarSign, AlertTriangle,
   Users, BarChart3, CreditCard, LogOut, Activity, ShoppingCart, UserCheck,
-  Download, FileDown, CheckCircle, XCircle, Filter, Send, Crown, Bot, Loader2
+  Download, FileDown, CheckCircle, XCircle, Filter, Send, Crown, Bot, Loader2,
+  Plus, Clock, ChevronLeft, MoreVertical, History
 } from "lucide-react";
 
 const AGENTS = [
@@ -1214,10 +1215,26 @@ interface BossMessage {
   toolsUsed?: boolean;
 }
 
+interface BossConversation {
+  id: number;
+  topic: string;
+  messages: BossMessage[];
+  messageCount: number;
+  toolsUsed: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 function BossAIPanel({ token }: { token: string }) {
   const [messages, setMessages] = useState<BossMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [conversations, setConversations] = useState<BossConversation[]>([]);
+  const [activeConvId, setActiveConvId] = useState<number | null>(null);
+  const [showHistory, setShowHistory] = useState(false);
+  const [editingTopic, setEditingTopic] = useState<number | null>(null);
+  const [editTopicValue, setEditTopicValue] = useState("");
+  const [savingConv, setSavingConv] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -1227,12 +1244,60 @@ function BossAIPanel({ token }: { token: string }) {
 
   useEffect(() => { scrollToBottom(); }, [messages]);
 
+  const fetchConversations = useCallback(async () => {
+    try {
+      const res = await fetch("/api/admin/boss-conversations", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setConversations(data);
+      }
+    } catch {}
+  }, [token]);
+
+  useEffect(() => { fetchConversations(); }, [fetchConversations]);
+
+  const saveConversation = useCallback(async (msgs: BossMessage[], convId: number | null, autoTopic?: string) => {
+    if (msgs.length < 2) return convId;
+    setSavingConv(true);
+    try {
+      const hasTools = msgs.some(m => m.toolsUsed);
+      if (convId) {
+        const res = await fetch(`/api/admin/boss-conversations/${convId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ messages: msgs, toolsUsed: hasTools }),
+        });
+        if (res.ok) fetchConversations();
+        return convId;
+      } else {
+        const topic = autoTopic || msgs.find(m => m.role === "user")?.content.slice(0, 80) || "New Conversation";
+        const res = await fetch("/api/admin/boss-conversations", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ topic, messages: msgs, toolsUsed: hasTools }),
+        });
+        if (res.ok) {
+          const conv = await res.json();
+          setActiveConvId(conv.id);
+          fetchConversations();
+          return conv.id as number;
+        }
+      }
+    } catch {} finally {
+      setSavingConv(false);
+    }
+    return convId;
+  }, [token, fetchConversations]);
+
   const sendMessage = async () => {
     const trimmed = input.trim();
     if (!trimmed || loading) return;
 
     const userMsg: BossMessage = { role: "user", content: trimmed };
-    setMessages(prev => [...prev, userMsg]);
+    const newMessages = [...messages, userMsg];
+    setMessages(newMessages);
     setInput("");
     setLoading(true);
 
@@ -1260,7 +1325,11 @@ function BossAIPanel({ token }: { token: string }) {
         content: data.reply,
         toolsUsed: data.toolsUsed,
       };
-      setMessages(prev => [...prev, assistantMsg]);
+      const allMessages = [...newMessages, assistantMsg];
+      setMessages(allMessages);
+
+      const newId = await saveConversation(allMessages, activeConvId);
+      if (newId) setActiveConvId(newId);
     } catch (err: any) {
       toast({ title: "Boss AI Error", description: err.message, variant: "destructive" });
       setMessages(prev => prev.slice(0, -1));
@@ -1274,6 +1343,44 @@ function BossAIPanel({ token }: { token: string }) {
       e.preventDefault();
       sendMessage();
     }
+  };
+
+  const startNewConversation = () => {
+    setMessages([]);
+    setActiveConvId(null);
+    setShowHistory(false);
+  };
+
+  const loadConversation = (conv: BossConversation) => {
+    setMessages(conv.messages || []);
+    setActiveConvId(conv.id);
+    setShowHistory(false);
+  };
+
+  const deleteConversation = async (id: number) => {
+    try {
+      await fetch(`/api/admin/boss-conversations/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (activeConvId === id) {
+        setMessages([]);
+        setActiveConvId(null);
+      }
+      fetchConversations();
+    } catch {}
+  };
+
+  const updateTopic = async (id: number, newTopic: string) => {
+    try {
+      await fetch(`/api/admin/boss-conversations/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ topic: newTopic }),
+      });
+      fetchConversations();
+      setEditingTopic(null);
+    } catch {}
   };
 
   const formatMessage = (content: string) => {
@@ -1300,115 +1407,241 @@ function BossAIPanel({ token }: { token: string }) {
     });
   };
 
+  const activeConv = conversations.find(c => c.id === activeConvId);
+
   return (
     <Card className="bg-[#111633] border-[#1E2448]">
       <CardHeader className="pb-3">
-        <CardTitle className="text-white flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center">
-            <Crown className="w-4 h-4 text-white" />
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-white flex items-center gap-2">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center">
+              <Crown className="w-4 h-4 text-white" />
+            </div>
+            Boss AI — Platform Commander
+            {savingConv && <Loader2 className="w-3 h-3 animate-spin text-amber-400 ml-2" />}
+          </CardTitle>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowHistory(!showHistory)}
+              className="border-[#1E2448] text-gray-400 hover:text-white hover:border-amber-500/50"
+              data-testid="boss-history-toggle"
+            >
+              <History className="w-3.5 h-3.5 mr-1" />
+              History ({conversations.length})
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={startNewConversation}
+              className="border-[#1E2448] text-gray-400 hover:text-white hover:border-green-500/50"
+              data-testid="boss-new-conversation"
+            >
+              <Plus className="w-3.5 h-3.5 mr-1" />
+              New
+            </Button>
           </div>
-          Boss AI — Platform Commander
-        </CardTitle>
+        </div>
         <CardDescription className="text-gray-400">
-          Your AI assistant that knows everything about the platform. Ask about stats, agents, architecture, or development.
+          {activeConv
+            ? <span className="flex items-center gap-1.5">
+                <MessageSquare className="w-3 h-3" />
+                {activeConv.topic}
+                <span className="text-gray-500 text-xs">({activeConv.messageCount} messages)</span>
+              </span>
+            : "Your AI assistant that knows everything about the platform. Ask about stats, agents, architecture, or development."
+          }
         </CardDescription>
       </CardHeader>
       <CardContent className="p-0">
-        <div className="h-[500px] flex flex-col">
-          <div className="flex-1 overflow-y-auto px-4 py-3 space-y-4" data-testid="boss-messages">
-            {messages.length === 0 && (
-              <div className="flex flex-col items-center justify-center h-full text-center space-y-4">
-                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-amber-500/20 to-orange-600/20 flex items-center justify-center">
-                  <Crown className="w-8 h-8 text-amber-400" />
-                </div>
-                <div>
-                  <p className="text-white font-medium text-lg">Boss AI</p>
-                  <p className="text-gray-400 text-sm max-w-md mt-1">
-                    I oversee all 9 agents and know every detail of the platform. Ask me anything.
-                  </p>
-                </div>
-                <div className="grid grid-cols-2 gap-2 max-w-lg">
-                  {[
-                    "How many active users do we have?",
-                    "Which agent is most popular?",
-                    "What's our total API cost?",
-                    "Show me recent platform activity",
-                  ].map((q, i) => (
-                    <button
-                      key={i}
-                      onClick={() => { setInput(q); }}
-                      className="text-left text-xs bg-[#0A0E27] hover:bg-[#1E2448] border border-[#1E2448] rounded-lg px-3 py-2 text-gray-400 hover:text-white transition-colors"
-                      data-testid={`boss-suggestion-${i}`}
-                    >
-                      {q}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {messages.map((msg, i) => (
-              <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-                <div className={`max-w-[85%] rounded-xl px-4 py-3 ${
-                  msg.role === "user"
-                    ? "bg-blue-600 text-white"
-                    : "bg-[#0A0E27] border border-[#1E2448] text-gray-200"
-                }`}>
-                  {msg.role === "assistant" && (
-                    <div className="flex items-center gap-1.5 mb-2">
-                      <Crown className="w-3.5 h-3.5 text-amber-400" />
-                      <span className="text-xs font-medium text-amber-400">Boss</span>
-                      {msg.toolsUsed && (
-                        <Badge className="bg-violet-900/30 text-violet-400 border-violet-800 text-[10px] px-1.5 py-0 ml-1">
-                          <Database className="w-2.5 h-2.5 mr-0.5" /> live data
-                        </Badge>
-                      )}
-                    </div>
-                  )}
-                  <div className={`text-sm leading-relaxed ${msg.role === "user" ? "" : "space-y-1"}`}>
-                    {msg.role === "assistant" ? formatMessage(msg.content) : msg.content}
-                  </div>
-                </div>
-              </div>
-            ))}
-
-            {loading && (
-              <div className="flex justify-start">
-                <div className="bg-[#0A0E27] border border-[#1E2448] rounded-xl px-4 py-3">
-                  <div className="flex items-center gap-2">
-                    <Crown className="w-3.5 h-3.5 text-amber-400" />
-                    <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
-                    <span className="text-sm text-gray-400">Boss is analyzing...</span>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <div ref={messagesEndRef} />
-          </div>
-
-          <div className="border-t border-[#1E2448] px-4 py-3">
-            <div className="flex gap-2">
-              <Input
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="Ask Boss anything about the platform..."
-                className="flex-1 bg-[#0A0E27] border-[#1E2448] text-white placeholder:text-gray-500"
-                disabled={loading}
-                data-testid="boss-input"
-              />
+        {showHistory ? (
+          <div className="h-[500px] flex flex-col">
+            <div className="px-4 py-2 border-b border-[#1E2448] flex items-center justify-between">
+              <span className="text-sm font-medium text-white">Conversation History</span>
               <Button
-                onClick={sendMessage}
-                disabled={!input.trim() || loading}
-                className="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white px-4"
-                data-testid="boss-send"
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowHistory(false)}
+                className="text-gray-400 hover:text-white h-7"
               >
-                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                <ChevronLeft className="w-3.5 h-3.5 mr-1" />
+                Back to Chat
               </Button>
             </div>
+            <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2" data-testid="boss-conversation-list">
+              {conversations.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full text-center space-y-3">
+                  <History className="w-10 h-10 text-gray-600" />
+                  <p className="text-gray-500 text-sm">No saved conversations yet.</p>
+                  <p className="text-gray-600 text-xs">Start chatting with Boss — conversations are saved automatically.</p>
+                </div>
+              ) : (
+                conversations.map((conv) => (
+                  <div
+                    key={conv.id}
+                    className={`group rounded-lg border p-3 cursor-pointer transition-all ${
+                      activeConvId === conv.id
+                        ? "bg-amber-500/10 border-amber-500/30"
+                        : "bg-[#0A0E27] border-[#1E2448] hover:border-[#2E3468]"
+                    }`}
+                    data-testid={`boss-conversation-${conv.id}`}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0" onClick={() => loadConversation(conv)}>
+                        {editingTopic === conv.id ? (
+                          <Input
+                            value={editTopicValue}
+                            onChange={(e) => setEditTopicValue(e.target.value)}
+                            onBlur={() => updateTopic(conv.id, editTopicValue)}
+                            onKeyDown={(e) => { if (e.key === "Enter") updateTopic(conv.id, editTopicValue); }}
+                            className="h-6 text-sm bg-[#0A0E27] border-amber-500/30 text-white px-1"
+                            autoFocus
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                        ) : (
+                          <p className="text-sm font-medium text-white truncate">{conv.topic}</p>
+                        )}
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-xs text-gray-500 flex items-center gap-1">
+                            <Clock className="w-2.5 h-2.5" />
+                            {new Date(conv.updatedAt).toLocaleDateString("tr-TR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                          </span>
+                          <span className="text-xs text-gray-500">{conv.messageCount} msg</span>
+                          {conv.toolsUsed && (
+                            <Badge className="bg-violet-900/30 text-violet-400 border-violet-800 text-[10px] px-1 py-0">
+                              <Database className="w-2 h-2 mr-0.5" /> data
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0 text-gray-500 hover:text-amber-400"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditingTopic(conv.id);
+                            setEditTopicValue(conv.topic);
+                          }}
+                          data-testid={`boss-conv-edit-${conv.id}`}
+                        >
+                          <FileText className="w-3 h-3" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0 text-gray-500 hover:text-red-400"
+                          onClick={(e) => { e.stopPropagation(); deleteConversation(conv.id); }}
+                          data-testid={`boss-conv-delete-${conv.id}`}
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="h-[500px] flex flex-col">
+            <div className="flex-1 overflow-y-auto px-4 py-3 space-y-4" data-testid="boss-messages">
+              {messages.length === 0 && (
+                <div className="flex flex-col items-center justify-center h-full text-center space-y-4">
+                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-amber-500/20 to-orange-600/20 flex items-center justify-center">
+                    <Crown className="w-8 h-8 text-amber-400" />
+                  </div>
+                  <div>
+                    <p className="text-white font-medium text-lg">Boss AI</p>
+                    <p className="text-gray-400 text-sm max-w-md mt-1">
+                      I oversee all 9 agents and know every detail of the platform. Ask me anything.
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 max-w-lg">
+                    {[
+                      "How many active users do we have?",
+                      "Which agent is most popular?",
+                      "What's our total API cost?",
+                      "Show me recent platform activity",
+                    ].map((q, i) => (
+                      <button
+                        key={i}
+                        onClick={() => { setInput(q); }}
+                        className="text-left text-xs bg-[#0A0E27] hover:bg-[#1E2448] border border-[#1E2448] rounded-lg px-3 py-2 text-gray-400 hover:text-white transition-colors"
+                        data-testid={`boss-suggestion-${i}`}
+                      >
+                        {q}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {messages.map((msg, i) => (
+                <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                  <div className={`max-w-[85%] rounded-xl px-4 py-3 ${
+                    msg.role === "user"
+                      ? "bg-blue-600 text-white"
+                      : "bg-[#0A0E27] border border-[#1E2448] text-gray-200"
+                  }`}>
+                    {msg.role === "assistant" && (
+                      <div className="flex items-center gap-1.5 mb-2">
+                        <Crown className="w-3.5 h-3.5 text-amber-400" />
+                        <span className="text-xs font-medium text-amber-400">Boss</span>
+                        {msg.toolsUsed && (
+                          <Badge className="bg-violet-900/30 text-violet-400 border-violet-800 text-[10px] px-1.5 py-0 ml-1">
+                            <Database className="w-2.5 h-2.5 mr-0.5" /> live data
+                          </Badge>
+                        )}
+                      </div>
+                    )}
+                    <div className={`text-sm leading-relaxed ${msg.role === "user" ? "" : "space-y-1"}`}>
+                      {msg.role === "assistant" ? formatMessage(msg.content) : msg.content}
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              {loading && (
+                <div className="flex justify-start">
+                  <div className="bg-[#0A0E27] border border-[#1E2448] rounded-xl px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <Crown className="w-3.5 h-3.5 text-amber-400" />
+                      <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
+                      <span className="text-sm text-gray-400">Boss is analyzing...</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div ref={messagesEndRef} />
+            </div>
+
+            <div className="border-t border-[#1E2448] px-4 py-3">
+              <div className="flex gap-2">
+                <Input
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder="Ask Boss anything about the platform..."
+                  className="flex-1 bg-[#0A0E27] border-[#1E2448] text-white placeholder:text-gray-500"
+                  disabled={loading}
+                  data-testid="boss-input"
+                />
+                <Button
+                  onClick={sendMessage}
+                  disabled={!input.trim() || loading}
+                  className="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white px-4"
+                  data-testid="boss-send"
+                >
+                  {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

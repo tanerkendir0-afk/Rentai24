@@ -304,6 +304,25 @@ export const insertChatMessageSchema = createInsertSchema(chatMessages).omit({
 export type ChatMessage = typeof chatMessages.$inferSelect;
 export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
 
+export const bossConversations = pgTable("boss_conversations", {
+  id: serial("id").primaryKey(),
+  topic: text("topic").notNull(),
+  messages: jsonb("messages").notNull().default([]),
+  messageCount: integer("message_count").notNull().default(0),
+  toolsUsed: boolean("tools_used").notNull().default(false),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+  updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
+export const insertBossConversationSchema = createInsertSchema(bossConversations).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type BossConversation = typeof bossConversations.$inferSelect;
+export type InsertBossConversation = z.infer<typeof insertBossConversationSchema>;
+
 export type Lead = typeof leads.$inferSelect;
 export type InsertLead = z.infer<typeof insertLeadSchema>;
 export type AgentAction = typeof agentActions.$inferSelect;

@@ -2,7 +2,7 @@ import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import OpenAI from "openai";
 import bcrypt from "bcrypt";
-import { chatMessageSchema, contactFormSchema, registerSchema, loginSchema, newsletterSchema } from "@shared/schema";
+import { chatMessageSchema, contactFormSchema, registerSchema, loginSchema, newsletterSchema, bossConversations } from "@shared/schema";
 import { z } from "zod";
 import { storage } from "./storage";
 import { requireAuth } from "./auth";
@@ -1922,6 +1922,79 @@ ${(recentActionsResult.rows as any[]).map((r: any) => `- ${agentNameMap[r.agent_
       res.json({ reply, toolsUsed: !!(assistantMessage?.tool_calls?.length) });
     } catch (error: any) {
       console.error("Boss chat error:", error.message);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/admin/boss-conversations", requireAdmin, async (_req, res) => {
+    try {
+      const conversations = await db
+        .select()
+        .from(bossConversations)
+        .orderBy(desc(bossConversations.updatedAt));
+      res.json(conversations);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/admin/boss-conversations", requireAdmin, async (req, res) => {
+    try {
+      const { topic, messages: msgs, toolsUsed } = req.body;
+      if (!topic || typeof topic !== "string") return res.status(400).json({ error: "Topic is required" });
+      if (msgs && !Array.isArray(msgs)) return res.status(400).json({ error: "Messages must be an array" });
+
+      const [conv] = await db
+        .insert(bossConversations)
+        .values({
+          topic: topic.slice(0, 200),
+          messages: msgs || [],
+          messageCount: Array.isArray(msgs) ? msgs.length : 0,
+          toolsUsed: !!toolsUsed,
+        })
+        .returning();
+      res.json(conv);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.patch("/api/admin/boss-conversations/:id", requireAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ error: "Invalid ID" });
+      const { topic, messages: msgs, toolsUsed } = req.body;
+      if (msgs !== undefined && !Array.isArray(msgs)) return res.status(400).json({ error: "Messages must be an array" });
+      const updates: any = { updatedAt: new Date() };
+      if (topic !== undefined) updates.topic = String(topic).slice(0, 200);
+      if (msgs !== undefined) {
+        updates.messages = msgs;
+        updates.messageCount = msgs.length;
+      }
+      if (toolsUsed !== undefined) updates.toolsUsed = !!toolsUsed;
+
+      const [conv] = await db
+        .update(bossConversations)
+        .set(updates)
+        .where(eq(bossConversations.id, id))
+        .returning();
+      if (!conv) return res.status(404).json({ error: "Conversation not found" });
+      res.json(conv);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.delete("/api/admin/boss-conversations/:id", requireAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const [conv] = await db
+        .delete(bossConversations)
+        .where(eq(bossConversations.id, id))
+        .returning();
+      if (!conv) return res.status(404).json({ error: "Conversation not found" });
+      res.json({ success: true });
+    } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
   });

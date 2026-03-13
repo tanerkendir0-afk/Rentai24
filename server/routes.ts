@@ -168,6 +168,11 @@ You are not just a chatbot. You are a real social media manager with the ability
 
 IMPORTANT: When asked to create a visual, graphic, image, or design — ALWAYS use generate_image. When they need realistic photos, use find_stock_image. When asked to write a post, create content, or suggest hashtags — use the appropriate tool. Don't just give advice — produce real content and real visuals!
 
+IMAGE CREDITS: Image generation and stock photo search each cost 1 credit. If image generation is blocked due to no credits:
+- Tell the user they need image credits to generate or search images.
+- Direct them: "Görsel kredisi satın almak için sağ üst köşedeki kredi simgesine (🪙) tıklayabilir veya Settings sayfasına gidebilirsiniz. Orada kredi paketleri seçip satın alabilirsiniz."
+- NEVER say "I can't help with purchases" — you CAN and SHOULD guide them to buy credits within the platform.
+
 BEHAVIOR RULES:
 - Be creative, trend-aware, and brand-conscious
 - Always use tools to produce real deliverables
@@ -1264,7 +1269,59 @@ You do NOT have access to any tools right now. The user has NOT purchased/rented
     }
   });
 
+  app.post("/api/test-checkout/credits", requireAuth, async (req, res) => {
+    try {
+      const { packageId, cardNumber, expiry, cvc } = req.body;
+      if (!packageId || !cardNumber || !expiry || !cvc) {
+        return res.status(400).json({ error: "All payment fields are required" });
+      }
+
+      const validCards = ["4242424242424242", "4000000000000077", "5555555555554444", "378282246310005"];
+      const cleanCard = cardNumber.replace(/\s/g, "");
+      if (!validCards.includes(cleanCard)) {
+        return res.status(400).json({ error: "Invalid test card number. Use: 4242 4242 4242 4242" });
+      }
+
+      const packages: Record<string, { credits: number; price: number; label: string }> = {
+        "credits-5": { credits: 5, price: 10, label: "5 Credits" },
+        "credits-15": { credits: 15, price: 25, label: "15 Credits" },
+        "credits-50": { credits: 50, price: 70, label: "50 Credits" },
+      };
+
+      const pkg = packages[packageId];
+      if (!pkg) {
+        return res.status(400).json({ error: "Invalid credit package" });
+      }
+
+      const user = await storage.getUserById(req.session.userId!);
+      if (!user) return res.status(401).json({ error: "User not found" });
+
+      const currentCredits = user.imageCredits || 0;
+      await storage.addImageCredits(req.session.userId!, pkg.credits);
+      const newCredits = currentCredits + pkg.credits;
+
+      res.json({ 
+        success: true, 
+        credits: newCredits, 
+        purchased: pkg.credits,
+        message: `${pkg.label} purchased successfully! You now have ${newCredits} credits.`
+      });
+    } catch (error: any) {
+      console.error("Credit purchase error:", error.message);
+      res.status(500).json({ error: "Failed to purchase credits" });
+    }
+  });
+
   app.get("/api/image-credits/prices", async (_req, res) => {
+    res.json([
+      { id: "credits-5", credits: 5, amount: 1000, currency: "usd" },
+      { id: "credits-15", credits: 15, amount: 2500, currency: "usd" },
+      { id: "credits-50", credits: 50, amount: 7000, currency: "usd" },
+    ]);
+  });
+
+  // Legacy Stripe-based price endpoint (unused)
+  app.get("/api/image-credits/prices-legacy", async (_req, res) => {
     try {
       const rows = await storage.listProductsWithPrices(true);
       const prices = rows

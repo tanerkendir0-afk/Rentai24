@@ -26,6 +26,8 @@ import {
   Eye,
   EyeOff,
   Link2,
+  Sparkles,
+  ShoppingCart,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
@@ -82,6 +84,44 @@ export default function Settings() {
     queryKey: ["/api/stripe/subscription"],
     enabled: !!user,
   });
+
+  const { data: creditsData } = useQuery<{ credits: number }>({
+    queryKey: ["/api/image-credits"],
+    enabled: !!user,
+  });
+
+  const { data: creditPrices } = useQuery<{ id: string; credits: number; amount: number; currency: string }[]>({
+    queryKey: ["/api/image-credits/prices"],
+    enabled: !!user,
+  });
+
+  const [selectedCreditPkg, setSelectedCreditPkg] = useState<string | null>(null);
+  const [creditCard, setCreditCard] = useState({ number: "", expiry: "", cvc: "" });
+  const [creditPurchasing, setCreditPurchasing] = useState(false);
+
+  const buyCredits = async () => {
+    if (!selectedCreditPkg || !creditCard.number || !creditCard.expiry || !creditCard.cvc) return;
+    setCreditPurchasing(true);
+    try {
+      const res = await apiRequest("POST", "/api/test-checkout/credits", {
+        packageId: selectedCreditPkg,
+        cardNumber: creditCard.number.replace(/\s/g, ""),
+        expiry: creditCard.expiry,
+        cvc: creditCard.cvc,
+      });
+      const data = await res.json();
+      if (data.success) {
+        queryClient.invalidateQueries({ queryKey: ["/api/image-credits"] });
+        setSelectedCreditPkg(null);
+        setCreditCard({ number: "", expiry: "", cvc: "" });
+        toast({ title: "Credits purchased!", description: data.message });
+      }
+    } catch (err: any) {
+      toast({ title: "Purchase failed", description: err.message || "Failed to purchase credits", variant: "destructive" });
+    } finally {
+      setCreditPurchasing(false);
+    }
+  };
 
   const profileMutation = useMutation({
     mutationFn: async (data: { fullName: string; company: string }) => {
@@ -401,6 +441,104 @@ export default function Settings() {
                     style={{ width: `${Math.min(Math.round((totalMessages / totalLimit) * 100), 100)}%` }}
                   />
                 </div>
+              </div>
+            )}
+          </div>
+        </Card>
+
+        <Card className="p-6 bg-card border-border/50" data-testid="card-image-credits">
+          <div className="flex items-center gap-2 mb-5">
+            <Sparkles className="w-5 h-5 text-yellow-400" />
+            <h2 className="text-lg font-semibold text-foreground">Image Credits</h2>
+          </div>
+          <div className="space-y-4">
+            <div className="bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border border-yellow-500/20 rounded-lg p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Available Credits</p>
+                  <p className="text-3xl font-bold text-yellow-400" data-testid="text-image-credits">{creditsData?.credits ?? 0}</p>
+                </div>
+                <div className="w-12 h-12 rounded-full bg-yellow-500/20 flex items-center justify-center">
+                  <Sparkles className="w-6 h-6 text-yellow-400" />
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                1 credit = 1 AI image generation or stock photo search (used by Maya - Social Media agent)
+              </p>
+            </div>
+
+            <div>
+              <p className="text-sm font-medium text-foreground mb-3">Purchase Credits</p>
+              <div className="grid grid-cols-3 gap-3">
+                {(creditPrices || []).map((price) => (
+                  <button
+                    key={price.id}
+                    onClick={() => setSelectedCreditPkg(selectedCreditPkg === price.id ? null : price.id)}
+                    className={`p-3 rounded-lg border text-center transition-all ${
+                      selectedCreditPkg === price.id 
+                        ? "border-yellow-500 bg-yellow-500/10 ring-1 ring-yellow-500/30" 
+                        : "border-border/50 hover:border-yellow-500/50 hover:bg-yellow-500/5"
+                    }`}
+                    data-testid={`button-settings-credits-${price.credits}`}
+                  >
+                    <p className="text-lg font-bold text-foreground">{price.credits}</p>
+                    <p className="text-[10px] text-muted-foreground">credits</p>
+                    <p className="text-sm font-semibold text-yellow-400 mt-1">${(price.amount / 100).toFixed(2)}</p>
+                    {price.credits > 1 && (
+                      <p className="text-[9px] text-muted-foreground">${(price.amount / price.credits / 100).toFixed(2)}/ea</p>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {selectedCreditPkg && (
+              <div className="space-y-3 pt-2 border-t border-border/50">
+                <p className="text-sm font-medium text-foreground">Payment Details</p>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Card Number</Label>
+                  <Input
+                    placeholder="4242 4242 4242 4242"
+                    value={creditCard.number}
+                    onChange={(e) => setCreditCard(prev => ({ ...prev, number: e.target.value }))}
+                    className="mt-1"
+                    data-testid="input-settings-credit-card"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Expiry</Label>
+                    <Input
+                      placeholder="12/28"
+                      value={creditCard.expiry}
+                      onChange={(e) => setCreditCard(prev => ({ ...prev, expiry: e.target.value }))}
+                      className="mt-1"
+                      data-testid="input-settings-credit-expiry"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs text-muted-foreground">CVC</Label>
+                    <Input
+                      placeholder="123"
+                      value={creditCard.cvc}
+                      onChange={(e) => setCreditCard(prev => ({ ...prev, cvc: e.target.value }))}
+                      className="mt-1"
+                      data-testid="input-settings-credit-cvc"
+                    />
+                  </div>
+                </div>
+                <Button
+                  onClick={buyCredits}
+                  disabled={creditPurchasing || !creditCard.number || !creditCard.expiry || !creditCard.cvc}
+                  className="w-full bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white font-semibold"
+                  data-testid="button-settings-purchase-credits"
+                >
+                  {creditPurchasing ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <ShoppingCart className="w-4 h-4 mr-2" />}
+                  Purchase {creditPrices?.find(p => p.id === selectedCreditPkg)?.credits} Credits — ${((creditPrices?.find(p => p.id === selectedCreditPkg)?.amount || 0) / 100).toFixed(2)}
+                </Button>
+                <p className="text-[10px] text-muted-foreground text-center">
+                  Test cards: 4242 4242 4242 4242
+                </p>
               </div>
             )}
           </div>

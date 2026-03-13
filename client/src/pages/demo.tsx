@@ -160,6 +160,9 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
   const [uploadedImage, setUploadedImage] = useState<{ url: string; name: string } | null>(null);
   const [uploading, setUploading] = useState(false);
   const [showCreditsPanel, setShowCreditsPanel] = useState(false);
+  const [selectedCreditPkg, setSelectedCreditPkg] = useState<string | null>(null);
+  const [creditCard, setCreditCard] = useState({ number: "", expiry: "", cvc: "" });
+  const [creditPurchasing, setCreditPurchasing] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth >= 1024);
   const [showTasksPanel, setShowTasksPanel] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -217,14 +220,26 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const buyCredits = async (priceId: string) => {
+  const buyCredits = async () => {
+    if (!selectedCreditPkg || !creditCard.number || !creditCard.expiry || !creditCard.cvc) return;
+    setCreditPurchasing(true);
     try {
-      const res = await apiRequest("POST", "/api/stripe/checkout/credits", { priceId });
+      const res = await apiRequest("POST", "/api/test-checkout/credits", {
+        packageId: selectedCreditPkg,
+        cardNumber: creditCard.number.replace(/\s/g, ""),
+        expiry: creditCard.expiry,
+        cvc: creditCard.cvc,
+      });
       const data = await res.json();
-      if (data.url) {
-        window.location.href = data.url;
+      if (data.success) {
+        queryClient.invalidateQueries({ queryKey: ["/api/image-credits"] });
+        setSelectedCreditPkg(null);
+        setCreditCard({ number: "", expiry: "", cvc: "" });
+        setShowCreditsPanel(false);
       }
     } catch {
+    } finally {
+      setCreditPurchasing(false);
     }
   };
 
@@ -471,38 +486,103 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                   {imageCredits}
                 </Button>
                 {showCreditsPanel && (
-                  <div className="absolute right-0 top-full mt-2 w-72 bg-card border border-border rounded-xl shadow-2xl z-50 p-4" data-testid="credits-panel">
+                  <div className="absolute right-0 top-full mt-2 w-80 bg-card border border-border rounded-xl shadow-2xl z-50 p-4" data-testid="credits-panel">
                     <div className="flex items-center justify-between mb-3">
-                      <h4 className="font-semibold text-sm">Image Credits</h4>
-                      <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => setShowCreditsPanel(false)}>
+                      <h4 className="font-semibold text-sm flex items-center gap-2">
+                        <Sparkles className="w-4 h-4 text-yellow-500" />
+                        Image Credits
+                      </h4>
+                      <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => { setShowCreditsPanel(false); setSelectedCreditPkg(null); }}>
                         <X className="w-3.5 h-3.5" />
                       </Button>
                     </div>
-                    <p className="text-xs text-muted-foreground mb-3">
-                      Each AI image generation or stock photo search uses 1 credit ($3.00).
-                    </p>
-                    <div className="space-y-2">
-                      {(creditPrices || []).map((price) => (
-                        <button
-                          key={price.id}
-                          onClick={() => buyCredits(price.id)}
-                          className="w-full flex items-center justify-between p-2.5 rounded-lg border border-border/50 hover:border-blue-500/50 hover:bg-blue-500/5 transition-colors text-left"
-                          data-testid={`button-buy-credits-${price.credits}`}
-                        >
-                          <div>
-                            <span className="text-sm font-medium">{price.credits} Credit{price.credits !== 1 ? "s" : ""}</span>
-                            {price.credits > 1 && (
-                              <span className="text-xs text-muted-foreground ml-1.5">
-                                (${(price.amount / price.credits / 100).toFixed(2)}/ea)
-                              </span>
-                            )}
-                          </div>
-                          <span className="text-sm font-semibold text-blue-400">${(price.amount / 100).toFixed(2)}</span>
-                        </button>
-                      ))}
+                    <div className="bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border border-yellow-500/20 rounded-lg p-3 mb-3">
+                      <div className="text-center">
+                        <span className="text-2xl font-bold text-yellow-400">{imageCredits}</span>
+                        <span className="text-xs text-muted-foreground ml-1">credits remaining</span>
+                      </div>
+                      <p className="text-[10px] text-muted-foreground text-center mt-1">
+                        1 credit = 1 AI image generation or stock photo search
+                      </p>
                     </div>
-                    {(!creditPrices || creditPrices.length === 0) && (
-                      <div className="text-center py-3 text-xs text-muted-foreground">Loading prices...</div>
+
+                    {!selectedCreditPkg ? (
+                      <div className="space-y-2">
+                        <p className="text-xs font-medium text-muted-foreground mb-2">Select a package:</p>
+                        {(creditPrices || []).map((price) => (
+                          <button
+                            key={price.id}
+                            onClick={() => setSelectedCreditPkg(price.id)}
+                            className="w-full flex items-center justify-between p-3 rounded-lg border border-border/50 hover:border-yellow-500/50 hover:bg-yellow-500/5 transition-colors text-left"
+                            data-testid={`button-buy-credits-${price.credits}`}
+                          >
+                            <div>
+                              <span className="text-sm font-semibold">{price.credits} Credit{price.credits !== 1 ? "s" : ""}</span>
+                              {price.credits > 1 && (
+                                <span className="text-xs text-muted-foreground ml-1.5">
+                                  (${(price.amount / price.credits / 100).toFixed(2)}/ea)
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-sm font-bold text-yellow-400">${(price.amount / 100).toFixed(2)}</span>
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        <button onClick={() => setSelectedCreditPkg(null)} className="text-xs text-blue-400 hover:underline flex items-center gap-1">
+                          <ChevronLeft className="w-3 h-3" /> Back to packages
+                        </button>
+                        <div className="bg-muted/30 rounded-lg p-2.5 text-center">
+                          <span className="text-sm font-semibold">
+                            {creditPrices?.find(p => p.id === selectedCreditPkg)?.credits} Credits — ${((creditPrices?.find(p => p.id === selectedCreditPkg)?.amount || 0) / 100).toFixed(2)}
+                          </span>
+                        </div>
+                        <div>
+                          <label className="text-xs text-muted-foreground mb-1 block">Card Number</label>
+                          <Input
+                            placeholder="4242 4242 4242 4242"
+                            value={creditCard.number}
+                            onChange={(e) => setCreditCard(prev => ({ ...prev, number: e.target.value }))}
+                            className="h-9 text-sm"
+                            data-testid="input-credit-card-number"
+                          />
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="text-xs text-muted-foreground mb-1 block">Expiry</label>
+                            <Input
+                              placeholder="12/28"
+                              value={creditCard.expiry}
+                              onChange={(e) => setCreditCard(prev => ({ ...prev, expiry: e.target.value }))}
+                              className="h-9 text-sm"
+                              data-testid="input-credit-expiry"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-xs text-muted-foreground mb-1 block">CVC</label>
+                            <Input
+                              placeholder="123"
+                              value={creditCard.cvc}
+                              onChange={(e) => setCreditCard(prev => ({ ...prev, cvc: e.target.value }))}
+                              className="h-9 text-sm"
+                              data-testid="input-credit-cvc"
+                            />
+                          </div>
+                        </div>
+                        <Button
+                          onClick={buyCredits}
+                          disabled={creditPurchasing || !creditCard.number || !creditCard.expiry || !creditCard.cvc}
+                          className="w-full bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white font-semibold"
+                          data-testid="button-confirm-credit-purchase"
+                        >
+                          {creditPurchasing ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <ShoppingCart className="w-4 h-4 mr-2" />}
+                          Purchase Credits
+                        </Button>
+                        <p className="text-[10px] text-muted-foreground text-center">
+                          Test cards: 4242 4242 4242 4242
+                        </p>
+                      </div>
                     )}
                   </div>
                 )}

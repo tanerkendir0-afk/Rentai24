@@ -143,7 +143,8 @@ export const chatMessageSchema = z.object({
   conversationHistory: z.array(z.object({
     role: z.enum(["user", "assistant"]),
     content: z.string().max(2000),
-  })).max(20).optional(),
+  })).max(50).optional(),
+  sessionId: z.string().max(100).optional(),
 });
 
 export type ChatMessageInput = z.infer<typeof chatMessageSchema>;

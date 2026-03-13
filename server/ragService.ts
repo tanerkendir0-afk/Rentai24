@@ -102,7 +102,7 @@ export async function processAndStoreUrl(
 export async function retrieveRelevantChunks(
   agentType: string,
   query: string,
-  topK: number = 5
+  topK: number = 3
 ): Promise<string[]> {
   const queryEmbedding = await generateEmbedding(query);
   const embeddingStr = `[${queryEmbedding.join(",")}]`;
@@ -118,7 +118,7 @@ export async function retrieveRelevantChunks(
   );
 
   return result.rows
-    .filter((row: any) => row.similarity > 0.3)
+    .filter((row: any) => row.similarity > 0.5)
     .map((row: any) => row.content);
 }
 

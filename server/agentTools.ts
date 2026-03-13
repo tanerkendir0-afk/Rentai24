@@ -919,6 +919,87 @@ export function getToolsForAgent(agentType: string): OpenAI.ChatCompletionTool[]
   return agentToolRegistry[agentType];
 }
 
+const TOOL_KEYWORD_MAP: Record<string, string[]> = {
+  list_inbox: ["inbox", "email", "mail", "e-posta", "gelen kutusu", "mesaj", "check email"],
+  read_email: ["read", "open", "email", "mail", "e-posta", "oku"],
+  reply_email: ["reply", "respond", "yanıtla", "cevap", "email", "mail"],
+  send_email: ["email", "mail", "send", "gönder", "e-posta", "outreach", "reach out"],
+  email_customer: ["email", "mail", "send", "gönder", "müşteri", "customer"],
+  add_lead: ["lead", "prospect", "müşteri adayı", "add", "ekle", "new contact", "pipeline"],
+  update_lead: ["update", "güncelle", "lead", "status", "durum"],
+  list_leads: ["leads", "pipeline", "prospects", "list", "listele", "müşteri"],
+  schedule_followup: ["follow", "takip", "schedule", "hatırlat", "remind"],
+  create_meeting: ["meeting", "toplantı", "demo", "schedule", "randevu", "görüşme"],
+  bulk_email: ["bulk", "toplu", "all leads", "tüm", "mass"],
+  use_template: ["template", "şablon", "kalıp"],
+  start_drip_campaign: ["drip", "campaign", "kampanya", "sequence", "otomatik", "automated"],
+  list_campaigns: ["campaign", "kampanya"],
+  list_templates: ["template", "şablon"],
+  score_leads: ["score", "hot", "warm", "cold", "puan", "sıcak", "soğuk"],
+  pipeline_report: ["pipeline", "report", "stats", "analiz", "istatistik", "performans"],
+  create_proposal: ["proposal", "teklif"],
+  analyze_competitors: ["competitor", "rakip", "competitive"],
+  create_ticket: ["ticket", "issue", "sorun", "problem", "create", "oluştur"],
+  list_tickets: ["tickets", "list", "open", "listele"],
+  update_ticket: ["update", "ticket", "güncelle"],
+  close_ticket: ["close", "resolve", "kapat", "çöz"],
+  create_appointment: ["appointment", "randevu", "schedule", "meeting", "toplantı"],
+  list_appointments: ["appointments", "list", "randevu", "listele"],
+  send_reminder: ["reminder", "hatırlatma", "remind"],
+  schedule_followup_reminder: ["follow", "reminder", "hatırlat", "takip"],
+  generate_image: ["image", "visual", "görsel", "photo", "graphic", "design", "resim", "oluştur"],
+  find_stock_image: ["stock", "photo", "image", "görsel", "fotoğraf"],
+  create_post: ["post", "gönderi", "content", "içerik", "yaz", "write"],
+  create_content_calendar: ["calendar", "takvim", "plan", "schedule", "content"],
+  generate_hashtags: ["hashtag", "etiket"],
+  draft_response: ["response", "comment", "yorum", "yanıt", "review"],
+  create_invoice: ["invoice", "fatura"],
+  log_expense: ["expense", "gider", "harcama", "masraf"],
+  financial_summary: ["financial", "summary", "report", "mali", "özet", "rapor", "gelir", "gider"],
+  create_job_posting: ["job", "posting", "iş ilanı", "ilan", "pozisyon"],
+  screen_resume: ["resume", "cv", "candidate", "aday", "screen", "değerlendir"],
+  create_interview_kit: ["interview", "mülakat", "soru"],
+  send_candidate_email: ["candidate", "aday", "email", "mail"],
+  optimize_listing: ["listing", "product", "ürün", "optimize", "seo"],
+  price_analysis: ["price", "fiyat", "pricing", "margin", "maliyet"],
+  draft_review_response: ["review", "yorum", "response", "yanıt"],
+  query_leads: ["leads", "data", "analyze", "analiz", "veri"],
+  query_actions: ["actions", "activity", "aktivite", "log"],
+  query_campaigns: ["campaign", "kampanya", "performance"],
+  query_rentals: ["rental", "usage", "kullanım", "agent"],
+  generate_report: ["report", "rapor", "summary", "özet"],
+  search_properties: ["search", "find", "apartment", "daire", "ev", "property", "rental", "kiralık", "ara"],
+  evaluate_listing: ["evaluate", "değerlendir", "listing", "ilan"],
+  neighborhood_analysis: ["neighborhood", "mahalle", "area", "bölge", "safe", "güvenli"],
+  create_listing: ["listing", "ilan", "property", "create"],
+  lease_review: ["lease", "kira sözleşme", "contract", "sözleşme"],
+  market_report: ["market", "piyasa", "trend", "fiyat"],
+  calculate_costs: ["cost", "calculate", "maliyet", "hesapla", "expense"],
+};
+
+export function getRelevantToolsForMessage(
+  agentType: string,
+  message: string
+): OpenAI.ChatCompletionTool[] | undefined {
+  const allTools = agentToolRegistry[agentType];
+  if (!allTools) return undefined;
+
+  if (allTools.length <= 5) return allTools;
+
+  const msgLower = message.toLowerCase();
+
+  const relevant = allTools.filter((tool) => {
+    const toolName = tool.function.name;
+    const keywords = TOOL_KEYWORD_MAP[toolName];
+    if (!keywords) return true;
+    return keywords.some((kw) => msgLower.includes(kw));
+  });
+
+  if (relevant.length === 0) return allTools;
+
+  return relevant;
+}
+
 const lastInboxResults = new Map<number, string[]>();
 
 function resolveEmailId(rawId: string, userId: number): string {

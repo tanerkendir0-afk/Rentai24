@@ -336,7 +336,8 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
         body: JSON.stringify({
           message: messageToSend,
           agentType: selectedAgent,
-          conversationHistory: messages.slice(-20),
+          conversationHistory: messages.slice(-50),
+          sessionId: currentConvoId,
         }),
       });
       const data = await res.json();

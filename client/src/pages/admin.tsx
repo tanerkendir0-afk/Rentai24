@@ -1026,6 +1026,220 @@ interface TokenSummary {
   last_used: string;
 }
 
+interface TokenOptData {
+  modelDistribution: Array<{
+    model: string;
+    count: number;
+    total_cost: string;
+    avg_prompt_tokens: number;
+    avg_completion_tokens: number;
+  }>;
+  averages: {
+    avg_prompt: number;
+    avg_completion: number;
+    avg_total: number;
+    avg_cost: string;
+    total_requests: number;
+    total_cost: string;
+  };
+  dailyStats: Array<{
+    date: string;
+    requests: number;
+    avg_prompt: number;
+    cost: string;
+    mini_count: number;
+    gpt4o_count: number;
+  }>;
+  miniUsagePercent: string;
+  estimatedSavingsUsd: string;
+  summarizationCount: number;
+  summaryCacheHits: number;
+}
+
+function TokenOptimizationPanel({ token }: { token: string }) {
+  const [data, setData] = useState<TokenOptData | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const headers = { Authorization: `Bearer ${token}` };
+
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/admin/token-optimization", { headers });
+      const d = await res.json();
+      setData(d);
+    } catch {
+    } finally {
+      setLoading(false);
+    }
+  }, [token]);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+          <Zap className="w-5 h-5 text-yellow-400" />
+          Token Optimization
+        </h3>
+        <Button variant="ghost" size="sm" onClick={fetchData} disabled={loading} data-testid="button-refresh-token-opt">
+          <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+        </Button>
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card className="bg-[#0A0E27] border-[#1E2448]">
+          <CardContent className="p-4">
+            <p className="text-xs text-gray-400">Avg Prompt Tokens</p>
+            <p className="text-2xl font-bold text-blue-400" data-testid="text-avg-prompt-tokens">
+              {data?.averages?.avg_prompt?.toLocaleString() || 0}
+            </p>
+            <p className="text-xs text-gray-500">per message</p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-[#0A0E27] border-[#1E2448]">
+          <CardContent className="p-4">
+            <p className="text-xs text-gray-400">Avg Total Tokens</p>
+            <p className="text-2xl font-bold text-violet-400" data-testid="text-avg-total-tokens">
+              {data?.averages?.avg_total?.toLocaleString() || 0}
+            </p>
+            <p className="text-xs text-gray-500">per message</p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-[#0A0E27] border-[#1E2448]">
+          <CardContent className="p-4">
+            <p className="text-xs text-gray-400">Mini Usage</p>
+            <p className="text-2xl font-bold text-emerald-400" data-testid="text-mini-usage-percent">
+              {data?.miniUsagePercent || "0"}%
+            </p>
+            <p className="text-xs text-gray-500">of total requests</p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-[#0A0E27] border-[#1E2448]">
+          <CardContent className="p-4">
+            <p className="text-xs text-gray-400">Est. Savings</p>
+            <p className="text-2xl font-bold text-green-400" data-testid="text-estimated-savings">
+              ${data?.estimatedSavingsUsd || "0.00"}
+            </p>
+            <p className="text-xs text-gray-500">from mini routing</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+        <Card className="bg-[#0A0E27] border-[#1E2448]">
+          <CardContent className="p-4">
+            <p className="text-xs text-gray-400">Summaries Generated</p>
+            <p className="text-2xl font-bold text-orange-400" data-testid="text-summarization-count">
+              {data?.summarizationCount?.toLocaleString() || 0}
+            </p>
+            <p className="text-xs text-gray-500">conversation summaries</p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-[#0A0E27] border-[#1E2448]">
+          <CardContent className="p-4">
+            <p className="text-xs text-gray-400">Cache Hits</p>
+            <p className="text-2xl font-bold text-cyan-400" data-testid="text-cache-hits">
+              {data?.summaryCacheHits?.toLocaleString() || 0}
+            </p>
+            <p className="text-xs text-gray-500">reused summaries</p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-[#0A0E27] border-[#1E2448]">
+          <CardContent className="p-4">
+            <p className="text-xs text-gray-400">Cache Hit Rate</p>
+            <p className="text-2xl font-bold text-teal-400" data-testid="text-cache-hit-rate">
+              {data && (data.summarizationCount + data.summaryCacheHits) > 0
+                ? ((data.summaryCacheHits / (data.summarizationCount + data.summaryCacheHits)) * 100).toFixed(1)
+                : "0"}%
+            </p>
+            <p className="text-xs text-gray-500">summary reuse rate</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card className="bg-[#0A0E27] border-[#1E2448]">
+        <CardHeader>
+          <CardTitle className="text-lg text-white flex items-center gap-2">
+            <Bot className="w-5 h-5 text-blue-400" />
+            Model Distribution
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {!data?.modelDistribution?.length ? (
+            <p className="text-gray-500 text-center py-4">No data yet</p>
+          ) : (
+            <div className="space-y-3">
+              {data.modelDistribution.map((m) => {
+                const total = data.averages?.total_requests || 1;
+                const pct = ((m.count / total) * 100).toFixed(1);
+                return (
+                  <div key={m.model} className="space-y-1" data-testid={`model-dist-${m.model}`}>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-white font-medium">{m.model}</span>
+                      <span className="text-gray-400">
+                        {m.count.toLocaleString()} requests ({pct}%) · ${parseFloat(m.total_cost).toFixed(4)}
+                      </span>
+                    </div>
+                    <div className="w-full bg-[#111633] rounded-full h-2">
+                      <div
+                        className={`h-2 rounded-full ${m.model.includes('mini') ? 'bg-emerald-500' : 'bg-blue-500'}`}
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                    <div className="flex justify-between text-xs text-gray-500">
+                      <span>Avg prompt: {m.avg_prompt_tokens}</span>
+                      <span>Avg completion: {m.avg_completion_tokens}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="bg-[#0A0E27] border-[#1E2448]">
+        <CardHeader>
+          <CardTitle className="text-lg text-white flex items-center gap-2">
+            <Activity className="w-5 h-5 text-violet-400" />
+            Last 7 Days
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {!data?.dailyStats?.length ? (
+            <p className="text-gray-500 text-center py-4">No recent data</p>
+          ) : (
+            <div className="space-y-2">
+              {data.dailyStats.map((d) => (
+                <div key={d.date} className="flex items-center justify-between p-3 bg-[#111633] rounded-lg" data-testid={`daily-stat-${d.date}`}>
+                  <div>
+                    <p className="text-white text-sm font-medium">{new Date(d.date).toLocaleDateString()}</p>
+                    <p className="text-gray-500 text-xs">{d.requests} requests · avg {d.avg_prompt} prompt tokens</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-red-400 text-sm">${parseFloat(d.cost).toFixed(4)}</p>
+                    <div className="flex gap-2 text-xs">
+                      <span className="text-emerald-400">Mini: {d.mini_count}</span>
+                      <span className="text-blue-400">4o: {d.gpt4o_count}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 function CostTrackerPanel({ token }: { token: string }) {
   const [totals, setTotals] = useState<TokenTotals | null>(null);
   const [summary, setSummary] = useState<TokenSummary[]>([]);
@@ -2406,6 +2620,10 @@ export default function AdminPage() {
               <BarChart3 className="w-3.5 h-3.5 mr-1" />
               Spend Analysis
             </TabsTrigger>
+            <TabsTrigger value="token-optimization" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-yellow-500 data-[state=active]:to-amber-600 data-[state=active]:text-white" data-testid="tab-token-optimization">
+              <Zap className="w-3.5 h-3.5 mr-1" />
+              Token Optimization
+            </TabsTrigger>
             <TabsTrigger value="costs" className="data-[state=active]:bg-red-600 data-[state=active]:text-white" data-testid="tab-costs">
               <DollarSign className="w-3.5 h-3.5 mr-1" />
               Cost Tracker
@@ -2446,6 +2664,10 @@ export default function AdminPage() {
 
           <TabsContent value="spend-analysis">
             <SpendAnalysisPanel token={token} />
+          </TabsContent>
+
+          <TabsContent value="token-optimization">
+            <TokenOptimizationPanel token={token} />
           </TabsContent>
 
           <TabsContent value="costs">

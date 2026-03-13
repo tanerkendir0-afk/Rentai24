@@ -232,9 +232,11 @@ function HeroCarousel() {
 
 export default function Home() {
   const [testimonialIdx, setTestimonialIdx] = useState(0);
+  const [dragStartX, setDragStartX] = useState<number | null>(null);
   const heroRef = useRef(null);
   const statsRef = useRef(null);
   const comparisonRef = useRef(null);
+  const industriesRef = useRef(null);
 
   const { scrollYProgress: heroProgress } = useScroll({
     target: heroRef,
@@ -251,11 +253,17 @@ export default function Home() {
     offset: ["start end", "end start"],
   });
 
+  const { scrollYProgress: industriesProgress } = useScroll({
+    target: industriesRef,
+    offset: ["start end", "end start"],
+  });
+
   const heroBlob1Y = useTransform(heroProgress, [0, 1], [0, 150]);
   const heroBlob2Y = useTransform(heroProgress, [0, 1], [0, -100]);
   const heroBlob3Y = useTransform(heroProgress, [0, 1], [0, 80]);
   const statsY = useTransform(statsProgress, [0, 1], [60, -30]);
   const comparisonY = useTransform(comparisonProgress, [0, 1], [40, -20]);
+  const industriesY = useTransform(industriesProgress, [0, 1], [50, -25]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -569,7 +577,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="py-16 sm:py-24 relative">
+      <section ref={industriesRef} className="py-16 sm:py-24 relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div className="text-center mb-10 sm:mb-16" {...fadeUp}>
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-3 sm:mb-4" data-testid="text-industries-title">
@@ -580,7 +588,7 @@ export default function Home() {
             </p>
           </motion.div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 sm:gap-4">
+          <motion.div style={{ y: industriesY }} className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 sm:gap-4">
             {industries.map((ind, i) => {
               const Icon = industryIcons[ind.icon] || Bot;
               return (
@@ -600,7 +608,7 @@ export default function Home() {
                 </motion.div>
               );
             })}
-          </div>
+          </motion.div>
         </div>
       </section>
 
@@ -617,7 +625,20 @@ export default function Home() {
           </motion.div>
 
           <motion.div {...fadeUp}>
-            <Card className="p-6 sm:p-8 md:p-10 bg-card border-border/50 relative" data-testid="card-testimonial">
+            <Card
+              className="p-6 sm:p-8 md:p-10 bg-card border-border/50 relative touch-pan-y"
+              data-testid="card-testimonial"
+              onTouchStart={(e) => setDragStartX(e.touches[0].clientX)}
+              onTouchEnd={(e) => {
+                if (dragStartX === null) return;
+                const diff = e.changedTouches[0].clientX - dragStartX;
+                if (Math.abs(diff) > 50) {
+                  if (diff < 0) setTestimonialIdx((p) => (p === testimonials.length - 1 ? 0 : p + 1));
+                  else setTestimonialIdx((p) => (p === 0 ? testimonials.length - 1 : p - 1));
+                }
+                setDragStartX(null);
+              }}
+            >
               <div className="text-blue-500/20 text-5xl sm:text-6xl font-serif absolute top-3 sm:top-4 left-4 sm:left-6">"</div>
               <div className="relative z-10">
                 <p className="text-sm sm:text-lg text-foreground leading-relaxed mb-4 sm:mb-6 italic">

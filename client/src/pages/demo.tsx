@@ -896,9 +896,17 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                   onChange={(e) => setInput(e.target.value)}
                   placeholder={`Message ${currentAgent.persona}...`}
                   disabled={loading}
-                  className="w-full h-11 px-4 rounded-xl bg-muted/50 border border-border/50 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 transition-all disabled:opacity-50"
+                  className="w-full h-11 px-4 pr-12 rounded-xl bg-muted/50 border border-border/50 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 transition-all disabled:opacity-50"
                   data-testid="input-chat"
                 />
+                <button
+                  type="submit"
+                  disabled={loading || !input.trim()}
+                  className="absolute right-1.5 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-gradient-to-r from-blue-500 to-violet-500 flex items-center justify-center text-white disabled:opacity-30 transition-opacity"
+                  data-testid="button-send-chat"
+                >
+                  <Send className="w-4 h-4" />
+                </button>
               </div>
             </form>
           </div>

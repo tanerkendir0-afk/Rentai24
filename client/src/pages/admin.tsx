@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,7 +10,7 @@ import {
   Shield, Upload, FileText, Link2, Trash2, RefreshCw, Cpu, ToggleLeft, ToggleRight,
   Lock, Brain, Database, Zap, MessageSquare, Mail, DollarSign, AlertTriangle,
   Users, BarChart3, CreditCard, LogOut, Activity, ShoppingCart, UserCheck,
-  Download, FileDown, CheckCircle, XCircle, Filter
+  Download, FileDown, CheckCircle, XCircle, Filter, Send, Crown, Bot, Loader2
 } from "lucide-react";
 
 const AGENTS = [
@@ -1208,216 +1208,209 @@ function CostTrackerPanel({ token }: { token: string }) {
   );
 }
 
-function TrainingDataPanel({ agentType, token }: { agentType: string; token: string }) {
-  const [toolUsageOnly, setToolUsageOnly] = useState(false);
-  const [previewData, setPreviewData] = useState<{ exampleCount: number; validationErrors: string[]; warnings: string[]; isValid: boolean } | null>(null);
+interface BossMessage {
+  role: "user" | "assistant";
+  content: string;
+  toolsUsed?: boolean;
+}
+
+function BossAIPanel({ token }: { token: string }) {
+  const [messages, setMessages] = useState<BossMessage[]>([]);
+  const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [downloading, setDownloading] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
-  const headers = { Authorization: `Bearer ${token}` };
-
-  const buildFilterParams = () => {
-    const params = new URLSearchParams();
-    if (toolUsageOnly) params.set("toolUsageOnly", "true");
-    return params;
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  const handlePreview = async () => {
+  useEffect(() => { scrollToBottom(); }, [messages]);
+
+  const sendMessage = async () => {
+    const trimmed = input.trim();
+    if (!trimmed || loading) return;
+
+    const userMsg: BossMessage = { role: "user", content: trimmed };
+    setMessages(prev => [...prev, userMsg]);
+    setInput("");
     setLoading(true);
+
     try {
-      const params = buildFilterParams();
-      const res = await fetch(`/api/admin/agents/${agentType}/export-training-data?${params}`, { headers });
+      const res = await fetch("/api/admin/boss-chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          message: trimmed,
+          conversationHistory: messages,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "Request failed" }));
+        throw new Error(err.error || "Boss AI is unavailable");
+      }
+
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      setPreviewData(data);
+      const assistantMsg: BossMessage = {
+        role: "assistant",
+        content: data.reply,
+        toolsUsed: data.toolsUsed,
+      };
+      setMessages(prev => [...prev, assistantMsg]);
     } catch (err: any) {
-      toast({ title: "Preview failed", description: err.message, variant: "destructive" });
+      toast({ title: "Boss AI Error", description: err.message, variant: "destructive" });
+      setMessages(prev => prev.slice(0, -1));
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDownload = async () => {
-    setDownloading(true);
-    try {
-      const params = buildFilterParams();
-      const res = await fetch(`/api/admin/agents/${agentType}/download-training-data?${params}`, { headers });
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error);
-      }
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `${agentType}_training_data.jsonl`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      toast({ title: "Training data downloaded", description: `${agentType}_training_data.jsonl` });
-    } catch (err: any) {
-      toast({ title: "Download failed", description: err.message, variant: "destructive" });
-    } finally {
-      setDownloading(false);
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
     }
   };
 
-  const agentLabel = AGENTS.find(a => a.slug === agentType)?.name || agentType;
+  const formatMessage = (content: string) => {
+    return content.split("\n").map((line, i) => {
+      if (line.startsWith("### ")) return <h3 key={i} className="text-lg font-bold mt-3 mb-1">{line.slice(4)}</h3>;
+      if (line.startsWith("## ")) return <h2 key={i} className="text-xl font-bold mt-4 mb-1">{line.slice(3)}</h2>;
+      if (line.startsWith("# ")) return <h1 key={i} className="text-2xl font-bold mt-4 mb-2">{line.slice(2)}</h1>;
+      if (line.startsWith("- ") || line.startsWith("• ")) return <li key={i} className="ml-4 list-disc">{line.slice(2)}</li>;
+      if (line.match(/^\d+\.\s/)) return <li key={i} className="ml-4 list-decimal">{line.replace(/^\d+\.\s/, "")}</li>;
+      if (line.startsWith("**") && line.endsWith("**")) return <p key={i} className="font-bold">{line.slice(2, -2)}</p>;
+      if (line.startsWith("```")) return <code key={i} className="block bg-black/30 rounded px-2 py-1 text-xs font-mono text-green-400">{line.slice(3)}</code>;
+      if (line.trim() === "") return <br key={i} />;
+
+      const parts = line.split(/(`[^`]+`|\*\*[^*]+\*\*)/g);
+      return (
+        <p key={i}>
+          {parts.map((part, j) => {
+            if (part.startsWith("`") && part.endsWith("`")) return <code key={j} className="bg-black/30 rounded px-1 text-xs font-mono text-emerald-400">{part.slice(1, -1)}</code>;
+            if (part.startsWith("**") && part.endsWith("**")) return <strong key={j}>{part.slice(2, -2)}</strong>;
+            return <span key={j}>{part}</span>;
+          })}
+        </p>
+      );
+    });
+  };
 
   return (
-    <div className="space-y-6">
-      <Card className="bg-[#0A0E27] border-[#1E2448]">
-        <CardHeader>
-          <CardTitle className="text-lg text-white flex items-center gap-2">
-            <FileDown className="w-5 h-5 text-emerald-400" />
-            Export Training Data — {agentLabel}
-          </CardTitle>
-          <CardDescription className="text-gray-400">
-            Generate OpenAI fine-tuning compatible JSONL training data from agent rules, sample conversations, and logged actions.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex flex-wrap gap-4 items-center">
-            <label className="flex items-center gap-2 cursor-pointer" data-testid="filter-tool-usage">
-              <input
-                type="checkbox"
-                checked={toolUsageOnly}
-                onChange={(e) => setToolUsageOnly(e.target.checked)}
-                className="rounded border-[#1E2448] bg-[#111633] text-blue-500"
-              />
-              <span className="text-sm text-gray-300 flex items-center gap-1">
-                <Filter className="w-3.5 h-3.5" />
-                Tool usage conversations only
-              </span>
-            </label>
+    <Card className="bg-[#111633] border-[#1E2448]">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-white flex items-center gap-2">
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center">
+            <Crown className="w-4 h-4 text-white" />
           </div>
-
-          <div className="flex gap-3">
-            <Button
-              onClick={handlePreview}
-              disabled={loading}
-              variant="outline"
-              className="border-[#1E2448] text-gray-300 hover:text-white hover:border-emerald-500/50"
-              data-testid="button-preview-training-data"
-            >
-              {loading ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <FileText className="w-4 h-4 mr-2" />}
-              Preview & Validate
-            </Button>
-            <Button
-              onClick={handleDownload}
-              disabled={downloading}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white"
-              data-testid="button-download-training-data"
-            >
-              {downloading ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
-              Download JSONL
-            </Button>
-          </div>
-
-          {previewData && (
-            <div className="mt-4 p-4 bg-[#111633] rounded-lg border border-[#1E2448] space-y-3">
-              <div className="flex items-center gap-3">
-                {previewData.isValid ? (
-                  <Badge className="bg-green-900/30 text-green-400 border-green-800 gap-1">
-                    <CheckCircle className="w-3 h-3" /> Valid
-                  </Badge>
-                ) : (
-                  <Badge className="bg-yellow-900/30 text-yellow-400 border-yellow-800 gap-1">
-                    <XCircle className="w-3 h-3" /> Has Warnings
-                  </Badge>
-                )}
-                <span className="text-sm text-gray-300">
-                  {previewData.exampleCount} training examples
-                </span>
+          Boss AI — Platform Commander
+        </CardTitle>
+        <CardDescription className="text-gray-400">
+          Your AI assistant that knows everything about the platform. Ask about stats, agents, architecture, or development.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="p-0">
+        <div className="h-[500px] flex flex-col">
+          <div className="flex-1 overflow-y-auto px-4 py-3 space-y-4" data-testid="boss-messages">
+            {messages.length === 0 && (
+              <div className="flex flex-col items-center justify-center h-full text-center space-y-4">
+                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-amber-500/20 to-orange-600/20 flex items-center justify-center">
+                  <Crown className="w-8 h-8 text-amber-400" />
+                </div>
+                <div>
+                  <p className="text-white font-medium text-lg">Boss AI</p>
+                  <p className="text-gray-400 text-sm max-w-md mt-1">
+                    I oversee all 9 agents and know every detail of the platform. Ask me anything.
+                  </p>
+                </div>
+                <div className="grid grid-cols-2 gap-2 max-w-lg">
+                  {[
+                    "How many active users do we have?",
+                    "Which agent is most popular?",
+                    "What's our total API cost?",
+                    "Show me recent platform activity",
+                  ].map((q, i) => (
+                    <button
+                      key={i}
+                      onClick={() => { setInput(q); }}
+                      className="text-left text-xs bg-[#0A0E27] hover:bg-[#1E2448] border border-[#1E2448] rounded-lg px-3 py-2 text-gray-400 hover:text-white transition-colors"
+                      data-testid={`boss-suggestion-${i}`}
+                    >
+                      {q}
+                    </button>
+                  ))}
+                </div>
               </div>
+            )}
 
-              {previewData.warnings && previewData.warnings.length > 0 && (
-                <div className="space-y-1">
-                  <p className="text-xs font-medium text-blue-400">Info:</p>
-                  {previewData.warnings.map((w, i) => (
-                    <p key={i} className="text-xs text-gray-400">• {w}</p>
-                  ))}
+            {messages.map((msg, i) => (
+              <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                <div className={`max-w-[85%] rounded-xl px-4 py-3 ${
+                  msg.role === "user"
+                    ? "bg-blue-600 text-white"
+                    : "bg-[#0A0E27] border border-[#1E2448] text-gray-200"
+                }`}>
+                  {msg.role === "assistant" && (
+                    <div className="flex items-center gap-1.5 mb-2">
+                      <Crown className="w-3.5 h-3.5 text-amber-400" />
+                      <span className="text-xs font-medium text-amber-400">Boss</span>
+                      {msg.toolsUsed && (
+                        <Badge className="bg-violet-900/30 text-violet-400 border-violet-800 text-[10px] px-1.5 py-0 ml-1">
+                          <Database className="w-2.5 h-2.5 mr-0.5" /> live data
+                        </Badge>
+                      )}
+                    </div>
+                  )}
+                  <div className={`text-sm leading-relaxed ${msg.role === "user" ? "" : "space-y-1"}`}>
+                    {msg.role === "assistant" ? formatMessage(msg.content) : msg.content}
+                  </div>
                 </div>
-              )}
+              </div>
+            ))}
 
-              {previewData.validationErrors.length > 0 && (
-                <div className="space-y-1">
-                  <p className="text-xs font-medium text-yellow-400">Validation Notes:</p>
-                  {previewData.validationErrors.map((err, i) => (
-                    <p key={i} className="text-xs text-gray-400">• {err}</p>
-                  ))}
+            {loading && (
+              <div className="flex justify-start">
+                <div className="bg-[#0A0E27] border border-[#1E2448] rounded-xl px-4 py-3">
+                  <div className="flex items-center gap-2">
+                    <Crown className="w-3.5 h-3.5 text-amber-400" />
+                    <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
+                    <span className="text-sm text-gray-400">Boss is analyzing...</span>
+                  </div>
                 </div>
-              )}
+              </div>
+            )}
 
-              <p className="text-xs text-gray-500">
-                Format: OpenAI fine-tuning JSONL — {`{"messages": [{"role": "system", ...}, {"role": "user", ...}, {"role": "assistant", ...}]}`}
-              </p>
+            <div ref={messagesEndRef} />
+          </div>
+
+          <div className="border-t border-[#1E2448] px-4 py-3">
+            <div className="flex gap-2">
+              <Input
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Ask Boss anything about the platform..."
+                className="flex-1 bg-[#0A0E27] border-[#1E2448] text-white placeholder:text-gray-500"
+                disabled={loading}
+                data-testid="boss-input"
+              />
+              <Button
+                onClick={sendMessage}
+                disabled={!input.trim() || loading}
+                className="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white px-4"
+                data-testid="boss-send"
+              >
+                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+              </Button>
             </div>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card className="bg-[#0A0E27] border-[#1E2448]">
-        <CardHeader>
-          <CardTitle className="text-lg text-white flex items-center gap-2">
-            <FileText className="w-5 h-5 text-blue-400" />
-            Agent Rules PDF
-          </CardTitle>
-          <CardDescription className="text-gray-400">
-            Download a comprehensive PDF containing all 9 agents' rules, tools, forbidden zones, and behavior guidelines.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <AgentRulesPDFButton token={token} />
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
-
-function AgentRulesPDFButton({ token }: { token: string }) {
-  const [downloading, setDownloading] = useState(false);
-  const { toast } = useToast();
-
-  const handleDownload = async () => {
-    setDownloading(true);
-    try {
-      const res = await fetch("/api/admin/agent-rules-pdf", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error);
-      }
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "RentAI24_Agent_Rules.pdf";
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      toast({ title: "PDF downloaded", description: "RentAI24_Agent_Rules.pdf" });
-    } catch (err: any) {
-      toast({ title: "Download failed", description: err.message, variant: "destructive" });
-    } finally {
-      setDownloading(false);
-    }
-  };
-
-  return (
-    <Button
-      onClick={handleDownload}
-      disabled={downloading}
-      className="bg-blue-600 hover:bg-blue-700 text-white"
-      data-testid="button-download-rules-pdf"
-    >
-      {downloading ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
-      Download Agent Rules PDF
-    </Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -1520,6 +1513,10 @@ export default function AdminPage() {
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="bg-[#111633] border border-[#1E2448] flex-wrap h-auto gap-1 p-1">
+            <TabsTrigger value="boss-ai" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-amber-500 data-[state=active]:to-orange-600 data-[state=active]:text-white" data-testid="tab-boss-ai">
+              <Crown className="w-3.5 h-3.5 mr-1" />
+              Boss AI
+            </TabsTrigger>
             <TabsTrigger value="overview" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white" data-testid="tab-overview">
               <BarChart3 className="w-3.5 h-3.5 mr-1" />
               Overview
@@ -1538,10 +1535,6 @@ export default function AdminPage() {
             <TabsTrigger value="fine-tuning" className="data-[state=active]:bg-violet-600 data-[state=active]:text-white" data-testid="tab-fine-tuning">
               Fine-Tuning
             </TabsTrigger>
-            <TabsTrigger value="training-data" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white" data-testid="tab-training-data">
-              <FileDown className="w-3.5 h-3.5 mr-1" />
-              Training Data
-            </TabsTrigger>
             <TabsTrigger value="messages" className="data-[state=active]:bg-teal-600 data-[state=active]:text-white" data-testid="tab-messages">
               Messages
             </TabsTrigger>
@@ -1550,6 +1543,10 @@ export default function AdminPage() {
               Cost Tracker
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="boss-ai">
+            <BossAIPanel token={token} />
+          </TabsContent>
 
           <TabsContent value="overview">
             <OverviewPanel token={token} />
@@ -1569,10 +1566,6 @@ export default function AdminPage() {
 
           <TabsContent value="fine-tuning">
             <FineTuningPanel key={`ft-${selectedAgent}`} agentType={selectedAgent} token={token} />
-          </TabsContent>
-
-          <TabsContent value="training-data">
-            <TrainingDataPanel key={`td-${selectedAgent}`} agentType={selectedAgent} token={token} />
           </TabsContent>
 
           <TabsContent value="messages">

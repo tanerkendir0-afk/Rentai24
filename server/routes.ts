@@ -1656,148 +1656,272 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/admin/export-training-data/:agentType", requireAdmin, async (req, res) => {
-    try {
-      const { agentType } = req.params;
-      const filters = {
-        minTurns: Math.min(Math.max(parseInt(req.query.minTurns as string) || 2, 1), 20),
-        toolUsageOnly: req.query.toolsOnly === "true",
-        startDate: req.query.startDate as string,
-        endDate: req.query.endDate as string,
-      };
+  const bossSystemPrompt = `You are "Boss" — the master AI agent of RentAI 24 platform. You are the admin's personal AI assistant who oversees ALL other agents and knows everything about the platform.
 
-      const result = await generateTrainingDataFromChatLogs(agentType, filters);
-      
-      if (!result.jsonl || result.exampleCount === 0) {
-        return res.status(404).json({ 
-          error: "No training data found matching filters.", 
-          warnings: result.warnings 
+YOUR IDENTITY:
+- Name: Boss
+- Role: Platform Architect & Admin AI Assistant
+- You are NOT a regular agent. You are the ADMIN's right hand. You manage, monitor, and advise on the entire RentAI 24 ecosystem.
+
+PLATFORM KNOWLEDGE:
+RentAI 24 is an AI staffing agency SaaS platform where businesses hire pre-trained AI workers.
+
+TECH STACK:
+- Frontend: React + TypeScript + Tailwind CSS + Vite + Shadcn UI
+- Backend: Express.js + Node.js + TypeScript
+- Database: PostgreSQL (Neon serverless) + Drizzle ORM
+- AI: OpenAI GPT-4o with function calling
+- Payments: Stripe subscriptions + test checkout
+- Email: Gmail OAuth + Resend
+- Vector DB: pgvector for RAG embeddings
+- Fine-tuning: OpenAI fine-tuning API (gpt-4o-mini)
+
+FILE STRUCTURE:
+- server/routes.ts — All API routes, agent system prompts, chat logic
+- server/agentTools.ts — Tool registry for all 9 agents
+- server/storage.ts — Database CRUD operations interface
+- server/ragService.ts — RAG document chunking & embedding
+- server/fineTuningService.ts — Fine-tuning job management
+- server/trainingDataService.ts — Training data export for fine-tuning
+- server/emailService.ts — Email sending via Resend
+- server/gmailService.ts — Gmail inbox/read/reply
+- server/calendarService.ts — Google Calendar integration
+- server/imageService.ts — Image upload handling
+- server/stripeService.ts — Stripe payment processing
+- shared/schema.ts — All database table schemas (Drizzle)
+- client/src/pages/ — All frontend pages (home, dashboard, admin, demo, chat, workers, etc.)
+- client/src/components/ — Reusable UI components
+- client/src/data/agents.ts — Agent definitions for frontend
+
+DATABASE TABLES:
+users, rentals, agent_documents, document_chunks, fine_tuning_jobs, token_usage, contact_messages, newsletter_subscribers, leads, agent_actions, email_campaigns, support_tickets, agent_tasks, chat_messages
+
+YOUR 9 AI WORKERS (you manage all of them):
+1. Ava (customer-support) — Customer Support Agent: tickets, email, complaint handling
+2. Rex (sales-sdr) — Sales SDR: leads, proposals, drip campaigns, competitor analysis
+3. Maya (social-media) — Social Media Manager: image generation, posts, hashtags
+4. Finn (bookkeeping) — Bookkeeper: invoices, expenses, financial reports
+5. Cal (scheduling) — Scheduling Assistant: calendar, meetings, reminders
+6. Harper (hr-recruiting) — HR & Recruiting: job postings, candidate screening
+7. DataBot (data-analyst) — Data Analyst: reports, dashboards, data queries
+8. ShopBot (ecommerce-ops) — E-Commerce Operations: inventory, orders, product listings
+9. Reno (real-estate) — Real Estate Agent: property search, listings, market analysis
+
+SUBSCRIPTION PLANS:
+- Starter: $49/month per agent
+- Professional: $39/month per agent (annual)
+- Enterprise: Custom pricing
+
+WHAT YOU CAN DO:
+- Answer ANY question about the platform architecture, code, or agents
+- Query real-time platform stats (users, rentals, costs, usage)
+- Analyze agent performance and usage patterns
+- Recommend optimizations, new features, and improvements
+- Help debug issues with technical guidance
+- Explain how any part of the system works
+- Provide development roadmap suggestions
+
+BEHAVIOR:
+- Always respond in the SAME LANGUAGE the admin writes in
+- Be confident, knowledgeable, and direct
+- Give specific file paths and technical details when asked about code
+- When showing stats, format them clearly with numbers
+- You ARE the boss — speak with authority about your agents
+- If you don't know something specific, say so honestly
+- Never make up data — use your tools to get real numbers`;
+
+  app.post("/api/admin/boss-chat", requireAdmin, async (req, res) => {
+    try {
+      const { message, conversationHistory } = req.body;
+      if (!message) {
+        return res.status(400).json({ error: "Message is required" });
+      }
+
+      const [usersResult, rentalsResult, costResult, ticketsResult, leadsResult, campaignsResult] = await Promise.all([
+        db.execute(sql`SELECT COUNT(*)::int as total FROM users`),
+        db.execute(sql`SELECT COUNT(*)::int as total, COUNT(CASE WHEN status='active' THEN 1 END)::int as active FROM rentals`),
+        db.execute(sql`SELECT COALESCE(SUM(CAST(cost_usd AS DECIMAL(10,6))),0)::text as total_cost, COUNT(*)::int as total_requests, COALESCE(SUM(total_tokens),0)::bigint as total_tokens FROM token_usage`),
+        db.execute(sql`SELECT COUNT(*)::int as total, COUNT(CASE WHEN status='open' THEN 1 END)::int as open_tickets FROM support_tickets`),
+        db.execute(sql`SELECT COUNT(*)::int as total FROM leads`),
+        db.execute(sql`SELECT COUNT(*)::int as total, COUNT(CASE WHEN status='running' THEN 1 END)::int as running FROM email_campaigns`),
+      ]);
+
+      const agentUsageResult = await db.execute(sql`
+        SELECT agent_type, COUNT(*)::int as rental_count, 
+               SUM(messages_used)::int as total_messages
+        FROM rentals WHERE status = 'active'
+        GROUP BY agent_type ORDER BY rental_count DESC
+      `);
+
+      const recentActionsResult = await db.execute(sql`
+        SELECT agent_type, action_type, COUNT(*)::int as count
+        FROM agent_actions
+        GROUP BY agent_type, action_type
+        ORDER BY count DESC LIMIT 20
+      `);
+
+      const liveContext = `
+LIVE PLATFORM DATA (real-time):
+- Total Users: ${(usersResult.rows[0] as any)?.total || 0}
+- Total Rentals: ${(rentalsResult.rows[0] as any)?.total || 0}
+- Active Rentals: ${(rentalsResult.rows[0] as any)?.active || 0}
+- Total API Cost: $${(costResult.rows[0] as any)?.total_cost || "0"}
+- Total API Requests: ${(costResult.rows[0] as any)?.total_requests || 0}
+- Total Tokens Used: ${(costResult.rows[0] as any)?.total_tokens || 0}
+- Support Tickets: ${(ticketsResult.rows[0] as any)?.total || 0} total, ${(ticketsResult.rows[0] as any)?.open_tickets || 0} open
+- Leads: ${(leadsResult.rows[0] as any)?.total || 0}
+- Email Campaigns: ${(campaignsResult.rows[0] as any)?.total || 0} total, ${(campaignsResult.rows[0] as any)?.running || 0} running
+
+AGENT USAGE (active rentals):
+${(agentUsageResult.rows as any[]).map((r: any) => `- ${agentNameMap[r.agent_type] || r.agent_type}: ${r.rental_count} active rentals, ${r.total_messages || 0} messages`).join("\n") || "No active rentals"}
+
+RECENT AGENT ACTIONS:
+${(recentActionsResult.rows as any[]).map((r: any) => `- ${agentNameMap[r.agent_type] || r.agent_type}: ${r.action_type} (${r.count}x)`).join("\n") || "No recent actions"}
+`;
+
+      const bossTools: OpenAI.ChatCompletionTool[] = [
+        {
+          type: "function",
+          function: {
+            name: "query_platform_stats",
+            description: "Get detailed platform statistics: user counts, rental breakdowns, revenue, costs",
+            parameters: { type: "object", properties: { category: { type: "string", enum: ["users", "rentals", "costs", "all"], description: "Which stats category" } }, required: ["category"] },
+          },
+        },
+        {
+          type: "function",
+          function: {
+            name: "query_agent_performance",
+            description: "Get performance data for a specific agent or all agents",
+            parameters: { type: "object", properties: { agentType: { type: "string", description: "Agent type slug (e.g., customer-support, sales-sdr) or 'all'" } }, required: ["agentType"] },
+          },
+        },
+        {
+          type: "function",
+          function: {
+            name: "query_recent_activity",
+            description: "Get recent platform activity — new users, recent chat messages, recent actions",
+            parameters: { type: "object", properties: { limit: { type: "number", description: "How many recent items to return (default 10)" } }, required: [] },
+          },
+        },
+        {
+          type: "function",
+          function: {
+            name: "query_cost_breakdown",
+            description: "Get token usage cost breakdown by model, agent, or time period",
+            parameters: { type: "object", properties: { groupBy: { type: "string", enum: ["model", "agent", "daily"], description: "How to group costs" } }, required: ["groupBy"] },
+          },
+        },
+      ];
+
+      const history: OpenAI.ChatCompletionMessageParam[] = (conversationHistory || []).map((m: any) => ({
+        role: m.role as "user" | "assistant",
+        content: m.content,
+      }));
+
+      const messages: OpenAI.ChatCompletionMessageParam[] = [
+        { role: "system", content: bossSystemPrompt + "\n\n" + liveContext },
+        ...history,
+        { role: "user", content: message },
+      ];
+
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages,
+        tools: bossTools,
+        tool_choice: "auto",
+        temperature: 0.7,
+        max_tokens: 2000,
+      });
+
+      let assistantMessage = response.choices[0]?.message;
+      let reply = assistantMessage?.content || "";
+
+      if (assistantMessage?.tool_calls && assistantMessage.tool_calls.length > 0) {
+        const toolResults: OpenAI.ChatCompletionMessageParam[] = [
+          { role: "assistant", content: assistantMessage.content, tool_calls: assistantMessage.tool_calls } as any,
+        ];
+
+        for (const toolCall of assistantMessage.tool_calls) {
+          const args = JSON.parse(toolCall.function.arguments || "{}");
+          let toolResult = "";
+
+          try {
+            switch (toolCall.function.name) {
+              case "query_platform_stats": {
+                const cat = args.category;
+                if (cat === "users" || cat === "all") {
+                  const r = await db.execute(sql`SELECT COUNT(*)::int as total, COUNT(CASE WHEN created_at > NOW() - INTERVAL '7 days' THEN 1 END)::int as new_this_week, COUNT(CASE WHEN created_at > NOW() - INTERVAL '30 days' THEN 1 END)::int as new_this_month FROM users`);
+                  toolResult += `Users: ${JSON.stringify(r.rows[0])}\n`;
+                }
+                if (cat === "rentals" || cat === "all") {
+                  const r = await db.execute(sql`SELECT status, COUNT(*)::int as count, array_agg(DISTINCT agent_type) as agents FROM rentals GROUP BY status`);
+                  toolResult += `Rentals: ${JSON.stringify(r.rows)}\n`;
+                }
+                if (cat === "costs" || cat === "all") {
+                  const r = await db.execute(sql`SELECT model, COUNT(*)::int as requests, COALESCE(SUM(CAST(cost_usd AS DECIMAL(10,6))),0)::text as total_cost, COALESCE(SUM(total_tokens),0)::bigint as tokens FROM token_usage GROUP BY model ORDER BY total_cost DESC`);
+                  toolResult += `Costs by model: ${JSON.stringify(r.rows)}\n`;
+                }
+                break;
+              }
+              case "query_agent_performance": {
+                const at = args.agentType;
+                if (at === "all") {
+                  const r = await db.execute(sql`SELECT r.agent_type, COUNT(r.id)::int as rentals, SUM(r.messages_used)::int as messages, COUNT(DISTINCT r.user_id)::int as unique_users FROM rentals r WHERE r.status = 'active' GROUP BY r.agent_type ORDER BY rentals DESC`);
+                  toolResult = JSON.stringify(r.rows);
+                } else {
+                  const r = await db.execute(sql`SELECT r.agent_type, COUNT(r.id)::int as rentals, SUM(r.messages_used)::int as messages, COUNT(DISTINCT r.user_id)::int as unique_users, AVG(r.messages_used)::int as avg_messages FROM rentals r WHERE r.agent_type = ${at} AND r.status = 'active' GROUP BY r.agent_type`);
+                  const actions = await db.execute(sql`SELECT action_type, COUNT(*)::int as count FROM agent_actions WHERE agent_type = ${at} GROUP BY action_type ORDER BY count DESC LIMIT 10`);
+                  toolResult = JSON.stringify({ performance: r.rows[0] || {}, topActions: actions.rows });
+                }
+                break;
+              }
+              case "query_recent_activity": {
+                const limit = args.limit || 10;
+                const recentUsers = await db.execute(sql`SELECT email, full_name, created_at FROM users ORDER BY created_at DESC LIMIT ${limit}`);
+                const recentActions = await db.execute(sql`SELECT agent_type, action_type, created_at FROM agent_actions ORDER BY created_at DESC LIMIT ${limit}`);
+                toolResult = JSON.stringify({ recentUsers: recentUsers.rows, recentActions: recentActions.rows });
+                break;
+              }
+              case "query_cost_breakdown": {
+                const groupBy = args.groupBy;
+                if (groupBy === "model") {
+                  const r = await db.execute(sql`SELECT model, COUNT(*)::int as requests, COALESCE(SUM(CAST(cost_usd AS DECIMAL(10,6))),0)::text as cost, COALESCE(SUM(total_tokens),0)::bigint as tokens FROM token_usage GROUP BY model`);
+                  toolResult = JSON.stringify(r.rows);
+                } else if (groupBy === "agent") {
+                  const r = await db.execute(sql`SELECT agent_type, COUNT(*)::int as requests, COALESCE(SUM(CAST(cost_usd AS DECIMAL(10,6))),0)::text as cost FROM token_usage GROUP BY agent_type ORDER BY cost DESC`);
+                  toolResult = JSON.stringify(r.rows);
+                } else {
+                  const r = await db.execute(sql`SELECT DATE(created_at)::text as day, COUNT(*)::int as requests, COALESCE(SUM(CAST(cost_usd AS DECIMAL(10,6))),0)::text as cost FROM token_usage GROUP BY DATE(created_at) ORDER BY day DESC LIMIT 30`);
+                  toolResult = JSON.stringify(r.rows);
+                }
+                break;
+              }
+            }
+          } catch (err: any) {
+            toolResult = `Error: ${err.message}`;
+          }
+
+          toolResults.push({
+            role: "tool",
+            tool_call_id: toolCall.id,
+            content: toolResult,
+          } as any);
+        }
+
+        const followUp = await openai.chat.completions.create({
+          model: "gpt-4o",
+          messages: [...messages, ...toolResults],
+          temperature: 0.7,
+          max_tokens: 2000,
         });
-      }
-      
-      const validation = {
-        totalExamples: result.exampleCount,
-        meetsMinimum: result.exampleCount >= 10,
-        agentType,
-        filters,
-        warnings: result.warnings,
-        isValid: result.validationErrors.length === 0
-      };
-      
-      res.setHeader("Content-Type", "application/x-ndjson");
-      res.setHeader("Content-Disposition", `attachment; filename="training-${agentType}-${Date.now()}.jsonl"`);
-      res.setHeader("X-Training-Validation", JSON.stringify(validation));
-      res.send(result.jsonl);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
-    }
-  });
 
-  app.get("/api/admin/export-training-data/:agentType/stats", requireAdmin, async (req, res) => {
-    try {
-      const { agentType } = req.params;
-      const stats = await storage.getChatSessionsByAgent(agentType);
-      
-      const totalConversations = stats.length;
-      const withTools = stats.filter(s => s.usedTool).length;
-      const avgMessages = totalConversations > 0 
-        ? Math.round(stats.reduce((acc, s) => acc + (s as any).messageCount, 0) / totalConversations)
-        : 0;
-
-      res.json({ 
-        total_conversations: totalConversations, 
-        with_tools: withTools, 
-        avg_messages: avgMessages 
-      });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  app.get("/api/admin/agent-rules-doc", requireAdmin, async (_req, res) => {
-    try {
-      const agentRules = Object.entries(agentSystemPrompts).map(([key, prompt]) => {
-        const nameMatch = prompt.match(/You are "([^"]+)"/);
-        const roleMatch = prompt.match(/YOUR ROLE: (.+?)(?:\n|ONLY)/);
-        const allowedMatch = prompt.match(/ALLOWED TASKS: (.+?)(?:\n|FORBIDDEN)/s);
-        const forbiddenMatch = prompt.match(/FORBIDDEN: (.+?)(?:\n\n|YOU HAVE)/s);
-        const toolsMatch = prompt.match(/REAL ACTIONS:\n([\s\S]+?)(?:\n\nIMPORTANT|WHEN TO USE)/);
-        const behaviorMatch = prompt.match(/BEHAVIOR RULES:\n([\s\S]+?)(?:\nCONFIDENTIALITY|$)/);
-        
-        return {
-          agentType: key,
-          persona: nameMatch?.[1] || key,
-          displayName: agentNameMap[key] || key,
-          role: roleMatch?.[1]?.trim() || "",
-          allowedTasks: allowedMatch?.[1]?.trim() || "",
-          forbidden: forbiddenMatch?.[1]?.trim() || "",
-          tools: toolsMatch?.[1]?.trim().split("\n").map(t => t.replace(/^- /, "").trim()).filter(Boolean) || [],
-          behaviorRules: behaviorMatch?.[1]?.trim().split("\n").map(r => r.replace(/^- /, "").trim()).filter(Boolean) || [],
-        };
-      });
-
-      let textContent = "═══════════════════════════════════════════════════════════════\n";
-      textContent += "                    RENTAI 24 — AI AGENT RULES\n";
-      textContent += "                    Complete Documentation\n";
-      textContent += `                    Generated: ${new Date().toISOString().split("T")[0]}\n`;
-      textContent += "═══════════════════════════════════════════════════════════════\n\n";
-
-      textContent += "SHARED RULES (All Agents)\n";
-      textContent += "─────────────────────────\n";
-      textContent += "1. BRAND CONFIDENTIALITY: Never reveal OpenAI, GPT, or any third-party technology.\n";
-      textContent += "   Always say: 'Built by RentAI 24 using proprietary AI technology.'\n\n";
-      textContent += "2. ONBOARDING GUIDANCE: Break tasks into steps, use tools proactively,\n";
-      textContent += "   ask clarifying questions, summarize after actions, redirect outside scope.\n\n";
-      textContent += "3. LANGUAGE: Respond in the same language the user writes in.\n\n";
-      textContent += "═══════════════════════════════════════════════════════════════\n\n";
-
-      for (const agent of agentRules) {
-        textContent += `▶ ${agent.persona} — ${agent.displayName}\n`;
-        textContent += "─────────────────────────\n";
-        textContent += `Agent Type: ${agent.agentType}\n`;
-        textContent += `Role: ${agent.role}\n\n`;
-        
-        if (agent.allowedTasks) {
-          textContent += `ALLOWED: ${agent.allowedTasks}\n\n`;
-        }
-        if (agent.forbidden) {
-          textContent += `FORBIDDEN: ${agent.forbidden}\n\n`;
-        }
-        
-        if (agent.tools.length > 0) {
-          textContent += "TOOLS:\n";
-          for (const tool of agent.tools) {
-            textContent += `  • ${tool}\n`;
-          }
-          textContent += "\n";
-        }
-        
-        if (agent.behaviorRules.length > 0) {
-          textContent += "BEHAVIOR RULES:\n";
-          for (const rule of agent.behaviorRules) {
-            textContent += `  • ${rule}\n`;
-          }
-          textContent += "\n";
-        }
-        
-        textContent += "═══════════════════════════════════════════════════════════════\n\n";
+        reply = followUp.choices[0]?.message?.content || "Veri alındı ancak yanıt oluşturulamadı.";
       }
 
-      textContent += "\n── FINE-TUNING GUIDE ──\n\n";
-      textContent += "1. Collect chat logs (Export Training Data from Admin Panel)\n";
-      textContent += "2. Minimum 50 conversations per agent recommended\n";
-      textContent += "3. JSONL format: {\"messages\": [{\"role\": \"system\", ...}, {\"role\": \"user\", ...}, {\"role\": \"assistant\", ...}]}\n";
-      textContent += "4. Upload JSONL in Admin > Agent > Fine-Tuning tab\n";
-      textContent += "5. Model: gpt-4o-mini (suffix: rentai-{agentType})\n";
-      textContent += "6. After training succeeds, activate the fine-tuned model\n";
-      textContent += "7. Deactivate to revert to base model\n\n";
-      textContent += `Total Agents: ${agentRules.length}\n`;
-      textContent += `Document Generated: ${new Date().toISOString()}\n`;
-
-      res.setHeader("Content-Type", "text/plain; charset=utf-8");
-      res.setHeader("Content-Disposition", `attachment; filename="RentAI24-Agent-Rules-${Date.now()}.txt"`);
-      res.send(textContent);
+      res.json({ reply, toolsUsed: !!(assistantMessage?.tool_calls?.length) });
     } catch (error: any) {
+      console.error("Boss chat error:", error.message);
       res.status(500).json({ error: error.message });
     }
   });

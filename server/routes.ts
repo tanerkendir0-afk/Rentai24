@@ -683,6 +683,41 @@ export async function registerRoutes(
     res.json(notifications);
   });
 
+  app.get("/api/support-tickets", requireAuth, async (req, res) => {
+    const tickets = await storage.getTicketsByUser(req.session.userId!);
+    res.json(tickets);
+  });
+
+  app.post("/api/support-tickets", requireAuth, async (req, res) => {
+    const { subject, description, category, agentType, priority } = req.body;
+    if (!subject?.trim() || !description?.trim()) {
+      return res.status(400).json({ error: "Subject and description are required" });
+    }
+    const ticket = await storage.createSupportTicket({
+      userId: req.session.userId!,
+      subject: subject.trim(),
+      description: description.trim(),
+      category: category || "general",
+      agentType: agentType || null,
+      priority: priority || "medium",
+      customerEmail: null,
+    });
+    res.json(ticket);
+  });
+
+  app.get("/api/admin/support-tickets", requireAdmin, async (_req, res) => {
+    const tickets = await storage.getAllTickets();
+    res.json(tickets);
+  });
+
+  app.patch("/api/admin/support-tickets/:id", requireAdmin, async (req, res) => {
+    const id = parseInt(req.params.id);
+    const { status, priority, resolution, adminReply } = req.body;
+    const updated = await storage.adminUpdateTicket(id, { status, priority, resolution, adminReply });
+    if (!updated) return res.status(404).json({ error: "Ticket not found" });
+    res.json(updated);
+  });
+
   app.get("/api/campaigns", requireAuth, async (req, res) => {
     const campaigns = await storage.getCampaignsByUser(req.session.userId!);
     res.json(campaigns);

@@ -237,10 +237,13 @@ export const supportTickets = pgTable("support_tickets", {
   userId: integer("user_id").notNull().references(() => users.id),
   subject: text("subject").notNull(),
   description: text("description").notNull(),
+  category: text("category").notNull().default("general"),
+  agentType: text("agent_type"),
   status: text("status").notNull().default("open"),
   priority: text("priority").notNull().default("medium"),
   customerEmail: text("customer_email"),
   resolution: text("resolution"),
+  adminReply: text("admin_reply"),
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
   updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
 });

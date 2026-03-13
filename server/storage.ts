@@ -50,6 +50,8 @@ export interface IStorage {
   getTicketsByUser(userId: number): Promise<SupportTicket[]>;
   getTicketById(id: number, userId: number): Promise<SupportTicket | undefined>;
   updateTicket(id: number, userId: number, updates: Partial<Pick<SupportTicket, "status" | "priority" | "resolution" | "subject" | "description">>): Promise<SupportTicket | undefined>;
+  getAllTickets(): Promise<SupportTicket[]>;
+  adminUpdateTicket(id: number, updates: Partial<Pick<SupportTicket, "status" | "priority" | "resolution" | "adminReply">>): Promise<SupportTicket | undefined>;
 
   createAgentTask(task: InsertAgentTask): Promise<AgentTask>;
   getAgentTasksByUser(userId: number, agentType?: string): Promise<AgentTask[]>;
@@ -335,6 +337,19 @@ export class DatabaseStorage implements IStorage {
       .update(supportTickets)
       .set({ ...updates, updatedAt: new Date() })
       .where(and(eq(supportTickets.id, id), eq(supportTickets.userId, userId)))
+      .returning();
+    return updated;
+  }
+
+  async getAllTickets(): Promise<SupportTicket[]> {
+    return db.select().from(supportTickets).orderBy(desc(supportTickets.createdAt));
+  }
+
+  async adminUpdateTicket(id: number, updates: Partial<Pick<SupportTicket, "status" | "priority" | "resolution" | "adminReply">>): Promise<SupportTicket | undefined> {
+    const [updated] = await db
+      .update(supportTickets)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(supportTickets.id, id))
       .returning();
     return updated;
   }

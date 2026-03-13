@@ -41,6 +41,11 @@ import {
   Clock,
   Trash2,
   Flag,
+  HelpCircle,
+  Bug,
+  MessageCircle,
+  ChevronDown,
+  ExternalLink,
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
@@ -203,6 +208,12 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
   const [socialPlatform, setSocialPlatform] = useState("");
   const [socialUsername, setSocialUsername] = useState("");
   const [socialSaving, setSocialSaving] = useState(false);
+  const [showHelpPanel, setShowHelpPanel] = useState(false);
+  const [helpView, setHelpView] = useState<"menu" | "report" | "tickets">("menu");
+  const [helpCategory, setHelpCategory] = useState("bug");
+  const [helpSubject, setHelpSubject] = useState("");
+  const [helpDescription, setHelpDescription] = useState("");
+  const [helpSending, setHelpSending] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const dragCounterRef = useRef(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -231,6 +242,11 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
   const { data: socialAccounts = [] } = useQuery<{ id: number; platform: string; username: string; profileUrl: string | null; status: string }[]>({
     queryKey: ["/api/social-accounts"],
     enabled: !!user && isSocialMediaAgent,
+  });
+
+  const { data: supportTickets = [] } = useQuery<{ id: number; subject: string; description: string; category: string; agentType: string | null; status: string; priority: string; adminReply: string | null; createdAt: string }[]>({
+    queryKey: ["/api/support-tickets"],
+    enabled: !!user,
   });
 
   const { data: spendingData } = useQuery<{ spent: number; limit: number; remaining: number; limitReached: boolean }>({
@@ -321,6 +337,32 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
       toast({ title: "Error", description: "Failed to remove account", variant: "destructive" });
     }
   };
+
+  const handleSubmitTicket = async () => {
+    if (!helpSubject.trim() || !helpDescription.trim()) return;
+    setHelpSending(true);
+    try {
+      await apiRequest("POST", "/api/support-tickets", {
+        subject: helpSubject.trim(),
+        description: helpDescription.trim(),
+        category: helpCategory,
+        agentType: selectedAgent,
+        priority: helpCategory === "bug" ? "high" : "medium",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/support-tickets"] });
+      setHelpSubject("");
+      setHelpDescription("");
+      setHelpCategory("bug");
+      setHelpView("tickets");
+      toast({ title: "Ticket Created", description: "Your support request has been sent to admin" });
+    } catch {
+      toast({ title: "Error", description: "Failed to submit ticket", variant: "destructive" });
+    } finally {
+      setHelpSending(false);
+    }
+  };
+
+  const openTicketCount = supportTickets.filter(t => t.status === "open" || t.status === "in_progress").length;
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -884,6 +926,225 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                 <ListTodo className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">Tasks</span>
               </Button>
+            )}
+            {user && (
+              <div className="relative">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => { setShowHelpPanel(!showHelpPanel); setShowCreditsPanel(false); setShowSocialPanel(false); }}
+                  className="h-8 text-xs gap-1 text-muted-foreground hover:text-foreground"
+                  title="Help & Support"
+                  data-testid="button-help"
+                >
+                  <HelpCircle className="w-3.5 h-3.5" />
+                  {openTicketCount > 0 && (
+                    <Badge variant="secondary" className="h-4 px-1 text-[10px] bg-orange-500/20 text-orange-400">
+                      {openTicketCount}
+                    </Badge>
+                  )}
+                </Button>
+                {showHelpPanel && (
+                  <div className="absolute right-0 top-full mt-2 w-[calc(100vw-2rem)] sm:w-96 max-w-[400px] bg-card border border-border rounded-xl shadow-2xl z-50 p-4" data-testid="help-panel">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="font-semibold text-sm flex items-center gap-2">
+                        <HelpCircle className="w-4 h-4 text-orange-500" />
+                        Help & Support
+                      </h4>
+                      <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => { setShowHelpPanel(false); setHelpView("menu"); }}>
+                        <X className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+
+                    {helpView === "menu" && (
+                      <div className="space-y-2">
+                        <button
+                          onClick={() => setHelpView("report")}
+                          className="w-full flex items-center gap-3 p-3 rounded-lg border border-border/50 hover:border-orange-500/30 hover:bg-orange-500/5 transition-all text-left"
+                          data-testid="button-help-report"
+                        >
+                          <div className="w-9 h-9 rounded-lg bg-red-500/10 flex items-center justify-center shrink-0">
+                            <Bug className="w-4 h-4 text-red-400" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium">Report Issue</p>
+                            <p className="text-[10px] text-muted-foreground">Bug, error, or technical problem</p>
+                          </div>
+                        </button>
+                        <button
+                          onClick={() => { setHelpCategory("feature"); setHelpView("report"); }}
+                          className="w-full flex items-center gap-3 p-3 rounded-lg border border-border/50 hover:border-blue-500/30 hover:bg-blue-500/5 transition-all text-left"
+                          data-testid="button-help-feature"
+                        >
+                          <div className="w-9 h-9 rounded-lg bg-blue-500/10 flex items-center justify-center shrink-0">
+                            <MessageCircle className="w-4 h-4 text-blue-400" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium">Feedback & Suggestions</p>
+                            <p className="text-[10px] text-muted-foreground">Feature request or general feedback</p>
+                          </div>
+                        </button>
+                        <button
+                          onClick={() => setHelpView("tickets")}
+                          className="w-full flex items-center gap-3 p-3 rounded-lg border border-border/50 hover:border-emerald-500/30 hover:bg-emerald-500/5 transition-all text-left"
+                          data-testid="button-help-my-tickets"
+                        >
+                          <div className="w-9 h-9 rounded-lg bg-emerald-500/10 flex items-center justify-center shrink-0">
+                            <ListTodo className="w-4 h-4 text-emerald-400" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <p className="text-sm font-medium">My Tickets</p>
+                              {openTicketCount > 0 && (
+                                <Badge variant="secondary" className="h-4 px-1.5 text-[10px] bg-orange-500/20 text-orange-400">
+                                  {openTicketCount} open
+                                </Badge>
+                              )}
+                            </div>
+                            <p className="text-[10px] text-muted-foreground">View your support requests</p>
+                          </div>
+                        </button>
+                        <div className="border-t border-border/50 pt-2 mt-2">
+                          <a
+                            href="/settings"
+                            className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all"
+                            data-testid="link-help-settings"
+                          >
+                            <ExternalLink className="w-3 h-3" />
+                            Settings & Connections
+                          </a>
+                        </div>
+                      </div>
+                    )}
+
+                    {helpView === "report" && (
+                      <div className="space-y-3">
+                        <button onClick={() => { setHelpView("menu"); setHelpCategory("bug"); }} className="text-xs text-blue-400 hover:underline flex items-center gap-1">
+                          <ChevronLeft className="w-3 h-3" /> Back
+                        </button>
+                        <div className="flex gap-2">
+                          {([
+                            { key: "bug", label: "Bug", icon: "🐛" },
+                            { key: "error", label: "Error", icon: "⚠️" },
+                            { key: "connection", label: "Connection", icon: "🔗" },
+                            { key: "feature", label: "Suggestion", icon: "💡" },
+                            { key: "general", label: "Other", icon: "📋" },
+                          ] as const).map((cat) => (
+                            <button
+                              key={cat.key}
+                              onClick={() => setHelpCategory(cat.key)}
+                              className={`flex-1 flex flex-col items-center gap-0.5 p-2 rounded-lg border text-[10px] transition-all ${
+                                helpCategory === cat.key
+                                  ? "border-orange-500 bg-orange-500/10 text-orange-400"
+                                  : "border-border/50 text-muted-foreground hover:border-orange-500/30"
+                              }`}
+                              data-testid={`button-help-category-${cat.key}`}
+                            >
+                              <span>{cat.icon}</span>
+                              <span>{cat.label}</span>
+                            </button>
+                          ))}
+                        </div>
+                        <div>
+                          <label className="text-xs text-muted-foreground mb-1 block">Subject</label>
+                          <Input
+                            placeholder="Brief description of the issue"
+                            value={helpSubject}
+                            onChange={(e) => setHelpSubject(e.target.value)}
+                            className="h-8 text-xs"
+                            data-testid="input-help-subject"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs text-muted-foreground mb-1 block">Details</label>
+                          <textarea
+                            placeholder="Describe the issue, error message, or your suggestion..."
+                            value={helpDescription}
+                            onChange={(e) => setHelpDescription(e.target.value)}
+                            className="w-full min-h-[80px] p-2 rounded-lg border border-border bg-background text-xs resize-none focus:outline-none focus:ring-1 focus:ring-orange-500/50"
+                            data-testid="input-help-description"
+                          />
+                        </div>
+                        <div className="bg-muted/30 rounded-lg p-2 text-[10px] text-muted-foreground flex items-start gap-1.5">
+                          <Info className="w-3 h-3 shrink-0 mt-0.5" />
+                          <span>This will be sent to admin with your current agent ({currentAgent.persona}) info.</span>
+                        </div>
+                        <Button
+                          onClick={handleSubmitTicket}
+                          disabled={helpSending || !helpSubject.trim() || !helpDescription.trim()}
+                          className="w-full h-9 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-semibold text-xs"
+                          data-testid="button-help-submit"
+                        >
+                          {helpSending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Send className="w-3.5 h-3.5 mr-2" />}
+                          Send to Admin
+                        </Button>
+                      </div>
+                    )}
+
+                    {helpView === "tickets" && (
+                      <div className="space-y-2">
+                        <button onClick={() => setHelpView("menu")} className="text-xs text-blue-400 hover:underline flex items-center gap-1">
+                          <ChevronLeft className="w-3 h-3" /> Back
+                        </button>
+                        {supportTickets.length === 0 ? (
+                          <div className="text-center py-4">
+                            <Check className="w-8 h-8 text-muted-foreground/30 mx-auto mb-2" />
+                            <p className="text-xs text-muted-foreground">No tickets yet</p>
+                          </div>
+                        ) : (
+                          <div className="space-y-1.5 max-h-[300px] overflow-y-auto">
+                            {supportTickets.map((ticket) => (
+                              <div key={ticket.id} className="p-2.5 rounded-lg border border-border/50 bg-muted/20" data-testid={`ticket-item-${ticket.id}`}>
+                                <div className="flex items-start justify-between gap-2 mb-1">
+                                  <p className="text-xs font-medium truncate flex-1">{ticket.subject}</p>
+                                  <Badge
+                                    variant="secondary"
+                                    className={`text-[9px] px-1.5 shrink-0 ${
+                                      ticket.status === "open" ? "bg-orange-500/20 text-orange-400" :
+                                      ticket.status === "in_progress" ? "bg-blue-500/20 text-blue-400" :
+                                      ticket.status === "resolved" ? "bg-emerald-500/20 text-emerald-400" :
+                                      "bg-muted text-muted-foreground"
+                                    }`}
+                                  >
+                                    {ticket.status === "in_progress" ? "In Progress" : ticket.status}
+                                  </Badge>
+                                </div>
+                                <p className="text-[10px] text-muted-foreground line-clamp-2 mb-1">{ticket.description}</p>
+                                <div className="flex items-center gap-2 text-[9px] text-muted-foreground">
+                                  <span className="capitalize">{ticket.category}</span>
+                                  <span>·</span>
+                                  <span>{new Date(ticket.createdAt).toLocaleDateString()}</span>
+                                  {ticket.agentType && (
+                                    <>
+                                      <span>·</span>
+                                      <span className="capitalize">{ticket.agentType.replace("-", " ")}</span>
+                                    </>
+                                  )}
+                                </div>
+                                {ticket.adminReply && (
+                                  <div className="mt-2 p-2 rounded-md bg-emerald-500/10 border border-emerald-500/20">
+                                    <p className="text-[10px] font-medium text-emerald-400 mb-0.5">Admin Reply:</p>
+                                    <p className="text-[10px] text-emerald-300/80">{ticket.adminReply}</p>
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        <Button
+                          size="sm"
+                          onClick={() => { setHelpCategory("bug"); setHelpView("report"); }}
+                          className="w-full h-8 text-xs bg-orange-500/10 text-orange-400 hover:bg-orange-500/20 border border-orange-500/20"
+                          variant="ghost"
+                          data-testid="button-help-new-ticket"
+                        >
+                          <Plus className="w-3 h-3 mr-1" /> New Ticket
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             )}
           </div>
         </div>

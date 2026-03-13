@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import {
   Shield, Upload, FileText, Link2, Trash2, RefreshCw, Cpu, ToggleLeft, ToggleRight,
-  Lock, Brain, Database, Zap, MessageSquare, Mail, DollarSign, AlertTriangle,
+  Lock, Brain, Database, Zap, MessageSquare, Mail, DollarSign, AlertTriangle, HelpCircle,
   Users, BarChart3, CreditCard, LogOut, Activity, ShoppingCart, UserCheck,
   Download, FileDown, CheckCircle, XCircle, Filter, Send, Crown, Bot, Loader2,
   Plus, Clock, ChevronLeft, MoreVertical, History
@@ -2488,6 +2488,189 @@ function BossAIPanel({ token }: { token: string }) {
   );
 }
 
+function SupportTicketsPanel({ token }: { token: string }) {
+  const [tickets, setTickets] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [replyingId, setReplyingId] = useState<number | null>(null);
+  const [replyText, setReplyText] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const { toast } = useToast();
+
+  const fetchTickets = useCallback(async () => {
+    try {
+      const res = await fetch("/api/admin/support-tickets", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      setTickets(data);
+    } catch {}
+    setLoading(false);
+  }, [token]);
+
+  useEffect(() => { fetchTickets(); }, [fetchTickets]);
+
+  const handleUpdateTicket = async (id: number, updates: Record<string, string>) => {
+    try {
+      await fetch(`/api/admin/support-tickets/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify(updates),
+      });
+      fetchTickets();
+      toast({ title: "Updated", description: "Ticket updated successfully" });
+    } catch {
+      toast({ title: "Error", description: "Failed to update ticket", variant: "destructive" });
+    }
+  };
+
+  const handleReply = async (id: number) => {
+    if (!replyText.trim()) return;
+    await handleUpdateTicket(id, { adminReply: replyText.trim(), status: "resolved" });
+    setReplyText("");
+    setReplyingId(null);
+  };
+
+  const filtered = statusFilter === "all" ? tickets : tickets.filter(t => t.status === statusFilter);
+  const openCount = tickets.filter(t => t.status === "open").length;
+  const inProgressCount = tickets.filter(t => t.status === "in_progress").length;
+
+  return (
+    <Card className="bg-[#0C1029] border-[#1E2448]">
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="text-white flex items-center gap-2">
+              <HelpCircle className="w-5 h-5 text-orange-400" />
+              Support Tickets
+              {openCount > 0 && (
+                <Badge className="bg-orange-500/20 text-orange-400 text-xs">{openCount} open</Badge>
+              )}
+              {inProgressCount > 0 && (
+                <Badge className="bg-blue-500/20 text-blue-400 text-xs">{inProgressCount} in progress</Badge>
+              )}
+            </CardTitle>
+            <CardDescription>Manage user-submitted bug reports, issues, and feedback</CardDescription>
+          </div>
+          <div className="flex items-center gap-2">
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-[130px] h-8 text-xs bg-[#111633] border-[#1E2448]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Tickets</SelectItem>
+                <SelectItem value="open">Open</SelectItem>
+                <SelectItem value="in_progress">In Progress</SelectItem>
+                <SelectItem value="resolved">Resolved</SelectItem>
+                <SelectItem value="closed">Closed</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button size="sm" variant="outline" onClick={fetchTickets} className="h-8">
+              <RefreshCw className="w-3 h-3" />
+            </Button>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {loading ? (
+          <div className="text-center py-8 text-muted-foreground">Loading...</div>
+        ) : filtered.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground">
+            <HelpCircle className="w-10 h-10 mx-auto mb-2 opacity-30" />
+            <p>No {statusFilter === "all" ? "" : statusFilter} tickets</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {filtered.map((ticket: any) => (
+              <div key={ticket.id} className="p-4 rounded-xl border border-[#1E2448] bg-[#111633]" data-testid={`admin-ticket-${ticket.id}`}>
+                <div className="flex items-start justify-between gap-3 mb-2">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-sm font-semibold text-white">#{ticket.id}</span>
+                      <span className="text-sm font-medium text-white truncate">{ticket.subject}</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground line-clamp-2">{ticket.description}</p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Badge className={`text-[10px] ${
+                      ticket.priority === "high" ? "bg-red-500/20 text-red-400" :
+                      ticket.priority === "medium" ? "bg-yellow-500/20 text-yellow-400" :
+                      "bg-blue-500/20 text-blue-400"
+                    }`}>
+                      {ticket.priority}
+                    </Badge>
+                    <Select value={ticket.status} onValueChange={(val) => handleUpdateTicket(ticket.id, { status: val })}>
+                      <SelectTrigger className={`h-6 text-[10px] w-[100px] border-0 ${
+                        ticket.status === "open" ? "bg-orange-500/20 text-orange-400" :
+                        ticket.status === "in_progress" ? "bg-blue-500/20 text-blue-400" :
+                        ticket.status === "resolved" ? "bg-emerald-500/20 text-emerald-400" :
+                        "bg-muted text-muted-foreground"
+                      }`}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="open">Open</SelectItem>
+                        <SelectItem value="in_progress">In Progress</SelectItem>
+                        <SelectItem value="resolved">Resolved</SelectItem>
+                        <SelectItem value="closed">Closed</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 text-[10px] text-muted-foreground mb-2">
+                  <span>User #{ticket.userId}</span>
+                  <span>·</span>
+                  <span className="capitalize">{ticket.category || "general"}</span>
+                  {ticket.agentType && (
+                    <>
+                      <span>·</span>
+                      <span className="capitalize">{ticket.agentType.replace("-", " ")}</span>
+                    </>
+                  )}
+                  <span>·</span>
+                  <span>{new Date(ticket.createdAt).toLocaleString()}</span>
+                </div>
+                {ticket.adminReply && (
+                  <div className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 mb-2">
+                    <p className="text-[10px] font-medium text-emerald-400 mb-0.5">Your Reply:</p>
+                    <p className="text-xs text-emerald-300/80">{ticket.adminReply}</p>
+                  </div>
+                )}
+                {replyingId === ticket.id ? (
+                  <div className="flex gap-2 mt-2">
+                    <Input
+                      value={replyText}
+                      onChange={(e) => setReplyText(e.target.value)}
+                      placeholder="Write your reply..."
+                      className="flex-1 h-8 text-xs bg-[#0C1029] border-[#1E2448]"
+                      data-testid={`input-admin-reply-${ticket.id}`}
+                    />
+                    <Button size="sm" className="h-8 bg-emerald-500 hover:bg-emerald-600 text-white text-xs" onClick={() => handleReply(ticket.id)} data-testid={`button-admin-send-reply-${ticket.id}`}>
+                      <Send className="w-3 h-3 mr-1" /> Send
+                    </Button>
+                    <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={() => { setReplyingId(null); setReplyText(""); }}>
+                      Cancel
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 text-xs text-blue-400 hover:text-blue-300 mt-1"
+                    onClick={() => setReplyingId(ticket.id)}
+                    data-testid={`button-admin-reply-${ticket.id}`}
+                  >
+                    <MessageSquare className="w-3 h-3 mr-1" /> Reply
+                  </Button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function AdminPage() {
   const [token, setToken] = useState<string | null>(null);
   const [selectedAgent, setSelectedAgent] = useState(AGENTS[0].slug);
@@ -2628,6 +2811,10 @@ export default function AdminPage() {
               <DollarSign className="w-3.5 h-3.5 mr-1" />
               Cost Tracker
             </TabsTrigger>
+            <TabsTrigger value="support-tickets" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-red-600 data-[state=active]:text-white" data-testid="tab-support-tickets">
+              <HelpCircle className="w-3.5 h-3.5 mr-1" />
+              Support Tickets
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="boss-ai">
@@ -2672,6 +2859,10 @@ export default function AdminPage() {
 
           <TabsContent value="costs">
             <CostTrackerPanel token={token} />
+          </TabsContent>
+
+          <TabsContent value="support-tickets">
+            <SupportTicketsPanel token={token} />
           </TabsContent>
         </Tabs>
       </div>

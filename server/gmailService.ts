@@ -115,15 +115,21 @@ export async function getGmailAddress(): Promise<string | null> {
   }
 }
 
+function encodeSubject(subject: string): string {
+  if (/^[\x20-\x7E]*$/.test(subject)) return subject;
+  return `=?UTF-8?B?${Buffer.from(subject, "utf-8").toString("base64")}?=`;
+}
+
 function buildRawEmail(from: string, to: string, subject: string, body: string): string {
   const lines = [
     `From: ${from}`,
     `To: ${to}`,
-    `Subject: ${subject}`,
+    `Subject: ${encodeSubject(subject)}`,
     `MIME-Version: 1.0`,
     `Content-Type: text/plain; charset="UTF-8"`,
+    `Content-Transfer-Encoding: base64`,
     ``,
-    body,
+    Buffer.from(body, "utf-8").toString("base64"),
   ];
   const raw = lines.join("\r\n");
   return Buffer.from(raw).toString("base64url");
@@ -392,13 +398,14 @@ export async function replyToEmail(messageId: string, body: string): Promise<{ s
     const rawLines = [
       `From: ${myAddress}`,
       `To: ${replyTo}`,
-      `Subject: ${replySubject}`,
+      `Subject: ${encodeSubject(replySubject)}`,
       `In-Reply-To: ${originalMessageId}`,
       `References: ${references}`,
       `MIME-Version: 1.0`,
       `Content-Type: text/plain; charset="UTF-8"`,
+      `Content-Transfer-Encoding: base64`,
       ``,
-      body,
+      Buffer.from(body, "utf-8").toString("base64"),
     ];
     const raw = Buffer.from(rawLines.join("\r\n")).toString("base64url");
 

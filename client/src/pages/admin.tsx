@@ -511,7 +511,7 @@ function TrainingDataPanel({ agentType, token }: { agentType: string; token: str
   const fetchStats = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/admin/export-training-data/${agentType}/stats`, { headers });
+      const res = await fetch(`/api/admin/agents/${agentType}/training-data-stats`, { headers });
       if (!res.ok) throw new Error("Failed to fetch stats");
       const data = await res.json();
       if (typeof data.total_conversations === "number") {
@@ -529,7 +529,7 @@ function TrainingDataPanel({ agentType, token }: { agentType: string; token: str
     setExporting(true);
     try {
       const params = new URLSearchParams({ minTurns, toolsOnly: String(toolsOnly) });
-      const res = await fetch(`/api/admin/export-training-data/${agentType}?${params}`, { headers });
+      const res = await fetch(`/api/admin/agents/${agentType}/download-training-data?${params}`, { headers });
       if (!res.ok) {
         let errorMsg = "Export failed";
         try { const err = await res.json(); errorMsg = err.error || errorMsg; } catch {}
@@ -558,13 +558,13 @@ function TrainingDataPanel({ agentType, token }: { agentType: string; token: str
 
   const handleDownloadRules = async () => {
     try {
-      const res = await fetch("/api/admin/agent-rules-doc", { headers });
+      const res = await fetch("/api/admin/agent-rules-pdf", { headers });
       if (!res.ok) throw new Error("Download failed");
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `RentAI24-Agent-Rules.txt`;
+      a.download = `RentAI24-Agent-Rules.pdf`;
       a.click();
       URL.revokeObjectURL(url);
       toast({ title: "Rules Document Downloaded", description: "All 9 agent rules exported successfully." });
@@ -594,7 +594,7 @@ function TrainingDataPanel({ agentType, token }: { agentType: string; token: str
             data-testid="button-download-rules"
           >
             <FileText className="w-4 h-4 mr-2" />
-            Download Agent Rules (.txt)
+            Download Agent Rules (.pdf)
           </Button>
         </CardContent>
       </Card>

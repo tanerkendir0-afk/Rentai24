@@ -1472,12 +1472,59 @@ export async function registerRoutes(
 
   function parseTrainingDataFilters(query: Record<string, unknown>) {
     return {
-      toolUsageOnly: query.toolUsageOnly === "true",
+      toolUsageOnly: query.toolUsageOnly === "true" || query.toolsOnly === "true",
       startDate: (query.startDate as string) || undefined,
       endDate: (query.endDate as string) || undefined,
       minTurns: parseInt(query.minTurns as string) || undefined,
     };
   }
+
+  app.get("/api/admin/agents/:agentType/training-data-stats", requireAdmin, async (req, res) => {
+    try {
+      const { agentType } = req.params;
+      let totalConversations = 0;
+      let withTools = 0;
+      let avgMessages = 0;
+      let earliest: string | null = null;
+      let latest: string | null = null;
+
+      try {
+        const convResult = await db.execute(sql`
+          SELECT 
+            COUNT(DISTINCT session_id)::int as total_conversations,
+            MIN(created_at)::text as earliest,
+            MAX(created_at)::text as latest,
+            ROUND(COUNT(*)::numeric / NULLIF(COUNT(DISTINCT session_id), 0), 1)::float as avg_messages
+          FROM chat_messages
+          WHERE agent_type = ${agentType}
+        `);
+        const r = convResult.rows[0] as Record<string, unknown>;
+        totalConversations = (r?.total_conversations as number) || 0;
+        avgMessages = (r?.avg_messages as number) || 0;
+        earliest = (r?.earliest as string) || null;
+        latest = (r?.latest as string) || null;
+
+        const toolResult = await db.execute(sql`
+          SELECT COUNT(DISTINCT cm.session_id)::int as with_tools
+          FROM chat_messages cm
+          INNER JOIN agent_actions aa ON aa.agent_type = cm.agent_type AND aa.user_id = cm.user_id
+          WHERE cm.agent_type = ${agentType}
+        `);
+        withTools = ((toolResult.rows[0] as Record<string, unknown>)?.with_tools as number) || 0;
+      } catch {}
+
+      res.json({
+        total_conversations: totalConversations,
+        with_tools: withTools,
+        avg_messages: avgMessages,
+        earliest,
+        latest,
+      });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Unknown error";
+      res.status(500).json({ error: message });
+    }
+  });
 
   app.get("/api/admin/agents/:agentType/export-training-data", requireAdmin, async (req, res) => {
     try {

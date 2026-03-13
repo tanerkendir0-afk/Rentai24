@@ -94,35 +94,35 @@ export default function Pricing() {
 
   return (
     <div className="pt-16">
-      <section className="py-20 relative">
+      <section className="py-12 sm:py-20 relative">
         <div className="absolute inset-0 bg-gradient-to-b from-blue-950/20 to-transparent" />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <motion.div
-            className="text-center mb-16"
+            className="text-center mb-10 sm:mb-16"
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
           >
-            <h1 className="text-4xl sm:text-5xl font-bold text-foreground mb-4" data-testid="text-pricing-title">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-foreground mb-3 sm:mb-4" data-testid="text-pricing-title">
               Simple, Transparent{" "}
               <span className="bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent">
                 Pricing
               </span>
             </h1>
-            <p className="text-muted-foreground text-lg max-w-2xl mx-auto mb-4">
+            <p className="text-muted-foreground text-sm sm:text-lg max-w-2xl mx-auto mb-3 sm:mb-4">
               Scale your AI workforce with flexible plans. Cancel anytime.
             </p>
             <div className="flex items-center justify-center gap-2">
-              <Shield className="w-4 h-4 text-emerald-400" />
-              <span className="text-sm text-emerald-400 font-medium">Cancel Anytime &middot; Secure Checkout &middot; Money-back Guarantee</span>
+              <Shield className="w-4 h-4 text-emerald-400 shrink-0" />
+              <span className="text-xs sm:text-sm text-emerald-400 font-medium">Cancel Anytime &middot; Secure Checkout &middot; Money-back Guarantee</span>
             </div>
           </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 max-w-5xl mx-auto items-stretch">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 sm:gap-6 lg:gap-8 max-w-5xl mx-auto items-stretch">
             {fallbackPlans.map((plan, i) => (
               <motion.div key={plan.name} {...stagger} transition={{ duration: 0.5, delay: i * 0.15 }} className="flex">
                 <Card
-                  className={`p-8 flex flex-col w-full relative ${
+                  className={`p-5 sm:p-8 flex flex-col w-full relative ${
                     plan.featured
                       ? "bg-gradient-to-b from-blue-500/10 to-violet-500/10 border-blue-500/30"
                       : "bg-card border-border/50"

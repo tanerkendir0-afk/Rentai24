@@ -536,7 +536,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                   {imageCredits}
                 </Button>
                 {showCreditsPanel && (
-                  <div className="absolute right-0 top-full mt-2 w-80 bg-card border border-border rounded-xl shadow-2xl z-50 p-4" data-testid="credits-panel">
+                  <div className="absolute right-0 sm:right-0 top-full mt-2 w-[calc(100vw-2rem)] sm:w-80 max-w-[320px] bg-card border border-border rounded-xl shadow-2xl z-50 p-4" data-testid="credits-panel">
                     <div className="flex items-center justify-between mb-3">
                       <h4 className="font-semibold text-sm flex items-center gap-2">
                         <Sparkles className="w-4 h-4 text-yellow-500" />
@@ -708,21 +708,21 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
 
         <div className="flex-1 overflow-y-auto" data-testid="chat-messages">
           {messages.length === 0 ? (
-            <div className="h-full flex flex-col items-center justify-center p-8">
+            <div className="h-full flex flex-col items-center justify-center p-4 sm:p-8">
               <motion.div
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ duration: 0.4 }}
-                className="text-center max-w-md"
+                className="text-center max-w-md w-full"
               >
-                <div className={`w-20 h-20 rounded-2xl bg-gradient-to-br ${currentAgent.color} flex items-center justify-center mx-auto mb-6 shadow-xl`}>
-                  <CurrentIcon className="w-10 h-10 text-white" />
+                <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-br ${currentAgent.color} flex items-center justify-center mx-auto mb-4 sm:mb-6 shadow-xl`}>
+                  <CurrentIcon className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
                 </div>
-                <h2 className="text-2xl font-bold text-foreground mb-2" data-testid="text-chat-empty">
+                <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-2" data-testid="text-chat-empty">
                   {currentAgent.persona}
                 </h2>
-                <p className="text-muted-foreground mb-1 text-sm">{currentAgent.name} Agent</p>
-                <p className="text-muted-foreground/60 text-xs mb-8">
+                <p className="text-muted-foreground mb-1 text-xs sm:text-sm">{currentAgent.name} Agent</p>
+                <p className="text-muted-foreground/60 text-xs mb-6 sm:mb-8">
                   {isWorkspace ? "Your AI worker is ready. Start a conversation below." : "Try this agent in demo mode. Send a message to get started."}
                 </p>
 

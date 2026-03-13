@@ -196,7 +196,7 @@ export default function Settings() {
   return (
     <div className="pt-16 min-h-screen">
       <div className="bg-gradient-to-r from-blue-500/10 to-violet-500/10 border-b border-border/50">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
           <div className="flex items-center gap-3">
             <Link href="/dashboard">
               <Button variant="ghost" size="icon" data-testid="button-back-dashboard">
@@ -204,8 +204,8 @@ export default function Settings() {
               </Button>
             </Link>
             <div>
-              <h1 className="text-2xl font-bold text-foreground" data-testid="text-settings-title">Settings</h1>
-              <p className="text-muted-foreground text-sm mt-0.5">Manage your account and preferences</p>
+              <h1 className="text-xl sm:text-2xl font-bold text-foreground" data-testid="text-settings-title">Settings</h1>
+              <p className="text-muted-foreground text-xs sm:text-sm mt-0.5">Manage your account and preferences</p>
             </div>
           </div>
         </div>
@@ -272,14 +272,14 @@ export default function Settings() {
             <h2 className="text-lg font-semibold text-foreground">Integrations</h2>
           </div>
           <div className="space-y-4">
-            <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-border/50">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-lg bg-muted/30 border border-border/50 gap-3">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-full bg-blue-500/10 flex items-center justify-center">
+                <div className="w-9 h-9 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0">
                   <Mail className="w-4 h-4 text-blue-400" />
                 </div>
-                <div>
+                <div className="min-w-0">
                   <p className="text-sm font-medium text-foreground">Gmail</p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-muted-foreground truncate">
                     {emailStatus?.provider === "gmail"
                       ? (emailStatus.address && emailStatus.address !== "Connected" ? emailStatus.address : "Connected")
                       : "Send and receive emails via Gmail"}
@@ -296,7 +296,7 @@ export default function Settings() {
                   )}
                 </div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
                 {emailStatus?.provider === "gmail" ? (
                   <>
                     <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/30 gap-1" data-testid="badge-gmail-connected">

@@ -15,7 +15,7 @@ import {
   Info,
   Loader2,
   User,
-  Trash2,
+  MessageSquarePlus,
   BarChart3,
   Package,
   Lock,
@@ -50,6 +50,13 @@ interface Message {
   isLimitWarning?: boolean;
 }
 
+interface Conversation {
+  id: string;
+  messages: Message[];
+  title: string;
+  createdAt: number;
+}
+
 const agentOptions = [
   { id: "customer-support", name: "Customer Support", persona: "Ava", icon: Headphones, color: "from-pink-500 to-rose-500", accent: "text-pink-400", bg: "bg-pink-500/10" },
   { id: "sales-sdr", name: "Sales SDR", persona: "Rex", icon: TrendingUp, color: "from-blue-500 to-cyan-500", accent: "text-blue-400", bg: "bg-blue-500/10" },
@@ -70,14 +77,58 @@ interface RentalData {
 export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean }) {
   const { user } = useAuth();
   const [selectedAgent, setSelectedAgent] = useState(agentOptions[0].id);
-  const [conversationMap, setConversationMap] = useState<Record<string, Message[]>>({});
-  const messages = conversationMap[selectedAgent] || [];
-  const setMessages = (msgs: Message[] | ((prev: Message[]) => Message[])) => {
-    setConversationMap(prev => ({
-      ...prev,
-      [selectedAgent]: typeof msgs === 'function' ? msgs(prev[selectedAgent] || []) : msgs,
-    }));
+
+  const createConversation = (): Conversation => ({
+    id: Date.now().toString() + Math.random().toString(36).slice(2, 6),
+    messages: [],
+    title: "New Chat",
+    createdAt: Date.now(),
+  });
+
+  const [agentConversations, setAgentConversations] = useState<Record<string, Conversation[]>>({});
+  const [activeConvoId, setActiveConvoId] = useState<Record<string, string>>({});
+
+  const getConversations = (agentId: string): Conversation[] => {
+    if (!agentConversations[agentId] || agentConversations[agentId].length === 0) {
+      const initial = createConversation();
+      setAgentConversations(prev => ({ ...prev, [agentId]: [initial] }));
+      setActiveConvoId(prev => ({ ...prev, [agentId]: initial.id }));
+      return [initial];
+    }
+    return agentConversations[agentId];
   };
+
+  const conversations = getConversations(selectedAgent);
+  const currentConvoId = activeConvoId[selectedAgent] || conversations[0]?.id;
+  const currentConvo = conversations.find(c => c.id === currentConvoId) || conversations[0];
+  const messages = currentConvo?.messages || [];
+
+  const setMessages = (msgs: Message[] | ((prev: Message[]) => Message[])) => {
+    setAgentConversations(prev => {
+      const convos = prev[selectedAgent] || [];
+      return {
+        ...prev,
+        [selectedAgent]: convos.map(c => {
+          if (c.id !== currentConvoId) return c;
+          const newMsgs = typeof msgs === 'function' ? msgs(c.messages) : msgs;
+          const title = c.title === "New Chat" && newMsgs.length > 0
+            ? newMsgs.find(m => m.role === "user")?.content.slice(0, 30) || c.title
+            : c.title;
+          return { ...c, messages: newMsgs, title };
+        }),
+      };
+    });
+  };
+
+  const startNewConversation = () => {
+    const newConvo = createConversation();
+    setAgentConversations(prev => ({
+      ...prev,
+      [selectedAgent]: [newConvo, ...(prev[selectedAgent] || [])],
+    }));
+    setActiveConvoId(prev => ({ ...prev, [selectedAgent]: newConvo.id }));
+  };
+
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [initialAgentSet, setInitialAgentSet] = useState(false);
@@ -281,7 +332,8 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                 const isPending = user && !rentalsReady;
                 const isActive = selectedAgent === agent.id;
                 const AgentIcon = agent.icon;
-                const hasMessages = (conversationMap[agent.id] || []).length > 0;
+                const agentConvos = agentConversations[agent.id] || [];
+                const hasMessages = agentConvos.some(c => c.messages.length > 0);
 
                 return (
                   <button
@@ -429,19 +481,40 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                 )}
               </div>
             )}
-            {messages.length > 0 && (
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => setMessages([])}
-                className="h-8 text-xs text-muted-foreground hover:text-red-400"
-                data-testid="button-clear-chat"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-              </Button>
-            )}
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={startNewConversation}
+              className="h-8 text-xs gap-1 text-muted-foreground hover:text-foreground"
+              title="New conversation"
+              data-testid="button-new-chat"
+            >
+              <MessageSquarePlus className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">New Chat</span>
+            </Button>
           </div>
         </div>
+
+        {conversations.length > 1 && (
+          <div className="border-b border-border/50 bg-card/20 shrink-0">
+            <div className="max-w-3xl mx-auto w-full flex items-center gap-1 px-4 py-1.5 overflow-x-auto scrollbar-hide">
+              {conversations.map((convo) => (
+                <button
+                  key={convo.id}
+                  onClick={() => setActiveConvoId(prev => ({ ...prev, [selectedAgent]: convo.id }))}
+                  className={`px-3 py-1.5 rounded-lg text-xs whitespace-nowrap transition-all shrink-0 ${
+                    convo.id === currentConvoId
+                      ? "bg-muted text-foreground font-medium"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                  }`}
+                  data-testid={`tab-convo-${convo.id}`}
+                >
+                  {convo.messages.length === 0 ? "New Chat" : convo.title}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="flex-1 overflow-y-auto" data-testid="chat-messages">
           {messages.length === 0 ? (

@@ -173,16 +173,8 @@ export default function Dashboard() {
     setLocation("/");
   };
 
-  const handleManageBilling = async () => {
-    try {
-      const res = await apiRequest("POST", "/api/stripe/portal", {});
-      const data = await res.json();
-      if (data.url) {
-        window.location.href = data.url;
-      }
-    } catch {
-      toast({ title: "No billing account", description: "Subscribe to a plan first to manage billing.", variant: "destructive" });
-    }
+  const handleManageBilling = () => {
+    setLocation("/settings");
   };
 
   useEffect(() => {
@@ -243,7 +235,7 @@ export default function Dashboard() {
                 )}
               </p>
             </div>
-            <div className="flex gap-3">
+            <div className="flex flex-wrap gap-2">
               <Link href="/workers">
                 <Button variant="outline" size="sm" data-testid="button-browse-workers">
                   <Plus className="w-4 h-4 mr-1" />

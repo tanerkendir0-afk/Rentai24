@@ -1760,6 +1760,16 @@ BEHAVIOR:
         ORDER BY count DESC LIMIT 20
       `);
 
+      const recentChatResult = await db.execute(sql`
+        SELECT agent_type, role, LEFT(content, 100) as content_preview, created_at
+        FROM chat_messages
+        ORDER BY created_at DESC LIMIT 10
+      `);
+
+      const activeCampaignsResult = await db.execute(sql`
+        SELECT COUNT(*)::int as active FROM email_campaigns WHERE status = 'active'
+      `);
+
       const liveContext = `
 LIVE PLATFORM DATA (real-time):
 - Total Users: ${(usersResult.rows[0] as any)?.total || 0}
@@ -1770,13 +1780,16 @@ LIVE PLATFORM DATA (real-time):
 - Total Tokens Used: ${(costResult.rows[0] as any)?.total_tokens || 0}
 - Support Tickets: ${(ticketsResult.rows[0] as any)?.total || 0} total, ${(ticketsResult.rows[0] as any)?.open_tickets || 0} open
 - Leads: ${(leadsResult.rows[0] as any)?.total || 0}
-- Email Campaigns: ${(campaignsResult.rows[0] as any)?.total || 0} total, ${(campaignsResult.rows[0] as any)?.running || 0} running
+- Email Campaigns: ${(campaignsResult.rows[0] as any)?.total || 0} total, ${(activeCampaignsResult.rows[0] as any)?.active || 0} active
 
 AGENT USAGE (active rentals):
 ${(agentUsageResult.rows as any[]).map((r: any) => `- ${agentNameMap[r.agent_type] || r.agent_type}: ${r.rental_count} active rentals, ${r.total_messages || 0} messages`).join("\n") || "No active rentals"}
 
 RECENT AGENT ACTIONS:
 ${(recentActionsResult.rows as any[]).map((r: any) => `- ${agentNameMap[r.agent_type] || r.agent_type}: ${r.action_type} (${r.count}x)`).join("\n") || "No recent actions"}
+
+RECENT CHAT MESSAGES:
+${(recentChatResult.rows as any[]).map((r: any) => `- [${r.agent_type}] ${r.role}: ${r.content_preview}${r.content_preview?.length >= 100 ? "..." : ""}`).join("\n") || "No recent messages"}
 `;
 
       const bossTools: OpenAI.ChatCompletionTool[] = [
@@ -1799,6 +1812,14 @@ ${(recentActionsResult.rows as any[]).map((r: any) => `- ${agentNameMap[r.agent_
         {
           type: "function",
           function: {
+            name: "query_agent_usage",
+            description: "Get agent usage statistics — rental counts, message consumption, active users per agent type",
+            parameters: { type: "object", properties: { agentType: { type: "string", description: "Agent type slug or 'all' for all agents" } }, required: ["agentType"] },
+          },
+        },
+        {
+          type: "function",
+          function: {
             name: "query_recent_activity",
             description: "Get recent platform activity — new users, recent chat messages, recent actions",
             parameters: { type: "object", properties: { limit: { type: "number", description: "How many recent items to return (default 10)" } }, required: [] },
@@ -1810,6 +1831,14 @@ ${(recentActionsResult.rows as any[]).map((r: any) => `- ${agentNameMap[r.agent_
             name: "query_cost_breakdown",
             description: "Get token usage cost breakdown by model, agent, or time period",
             parameters: { type: "object", properties: { groupBy: { type: "string", enum: ["model", "agent", "daily"], description: "How to group costs" } }, required: ["groupBy"] },
+          },
+        },
+        {
+          type: "function",
+          function: {
+            name: "get_system_health",
+            description: "Get system health status — database connectivity, active services, uptime, error rates, recent errors",
+            parameters: { type: "object", properties: {} },
           },
         },
       ];
@@ -1876,11 +1905,45 @@ ${(recentActionsResult.rows as any[]).map((r: any) => `- ${agentNameMap[r.agent_
                 }
                 break;
               }
+              case "query_agent_usage": {
+                const agentSlug = args.agentType;
+                if (agentSlug === "all") {
+                  const r = await db.execute(sql`
+                    SELECT r.agent_type, 
+                           COUNT(r.id)::int as total_rentals, 
+                           COUNT(CASE WHEN r.status='active' THEN 1 END)::int as active_rentals,
+                           SUM(r.messages_used)::int as total_messages, 
+                           SUM(r.messages_limit)::int as total_limit,
+                           COUNT(DISTINCT r.user_id)::int as unique_users,
+                           ROUND(AVG(r.messages_used)::numeric, 1)::text as avg_messages_per_rental
+                    FROM rentals r
+                    GROUP BY r.agent_type ORDER BY active_rentals DESC`);
+                  toolResult = JSON.stringify(r.rows);
+                } else {
+                  const r = await db.execute(sql`
+                    SELECT r.agent_type, 
+                           COUNT(r.id)::int as total_rentals, 
+                           COUNT(CASE WHEN r.status='active' THEN 1 END)::int as active_rentals,
+                           SUM(r.messages_used)::int as total_messages, 
+                           SUM(r.messages_limit)::int as total_limit,
+                           COUNT(DISTINCT r.user_id)::int as unique_users,
+                           ROUND(AVG(r.messages_used)::numeric, 1)::text as avg_messages_per_rental
+                    FROM rentals r WHERE r.agent_type = ${agentSlug}
+                    GROUP BY r.agent_type`);
+                  const costR = await db.execute(sql`
+                    SELECT COALESCE(SUM(CAST(cost_usd AS DECIMAL(10,6))),0)::text as total_cost, 
+                           COUNT(*)::int as api_calls 
+                    FROM token_usage WHERE agent_type = ${agentSlug}`);
+                  toolResult = JSON.stringify({ usage: r.rows[0] || {}, costs: costR.rows[0] || {} });
+                }
+                break;
+              }
               case "query_recent_activity": {
                 const limit = args.limit || 10;
                 const recentUsers = await db.execute(sql`SELECT email, full_name, created_at FROM users ORDER BY created_at DESC LIMIT ${limit}`);
                 const recentActions = await db.execute(sql`SELECT agent_type, action_type, created_at FROM agent_actions ORDER BY created_at DESC LIMIT ${limit}`);
-                toolResult = JSON.stringify({ recentUsers: recentUsers.rows, recentActions: recentActions.rows });
+                const recentMessages = await db.execute(sql`SELECT agent_type, role, content, created_at FROM chat_messages ORDER BY created_at DESC LIMIT ${limit}`);
+                toolResult = JSON.stringify({ recentUsers: recentUsers.rows, recentActions: recentActions.rows, recentMessages: recentMessages.rows });
                 break;
               }
               case "query_cost_breakdown": {
@@ -1895,6 +1958,38 @@ ${(recentActionsResult.rows as any[]).map((r: any) => `- ${agentNameMap[r.agent_
                   const r = await db.execute(sql`SELECT DATE(created_at)::text as day, COUNT(*)::int as requests, COALESCE(SUM(CAST(cost_usd AS DECIMAL(10,6))),0)::text as cost FROM token_usage GROUP BY DATE(created_at) ORDER BY day DESC LIMIT 30`);
                   toolResult = JSON.stringify(r.rows);
                 }
+                break;
+              }
+              case "get_system_health": {
+                const dbCheck = await db.execute(sql`SELECT 1 as ok`);
+                const dbConnected = dbCheck.rows.length > 0;
+                const tableCountsR = await db.execute(sql`
+                  SELECT 
+                    (SELECT COUNT(*)::int FROM users) as users_count,
+                    (SELECT COUNT(*)::int FROM rentals) as rentals_count,
+                    (SELECT COUNT(*)::int FROM agent_actions) as actions_count,
+                    (SELECT COUNT(*)::int FROM token_usage) as token_usage_count,
+                    (SELECT COUNT(*)::int FROM chat_messages) as chat_messages_count,
+                    (SELECT COUNT(*)::int FROM boss_conversations) as boss_conversations_count,
+                    (SELECT COUNT(*)::int FROM support_tickets WHERE status IN ('open','in_progress')) as open_tickets
+                `);
+                const recentErrorsR = await db.execute(sql`
+                  SELECT agent_type, model, created_at 
+                  FROM token_usage 
+                  WHERE total_tokens = 0 
+                  ORDER BY created_at DESC LIMIT 5
+                `);
+                const uptimeSeconds = process.uptime();
+                const uptimeHours = Math.floor(uptimeSeconds / 3600);
+                const uptimeMinutes = Math.floor((uptimeSeconds % 3600) / 60);
+                toolResult = JSON.stringify({
+                  database: dbConnected ? "connected" : "disconnected",
+                  uptime: `${uptimeHours}h ${uptimeMinutes}m`,
+                  tableCounts: tableCountsR.rows[0] || {},
+                  recentZeroTokenRequests: recentErrorsR.rows,
+                  memoryUsage: `${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)}MB`,
+                  nodeVersion: process.version,
+                });
                 break;
               }
             }

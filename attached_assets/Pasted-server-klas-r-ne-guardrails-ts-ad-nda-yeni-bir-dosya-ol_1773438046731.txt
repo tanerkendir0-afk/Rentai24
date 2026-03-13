@@ -1,0 +1,149 @@
+server/ klasörüne guardrails.ts adında yeni bir dosya oluştur ve içine şu kodu yaz:
+
+import { Request, Response, NextFunction } from "express";
+import { Pool } from "pg";
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false },
+});
+
+export type AgentType = "manager" | "sales" | "support" | "real_estate" | "general";
+
+interface GuardrailConfig {
+  maxInputTokens: number;
+  maxOutputTokens: number;
+  dailyTokenLimit: number;
+  blockedTopics: string[];
+  sensitivePatterns: RegExp[];
+}
+
+const COMMON_BLOCKED_TOPICS: string[] = [
+  "şifre","password","kredi kartı","credit card","sosyal güvenlik",
+  "kimlik numarası","hack","exploit","bypass","prompt injection",
+  "ignore previous","önceki talimatları unut","sen artık","rol yap","jailbreak",
+];
+
+const SENSITIVE_PATTERNS: RegExp[] = [
+  /\b\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}\b/g,
+  /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g,
+  /\b\+?[0-9]{10,13}\b/g,
+  /\b\d{11}\b/g,
+  /sk-[A-Za-z0-9]{20,}/g,
+];
+
+const AGENT_CONFIGS: Record<AgentType, GuardrailConfig> = {
+  manager:     { maxInputTokens: 2000, maxOutputTokens: 1000, dailyTokenLimit: 50000, blockedTopics: COMMON_BLOCKED_TOPICS, sensitivePatterns: SENSITIVE_PATTERNS },
+  sales:       { maxInputTokens: 1500, maxOutputTokens: 800,  dailyTokenLimit: 30000, blockedTopics: [...COMMON_BLOCKED_TOPICS, "rakip firma fiyatları", "ücretsiz alternatif"], sensitivePatterns: SENSITIVE_PATTERNS },
+  support:     { maxInputTokens: 1500, maxOutputTokens: 1000, dailyTokenLimit: 40000, blockedTopics: COMMON_BLOCKED_TOPICS, sensitivePatterns: SENSITIVE_PATTERNS },
+  real_estate: { maxInputTokens: 2000, maxOutputTokens: 1200, dailyTokenLimit: 40000, blockedTopics: [...COMMON_BLOCKED_TOPICS, "sahte ilan", "yasadışı kiralama", "tapusuz", "kaçak yapı"], sensitivePatterns: SENSITIVE_PATTERNS },
+  general:     { maxInputTokens: 1000, maxOutputTokens: 800,  dailyTokenLimit: 20000, blockedTopics: COMMON_BLOCKED_TOPICS, sensitivePatterns: SENSITIVE_PATTERNS },
+};
+
+function estimateTokens(text: string): number {
+  return Math.ceil(text.length / 4);
+}
+
+function getTodayDate(): string {
+  return new Date().toISOString().split("T")[0];
+}
+
+async function getUserDailyTokens(userId: string): Promise<number> {
+  try {
+    const result = await pool.query(
+      `SELECT total_tokens FROM token_usage WHERE user_id = $1 AND date = $2`,
+      [userId, getTodayDate()]
+    );
+    return result.rows[0]?.total_tokens ?? 0;
+  } catch { return 0; }
+}
+
+async function addUserTokens(userId: string, tokens: number): Promise<void> {
+  try {
+    await pool.query(
+      `INSERT INTO token_usage (user_id, date, total_tokens) VALUES ($1, $2, $3)
+       ON CONFLICT (user_id, date) DO UPDATE SET total_tokens = token_usage.total_tokens + $3`,
+      [userId, getTodayDate(), tokens]
+    );
+  } catch (err) { console.error("[Guardrail] Token yazma hatası:", err); }
+}
+
+async function logBlockedRequest(userId: string, agentType: AgentType, reason: string, input: string): Promise<void> {
+  try {
+    await pool.query(
+      `INSERT INTO guardrail_logs (user_id, agent_type, reason, input_preview) VALUES ($1, $2, $3, $4)`,
+      [userId, agentType, reason, input.substring(0, 200)]
+    );
+  } catch (err) { console.error("[Guardrail] Log hatası:", err); }
+}
+
+export interface InputCheckResult {
+  allowed: boolean;
+  reason?: string;
+}
+
+export async function checkInput(input: string, agentType: AgentType, userId: string): Promise<InputCheckResult> {
+  const config = AGENT_CONFIGS[agentType];
+
+  if (estimateTokens(input) > config.maxInputTokens)
+    return { allowed: false, reason: `Mesaj çok uzun. Maksimum ${config.maxInputTokens * 4} karakter.` };
+
+  const dailyUsed = await getUserDailyTokens(userId);
+  if (dailyUsed >= config.dailyTokenLimit)
+    return { allowed: false, reason: "Günlük kullanım limitinize ulaştınız." };
+
+  const lowerInput = input.toLowerCase();
+  for (const topic of config.blockedTopics)
+    if (lowerInput.includes(topic.toLowerCase()))
+      return { allowed: false, reason: "Bu konu hakkında bilgi veremiyorum." };
+
+  const injectionPatterns = [
+    /ignore\s+(all\s+)?previous\s+instructions?/i,
+    /önceki\s+(tüm\s+)?talimatları\s+(unut|görmezden)/i,
+    /you\s+are\s+now\s+a/i,
+    /sen\s+artık\s+bir/i,
+  ];
+  for (const pattern of injectionPatterns)
+    if (pattern.test(input))
+      return { allowed: false, reason: "Geçersiz istek formatı." };
+
+  return { allowed: true };
+}
+
+export function sanitizeOutput(output: string, agentType: AgentType): string {
+  const config = AGENT_CONFIGS[agentType];
+  let sanitized = output;
+  for (const pattern of config.sensitivePatterns)
+    sanitized = sanitized.replace(pattern, "[GİZLİ]");
+  if (estimateTokens(sanitized) > config.maxOutputTokens)
+    sanitized = sanitized.substring(0, config.maxOutputTokens * 4) + "\n\n[Cevap kısaltıldı.]";
+  return sanitized;
+}
+
+export async function recordTokenUsage(userId: string, inputText: string, outputText: string): Promise<void> {
+  await addUserTokens(userId, estimateTokens(inputText) + estimateTokens(outputText));
+}
+
+export function guardrailMiddleware(req: Request, res: Response, next: NextFunction) {
+  const { message, agentType, userId } = req.body as { message: string; agentType: AgentType; userId: string; };
+
+  if (!message || !agentType || !userId)
+    return res.status(400).json({ error: "message, agentType ve userId zorunludur." });
+
+  if (!AGENT_CONFIGS[agentType])
+    return res.status(400).json({ error: `Geçersiz agent tipi: ${agentType}` });
+
+  checkInput(message, agentType, userId)
+    .then((result) => {
+      if (!result.allowed) {
+        logBlockedRequest(userId, agentType, result.reason ?? "Bilinmeyen", message);
+        return res.status(403).json({ error: result.reason, code: "GUARDRAIL_INPUT_BLOCKED" });
+      }
+      next();
+    })
+    .catch(() => next());
+}
+
+Ayrıca terminalde şu komutları çalıştır:
+npm install pg
+npm install --save-dev @types/pg

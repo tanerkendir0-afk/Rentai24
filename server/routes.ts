@@ -537,13 +537,13 @@ export async function registerRoutes(
       const { clearGmailConnectionCache, verifyGmailConnection } = await import("./gmailService");
       clearGmailConnectionCache();
       const verification = await verifyGmailConnection();
-      if (!verification.valid || !verification.address) {
+      if (!verification.valid) {
         res.status(400).json({ success: false, message: "Gmail connection could not be verified. Please check your Gmail integration in Replit." });
         return;
       }
       const { setGmailDisabled } = await import("./emailService");
       await setGmailDisabled(false);
-      res.json({ success: true, message: "Gmail reconnected", address: verification.address });
+      res.json({ success: true, message: "Gmail reconnected", address: verification.address || "Connected" });
     } catch (error: unknown) {
       const errMsg = error instanceof Error ? error.message : String(error);
       res.status(500).json({ success: false, message: `Failed to reconnect Gmail: ${errMsg}` });

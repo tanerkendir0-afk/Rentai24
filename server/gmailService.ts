@@ -76,9 +76,14 @@ export async function isGmailConnected(): Promise<boolean> {
 export async function verifyGmailConnection(): Promise<{ valid: boolean; address: string | null }> {
   try {
     const gmail = await getGmailClient();
-    const profile = await gmail.users.getProfile({ userId: "me" });
-    const address = profile.data.emailAddress || null;
-    return { valid: !!address, address };
+    try {
+      const profile = await gmail.users.getProfile({ userId: "me" });
+      const address = profile.data.emailAddress || null;
+      return { valid: !!address, address };
+    } catch {
+      await getAccessToken();
+      return { valid: true, address: null };
+    }
   } catch {
     return { valid: false, address: null };
   }
@@ -87,8 +92,12 @@ export async function verifyGmailConnection(): Promise<{ valid: boolean; address
 export async function getGmailAddress(): Promise<string | null> {
   try {
     const gmail = await getGmailClient();
-    const profile = await gmail.users.getProfile({ userId: "me" });
-    return profile.data.emailAddress || null;
+    try {
+      const profile = await gmail.users.getProfile({ userId: "me" });
+      return profile.data.emailAddress || null;
+    } catch {
+      return null;
+    }
   } catch {
     return null;
   }

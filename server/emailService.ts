@@ -151,8 +151,8 @@ export async function getEmailStatus(): Promise<{ provider: string; address: str
   }
   const { verifyGmailConnection } = await import("./gmailService");
   const verification = await verifyGmailConnection();
-  if (verification.valid && verification.address) {
-    return { provider: "gmail", address: verification.address, connected: true };
+  if (verification.valid) {
+    return { provider: "gmail", address: verification.address || "Connected", connected: true };
   }
   return { provider: "platform", address: null, connected: true };
 }

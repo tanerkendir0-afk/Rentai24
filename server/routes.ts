@@ -1751,7 +1751,7 @@ BEHAVIOR:
         db.execute(sql`SELECT COALESCE(SUM(CAST(cost_usd AS DECIMAL(10,6))),0)::text as total_cost, COUNT(*)::int as total_requests, COALESCE(SUM(total_tokens),0)::bigint as total_tokens FROM token_usage`),
         db.execute(sql`SELECT COUNT(*)::int as total, COUNT(CASE WHEN status='open' THEN 1 END)::int as open_tickets FROM support_tickets`),
         db.execute(sql`SELECT COUNT(*)::int as total FROM leads`),
-        db.execute(sql`SELECT COUNT(*)::int as total, COUNT(CASE WHEN status='running' THEN 1 END)::int as running FROM email_campaigns`),
+        db.execute(sql`SELECT COUNT(*)::int as total FROM email_campaigns`),
       ]);
 
       const agentUsageResult = await db.execute(sql`

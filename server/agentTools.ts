@@ -500,6 +500,18 @@ export const socialMediaTools: OpenAI.ChatCompletionTool[] = [
   {
     type: "function",
     function: {
+      name: "list_connected_accounts",
+      description: "Check which social media accounts the user has connected. Returns a list of platforms with usernames. Use this at the start of a conversation to understand the user's social media presence and suggest connecting more accounts if needed.",
+      parameters: {
+        type: "object",
+        properties: {},
+        required: [],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "generate_image",
       description: "Generate a custom AI image for social media content. Creates brand visuals, post graphics, story images, cover photos, or any creative visual content. Use when the user asks for a visual, graphic, image, or design.",
       parameters: {
@@ -947,6 +959,7 @@ const TOOL_KEYWORD_MAP: Record<string, string[]> = {
   list_appointments: ["appointments", "list", "randevu", "listele"],
   send_reminder: ["reminder", "hatırlatma", "remind"],
   schedule_followup_reminder: ["follow", "reminder", "hatırlat", "takip"],
+  list_connected_accounts: ["account", "hesap", "connect", "bağla", "social", "sosyal", "platform", "instagram", "twitter", "linkedin", "facebook", "tiktok", "youtube", "profile", "profil"],
   generate_image: ["image", "visual", "görsel", "photo", "graphic", "design", "resim", "oluştur"],
   find_stock_image: ["stock", "photo", "image", "görsel", "fotoğraf"],
   create_post: ["post", "gönderi", "content", "içerik", "yaz", "write"],
@@ -2218,6 +2231,37 @@ ${activeRentals.map(r => `  ${r.agentType}: ${r.messagesUsed}/${r.messagesLimit}
           actionDescription: `❌ Stock image search error (credit refunded)`,
         };
       }
+    }
+
+    case "list_connected_accounts": {
+      const accounts = await storage.getSocialAccounts(userId);
+      await storage.createAgentAction({
+        userId, agentType, actionType: "social_accounts_checked",
+        description: `Checked connected social media accounts — ${accounts.length} found`,
+        metadata: { count: accounts.length, platforms: accounts.map(a => a.platform) },
+      });
+      if (accounts.length === 0) {
+        return {
+          result: "No social media accounts are connected yet. The user should go to **Settings > Social Media Accounts** to connect their Instagram, Twitter/X, LinkedIn, Facebook, TikTok, or YouTube accounts. Once connected, you can create content tailored to their specific profiles and audiences.",
+          actionType: "social_accounts_checked",
+          actionDescription: "📱 No social accounts connected",
+        };
+      }
+      const allPlatforms = ["instagram", "twitter", "linkedin", "facebook", "tiktok", "youtube"];
+      const connectedPlatforms = accounts.map(a => a.platform);
+      const missingPlatforms = allPlatforms.filter(p => !connectedPlatforms.includes(p));
+      const accountList = accounts.map(a =>
+        `- **${a.platform.charAt(0).toUpperCase() + a.platform.slice(1)}**: @${a.username}${a.profileUrl ? ` (${a.profileUrl})` : ""} — ${a.status}`
+      ).join("\n");
+      let suggestion = "";
+      if (missingPlatforms.length > 0) {
+        suggestion = `\n\nNot yet connected: ${missingPlatforms.map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(", ")}. The user can add these in Settings > Social Media Accounts.`;
+      }
+      return {
+        result: `📱 **Connected Social Media Accounts** (${accounts.length}):\n\n${accountList}${suggestion}`,
+        actionType: "social_accounts_checked",
+        actionDescription: `📱 ${accounts.length} social accounts connected`,
+      };
     }
 
     case "create_post": {

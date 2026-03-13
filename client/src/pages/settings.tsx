@@ -62,6 +62,17 @@ interface TeamMember {
   createdAt: string;
 }
 
+interface SocialAccount {
+  id: number;
+  userId: number;
+  platform: string;
+  username: string;
+  profileUrl: string | null;
+  accessToken: string | null;
+  status: string;
+  connectedAt: string;
+}
+
 export default function Settings() {
   const { user, isLoading: authLoading } = useAuth();
   const [, setLocation] = useLocation();
@@ -85,6 +96,9 @@ export default function Settings() {
   const [showAddMember, setShowAddMember] = useState(false);
   const [editingMember, setEditingMember] = useState<TeamMember | null>(null);
   const [memberForm, setMemberForm] = useState({ name: "", email: "", position: "", department: "", skills: "", responsibilities: "", phone: "" });
+
+  const [showAddSocial, setShowAddSocial] = useState(false);
+  const [socialForm, setSocialForm] = useState({ platform: "", username: "", profileUrl: "" });
 
   useEffect(() => {
     if (user) {
@@ -126,6 +140,11 @@ export default function Settings() {
 
   const { data: gmailSettings } = useQuery<{ gmailAddress: string | null; hasAppPassword: boolean }>({
     queryKey: ["/api/settings/gmail"],
+    enabled: !!user,
+  });
+
+  const { data: socialAccountsData, isLoading: socialLoading } = useQuery<SocialAccount[]>({
+    queryKey: ["/api/social-accounts"],
     enabled: !!user,
   });
 
@@ -259,6 +278,45 @@ export default function Settings() {
     } catch (err: any) {
       toast({ title: "Error", description: err.message || "Failed to remove team member", variant: "destructive" });
     }
+  };
+
+  const handleAddSocialAccount = async () => {
+    if (!socialForm.platform || !socialForm.username.trim()) {
+      toast({ title: "Error", description: "Platform and username are required", variant: "destructive" });
+      return;
+    }
+    try {
+      await apiRequest("POST", "/api/social-accounts", {
+        platform: socialForm.platform,
+        username: socialForm.username.trim().replace(/^@/, ""),
+        profileUrl: socialForm.profileUrl.trim() || null,
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/social-accounts"] });
+      setSocialForm({ platform: "", username: "", profileUrl: "" });
+      setShowAddSocial(false);
+      toast({ title: "Account connected", description: `${socialForm.platform} account @${socialForm.username.replace(/^@/, "")} has been added.` });
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message || "Failed to add account", variant: "destructive" });
+    }
+  };
+
+  const handleDeleteSocialAccount = async (id: number, platform: string, username: string) => {
+    try {
+      await apiRequest("DELETE", `/api/social-accounts/${id}`);
+      queryClient.invalidateQueries({ queryKey: ["/api/social-accounts"] });
+      toast({ title: "Account removed", description: `${platform} @${username} has been disconnected.` });
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message || "Failed to remove account", variant: "destructive" });
+    }
+  };
+
+  const platformConfig: Record<string, { icon: string; color: string; bgColor: string }> = {
+    instagram: { icon: "📸", color: "text-pink-400", bgColor: "bg-pink-500/10" },
+    twitter: { icon: "𝕏", color: "text-sky-400", bgColor: "bg-sky-500/10" },
+    linkedin: { icon: "💼", color: "text-blue-400", bgColor: "bg-blue-500/10" },
+    facebook: { icon: "📘", color: "text-blue-500", bgColor: "bg-blue-600/10" },
+    tiktok: { icon: "🎵", color: "text-rose-400", bgColor: "bg-rose-500/10" },
+    youtube: { icon: "▶️", color: "text-red-400", bgColor: "bg-red-500/10" },
   };
 
   const startEditMember = (member: TeamMember) => {
@@ -772,6 +830,150 @@ export default function Settings() {
               <Users className="w-8 h-8 mx-auto mb-2 opacity-30" />
               <p className="text-sm">No team members yet</p>
               <p className="text-xs mt-1">Add your team so AI agents can collaborate effectively</p>
+            </div>
+          )}
+        </Card>
+
+        <Card className="p-6 bg-card border-border/50" data-testid="card-social-accounts">
+          <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-pink-400" />
+              <h2 className="text-lg font-semibold text-foreground">Social Media Accounts</h2>
+              {socialAccountsData && socialAccountsData.length > 0 && (
+                <Badge variant="secondary" className="ml-1" data-testid="badge-social-count">{socialAccountsData.length}</Badge>
+              )}
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 text-xs border-pink-500/30 text-pink-400 hover:bg-pink-500/10"
+              onClick={() => { setSocialForm({ platform: "", username: "", profileUrl: "" }); setShowAddSocial(true); }}
+              data-testid="button-add-social"
+            >
+              <Plus className="w-3.5 h-3.5 mr-1" />Connect Account
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground mb-4">
+            Connect your social media accounts so Maya (Social Media AI) can create content tailored to your profiles and audiences.
+          </p>
+
+          {showAddSocial && (
+            <div className="mb-4 p-4 rounded-lg bg-muted/30 border border-pink-500/20 space-y-3">
+              <p className="text-sm font-medium text-foreground">Connect New Account</p>
+              <div>
+                <Label className="text-xs text-muted-foreground">Platform *</Label>
+                <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 mt-1.5">
+                  {Object.entries(platformConfig).map(([key, cfg]) => (
+                    <button
+                      key={key}
+                      onClick={() => setSocialForm(p => ({ ...p, platform: key }))}
+                      className={`p-2 rounded-lg border text-center transition-all ${
+                        socialForm.platform === key
+                          ? `border-pink-500 ${cfg.bgColor} ring-1 ring-pink-500/30`
+                          : "border-border/50 hover:border-pink-500/50"
+                      }`}
+                      data-testid={`button-platform-${key}`}
+                    >
+                      <span className="text-lg">{cfg.icon}</span>
+                      <p className="text-[10px] text-muted-foreground mt-0.5 capitalize">{key === "twitter" ? "X" : key}</p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs text-muted-foreground">Username *</Label>
+                  <Input
+                    value={socialForm.username}
+                    onChange={(e) => setSocialForm(p => ({ ...p, username: e.target.value }))}
+                    placeholder="@yourusername"
+                    className="mt-1 h-8 text-sm"
+                    data-testid="input-social-username"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Profile URL (optional)</Label>
+                  <Input
+                    value={socialForm.profileUrl}
+                    onChange={(e) => setSocialForm(p => ({ ...p, profileUrl: e.target.value }))}
+                    placeholder="https://instagram.com/yourusername"
+                    className="mt-1 h-8 text-sm"
+                    data-testid="input-social-url"
+                  />
+                </div>
+              </div>
+              <div className="flex gap-2 pt-1">
+                <Button
+                  size="sm"
+                  onClick={handleAddSocialAccount}
+                  disabled={!socialForm.platform || !socialForm.username.trim()}
+                  className="bg-gradient-to-r from-pink-500 to-rose-500 text-white border-0"
+                  data-testid="button-save-social"
+                >
+                  <Link2 className="w-3.5 h-3.5 mr-1" />Connect
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setShowAddSocial(false)}
+                  data-testid="button-cancel-social"
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {socialLoading ? (
+            <div className="flex justify-center py-6">
+              <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+            </div>
+          ) : socialAccountsData && socialAccountsData.length > 0 ? (
+            <div className="space-y-2">
+              {socialAccountsData.map((account) => {
+                const cfg = platformConfig[account.platform] || { icon: "🔗", color: "text-gray-400", bgColor: "bg-gray-500/10" };
+                return (
+                  <div key={account.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-border/50 group" data-testid={`card-social-${account.id}`}>
+                    <div className="flex items-center gap-3">
+                      <div className={`w-9 h-9 rounded-full ${cfg.bgColor} flex items-center justify-center shrink-0`}>
+                        <span className="text-base">{cfg.icon}</span>
+                      </div>
+                      <div>
+                        <p className={`text-sm font-medium ${cfg.color}`} data-testid={`text-social-platform-${account.id}`}>
+                          {account.platform === "twitter" ? "X (Twitter)" : account.platform.charAt(0).toUpperCase() + account.platform.slice(1)}
+                        </p>
+                        <p className="text-xs text-foreground" data-testid={`text-social-username-${account.id}`}>@{account.username}</p>
+                        {account.profileUrl && (
+                          <a href={account.profileUrl} target="_blank" rel="noopener noreferrer" className="text-[10px] text-muted-foreground hover:text-blue-400 truncate block max-w-[200px]">
+                            {account.profileUrl}
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/30 text-[10px]">
+                        <CheckCircle2 className="w-2.5 h-2.5 mr-0.5" />
+                        {account.status}
+                      </Badge>
+                      <button
+                        onClick={() => handleDeleteSocialAccount(account.id, account.platform, account.username)}
+                        className="p-1.5 rounded hover:bg-red-500/10 text-muted-foreground hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
+                        data-testid={`button-delete-social-${account.id}`}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="text-center py-6 text-muted-foreground">
+              <div className="flex justify-center gap-2 mb-2 opacity-30 text-2xl">
+                <span>📸</span><span>𝕏</span><span>💼</span><span>🎵</span><span>▶️</span>
+              </div>
+              <p className="text-sm">No social accounts connected</p>
+              <p className="text-xs mt-1">Connect your accounts so Maya can create tailored content for your profiles</p>
             </div>
           )}
         </Card>

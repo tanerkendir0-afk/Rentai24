@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { users, rentals, contactMessages, newsletterSubscribers, leads, agentActions, emailCampaigns, supportTickets, tokenUsage, agentTasks, chatMessages, conversations, teamMembers, bossNotifications, systemSettings, type User, type InsertUser, type Rental, type InsertRental, type ContactMessage, type InsertContactMessage, type NewsletterSubscriber, type Lead, type InsertLead, type AgentAction, type InsertAgentAction, type EmailCampaign, type InsertEmailCampaign, type SupportTicket, type InsertSupportTicket, type TokenUsage, type InsertTokenUsage, type AgentTask, type InsertAgentTask, type ChatMessage, type InsertChatMessage, type ConversationRecord, type InsertConversation, type TeamMember, type InsertTeamMember, type BossNotification, type InsertBossNotification } from "@shared/schema";
+import { users, rentals, contactMessages, newsletterSubscribers, leads, agentActions, emailCampaigns, supportTickets, tokenUsage, agentTasks, chatMessages, conversations, teamMembers, bossNotifications, socialAccounts, systemSettings, type User, type InsertUser, type Rental, type InsertRental, type ContactMessage, type InsertContactMessage, type NewsletterSubscriber, type Lead, type InsertLead, type AgentAction, type InsertAgentAction, type EmailCampaign, type InsertEmailCampaign, type SupportTicket, type InsertSupportTicket, type TokenUsage, type InsertTokenUsage, type AgentTask, type InsertAgentTask, type ChatMessage, type InsertChatMessage, type ConversationRecord, type InsertConversation, type TeamMember, type InsertTeamMember, type BossNotification, type InsertBossNotification, type SocialAccount, type InsertSocialAccount } from "@shared/schema";
 import { eq, and, sql, desc, gte, lte } from "drizzle-orm";
 
 export interface IStorage {
@@ -81,6 +81,11 @@ export interface IStorage {
 
   createBossNotification(notification: InsertBossNotification): Promise<BossNotification>;
   getBossNotifications(userId: number, limit?: number): Promise<BossNotification[]>;
+
+  getSocialAccounts(userId: number): Promise<SocialAccount[]>;
+  addSocialAccount(account: InsertSocialAccount): Promise<SocialAccount>;
+  updateSocialAccount(id: number, userId: number, updates: Partial<Pick<SocialAccount, "username" | "profileUrl" | "accessToken" | "status">>): Promise<SocialAccount | undefined>;
+  deleteSocialAccount(id: number, userId: number): Promise<boolean>;
 
   getSystemSetting(key: string): Promise<string | null>;
   setSystemSetting(key: string, value: string): Promise<void>;
@@ -571,6 +576,32 @@ export class DatabaseStorage implements IStorage {
       .where(eq(bossNotifications.userId, userId))
       .orderBy(desc(bossNotifications.createdAt))
       .limit(limit);
+  }
+
+  async getSocialAccounts(userId: number): Promise<SocialAccount[]> {
+    return db.select().from(socialAccounts)
+      .where(eq(socialAccounts.userId, userId))
+      .orderBy(socialAccounts.platform);
+  }
+
+  async addSocialAccount(account: InsertSocialAccount): Promise<SocialAccount> {
+    const [created] = await db.insert(socialAccounts).values(account).returning();
+    return created;
+  }
+
+  async updateSocialAccount(id: number, userId: number, updates: Partial<Pick<SocialAccount, "username" | "profileUrl" | "accessToken" | "status">>): Promise<SocialAccount | undefined> {
+    const [updated] = await db.update(socialAccounts)
+      .set(updates)
+      .where(and(eq(socialAccounts.id, id), eq(socialAccounts.userId, userId)))
+      .returning();
+    return updated;
+  }
+
+  async deleteSocialAccount(id: number, userId: number): Promise<boolean> {
+    const [deleted] = await db.delete(socialAccounts)
+      .where(and(eq(socialAccounts.id, id), eq(socialAccounts.userId, userId)))
+      .returning();
+    return !!deleted;
   }
 
   async getSystemSetting(key: string): Promise<string | null> {

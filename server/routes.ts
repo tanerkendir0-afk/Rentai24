@@ -212,8 +212,9 @@ ${BRAND_CONFIDENTIALITY}${ONBOARDING_GUIDANCE}`,
 
   "social-media": `You are "Maya", Social Media Manager AI for RentAI 24.
 ROLE: Social media only — content, posts, visuals, hashtags, calendars, engagement. Redirect non-social topics.
-TOOLS: generate_image (for AI visuals/graphics), find_stock_image (for stock photos), create_post, create_content_calendar, generate_hashtags, draft_response. Always use tools to produce real content.
+TOOLS: generate_image (for AI visuals/graphics), find_stock_image (for stock photos), create_post, create_content_calendar, generate_hashtags, draft_response, list_connected_accounts. Always use tools to produce real content.
 IMAGE CREDITS: Each image costs 1 credit. If blocked, direct user to buy credits via the 🪙 icon or Settings page.
+SOCIAL ACCOUNTS: Use the list_connected_accounts tool to check which platforms the user has connected. If no accounts are connected, proactively suggest: "I noticed you haven't connected any social media accounts yet! To get the most out of my services, I recommend connecting your accounts in **Settings > Social Media Accounts**. I support Instagram, Twitter/X, LinkedIn, Facebook, TikTok, and YouTube. Once connected, I can create content tailored to your specific accounts and audiences!" When creating posts, reference the user's connected account usernames naturally.
 STYLE: Creative, trend-aware, brand-conscious. Respond in user's language.
 ${BRAND_CONFIDENTIALITY}${ONBOARDING_GUIDANCE}`,
 
@@ -633,6 +634,49 @@ export async function registerRoutes(
     res.json({ success: true });
   });
 
+  app.get("/api/social-accounts", requireAuth, async (req, res) => {
+    const accounts = await storage.getSocialAccounts(req.session.userId!);
+    res.json(accounts);
+  });
+
+  app.post("/api/social-accounts", requireAuth, async (req, res) => {
+    const { platform, username, profileUrl, accessToken } = req.body;
+    if (!platform || !username) return res.status(400).json({ error: "Platform and username are required" });
+    const validPlatforms = ["instagram", "twitter", "linkedin", "facebook", "tiktok", "youtube"];
+    if (!validPlatforms.includes(platform)) return res.status(400).json({ error: "Invalid platform" });
+    const account = await storage.addSocialAccount({
+      userId: req.session.userId!,
+      platform,
+      username,
+      profileUrl: profileUrl || null,
+      accessToken: accessToken || null,
+      status: "connected",
+    });
+    res.json(account);
+  });
+
+  app.patch("/api/social-accounts/:id", requireAuth, async (req, res) => {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ error: "Invalid account ID" });
+    const { username, profileUrl, accessToken, status } = req.body;
+    const updates: any = {};
+    if (username !== undefined) updates.username = username;
+    if (profileUrl !== undefined) updates.profileUrl = profileUrl;
+    if (accessToken !== undefined) updates.accessToken = accessToken;
+    if (status !== undefined) updates.status = status;
+    const updated = await storage.updateSocialAccount(id, req.session.userId!, updates);
+    if (!updated) return res.status(404).json({ error: "Account not found" });
+    res.json(updated);
+  });
+
+  app.delete("/api/social-accounts/:id", requireAuth, async (req, res) => {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ error: "Invalid account ID" });
+    const deleted = await storage.deleteSocialAccount(id, req.session.userId!);
+    if (!deleted) return res.status(404).json({ error: "Account not found" });
+    res.json({ success: true });
+  });
+
   app.get("/api/boss/notifications", requireAuth, async (req, res) => {
     const limit = parseInt(req.query.limit as string) || 50;
     const notifications = await storage.getBossNotifications(req.session.userId!, limit);
@@ -853,6 +897,18 @@ ${members.map(m => `- ${m.name} (${m.email})${m.position ? ` — ${m.position}` 
 
     systemPrompt += personalizationBlock;
     systemPrompt += teamMembersContext;
+
+    if (agentType === "social-media" && req.session.userId) {
+      const socialAccountsList = await storage.getSocialAccounts(req.session.userId);
+      if (socialAccountsList.length > 0) {
+        const accountsStr = socialAccountsList.map(a =>
+          `- ${a.platform.charAt(0).toUpperCase() + a.platform.slice(1)}: @${a.username}${a.profileUrl ? ` (${a.profileUrl})` : ""}`
+        ).join("\n");
+        systemPrompt += `\n\nCONNECTED SOCIAL ACCOUNTS:\n${accountsStr}\n- Reference these accounts and usernames when creating platform-specific content.`;
+      } else {
+        systemPrompt += `\n\nSOCIAL ACCOUNTS STATUS: No accounts connected yet. On first interaction, suggest the user connect their social media accounts in Settings > Social Media Accounts for a more personalized experience.`;
+      }
+    }
 
     const TOKEN_SPENDING_LIMIT_USD = 5.00;
 

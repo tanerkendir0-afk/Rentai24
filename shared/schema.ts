@@ -412,6 +412,25 @@ export const insertBossNotificationSchema = createInsertSchema(bossNotifications
 export type BossNotification = typeof bossNotifications.$inferSelect;
 export type InsertBossNotification = z.infer<typeof insertBossNotificationSchema>;
 
+export const socialAccounts = pgTable("social_accounts", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  platform: text("platform").notNull(),
+  username: text("username").notNull(),
+  profileUrl: text("profile_url"),
+  accessToken: text("access_token"),
+  status: text("status").notNull().default("connected"),
+  connectedAt: timestamp("connected_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
+export const insertSocialAccountSchema = createInsertSchema(socialAccounts).omit({
+  id: true,
+  connectedAt: true,
+});
+
+export type SocialAccount = typeof socialAccounts.$inferSelect;
+export type InsertSocialAccount = z.infer<typeof insertSocialAccountSchema>;
+
 export type Lead = typeof leads.$inferSelect;
 export type InsertLead = z.infer<typeof insertLeadSchema>;
 export type AgentAction = typeof agentActions.$inferSelect;

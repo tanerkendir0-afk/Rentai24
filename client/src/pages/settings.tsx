@@ -28,6 +28,13 @@ import {
   Link2,
   Sparkles,
   ShoppingCart,
+  Users,
+  Plus,
+  Trash2,
+  Pencil,
+  Phone,
+  Briefcase,
+  Bell,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
@@ -40,6 +47,19 @@ interface Rental {
   status: string;
   messagesUsed: number;
   messagesLimit: number;
+}
+
+interface TeamMember {
+  id: number;
+  userId: number;
+  name: string;
+  email: string;
+  position: string | null;
+  department: string | null;
+  skills: string | null;
+  responsibilities: string | null;
+  phone: string | null;
+  createdAt: string;
 }
 
 export default function Settings() {
@@ -56,6 +76,15 @@ export default function Settings() {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [gmailDisconnecting, setGmailDisconnecting] = useState(false);
   const [gmailReconnecting, setGmailReconnecting] = useState(false);
+
+  const [userGmailAddress, setUserGmailAddress] = useState("");
+  const [userGmailAppPassword, setUserGmailAppPassword] = useState("");
+  const [showGmailPassword, setShowGmailPassword] = useState(false);
+  const [gmailSaving, setGmailSaving] = useState(false);
+
+  const [showAddMember, setShowAddMember] = useState(false);
+  const [editingMember, setEditingMember] = useState<TeamMember | null>(null);
+  const [memberForm, setMemberForm] = useState({ name: "", email: "", position: "", department: "", skills: "", responsibilities: "", phone: "" });
 
   useEffect(() => {
     if (user) {
@@ -87,6 +116,16 @@ export default function Settings() {
 
   const { data: creditsData } = useQuery<{ credits: number }>({
     queryKey: ["/api/image-credits"],
+    enabled: !!user,
+  });
+
+  const { data: teamMembers, isLoading: teamLoading } = useQuery<TeamMember[]>({
+    queryKey: ["/api/team-members"],
+    enabled: !!user,
+  });
+
+  const { data: gmailSettings } = useQuery<{ gmailAddress: string | null; hasAppPassword: boolean }>({
+    queryKey: ["/api/settings/gmail"],
     enabled: !!user,
   });
 
@@ -152,6 +191,89 @@ export default function Settings() {
       toast({ title: "Error", description: err.message || "Failed to change password", variant: "destructive" });
     },
   });
+
+  const handleSaveGmailSettings = async () => {
+    if (!userGmailAddress.trim() || !userGmailAppPassword.trim()) {
+      toast({ title: "Error", description: "Both Gmail address and App Password are required", variant: "destructive" });
+      return;
+    }
+    setGmailSaving(true);
+    try {
+      await apiRequest("POST", "/api/settings/gmail", {
+        gmailAddress: userGmailAddress.trim(),
+        gmailAppPassword: userGmailAppPassword.trim(),
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/gmail"] });
+      setUserGmailAppPassword("");
+      toast({ title: "Gmail saved", description: `Gmail configured as ${userGmailAddress.trim()}` });
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message || "Failed to save Gmail settings", variant: "destructive" });
+    } finally {
+      setGmailSaving(false);
+    }
+  };
+
+  const handleClearGmail = async () => {
+    try {
+      await apiRequest("DELETE", "/api/settings/gmail");
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/gmail"] });
+      setUserGmailAddress("");
+      setUserGmailAppPassword("");
+      toast({ title: "Gmail removed", description: "Your personal Gmail settings have been cleared." });
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message || "Failed to clear Gmail", variant: "destructive" });
+    }
+  };
+
+  const resetMemberForm = () => {
+    setMemberForm({ name: "", email: "", position: "", department: "", skills: "", responsibilities: "", phone: "" });
+    setEditingMember(null);
+    setShowAddMember(false);
+  };
+
+  const handleSaveMember = async () => {
+    if (!memberForm.name.trim() || !memberForm.email.trim()) {
+      toast({ title: "Error", description: "Name and email are required", variant: "destructive" });
+      return;
+    }
+    try {
+      if (editingMember) {
+        await apiRequest("PATCH", `/api/team-members/${editingMember.id}`, memberForm);
+        toast({ title: "Member updated", description: `${memberForm.name} has been updated.` });
+      } else {
+        await apiRequest("POST", "/api/team-members", memberForm);
+        toast({ title: "Member added", description: `${memberForm.name} has been added to your team.` });
+      }
+      queryClient.invalidateQueries({ queryKey: ["/api/team-members"] });
+      resetMemberForm();
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message || "Failed to save team member", variant: "destructive" });
+    }
+  };
+
+  const handleDeleteMember = async (id: number, name: string) => {
+    try {
+      await apiRequest("DELETE", `/api/team-members/${id}`);
+      queryClient.invalidateQueries({ queryKey: ["/api/team-members"] });
+      toast({ title: "Member removed", description: `${name} has been removed from your team.` });
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message || "Failed to remove team member", variant: "destructive" });
+    }
+  };
+
+  const startEditMember = (member: TeamMember) => {
+    setEditingMember(member);
+    setMemberForm({
+      name: member.name,
+      email: member.email,
+      position: member.position || "",
+      department: member.department || "",
+      skills: member.skills || "",
+      responsibilities: member.responsibilities || "",
+      phone: member.phone || "",
+    });
+    setShowAddMember(true);
+  };
 
   const handleProfileSave = () => {
     if (!fullName.trim()) {
@@ -386,6 +508,272 @@ export default function Settings() {
               </div>
             </div>
           </div>
+        </Card>
+
+        <Card className="p-6 bg-card border-border/50" data-testid="card-personal-gmail">
+          <div className="flex items-center gap-2 mb-5">
+            <Mail className="w-5 h-5 text-emerald-400" />
+            <h2 className="text-lg font-semibold text-foreground">Personal Gmail</h2>
+          </div>
+          <p className="text-xs text-muted-foreground mb-4">
+            Connect your own Gmail for AI agents to send/receive emails on your behalf. Requires a Gmail App Password.
+          </p>
+          {gmailSettings?.gmailAddress ? (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between p-3 rounded-lg bg-emerald-500/5 border border-emerald-500/20">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-full bg-emerald-500/10 flex items-center justify-center">
+                    <Mail className="w-4 h-4 text-emerald-400" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-foreground" data-testid="text-user-gmail">{gmailSettings.gmailAddress}</p>
+                    <p className="text-xs text-emerald-400">Connected</p>
+                  </div>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-xs text-red-400 border-red-500/30 hover:bg-red-500/10"
+                  onClick={handleClearGmail}
+                  data-testid="button-remove-gmail"
+                >
+                  Remove
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div>
+                <Label className="text-sm text-muted-foreground">Gmail Address</Label>
+                <Input
+                  value={userGmailAddress}
+                  onChange={(e) => setUserGmailAddress(e.target.value)}
+                  placeholder="yourname@gmail.com"
+                  className="mt-1.5"
+                  data-testid="input-user-gmail-address"
+                />
+              </div>
+              <div>
+                <Label className="text-sm text-muted-foreground">App Password</Label>
+                <div className="relative mt-1.5">
+                  <Input
+                    type={showGmailPassword ? "text" : "password"}
+                    value={userGmailAppPassword}
+                    onChange={(e) => setUserGmailAppPassword(e.target.value)}
+                    placeholder="16-character app password"
+                    data-testid="input-user-gmail-password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowGmailPassword(!showGmailPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    data-testid="button-toggle-gmail-password"
+                  >
+                    {showGmailPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  Go to Google Account &gt; Security &gt; 2-Step Verification &gt; App passwords
+                </p>
+              </div>
+              <Button
+                onClick={handleSaveGmailSettings}
+                disabled={gmailSaving || !userGmailAddress || !userGmailAppPassword}
+                className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white border-0"
+                data-testid="button-save-gmail"
+              >
+                {gmailSaving ? (
+                  <><Loader2 className="w-4 h-4 mr-1.5 animate-spin" />Saving...</>
+                ) : (
+                  <><Save className="w-4 h-4 mr-1.5" />Connect Gmail</>
+                )}
+              </Button>
+            </div>
+          )}
+        </Card>
+
+        <Card className="p-6 bg-card border-border/50" data-testid="card-team-members">
+          <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center gap-2">
+              <Users className="w-5 h-5 text-violet-400" />
+              <h2 className="text-lg font-semibold text-foreground">Team Members</h2>
+              {teamMembers && teamMembers.length > 0 && (
+                <Badge variant="secondary" className="ml-1" data-testid="badge-team-count">{teamMembers.length}</Badge>
+              )}
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 text-xs border-violet-500/30 text-violet-400 hover:bg-violet-500/10"
+              onClick={() => { resetMemberForm(); setShowAddMember(true); }}
+              data-testid="button-add-member"
+            >
+              <Plus className="w-3.5 h-3.5 mr-1" />Add Member
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground mb-4">
+            Add your team members so AI agents know who everyone is. They can reference team members when sending emails or coordinating tasks.
+          </p>
+
+          {showAddMember && (
+            <div className="mb-4 p-4 rounded-lg bg-muted/30 border border-violet-500/20 space-y-3">
+              <p className="text-sm font-medium text-foreground">{editingMember ? "Edit Member" : "Add New Member"}</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs text-muted-foreground">Name *</Label>
+                  <Input
+                    value={memberForm.name}
+                    onChange={(e) => setMemberForm(p => ({ ...p, name: e.target.value }))}
+                    placeholder="John Doe"
+                    className="mt-1 h-8 text-sm"
+                    data-testid="input-member-name"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Email *</Label>
+                  <Input
+                    value={memberForm.email}
+                    onChange={(e) => setMemberForm(p => ({ ...p, email: e.target.value }))}
+                    placeholder="john@company.com"
+                    className="mt-1 h-8 text-sm"
+                    data-testid="input-member-email"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Position</Label>
+                  <Input
+                    value={memberForm.position}
+                    onChange={(e) => setMemberForm(p => ({ ...p, position: e.target.value }))}
+                    placeholder="Software Engineer"
+                    className="mt-1 h-8 text-sm"
+                    data-testid="input-member-position"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Department</Label>
+                  <Input
+                    value={memberForm.department}
+                    onChange={(e) => setMemberForm(p => ({ ...p, department: e.target.value }))}
+                    placeholder="Engineering"
+                    className="mt-1 h-8 text-sm"
+                    data-testid="input-member-department"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Phone</Label>
+                  <Input
+                    value={memberForm.phone}
+                    onChange={(e) => setMemberForm(p => ({ ...p, phone: e.target.value }))}
+                    placeholder="+1 555 0123"
+                    className="mt-1 h-8 text-sm"
+                    data-testid="input-member-phone"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Skills</Label>
+                  <Input
+                    value={memberForm.skills}
+                    onChange={(e) => setMemberForm(p => ({ ...p, skills: e.target.value }))}
+                    placeholder="React, Node.js, Python"
+                    className="mt-1 h-8 text-sm"
+                    data-testid="input-member-skills"
+                  />
+                </div>
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">Responsibilities</Label>
+                <Input
+                  value={memberForm.responsibilities}
+                  onChange={(e) => setMemberForm(p => ({ ...p, responsibilities: e.target.value }))}
+                  placeholder="Frontend development, code reviews"
+                  className="mt-1 h-8 text-sm"
+                  data-testid="input-member-responsibilities"
+                />
+              </div>
+              <div className="flex gap-2 pt-1">
+                <Button
+                  size="sm"
+                  onClick={handleSaveMember}
+                  className="bg-gradient-to-r from-violet-500 to-purple-500 text-white border-0"
+                  data-testid="button-save-member"
+                >
+                  <Save className="w-3.5 h-3.5 mr-1" />{editingMember ? "Update" : "Add"}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={resetMemberForm}
+                  data-testid="button-cancel-member"
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {teamLoading ? (
+            <div className="flex justify-center py-6">
+              <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+            </div>
+          ) : teamMembers && teamMembers.length > 0 ? (
+            <div className="space-y-2">
+              {teamMembers.map((member) => (
+                <div key={member.id} className="flex items-start justify-between p-3 rounded-lg bg-muted/30 border border-border/50 group" data-testid={`card-member-${member.id}`}>
+                  <div className="flex items-start gap-3 min-w-0">
+                    <div className="w-9 h-9 rounded-full bg-violet-500/10 flex items-center justify-center shrink-0 mt-0.5">
+                      <User className="w-4 h-4 text-violet-400" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-foreground" data-testid={`text-member-name-${member.id}`}>{member.name}</p>
+                      <p className="text-xs text-muted-foreground truncate" data-testid={`text-member-email-${member.id}`}>{member.email}</p>
+                      <div className="flex flex-wrap gap-1.5 mt-1">
+                        {member.position && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 flex items-center gap-0.5">
+                            <Briefcase className="w-2.5 h-2.5" />{member.position}
+                          </span>
+                        )}
+                        {member.department && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-violet-500/10 text-violet-400">
+                            {member.department}
+                          </span>
+                        )}
+                        {member.phone && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 flex items-center gap-0.5">
+                            <Phone className="w-2.5 h-2.5" />{member.phone}
+                          </span>
+                        )}
+                      </div>
+                      {member.skills && (
+                        <p className="text-[10px] text-muted-foreground mt-1 truncate">Skills: {member.skills}</p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                    <button
+                      onClick={() => startEditMember(member)}
+                      className="p-1.5 rounded hover:bg-blue-500/10 text-muted-foreground hover:text-blue-400 transition-colors"
+                      data-testid={`button-edit-member-${member.id}`}
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteMember(member.id, member.name)}
+                      className="p-1.5 rounded hover:bg-red-500/10 text-muted-foreground hover:text-red-400 transition-colors"
+                      data-testid={`button-delete-member-${member.id}`}
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-6 text-muted-foreground">
+              <Users className="w-8 h-8 mx-auto mb-2 opacity-30" />
+              <p className="text-sm">No team members yet</p>
+              <p className="text-xs mt-1">Add your team so AI agents can collaborate effectively</p>
+            </div>
+          )}
         </Card>
 
         <Card className="p-6 bg-card border-border/50" data-testid="card-subscription">

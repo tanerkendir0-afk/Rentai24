@@ -25,6 +25,8 @@ export const users = pgTable("users", {
   stripeCustomerId: text("stripe_customer_id"),
   stripeSubscriptionId: text("stripe_subscription_id"),
   imageCredits: integer("image_credits").notNull().default(0),
+  gmailAddress: text("gmail_address"),
+  gmailAppPassword: text("gmail_app_password"),
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
 });
 
@@ -368,6 +370,47 @@ export const systemSettings = pgTable("system_settings", {
 });
 
 export type SystemSetting = typeof systemSettings.$inferSelect;
+
+export const teamMembers = pgTable("team_members", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  name: text("name").notNull(),
+  email: text("email").notNull(),
+  position: text("position"),
+  department: text("department"),
+  skills: text("skills"),
+  responsibilities: text("responsibilities"),
+  phone: text("phone"),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
+export const insertTeamMemberSchema = createInsertSchema(teamMembers).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type TeamMember = typeof teamMembers.$inferSelect;
+export type InsertTeamMember = z.infer<typeof insertTeamMemberSchema>;
+
+export const bossNotifications = pgTable("boss_notifications", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  type: text("type").notNull(),
+  teamMemberName: text("team_member_name").notNull(),
+  summary: text("summary").notNull(),
+  details: jsonb("details"),
+  bossResponse: text("boss_response"),
+  adminNotified: boolean("admin_notified").notNull().default(false),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
+export const insertBossNotificationSchema = createInsertSchema(bossNotifications).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type BossNotification = typeof bossNotifications.$inferSelect;
+export type InsertBossNotification = z.infer<typeof insertBossNotificationSchema>;
 
 export type Lead = typeof leads.$inferSelect;
 export type InsertLead = z.infer<typeof insertLeadSchema>;

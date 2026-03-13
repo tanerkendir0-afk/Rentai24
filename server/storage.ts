@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { users, rentals, contactMessages, newsletterSubscribers, leads, agentActions, emailCampaigns, supportTickets, tokenUsage, agentTasks, chatMessages, conversations, systemSettings, type User, type InsertUser, type Rental, type InsertRental, type ContactMessage, type InsertContactMessage, type NewsletterSubscriber, type Lead, type InsertLead, type AgentAction, type InsertAgentAction, type EmailCampaign, type InsertEmailCampaign, type SupportTicket, type InsertSupportTicket, type TokenUsage, type InsertTokenUsage, type AgentTask, type InsertAgentTask, type ChatMessage, type InsertChatMessage, type ConversationRecord, type InsertConversation } from "@shared/schema";
+import { users, rentals, contactMessages, newsletterSubscribers, leads, agentActions, emailCampaigns, supportTickets, tokenUsage, agentTasks, chatMessages, conversations, teamMembers, bossNotifications, systemSettings, type User, type InsertUser, type Rental, type InsertRental, type ContactMessage, type InsertContactMessage, type NewsletterSubscriber, type Lead, type InsertLead, type AgentAction, type InsertAgentAction, type EmailCampaign, type InsertEmailCampaign, type SupportTicket, type InsertSupportTicket, type TokenUsage, type InsertTokenUsage, type AgentTask, type InsertAgentTask, type ChatMessage, type InsertChatMessage, type ConversationRecord, type InsertConversation, type TeamMember, type InsertTeamMember, type BossNotification, type InsertBossNotification } from "@shared/schema";
 import { eq, and, sql, desc, gte, lte } from "drizzle-orm";
 
 export interface IStorage {
@@ -70,6 +70,17 @@ export interface IStorage {
   updateConversationTitle(id: number, userId: number, title: string): Promise<ConversationRecord | undefined>;
   deleteConversation(id: number, userId: number): Promise<boolean>;
   getConversationMessages(userId: number, visibleId: string): Promise<ChatMessage[]>;
+
+  getTeamMembers(userId: number): Promise<TeamMember[]>;
+  createTeamMember(member: InsertTeamMember): Promise<TeamMember>;
+  updateTeamMember(id: number, userId: number, updates: Partial<Pick<TeamMember, "name" | "email" | "position" | "department" | "skills" | "responsibilities" | "phone">>): Promise<TeamMember | undefined>;
+  deleteTeamMember(id: number, userId: number): Promise<boolean>;
+
+  updateUserGmail(userId: number, gmailAddress: string, gmailAppPassword: string): Promise<User | undefined>;
+  clearUserGmail(userId: number): Promise<User | undefined>;
+
+  createBossNotification(notification: InsertBossNotification): Promise<BossNotification>;
+  getBossNotifications(userId: number, limit?: number): Promise<BossNotification[]>;
 
   getSystemSetting(key: string): Promise<string | null>;
   setSystemSetting(key: string, value: string): Promise<void>;
@@ -506,6 +517,60 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(chatMessages)
       .where(and(eq(chatMessages.sessionId, visibleId), eq(chatMessages.userId, userId)))
       .orderBy(chatMessages.createdAt);
+  }
+
+  async getTeamMembers(userId: number): Promise<TeamMember[]> {
+    return db.select().from(teamMembers)
+      .where(eq(teamMembers.userId, userId))
+      .orderBy(teamMembers.name);
+  }
+
+  async createTeamMember(member: InsertTeamMember): Promise<TeamMember> {
+    const [created] = await db.insert(teamMembers).values(member).returning();
+    return created;
+  }
+
+  async updateTeamMember(id: number, userId: number, updates: Partial<Pick<TeamMember, "name" | "email" | "position" | "department" | "skills" | "responsibilities" | "phone">>): Promise<TeamMember | undefined> {
+    const [updated] = await db.update(teamMembers)
+      .set(updates)
+      .where(and(eq(teamMembers.id, id), eq(teamMembers.userId, userId)))
+      .returning();
+    return updated;
+  }
+
+  async deleteTeamMember(id: number, userId: number): Promise<boolean> {
+    const [deleted] = await db.delete(teamMembers)
+      .where(and(eq(teamMembers.id, id), eq(teamMembers.userId, userId)))
+      .returning();
+    return !!deleted;
+  }
+
+  async updateUserGmail(userId: number, gmailAddress: string, gmailAppPassword: string): Promise<User | undefined> {
+    const [updated] = await db.update(users)
+      .set({ gmailAddress, gmailAppPassword })
+      .where(eq(users.id, userId))
+      .returning();
+    return updated;
+  }
+
+  async clearUserGmail(userId: number): Promise<User | undefined> {
+    const [updated] = await db.update(users)
+      .set({ gmailAddress: null, gmailAppPassword: null })
+      .where(eq(users.id, userId))
+      .returning();
+    return updated;
+  }
+
+  async createBossNotification(notification: InsertBossNotification): Promise<BossNotification> {
+    const [created] = await db.insert(bossNotifications).values(notification).returning();
+    return created;
+  }
+
+  async getBossNotifications(userId: number, limit: number = 50): Promise<BossNotification[]> {
+    return db.select().from(bossNotifications)
+      .where(eq(bossNotifications.userId, userId))
+      .orderBy(desc(bossNotifications.createdAt))
+      .limit(limit);
   }
 
   async getSystemSetting(key: string): Promise<string | null> {

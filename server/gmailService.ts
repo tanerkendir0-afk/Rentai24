@@ -180,7 +180,21 @@ function extractPlainTextBody(payload: any): string {
   return "";
 }
 
+export interface UserGmailCredentials {
+  gmailAddress: string;
+  gmailAppPassword: string;
+}
+
+let activeUserCredentials: UserGmailCredentials | null = null;
+
+export function setActiveUserGmail(creds: UserGmailCredentials | null) {
+  activeUserCredentials = creds;
+}
+
 function getImapCredentials(): { user: string; pass: string } | null {
+  if (activeUserCredentials) {
+    return { user: activeUserCredentials.gmailAddress, pass: activeUserCredentials.gmailAppPassword };
+  }
   const user = process.env.GMAIL_ADDRESS;
   const pass = process.env.GMAIL_APP_PASSWORD;
   if (!user || !pass) return null;

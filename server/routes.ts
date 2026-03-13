@@ -562,6 +562,83 @@ export async function registerRoutes(
     res.json(messages);
   });
 
+  app.get("/api/team-members", requireAuth, async (req, res) => {
+    const members = await storage.getTeamMembers(req.session.userId!);
+    res.json(members);
+  });
+
+  app.post("/api/team-members", requireAuth, async (req, res) => {
+    const { name, email, position, department, skills, responsibilities, phone } = req.body;
+    if (!name || !email) return res.status(400).json({ error: "Name and email are required" });
+    const member = await storage.createTeamMember({
+      userId: req.session.userId!,
+      name,
+      email,
+      position: position || null,
+      department: department || null,
+      skills: skills || null,
+      responsibilities: responsibilities || null,
+      phone: phone || null,
+    });
+    res.json(member);
+  });
+
+  app.patch("/api/team-members/:id", requireAuth, async (req, res) => {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ error: "Invalid member ID" });
+    const { name, email, position, department, skills, responsibilities, phone } = req.body;
+    const updates: any = {};
+    if (name !== undefined) updates.name = name;
+    if (email !== undefined) updates.email = email;
+    if (position !== undefined) updates.position = position;
+    if (department !== undefined) updates.department = department;
+    if (skills !== undefined) updates.skills = skills;
+    if (responsibilities !== undefined) updates.responsibilities = responsibilities;
+    if (phone !== undefined) updates.phone = phone;
+    const updated = await storage.updateTeamMember(id, req.session.userId!, updates);
+    if (!updated) return res.status(404).json({ error: "Team member not found" });
+    res.json(updated);
+  });
+
+  app.delete("/api/team-members/:id", requireAuth, async (req, res) => {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ error: "Invalid member ID" });
+    const deleted = await storage.deleteTeamMember(id, req.session.userId!);
+    if (!deleted) return res.status(404).json({ error: "Team member not found" });
+    res.json({ success: true });
+  });
+
+  app.get("/api/settings/gmail", requireAuth, async (req, res) => {
+    const user = await storage.getUserById(req.session.userId!);
+    if (!user) return res.status(404).json({ error: "User not found" });
+    res.json({
+      gmailAddress: user.gmailAddress || null,
+      hasAppPassword: !!user.gmailAppPassword,
+    });
+  });
+
+  app.post("/api/settings/gmail", requireAuth, async (req, res) => {
+    const { gmailAddress, gmailAppPassword } = req.body;
+    if (!gmailAddress || !gmailAppPassword) {
+      return res.status(400).json({ error: "Gmail address and app password are required" });
+    }
+    const updated = await storage.updateUserGmail(req.session.userId!, gmailAddress, gmailAppPassword);
+    if (!updated) return res.status(404).json({ error: "User not found" });
+    res.json({ success: true, gmailAddress: updated.gmailAddress });
+  });
+
+  app.delete("/api/settings/gmail", requireAuth, async (req, res) => {
+    const cleared = await storage.clearUserGmail(req.session.userId!);
+    if (!cleared) return res.status(404).json({ error: "User not found" });
+    res.json({ success: true });
+  });
+
+  app.get("/api/boss/notifications", requireAuth, async (req, res) => {
+    const limit = parseInt(req.query.limit as string) || 50;
+    const notifications = await storage.getBossNotifications(req.session.userId!, limit);
+    res.json(notifications);
+  });
+
   app.get("/api/campaigns", requireAuth, async (req, res) => {
     const campaigns = await storage.getCampaignsByUser(req.session.userId!);
     res.json(campaigns);
@@ -742,11 +819,19 @@ export async function registerRoutes(
 
     let userName: string | null = null;
     let userCompany: string | null = null;
+    let teamMembersContext = "";
     if (req.session.userId) {
       const currentUser = await storage.getUserById(req.session.userId);
       if (currentUser) {
         userName = currentUser.fullName || currentUser.username;
         userCompany = currentUser.company || null;
+      }
+      const members = await storage.getTeamMembers(req.session.userId);
+      if (members.length > 0) {
+        teamMembersContext = `\n\nTEAM MEMBERS (the user's organization):
+${members.map(m => `- ${m.name} (${m.email})${m.position ? ` — ${m.position}` : ""}${m.department ? `, ${m.department}` : ""}${m.skills ? ` | Skills: ${m.skills}` : ""}${m.responsibilities ? ` | Responsibilities: ${m.responsibilities}` : ""}`).join("\n")}
+- You know these team members and can reference them when relevant.
+- When sending emails or coordinating tasks, consider involving the right team member based on their role and skills.`;
       }
     }
 
@@ -767,6 +852,7 @@ export async function registerRoutes(
 - If not, feel free to ask when appropriate.`;
 
     systemPrompt += personalizationBlock;
+    systemPrompt += teamMembersContext;
 
     const TOKEN_SPENDING_LIMIT_USD = 5.00;
 
@@ -825,6 +911,16 @@ export async function registerRoutes(
 
     if (!hasActiveRental) {
       systemPrompt += `\nNO TOOLS: User hasn't rented you yet. Cannot perform actions. If asked, say: "Bu işlemi gerçekleştirebilmem için önce hesap oluşturmanız ve beni kiralamanız gerekiyor. RentAI 24'te kayıt olup bir plan satın aldıktan sonra tüm yeteneklerimi kullanabilirsiniz! 🚀" Only chat and guide to sign up.`;
+    }
+
+    if (req.session.userId) {
+      const userForGmail = await storage.getUserById(req.session.userId);
+      const { setActiveUserGmail } = await import("./gmailService");
+      if (userForGmail?.gmailAddress && userForGmail?.gmailAppPassword) {
+        setActiveUserGmail({ gmailAddress: userForGmail.gmailAddress, gmailAppPassword: userForGmail.gmailAppPassword });
+      } else {
+        setActiveUserGmail(null);
+      }
     }
 
     try {

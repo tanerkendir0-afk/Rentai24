@@ -1151,6 +1151,17 @@ export async function executeToolCall(
         description: `Replied to email ${replyEmailId}`,
         metadata: { originalEmailId: replyEmailId, replyMessageId: replyResult.replyMessageId },
       });
+      try {
+        const { triggerEmailReplyNotification } = await import("./bossNotificationService");
+        await triggerEmailReplyNotification({
+          userId,
+          agentType,
+          teamMemberName: agentType,
+          recipientEmail: replyEmailId,
+          subject: "Email Reply",
+          replySnippet: replyBody,
+        });
+      } catch (e) { console.error("[BossAI] reply notification error:", e); }
       return {
         result: `✅ ${replyResult.message}`,
         actionType: "email_replied",
@@ -1166,6 +1177,19 @@ export async function executeToolCall(
         body: String(args.body),
         agentType,
       });
+      if (emailResult.success) {
+        try {
+          const { triggerEmailReplyNotification } = await import("./bossNotificationService");
+          await triggerEmailReplyNotification({
+            userId,
+            agentType,
+            teamMemberName: agentType,
+            recipientEmail: String(args.to),
+            subject: String(args.subject),
+            replySnippet: String(args.body),
+          });
+        } catch (e) { console.error("[BossAI] send email notification error:", e); }
+      }
       return {
         result: emailResult.message,
         actionType: emailResult.success ? "email_sent" : "email_failed",

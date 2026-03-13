@@ -46,6 +46,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/lib/auth";
 import ChatMessageContent from "@/components/chat-message";
+import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
 import type { AgentTask } from "@shared/schema";
 import TasksPanel from "@/components/tasks-panel";
@@ -90,6 +91,7 @@ interface RentalData {
 
 export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean }) {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [selectedAgent, setSelectedAgent] = useState(agentOptions[0].id);
 
   const generateVisibleId = () => Date.now().toString() + Math.random().toString(36).slice(2, 6);
@@ -196,6 +198,8 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
   const [creditPurchasing, setCreditPurchasing] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth >= 1024);
   const [showTasksPanel, setShowTasksPanel] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const dragCounterRef = useRef(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -285,11 +289,68 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
       const data = await res.json();
       if (data.success) {
         setUploadedImage({ url: data.imageUrl, name: data.filename });
+      } else {
+        toast({ title: "Yükleme başarısız", description: data.error || "Görsel yüklenirken bir hata oluştu", variant: "destructive" });
       }
     } catch {
+      toast({ title: "Yükleme başarısız", description: "Görsel yüklenirken bir hata oluştu", variant: "destructive" });
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounterRef.current++;
+    if (e.dataTransfer.types.includes("Files")) {
+      setIsDragging(true);
+    }
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounterRef.current--;
+    if (dragCounterRef.current === 0) {
+      setIsDragging(false);
+    }
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounterRef.current = 0;
+    setIsDragging(false);
+
+    const file = e.dataTransfer.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast({ title: "Desteklenmeyen dosya", description: "Sadece görsel dosyaları yüklenebilir (JPG, PNG, GIF, WebP, SVG)", variant: "destructive" });
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("image", file);
+      const res = await fetch("/api/chat/upload", { method: "POST", body: formData });
+      const data = await res.json();
+      if (data.success) {
+        setUploadedImage({ url: data.imageUrl, name: data.filename });
+      } else {
+        toast({ title: "Yükleme başarısız", description: data.error || "Görsel yüklenirken bir hata oluştu", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Yükleme başarısız", description: "Görsel yüklenirken bir hata oluştu", variant: "destructive" });
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -405,8 +466,6 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                 const isPending = user && !rentalsReady;
                 const isActive = selectedAgent === agent.id;
                 const AgentIcon = agent.icon;
-                const agentConvos = agentConversations[agent.id] || [];
-                const hasMessages = agentConvos.some(c => c.messages.length > 0);
 
                 return (
                   <button
@@ -437,9 +496,6 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5">
                         <span className="font-medium truncate">{agent.persona}</span>
-                        {hasMessages && !isActive && (
-                          <span className="w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0" />
-                        )}
                       </div>
                       <span className={`text-[11px] truncate block ${isActive ? "text-white/70" : "text-muted-foreground/60"}`}>
                         {agent.name}
@@ -688,7 +744,22 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
           </div>
         )}
 
-        <div className="flex-1 overflow-y-auto" data-testid="chat-messages">
+        <div
+          className="flex-1 overflow-y-auto relative"
+          data-testid="chat-messages"
+          onDragOver={handleDragOver}
+          onDragEnter={handleDragEnter}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+        >
+          {isDragging && (
+            <div className="absolute inset-0 z-10 flex items-center justify-center bg-blue-500/10 border-2 border-dashed border-blue-500/50 rounded-lg m-2 backdrop-blur-sm" data-testid="drag-overlay">
+              <div className="text-center">
+                <Plus className="w-10 h-10 text-blue-400 mx-auto mb-2" />
+                <p className="text-sm font-medium text-blue-400">Görseli buraya bırakın</p>
+              </div>
+            </div>
+          )}
           {messages.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center p-4 sm:p-8">
               <motion.div

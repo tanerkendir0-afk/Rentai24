@@ -1,7 +1,109 @@
+import { useState, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { Components } from "react-markdown";
-import { Download } from "lucide-react";
+import { Download, X, ImageOff, Loader2 } from "lucide-react";
+
+function getDownloadUrl(src: string): string {
+  const match = src?.match(/\/api\/images\/([^/]+)$/);
+  if (match) {
+    return `/api/images/${match[1]}/download`;
+  }
+  return src;
+}
+
+function ImageLightbox({ src, alt, onClose }: { src: string; alt: string; onClose: () => void }) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
+      onClick={onClose}
+      data-testid="lightbox-overlay"
+    >
+      <div className="relative max-w-[90vw] max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
+        <img
+          src={src}
+          alt={alt}
+          className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl"
+          data-testid="lightbox-image"
+        />
+        <div className="absolute top-2 right-2 flex gap-2">
+          <a
+            href={getDownloadUrl(src)}
+            download
+            className="w-9 h-9 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center transition-colors"
+            data-testid="lightbox-download"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Download className="w-4 h-4" />
+          </a>
+          <button
+            onClick={onClose}
+            className="w-9 h-9 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center transition-colors"
+            data-testid="lightbox-close"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ChatImage({ src, alt, isUser }: { src?: string; alt?: string; isUser: boolean }) {
+  const [error, setError] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+
+  useEffect(() => {
+    setError(false);
+    setLoading(true);
+  }, [src]);
+
+  if (!src) return null;
+
+  if (error) {
+    return (
+      <div className="my-2 flex items-center gap-2 p-3 rounded-lg border border-border/30 bg-muted/30 text-muted-foreground text-xs" data-testid="image-error">
+        <ImageOff className="w-4 h-4 shrink-0 opacity-60" />
+        <span>Görsel yüklenemedi</span>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <div className="my-2">
+        <div className="relative inline-block">
+          {loading && (
+            <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-muted/50 border border-border/30 min-h-[64px] min-w-[64px]" data-testid="status-image-loading">
+              <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+            </div>
+          )}
+          <img
+            src={src}
+            alt={alt || ""}
+            className="rounded-lg max-w-full max-h-64 object-contain border border-border/30 cursor-pointer hover:opacity-90 transition-opacity"
+            onError={() => { setError(true); setLoading(false); }}
+            onLoad={() => setLoading(false)}
+            onClick={() => setLightboxOpen(true)}
+            data-testid="chat-image"
+          />
+        </div>
+        <a
+          href={getDownloadUrl(src)}
+          download
+          className={`inline-flex items-center gap-1 mt-1.5 text-xs ${isUser ? "text-blue-100 hover:text-white" : "text-blue-400 hover:text-blue-300"}`}
+          data-testid="image-download-link"
+        >
+          <Download className="w-3 h-3" /> İndir
+        </a>
+      </div>
+      {lightboxOpen && (
+        <ImageLightbox src={src} alt={alt || ""} onClose={() => setLightboxOpen(false)} />
+      )}
+    </>
+  );
+}
 
 const createComponents = (isUser: boolean): Components => ({
   p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
@@ -55,26 +157,7 @@ const createComponents = (isUser: boolean): Components => ({
       {children}
     </a>
   ),
-  img: ({ src, alt }) => (
-    <div className="my-2">
-      <img
-        src={src}
-        alt={alt || ""}
-        className="rounded-lg max-w-full max-h-64 object-contain border border-border/30"
-      />
-      {src && (
-        <a
-          href={src}
-          download
-          target="_blank"
-          rel="noopener noreferrer"
-          className={`inline-flex items-center gap-1 mt-1.5 text-xs ${isUser ? "text-blue-100 hover:text-white" : "text-blue-400 hover:text-blue-300"}`}
-        >
-          <Download className="w-3 h-3" /> Download
-        </a>
-      )}
-    </div>
-  ),
+  img: ({ src, alt }) => <ChatImage src={src} alt={alt} isUser={isUser} />,
   table: ({ children }) => (
     <div className={`my-2 overflow-x-auto rounded-lg border ${isUser ? "border-white/15" : "border-border/30"}`}>
       <table className="w-full text-xs">{children}</table>

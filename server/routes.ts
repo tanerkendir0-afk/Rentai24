@@ -658,6 +658,38 @@ export async function registerRoutes(
     if (!filepath) {
       return res.status(404).json({ error: "Image not found" });
     }
+    const ext = path.extname(req.params.filename).toLowerCase();
+    const mimeTypes: Record<string, string> = {
+      ".png": "image/png",
+      ".jpg": "image/jpeg",
+      ".jpeg": "image/jpeg",
+      ".gif": "image/gif",
+      ".webp": "image/webp",
+      ".svg": "image/svg+xml",
+    };
+    const contentType = mimeTypes[ext] || "application/octet-stream";
+    res.setHeader("Content-Type", contentType);
+    res.setHeader("Cache-Control", "public, max-age=86400");
+    res.sendFile(filepath);
+  });
+
+  app.get("/api/images/:filename/download", (req, res) => {
+    const filepath = getImagePath(req.params.filename);
+    if (!filepath) {
+      return res.status(404).json({ error: "Image not found" });
+    }
+    const ext = path.extname(req.params.filename).toLowerCase();
+    const mimeTypes: Record<string, string> = {
+      ".png": "image/png",
+      ".jpg": "image/jpeg",
+      ".jpeg": "image/jpeg",
+      ".gif": "image/gif",
+      ".webp": "image/webp",
+      ".svg": "image/svg+xml",
+    };
+    const contentType = mimeTypes[ext] || "application/octet-stream";
+    res.setHeader("Content-Type", contentType);
+    res.setHeader("Content-Disposition", `attachment; filename="${req.params.filename}"`);
     res.sendFile(filepath);
   });
 

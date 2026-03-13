@@ -1730,6 +1730,14 @@ BEHAVIOR:
 - If you don't know something specific, say so honestly
 - Never make up data — use your tools to get real numbers`;
 
+  interface DbRow { [key: string]: unknown }
+  function row(result: { rows: Record<string, unknown>[] }, idx = 0): DbRow {
+    return (result.rows[idx] as DbRow) || {};
+  }
+  function rows(result: { rows: Record<string, unknown>[] }): DbRow[] {
+    return result.rows as DbRow[];
+  }
+
   app.post("/api/admin/boss-chat", requireAdmin, async (req, res) => {
     try {
       const { message, conversationHistory } = req.body;
@@ -1770,26 +1778,34 @@ BEHAVIOR:
         SELECT COUNT(*)::int as active FROM email_campaigns WHERE status = 'active'
       `);
 
+      const usersRow = row(usersResult);
+      const rentalsRow = row(rentalsResult);
+      const costRow = row(costResult);
+      const ticketsRow = row(ticketsResult);
+      const leadsRow = row(leadsResult);
+      const campaignsRow = row(campaignsResult);
+      const activeCampaignsRow = row(activeCampaignsResult);
+
       const liveContext = `
 LIVE PLATFORM DATA (real-time):
-- Total Users: ${(usersResult.rows[0] as any)?.total || 0}
-- Total Rentals: ${(rentalsResult.rows[0] as any)?.total || 0}
-- Active Rentals: ${(rentalsResult.rows[0] as any)?.active || 0}
-- Total API Cost: $${(costResult.rows[0] as any)?.total_cost || "0"}
-- Total API Requests: ${(costResult.rows[0] as any)?.total_requests || 0}
-- Total Tokens Used: ${(costResult.rows[0] as any)?.total_tokens || 0}
-- Support Tickets: ${(ticketsResult.rows[0] as any)?.total || 0} total, ${(ticketsResult.rows[0] as any)?.open_tickets || 0} open
-- Leads: ${(leadsResult.rows[0] as any)?.total || 0}
-- Email Campaigns: ${(campaignsResult.rows[0] as any)?.total || 0} total, ${(activeCampaignsResult.rows[0] as any)?.active || 0} active
+- Total Users: ${usersRow.total || 0}
+- Total Rentals: ${rentalsRow.total || 0}
+- Active Rentals: ${rentalsRow.active || 0}
+- Total API Cost: $${costRow.total_cost || "0"}
+- Total API Requests: ${costRow.total_requests || 0}
+- Total Tokens Used: ${costRow.total_tokens || 0}
+- Support Tickets: ${ticketsRow.total || 0} total, ${ticketsRow.open_tickets || 0} open
+- Leads: ${leadsRow.total || 0}
+- Email Campaigns: ${campaignsRow.total || 0} total, ${activeCampaignsRow.active || 0} active
 
 AGENT USAGE (active rentals):
-${(agentUsageResult.rows as any[]).map((r: any) => `- ${agentNameMap[r.agent_type] || r.agent_type}: ${r.rental_count} active rentals, ${r.total_messages || 0} messages`).join("\n") || "No active rentals"}
+${rows(agentUsageResult).map((r) => `- ${agentNameMap[r.agent_type as string] || r.agent_type}: ${r.rental_count} active rentals, ${r.total_messages || 0} messages`).join("\n") || "No active rentals"}
 
 RECENT AGENT ACTIONS:
-${(recentActionsResult.rows as any[]).map((r: any) => `- ${agentNameMap[r.agent_type] || r.agent_type}: ${r.action_type} (${r.count}x)`).join("\n") || "No recent actions"}
+${rows(recentActionsResult).map((r) => `- ${agentNameMap[r.agent_type as string] || r.agent_type}: ${r.action_type} (${r.count}x)`).join("\n") || "No recent actions"}
 
 RECENT CHAT MESSAGES:
-${(recentChatResult.rows as any[]).map((r: any) => `- [${r.agent_type}] ${r.role}: ${r.content_preview}${r.content_preview?.length >= 100 ? "..." : ""}`).join("\n") || "No recent messages"}
+${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_preview}${String(r.content_preview || "").length >= 100 ? "..." : ""}`).join("\n") || "No recent messages"}
 `;
 
       const bossTools: OpenAI.ChatCompletionTool[] = [
@@ -1843,7 +1859,7 @@ ${(recentChatResult.rows as any[]).map((r: any) => `- [${r.agent_type}] ${r.role
         },
       ];
 
-      const history: OpenAI.ChatCompletionMessageParam[] = (conversationHistory || []).map((m: any) => ({
+      const history: OpenAI.ChatCompletionMessageParam[] = (conversationHistory || []).map((m: { role: string; content: string }) => ({
         role: m.role as "user" | "assistant",
         content: m.content,
       }));
@@ -1868,14 +1884,14 @@ ${(recentChatResult.rows as any[]).map((r: any) => `- [${r.agent_type}] ${r.role
 
       if (assistantMessage?.tool_calls && assistantMessage.tool_calls.length > 0) {
         const toolResults: OpenAI.ChatCompletionMessageParam[] = [
-          { role: "assistant", content: assistantMessage.content, tool_calls: assistantMessage.tool_calls } as any,
+          { role: "assistant" as const, content: assistantMessage.content, tool_calls: assistantMessage.tool_calls },
         ];
 
         for (const toolCall of assistantMessage.tool_calls) {
-          const args = JSON.parse(toolCall.function.arguments || "{}");
           let toolResult = "";
 
           try {
+            const args = JSON.parse(toolCall.function.arguments || "{}") as Record<string, unknown>;
             switch (toolCall.function.name) {
               case "query_platform_stats": {
                 const cat = args.category;
@@ -1993,15 +2009,16 @@ ${(recentChatResult.rows as any[]).map((r: any) => `- [${r.agent_type}] ${r.role
                 break;
               }
             }
-          } catch (err: any) {
-            toolResult = `Error: ${err.message}`;
+          } catch (err: unknown) {
+            const errMsg = err instanceof Error ? err.message : String(err);
+            toolResult = `Error: ${errMsg}`;
           }
 
           toolResults.push({
-            role: "tool",
+            role: "tool" as const,
             tool_call_id: toolCall.id,
             content: toolResult,
-          } as any);
+          });
         }
 
         const followUp = await openai.chat.completions.create({
@@ -2015,9 +2032,10 @@ ${(recentChatResult.rows as any[]).map((r: any) => `- [${r.agent_type}] ${r.role
       }
 
       res.json({ reply, toolsUsed: !!(assistantMessage?.tool_calls?.length) });
-    } catch (error: any) {
-      console.error("Boss chat error:", error.message);
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      const errMsg = error instanceof Error ? error.message : String(error);
+      console.error("Boss chat error:", errMsg);
+      res.status(500).json({ error: errMsg });
     }
   });
 
@@ -2028,8 +2046,9 @@ ${(recentChatResult.rows as any[]).map((r: any) => `- [${r.agent_type}] ${r.role
         .from(bossConversations)
         .orderBy(desc(bossConversations.updatedAt));
       res.json(conversations);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      const errMsg = error instanceof Error ? error.message : String(error);
+      res.status(500).json({ error: errMsg });
     }
   });
 
@@ -2049,8 +2068,9 @@ ${(recentChatResult.rows as any[]).map((r: any) => `- [${r.agent_type}] ${r.role
         })
         .returning();
       res.json(conv);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      const errMsg = error instanceof Error ? error.message : String(error);
+      res.status(500).json({ error: errMsg });
     }
   });
 
@@ -2060,7 +2080,13 @@ ${(recentChatResult.rows as any[]).map((r: any) => `- [${r.agent_type}] ${r.role
       if (isNaN(id)) return res.status(400).json({ error: "Invalid ID" });
       const { topic, messages: msgs, toolsUsed } = req.body;
       if (msgs !== undefined && !Array.isArray(msgs)) return res.status(400).json({ error: "Messages must be an array" });
-      const updates: any = { updatedAt: new Date() };
+      const updates: Partial<{
+        topic: string;
+        messages: unknown[];
+        messageCount: number;
+        toolsUsed: boolean;
+        updatedAt: Date;
+      }> = { updatedAt: new Date() };
       if (topic !== undefined) updates.topic = String(topic).slice(0, 200);
       if (msgs !== undefined) {
         updates.messages = msgs;
@@ -2075,8 +2101,9 @@ ${(recentChatResult.rows as any[]).map((r: any) => `- [${r.agent_type}] ${r.role
         .returning();
       if (!conv) return res.status(404).json({ error: "Conversation not found" });
       res.json(conv);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      const errMsg = error instanceof Error ? error.message : String(error);
+      res.status(500).json({ error: errMsg });
     }
   });
 
@@ -2089,8 +2116,9 @@ ${(recentChatResult.rows as any[]).map((r: any) => `- [${r.agent_type}] ${r.role
         .returning();
       if (!conv) return res.status(404).json({ error: "Conversation not found" });
       res.json({ success: true });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      const errMsg = error instanceof Error ? error.message : String(error);
+      res.status(500).json({ error: errMsg });
     }
   });
 

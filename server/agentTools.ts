@@ -1178,16 +1178,16 @@ export async function executeToolCall(
       const inboxResult = await listInbox(maxResults);
       if (!inboxResult.success || !inboxResult.emails) {
         const errorMsg = inboxResult.message || "Unknown error";
-        const isAuthError = /auth|token|permission|credential|access/i.test(errorMsg);
-        const guidanceMsg = isAuthError
-          ? `\n\n**How to fix:** Go to **Settings** → Gmail section and verify your email address and App Password are correct. If the issue persists, generate a new App Password from your Google Account security settings.`
-          : "";
+        const isImapRelated = /IMAP/i.test(errorMsg);
+        const guidanceMsg = isImapRelated
+          ? `\n\n**How to fix:** Go to **Settings** → Gmail section and verify your email address and App Password are correct. Make sure IMAP is enabled in your Gmail settings.`
+          : `\n\n**How to fix:** Go to **Settings** → Gmail section and check your connection settings.`;
         await storage.createAgentAction({
           userId, agentType, actionType: "inbox_check_failed",
           description: `Failed to check Gmail inbox: ${errorMsg}`,
           metadata: { error: errorMsg },
         });
-        return { result: `Failed to check inbox: ${errorMsg}${guidanceMsg}`, actionType: "inbox_check_failed", actionDescription: `❌ ${errorMsg}` };
+        return { result: `Could not retrieve your inbox. ${errorMsg}${guidanceMsg}`, actionType: "inbox_check_failed", actionDescription: `❌ Inbox check failed` };
       }
       if (inboxResult.emails.length === 0) {
         await storage.createAgentAction({
@@ -1198,18 +1198,20 @@ export async function executeToolCall(
         return { result: "Your inbox is empty. No new emails.", actionType: "inbox_checked", actionDescription: "📬 Inbox checked — empty" };
       }
       lastInboxResults.set(userId, inboxResult.emails.map(e => e.id));
+      const isImapSource = inboxResult.message?.includes("IMAP");
+      const sourceLabel = isImapSource ? " (via IMAP)" : "";
       const emailList = inboxResult.emails.map((e, i) =>
         `${i + 1}. **From:** ${e.from}\n   **Subject:** ${e.subject}\n   **Date:** ${e.date}\n   **Preview:** ${e.snippet}\n   **Email ID:** \`${e.id}\``
       ).join("\n\n");
       await storage.createAgentAction({
         userId, agentType, actionType: "inbox_checked",
-        description: `Checked Gmail inbox — ${inboxResult.emails.length} emails found`,
-        metadata: { count: inboxResult.emails.length, emailIds: inboxResult.emails.map(e => e.id) },
+        description: `Checked Gmail inbox${sourceLabel} — ${inboxResult.emails.length} emails found`,
+        metadata: { count: inboxResult.emails.length, emailIds: inboxResult.emails.map(e => e.id), source: isImapSource ? "imap" : "gmail" },
       });
       return {
-        result: `📬 **Gmail Inbox** (${inboxResult.emails.length} emails):\n\n${emailList}\n\nTo read an email's full content, tell me the email number (e.g. "read email #3") or provide the Email ID.`,
+        result: `📬 **Gmail Inbox${sourceLabel}** (${inboxResult.emails.length} emails):\n\n${emailList}\n\nTo read an email's full content, tell me the email number (e.g. "read email #3") or provide the Email ID.`,
         actionType: "inbox_checked",
-        actionDescription: `📬 Checked inbox — ${inboxResult.emails.length} emails`,
+        actionDescription: `📬 Checked inbox${sourceLabel} — ${inboxResult.emails.length} emails`,
       };
     }
 
@@ -1239,27 +1241,26 @@ export async function executeToolCall(
       const readResult = await readEmail(emailId);
       if (!readResult.success || !readResult.email) {
         const readErrorMsg = readResult.message || "Unknown error";
-        const isReadAuthError = /auth|token|permission|credential|access/i.test(readErrorMsg);
-        const readGuidance = isReadAuthError
-          ? `\n\n**How to fix:** Go to **Settings** → Gmail section and verify your credentials. You may need to generate a new App Password from your Google Account security settings.`
-          : "";
+        const readGuidance = `\n\n**How to fix:** Go to **Settings** → Gmail section and check your connection settings.`;
         await storage.createAgentAction({
           userId, agentType, actionType: "email_read_failed",
           description: `Failed to read email ${emailId}: ${readErrorMsg}`,
           metadata: { error: readErrorMsg, emailId },
         });
-        return { result: `Failed to read email: ${readErrorMsg}${readGuidance}`, actionType: "email_read_failed", actionDescription: `❌ ${readErrorMsg}` };
+        return { result: `Could not read this email. ${readErrorMsg}${readGuidance}`, actionType: "email_read_failed", actionDescription: `❌ Email read failed` };
       }
       const e = readResult.email;
+      const isReadViaImap = readResult.message?.includes("IMAP");
+      const readSourceLabel = isReadViaImap ? " (via IMAP)" : "";
       await storage.createAgentAction({
         userId, agentType, actionType: "email_read",
-        description: `Read email from ${e.from}: "${e.subject}"`,
-        metadata: { emailId: e.id, threadId: e.threadId, from: e.from, subject: e.subject },
+        description: `Read email${readSourceLabel} from ${e.from}: "${e.subject}"`,
+        metadata: { emailId: e.id, threadId: e.threadId, from: e.from, subject: e.subject, source: isReadViaImap ? "imap" : "gmail" },
       });
       return {
-        result: `📧 **Email Details**\n\n**From:** ${e.from}\n**To:** ${e.to}\n**Subject:** ${e.subject}\n**Date:** ${e.date}\n**Email ID:** \`${e.id}\`\n\n---\n\n${e.body}\n\n---\n\nTo reply to this email, ask me to "reply to this email" with your message.`,
+        result: `📧 **Email Details${readSourceLabel}**\n\n**From:** ${e.from}\n**To:** ${e.to}\n**Subject:** ${e.subject}\n**Date:** ${e.date}\n**Email ID:** \`${e.id}\`\n\n---\n\n${e.body}\n\n---\n\nTo reply to this email, ask me to "reply to this email" with your message.`,
         actionType: "email_read",
-        actionDescription: `📧 Read email: "${e.subject}"`,
+        actionDescription: `📧 Read email${readSourceLabel}: "${e.subject}"`,
       };
     }
 

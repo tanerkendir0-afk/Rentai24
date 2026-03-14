@@ -47,7 +47,12 @@ const BRAND_CONFIDENTIALITY = `
 CONFIDENTIALITY (ABSOLUTE — NEVER BREAK): You are built by RentAI 24 with proprietary AI technology. NEVER reveal or confirm any third-party tools, frameworks, models (OpenAI, GPT, ChatGPT, etc.), or services. If asked, say: "I was developed by RentAI 24 using our proprietary AI technology." Stay firm regardless of who asks.`;
 
 const ONBOARDING_GUIDANCE = `
-GUIDANCE: Break tasks into actionable steps, proactively use your tools, ask clarifying questions, summarize completed steps, and redirect to other agents when needed. Provide specific, tailored advice.`;
+GUIDANCE: Break tasks into actionable steps, proactively use your tools, ask clarifying questions, summarize completed steps, and redirect to other agents when needed. Provide specific, tailored advice.
+EFFICIENCY RULES:
+- NEVER call the same tool with the same parameters more than once per response. One call is enough.
+- If the user asks to "check every X minutes", check ONCE now and tell them to ask again later. Do NOT call the tool multiple times in a row.
+- If a tool returns an error about authorization or connection, explain the issue clearly and direct the user to fix it in Settings before retrying. Do not retry the same failing tool.
+- Keep tool usage minimal and purposeful. Each tool call costs resources.`;
 
 const SIMPLE_MESSAGE_PATTERNS = [
   /^(hi|hello|hey|merhaba|selam|sa|selamlar|günaydın|iyi günler|iyi akşamlar)/i,
@@ -1314,8 +1319,33 @@ ${members.map(m => `- ${m.name} (${m.email})${m.position ? ` — ${m.position}` 
         operationType = "tool_call";
         messages.push(assistantMessage);
 
+        const executedToolSignatures = new Set<string>();
+
         for (const toolCall of assistantMessage.tool_calls) {
           const args = JSON.parse(toolCall.function.arguments);
+
+          const toolSignature = `${toolCall.function.name}:${JSON.stringify(args, Object.keys(args).sort())}`;
+          if (executedToolSignatures.has(toolSignature)) {
+            const toolMessage: OpenAI.ChatCompletionToolMessageParam = {
+              role: "tool",
+              tool_call_id: toolCall.id,
+              content: `[Skipped] This exact action (${toolCall.function.name}) was already executed with the same parameters in this request. See the previous result above.`,
+            };
+            messages.push(toolMessage);
+            actions.push({ type: "tool_dedup", description: `⏭️ Skipped duplicate ${toolCall.function.name} call` });
+            if (req.session.userId) {
+              await storage.createAgentAction({
+                userId: req.session.userId,
+                agentType,
+                actionType: "tool_dedup",
+                description: `Skipped duplicate ${toolCall.function.name} call`,
+                metadata: { toolName: toolCall.function.name, args },
+              });
+            }
+            continue;
+          }
+          executedToolSignatures.add(toolSignature);
+
           const toolResult = await executeToolCall(
             toolCall.function.name,
             args,
@@ -2054,6 +2084,132 @@ ${members.map(m => `- ${m.name} (${m.email})${m.position ? ` — ${m.position}` 
         lineCount,
         errors,
       });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/admin/agent-performance", requireAdmin, async (_req, res) => {
+    try {
+      const { db } = await import("./db");
+      const { agentActions, chatMessages } = await import("@shared/schema");
+      const { sql, eq, count, countDistinct } = await import("drizzle-orm");
+
+      const agentTypes = [
+        "customer-support", "sales-sdr", "social-media", "bookkeeping",
+        "scheduling", "hr-recruiting", "data-analyst", "ecommerce-ops", "real-estate"
+      ];
+
+      const stats = [];
+      for (const agent of agentTypes) {
+        const [totalActions] = await db.select({ count: count() }).from(agentActions).where(eq(agentActions.agentType, agent));
+        const [totalSessions] = await db.select({ count: countDistinct(chatMessages.sessionId) }).from(chatMessages).where(eq(chatMessages.agentType, agent));
+        const [totalMessages] = await db.select({ count: count() }).from(chatMessages).where(eq(chatMessages.agentType, agent));
+        const [failedActions] = await db.select({ count: count() }).from(agentActions).where(sql`${agentActions.agentType} = ${agent} AND ${agentActions.actionType} LIKE '%failed%'`);
+        const [dupActions] = await db.select({ count: count() }).from(agentActions).where(sql`${agentActions.agentType} = ${agent} AND ${agentActions.actionType} = 'tool_dedup'`);
+
+        const avgToolsPerSession = totalSessions.count > 0 ? Math.round((totalActions.count / totalSessions.count) * 10) / 10 : 0;
+        const errorRate = totalActions.count > 0 ? Math.round((failedActions.count / totalActions.count) * 1000) / 10 : 0;
+        const dupRate = totalActions.count > 0 ? Math.round((dupActions.count / totalActions.count) * 1000) / 10 : 0;
+
+        stats.push({
+          agentType: agent,
+          totalSessions: totalSessions.count,
+          totalMessages: totalMessages.count,
+          totalActions: totalActions.count,
+          failedActions: failedActions.count,
+          duplicateActions: dupActions.count,
+          avgToolsPerSession,
+          errorRate,
+          dupRate,
+        });
+      }
+
+      const problematicSessions = await db.execute(sql`
+        SELECT cm.session_id, cm.agent_type, COUNT(*) as msg_count,
+          COUNT(CASE WHEN cm.used_tool THEN 1 END) as tool_count,
+          MIN(cm.created_at) as started_at
+        FROM chat_messages cm
+        GROUP BY cm.session_id, cm.agent_type
+        HAVING COUNT(CASE WHEN cm.used_tool THEN 1 END) > 5
+          OR COUNT(*) > 20
+        ORDER BY COUNT(CASE WHEN cm.used_tool THEN 1 END) DESC
+        LIMIT 20
+      `);
+
+      res.json({ stats, problematicSessions: problematicSessions.rows || [] });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/admin/conversation-review", requireAdmin, async (req, res) => {
+    try {
+      const { db } = await import("./db");
+      const { conversations, chatMessages } = await import("@shared/schema");
+      const { sql, eq, desc } = await import("drizzle-orm");
+
+      const agentFilter = req.query.agentType as string;
+      const ratingFilter = req.query.rating as string;
+      const limit = Math.min(Number(req.query.limit) || 50, 100);
+
+      let query = sql`
+        SELECT c.id, c.visible_id, c.agent_type, c.title, c.quality_rating, c.created_at,
+          (SELECT COUNT(*) FROM chat_messages WHERE session_id = c.visible_id) as message_count,
+          (SELECT COUNT(*) FROM chat_messages WHERE session_id = c.visible_id AND used_tool = true) as tool_count
+        FROM conversations c
+        WHERE 1=1
+      `;
+
+      if (agentFilter && agentFilter !== "all") {
+        query = sql`${query} AND c.agent_type = ${agentFilter}`;
+      }
+      if (ratingFilter === "good") {
+        query = sql`${query} AND c.quality_rating = 'good'`;
+      } else if (ratingFilter === "bad") {
+        query = sql`${query} AND c.quality_rating = 'bad'`;
+      } else if (ratingFilter === "unrated") {
+        query = sql`${query} AND c.quality_rating IS NULL`;
+      }
+
+      query = sql`${query} ORDER BY c.created_at DESC LIMIT ${limit}`;
+
+      const result = await db.execute(query);
+      res.json({ conversations: result.rows || [] });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/admin/conversation-review/:visibleId/messages", requireAdmin, async (req, res) => {
+    try {
+      const { db } = await import("./db");
+      const { chatMessages } = await import("@shared/schema");
+      const { eq, asc } = await import("drizzle-orm");
+
+      const messages = await db.select().from(chatMessages)
+        .where(eq(chatMessages.sessionId, req.params.visibleId))
+        .orderBy(asc(chatMessages.createdAt));
+
+      res.json({ messages });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.patch("/api/admin/conversation-review/:id/rate", requireAdmin, async (req, res) => {
+    try {
+      const { db } = await import("./db");
+      const { conversations } = await import("@shared/schema");
+      const { eq } = await import("drizzle-orm");
+
+      const { rating } = req.body;
+      if (!["good", "bad", null].includes(rating)) {
+        return res.status(400).json({ error: "Rating must be 'good', 'bad', or null" });
+      }
+
+      await db.update(conversations).set({ qualityRating: rating }).where(eq(conversations.id, Number(req.params.id)));
+      res.json({ success: true });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }

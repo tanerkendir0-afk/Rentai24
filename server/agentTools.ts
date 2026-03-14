@@ -1138,7 +1138,7 @@ export async function executeToolCall(
           metadata: { error: "gmail_not_connected" },
         });
         return {
-          result: "Gmail is not connected. Please connect your Gmail account in the integrations settings to use inbox features.",
+          result: "Gmail is not connected. To use email features, please go to **Settings** (click the ⚙️ icon in the top navigation) and connect your Gmail account with your email address and App Password. Once connected, I'll be able to check your inbox, read emails, and send replies.",
           actionType: "inbox_check_failed",
           actionDescription: "❌ Gmail not connected — cannot check inbox",
         };
@@ -1146,12 +1146,17 @@ export async function executeToolCall(
       const maxResults = Math.min(Math.max(Number(args.max_results) || 10, 1), 20);
       const inboxResult = await listInbox(maxResults);
       if (!inboxResult.success || !inboxResult.emails) {
+        const errorMsg = inboxResult.message || "Unknown error";
+        const isAuthError = /auth|token|permission|credential|access/i.test(errorMsg);
+        const guidanceMsg = isAuthError
+          ? `\n\n**How to fix:** Go to **Settings** → Gmail section and verify your email address and App Password are correct. If the issue persists, generate a new App Password from your Google Account security settings.`
+          : "";
         await storage.createAgentAction({
           userId, agentType, actionType: "inbox_check_failed",
-          description: `Failed to check Gmail inbox: ${inboxResult.message}`,
-          metadata: { error: inboxResult.message },
+          description: `Failed to check Gmail inbox: ${errorMsg}`,
+          metadata: { error: errorMsg },
         });
-        return { result: inboxResult.message, actionType: "inbox_check_failed", actionDescription: `❌ ${inboxResult.message}` };
+        return { result: `Failed to check inbox: ${errorMsg}${guidanceMsg}`, actionType: "inbox_check_failed", actionDescription: `❌ ${errorMsg}` };
       }
       if (inboxResult.emails.length === 0) {
         await storage.createAgentAction({
@@ -1186,7 +1191,7 @@ export async function executeToolCall(
           metadata: { error: "gmail_not_connected", emailId: args.email_id },
         });
         return {
-          result: "Gmail is not connected. Please connect your Gmail account to read emails.",
+          result: "Gmail is not connected. To use email features, please go to **Settings** (click the ⚙️ icon in the top navigation) and connect your Gmail account with your email address and App Password.",
           actionType: "email_read_failed",
           actionDescription: "❌ Gmail not connected",
         };
@@ -1202,12 +1207,17 @@ export async function executeToolCall(
       const emailId = resolveEmailId(String(args.email_id), userId);
       const readResult = await readEmail(emailId);
       if (!readResult.success || !readResult.email) {
+        const readErrorMsg = readResult.message || "Unknown error";
+        const isReadAuthError = /auth|token|permission|credential|access/i.test(readErrorMsg);
+        const readGuidance = isReadAuthError
+          ? `\n\n**How to fix:** Go to **Settings** → Gmail section and verify your credentials. You may need to generate a new App Password from your Google Account security settings.`
+          : "";
         await storage.createAgentAction({
           userId, agentType, actionType: "email_read_failed",
-          description: `Failed to read email ${emailId}: ${readResult.message}`,
-          metadata: { error: readResult.message, emailId },
+          description: `Failed to read email ${emailId}: ${readErrorMsg}`,
+          metadata: { error: readErrorMsg, emailId },
         });
-        return { result: readResult.message, actionType: "email_read_failed", actionDescription: `❌ ${readResult.message}` };
+        return { result: `Failed to read email: ${readErrorMsg}${readGuidance}`, actionType: "email_read_failed", actionDescription: `❌ ${readErrorMsg}` };
       }
       const e = readResult.email;
       await storage.createAgentAction({

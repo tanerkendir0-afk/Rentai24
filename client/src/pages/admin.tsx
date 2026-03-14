@@ -498,6 +498,347 @@ function DocumentsPanel({ agentType, token }: { agentType: string; token: string
   );
 }
 
+interface AgentPerfStat {
+  agentType: string;
+  totalSessions: number;
+  totalMessages: number;
+  totalActions: number;
+  failedActions: number;
+  duplicateActions: number;
+  avgToolsPerSession: number;
+  errorRate: number;
+  dupRate: number;
+}
+
+function PerformancePanel({ token }: { token: string }) {
+  const [stats, setStats] = useState<AgentPerfStat[]>([]);
+  const [problematic, setProblematic] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
+  const headers = { Authorization: `Bearer ${token}` };
+
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/admin/agent-performance", { headers });
+      if (!res.ok) throw new Error("Failed to fetch performance data");
+      const data = await res.json();
+      setStats(data.stats || []);
+      setProblematic(data.problematicSessions || []);
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    } finally { setLoading(false); }
+  }, [token]);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
+
+  const agentNameMap: Record<string, string> = {};
+  AGENTS.forEach(a => { agentNameMap[a.slug] = a.name; });
+
+  return (
+    <div className="space-y-6">
+      <Card className="bg-[#111633] border-[#1E2448]">
+        <CardHeader>
+          <CardTitle className="text-white flex items-center gap-2">
+            <Activity className="w-5 h-5 text-green-400" />
+            Agent Performance Overview
+          </CardTitle>
+          <CardDescription className="text-gray-400">
+            Per-agent statistics: tool usage, error rates, and efficiency metrics
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="flex items-center gap-2 text-gray-400"><RefreshCw className="w-4 h-4 animate-spin" /> Loading...</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm" data-testid="table-agent-performance">
+                <thead>
+                  <tr className="border-b border-[#1E2448]">
+                    <th className="text-left p-2 text-gray-400">Agent</th>
+                    <th className="text-center p-2 text-gray-400">Sessions</th>
+                    <th className="text-center p-2 text-gray-400">Messages</th>
+                    <th className="text-center p-2 text-gray-400">Actions</th>
+                    <th className="text-center p-2 text-gray-400">Avg Tools/Session</th>
+                    <th className="text-center p-2 text-gray-400">Error Rate</th>
+                    <th className="text-center p-2 text-gray-400">Dup Rate</th>
+                    <th className="text-center p-2 text-gray-400">Health</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {stats.map(s => {
+                    const health = s.errorRate > 20 ? "critical" : s.errorRate > 10 ? "warning" : s.dupRate > 10 ? "warning" : "good";
+                    return (
+                      <tr key={s.agentType} className="border-b border-[#1E2448]/50 hover:bg-[#0A0E27]/50" data-testid={`row-agent-${s.agentType}`}>
+                        <td className="p-2 text-white font-medium">{agentNameMap[s.agentType] || s.agentType}</td>
+                        <td className="p-2 text-center text-gray-300">{s.totalSessions}</td>
+                        <td className="p-2 text-center text-gray-300">{s.totalMessages}</td>
+                        <td className="p-2 text-center text-gray-300">{s.totalActions}</td>
+                        <td className="p-2 text-center text-cyan-400">{s.avgToolsPerSession}</td>
+                        <td className="p-2 text-center">
+                          <span className={s.errorRate > 20 ? "text-red-400" : s.errorRate > 10 ? "text-yellow-400" : "text-green-400"}>
+                            {s.errorRate}%
+                          </span>
+                        </td>
+                        <td className="p-2 text-center">
+                          <span className={s.dupRate > 10 ? "text-orange-400" : "text-green-400"}>
+                            {s.dupRate}%
+                          </span>
+                        </td>
+                        <td className="p-2 text-center">
+                          {health === "good" && <Badge className="bg-green-900/30 text-green-400 border-green-800">Good</Badge>}
+                          {health === "warning" && <Badge className="bg-yellow-900/30 text-yellow-400 border-yellow-800">Warning</Badge>}
+                          {health === "critical" && <Badge className="bg-red-900/30 text-red-400 border-red-800">Critical</Badge>}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+              {stats.length === 0 && (
+                <p className="text-gray-500 text-center py-8">No agent performance data yet. Start chatting with agents to collect data.</p>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {problematic.length > 0 && (
+        <Card className="bg-[#111633] border-[#1E2448]">
+          <CardHeader>
+            <CardTitle className="text-white flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-orange-400" />
+              Problematic Sessions
+            </CardTitle>
+            <CardDescription className="text-gray-400">
+              Sessions with excessive tool usage (&gt;5) or very long conversations (&gt;20 messages)
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {problematic.map((s: any, i: number) => (
+                <div key={i} className="flex items-center justify-between bg-[#0A0E27] rounded-lg p-3 border border-[#1E2448]" data-testid={`row-problematic-${i}`}>
+                  <div className="flex items-center gap-3">
+                    <Badge variant="outline" className="border-[#1E2448] text-gray-300">{agentNameMap[s.agent_type] || s.agent_type}</Badge>
+                    <span className="text-xs text-gray-400">Session: {String(s.session_id).slice(0, 12)}...</span>
+                  </div>
+                  <div className="flex gap-3 text-xs">
+                    <span className="text-gray-400">{s.msg_count} msgs</span>
+                    <span className={Number(s.tool_count) > 5 ? "text-orange-400" : "text-gray-400"}>{s.tool_count} tools</span>
+                    <span className="text-gray-500">{s.started_at ? new Date(s.started_at).toLocaleDateString() : ""}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+function ConversationReviewPanel({ token }: { token: string }) {
+  const [conversations, setConversations] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [selectedConv, setSelectedConv] = useState<any | null>(null);
+  const [messages, setMessages] = useState<any[]>([]);
+  const [loadingMsgs, setLoadingMsgs] = useState(false);
+  const [agentFilter, setAgentFilter] = useState("all");
+  const [ratingFilter, setRatingFilter] = useState("all");
+  const { toast } = useToast();
+  const headers = { Authorization: `Bearer ${token}` };
+
+  const agentNameMap: Record<string, string> = {};
+  AGENTS.forEach(a => { agentNameMap[a.slug] = a.name; });
+
+  const fetchConversations = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (agentFilter !== "all") params.set("agentType", agentFilter);
+      if (ratingFilter !== "all") params.set("rating", ratingFilter);
+      const res = await fetch(`/api/admin/conversation-review?${params}`, { headers });
+      if (!res.ok) throw new Error("Failed to fetch conversations");
+      const data = await res.json();
+      setConversations(data.conversations || []);
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    } finally { setLoading(false); }
+  }, [token, agentFilter, ratingFilter]);
+
+  useEffect(() => { fetchConversations(); }, [fetchConversations]);
+
+  const viewMessages = async (conv: any) => {
+    setSelectedConv(conv);
+    setLoadingMsgs(true);
+    try {
+      const res = await fetch(`/api/admin/conversation-review/${conv.visible_id}/messages`, { headers });
+      if (!res.ok) throw new Error("Failed to fetch messages");
+      const data = await res.json();
+      setMessages(data.messages || []);
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    } finally { setLoadingMsgs(false); }
+  };
+
+  const rateConversation = async (id: number, rating: string | null) => {
+    try {
+      const res = await fetch(`/api/admin/conversation-review/${id}/rate`, {
+        method: "PATCH", headers: { ...headers, "Content-Type": "application/json" },
+        body: JSON.stringify({ rating }),
+      });
+      if (!res.ok) throw new Error("Failed to rate conversation");
+      setConversations(prev => prev.map(c => c.id === id ? { ...c, quality_rating: rating } : c));
+      toast({ title: "Rated", description: `Conversation marked as ${rating || "unrated"}` });
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    }
+  };
+
+  if (selectedConv) {
+    return (
+      <div className="space-y-4">
+        <Button variant="outline" onClick={() => { setSelectedConv(null); setMessages([]); }} className="border-[#1E2448] text-gray-300" data-testid="button-back-to-list">
+          <ChevronLeft className="w-4 h-4 mr-1" /> Back to List
+        </Button>
+        <Card className="bg-[#111633] border-[#1E2448]">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-white text-base">{selectedConv.title}</CardTitle>
+                <CardDescription className="text-gray-400">
+                  {agentNameMap[selectedConv.agent_type] || selectedConv.agent_type} — {new Date(selectedConv.created_at).toLocaleString()}
+                </CardDescription>
+              </div>
+              <div className="flex gap-2">
+                <Button size="sm" variant={selectedConv.quality_rating === "good" ? "default" : "outline"}
+                  className={selectedConv.quality_rating === "good" ? "bg-green-600 hover:bg-green-700" : "border-green-800 text-green-400 hover:bg-green-900/30"}
+                  onClick={() => rateConversation(selectedConv.id, selectedConv.quality_rating === "good" ? null : "good")}
+                  data-testid="button-rate-good">
+                  <CheckCircle className="w-4 h-4 mr-1" /> Good
+                </Button>
+                <Button size="sm" variant={selectedConv.quality_rating === "bad" ? "default" : "outline"}
+                  className={selectedConv.quality_rating === "bad" ? "bg-red-600 hover:bg-red-700" : "border-red-800 text-red-400 hover:bg-red-900/30"}
+                  onClick={() => rateConversation(selectedConv.id, selectedConv.quality_rating === "bad" ? null : "bad")}
+                  data-testid="button-rate-bad">
+                  <XCircle className="w-4 h-4 mr-1" /> Bad
+                </Button>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {loadingMsgs ? (
+              <div className="flex items-center gap-2 text-gray-400"><RefreshCw className="w-4 h-4 animate-spin" /> Loading messages...</div>
+            ) : (
+              <div className="space-y-3 max-h-[500px] overflow-y-auto">
+                {messages.map((msg, i) => (
+                  <div key={i} className={`p-3 rounded-lg text-sm ${
+                    msg.role === "user" ? "bg-blue-900/20 border border-blue-800/30 ml-8" :
+                    msg.role === "assistant" ? "bg-[#0A0E27] border border-[#1E2448] mr-8" :
+                    "bg-gray-900/20 border border-gray-800/30 text-gray-500 text-xs"
+                  }`}>
+                    <div className="flex items-center gap-2 mb-1">
+                      <Badge variant="outline" className={`text-[10px] ${
+                        msg.role === "user" ? "border-blue-800 text-blue-400" : "border-purple-800 text-purple-400"
+                      }`}>{msg.role}</Badge>
+                      {msg.used_tool && <Badge className="bg-violet-900/30 text-violet-400 border-violet-800 text-[10px]">Tool Used</Badge>}
+                      <span className="text-[10px] text-gray-500">{new Date(msg.created_at).toLocaleTimeString()}</span>
+                    </div>
+                    <p className="text-gray-300 whitespace-pre-wrap">{msg.content.substring(0, 500)}{msg.content.length > 500 ? "..." : ""}</p>
+                  </div>
+                ))}
+                {messages.length === 0 && <p className="text-gray-500 text-center py-4">No messages found.</p>}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <Card className="bg-[#111633] border-[#1E2448]">
+        <CardHeader>
+          <CardTitle className="text-white flex items-center gap-2">
+            <MessageSquare className="w-5 h-5 text-teal-400" />
+            Conversation Review
+          </CardTitle>
+          <CardDescription className="text-gray-400">
+            Review conversations, rate quality for fine-tuning data curation. Conversations rated "bad" are excluded from training data export. Unrated and "good" rated conversations are included.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex gap-3">
+            <Select value={agentFilter} onValueChange={setAgentFilter}>
+              <SelectTrigger className="bg-[#0A0E27] border-[#1E2448] text-white w-48" data-testid="select-review-agent">
+                <SelectValue placeholder="All Agents" />
+              </SelectTrigger>
+              <SelectContent className="bg-[#111633] border-[#1E2448]">
+                <SelectItem value="all" className="text-white">All Agents</SelectItem>
+                {AGENTS.map(a => (
+                  <SelectItem key={a.slug} value={a.slug} className="text-white">{a.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={ratingFilter} onValueChange={setRatingFilter}>
+              <SelectTrigger className="bg-[#0A0E27] border-[#1E2448] text-white w-40" data-testid="select-review-rating">
+                <SelectValue placeholder="All Ratings" />
+              </SelectTrigger>
+              <SelectContent className="bg-[#111633] border-[#1E2448]">
+                <SelectItem value="all" className="text-white">All</SelectItem>
+                <SelectItem value="unrated" className="text-white">Unrated</SelectItem>
+                <SelectItem value="good" className="text-white">Good</SelectItem>
+                <SelectItem value="bad" className="text-white">Bad</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {loading ? (
+            <div className="flex items-center gap-2 text-gray-400"><RefreshCw className="w-4 h-4 animate-spin" /> Loading...</div>
+          ) : (
+            <div className="space-y-2">
+              {conversations.map((c: any) => (
+                <div key={c.id} className="flex items-center justify-between bg-[#0A0E27] rounded-lg p-3 border border-[#1E2448] hover:border-[#2E3468] cursor-pointer transition-colors"
+                  onClick={() => viewMessages(c)} data-testid={`row-conversation-${c.id}`}>
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm text-white truncate">{c.title}</p>
+                      <p className="text-xs text-gray-500">{agentNameMap[c.agent_type] || c.agent_type} — {new Date(c.created_at).toLocaleDateString()}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-xs text-gray-500">{c.message_count} msgs</span>
+                    {Number(c.tool_count) > 0 && <Badge variant="outline" className="border-violet-800 text-violet-400 text-[10px]">{c.tool_count} tools</Badge>}
+                    {c.quality_rating === "good" && <Badge className="bg-green-900/30 text-green-400 border-green-800 text-[10px]">Good</Badge>}
+                    {c.quality_rating === "bad" && <Badge className="bg-red-900/30 text-red-400 border-red-800 text-[10px]">Bad</Badge>}
+                    {!c.quality_rating && <Badge variant="outline" className="border-gray-700 text-gray-500 text-[10px]">Unrated</Badge>}
+                    <div className="flex gap-1">
+                      <button onClick={(e) => { e.stopPropagation(); rateConversation(c.id, c.quality_rating === "good" ? null : "good"); }}
+                        className={`p-1 rounded ${c.quality_rating === "good" ? "text-green-400" : "text-gray-600 hover:text-green-400"}`}
+                        data-testid={`button-quick-good-${c.id}`}>
+                        <CheckCircle className="w-3.5 h-3.5" />
+                      </button>
+                      <button onClick={(e) => { e.stopPropagation(); rateConversation(c.id, c.quality_rating === "bad" ? null : "bad"); }}
+                        className={`p-1 rounded ${c.quality_rating === "bad" ? "text-red-400" : "text-gray-600 hover:text-red-400"}`}
+                        data-testid={`button-quick-bad-${c.id}`}>
+                        <XCircle className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {conversations.length === 0 && (
+                <p className="text-gray-500 text-center py-8">No conversations found. Start chatting with agents to generate data.</p>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 function TrainingDataPanel({ agentType, token }: { agentType: string; token: string }) {
   const [stats, setStats] = useState<{ total_conversations: number; with_tools: number; avg_messages: number; earliest: string | null; latest: string | null } | null>(null);
   const [loading, setLoading] = useState(false);
@@ -2996,6 +3337,14 @@ export default function AdminPage() {
               <Shield className="w-3.5 h-3.5 mr-1" />
               Guardrails
             </TabsTrigger>
+            <TabsTrigger value="performance" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-500 data-[state=active]:to-emerald-600 data-[state=active]:text-white" data-testid="tab-performance">
+              <Activity className="w-3.5 h-3.5 mr-1" />
+              Performance
+            </TabsTrigger>
+            <TabsTrigger value="conversation-review" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-teal-500 data-[state=active]:to-cyan-600 data-[state=active]:text-white" data-testid="tab-conversation-review">
+              <MessageSquare className="w-3.5 h-3.5 mr-1" />
+              Conv. Review
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="boss-ai">
@@ -3048,6 +3397,14 @@ export default function AdminPage() {
 
           <TabsContent value="guardrails">
             <GuardrailsPanel token={token} />
+          </TabsContent>
+
+          <TabsContent value="performance">
+            <PerformancePanel token={token} />
+          </TabsContent>
+
+          <TabsContent value="conversation-review">
+            <ConversationReviewPanel token={token} />
           </TabsContent>
         </Tabs>
       </div>

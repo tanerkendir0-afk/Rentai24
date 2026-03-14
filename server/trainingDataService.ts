@@ -252,11 +252,22 @@ interface TrainingExample {
   messages: TrainingMessage[];
 }
 
+interface QualityScore {
+  score: number;
+  reasons: string[];
+}
+
 interface TrainingDataResult {
   jsonl: string;
   exampleCount: number;
   validationErrors: string[];
   warnings: string[];
+  qualityStats?: {
+    totalBefore: number;
+    totalAfter: number;
+    filtered: number;
+    avgScore: number;
+  };
 }
 
 function getSystemPromptForAgent(agent: AgentInfo): string {
@@ -415,6 +426,65 @@ function generateSampleExamples(agentType: string, filters: TrainingDataFilters)
   return examples;
 }
 
+function scoreConversationQuality(example: TrainingExample): QualityScore {
+  const reasons: string[] = [];
+  let score = 100;
+
+  const userMsgs = example.messages.filter(m => m.role === "user");
+  const assistantMsgs = example.messages.filter(m => m.role === "assistant");
+
+  if (userMsgs.length < 1 || assistantMsgs.length < 1) {
+    score -= 50;
+    reasons.push("Missing user or assistant messages");
+  }
+
+  if (userMsgs.length === 1 && assistantMsgs.length === 1) {
+    const totalLen = userMsgs[0].content.length + assistantMsgs[0].content.length;
+    if (totalLen < 30) {
+      score -= 30;
+      reasons.push("Very short conversation (likely greeting only)");
+    }
+  }
+
+  const errorPatterns = /❌|failed|error|not connected|cannot|unable/i;
+  const errorMsgs = assistantMsgs.filter(m => errorPatterns.test(m.content));
+  if (errorMsgs.length > 0) {
+    score -= 20 * errorMsgs.length;
+    reasons.push(`Contains ${errorMsgs.length} error response(s)`);
+  }
+
+  const assistantContents = assistantMsgs.map(m => m.content.trim().toLowerCase());
+  const duplicateResponses = assistantContents.length - new Set(assistantContents).size;
+  if (duplicateResponses > 0) {
+    score -= 25 * duplicateResponses;
+    reasons.push(`${duplicateResponses} duplicate assistant response(s)`);
+  }
+
+  const skippedPattern = /\[Skipped\]|already executed|duplicate/i;
+  const skippedMsgs = example.messages.filter(m => skippedPattern.test(m.content));
+  if (skippedMsgs.length > 0) {
+    score -= 15 * skippedMsgs.length;
+    reasons.push(`${skippedMsgs.length} skipped/duplicate tool call(s)`);
+  }
+
+  if (assistantMsgs.some(m => m.content.length > 3000)) {
+    score -= 10;
+    reasons.push("Excessively long response(s)");
+  }
+
+  return { score: Math.max(0, Math.min(100, score)), reasons };
+}
+
+function filterByQuality(examples: TrainingExample[], minScore: number = 40): { kept: TrainingExample[]; stats: { totalBefore: number; totalAfter: number; filtered: number; avgScore: number } } {
+  const scored = examples.map(ex => ({ example: ex, quality: scoreConversationQuality(ex) }));
+  const kept = scored.filter(s => s.quality.score >= minScore).map(s => s.example);
+  const avgScore = scored.length > 0 ? Math.round(scored.reduce((sum, s) => sum + s.quality.score, 0) / scored.length) : 0;
+  return {
+    kept,
+    stats: { totalBefore: examples.length, totalAfter: kept.length, filtered: examples.length - kept.length, avgScore },
+  };
+}
+
 export function validateJSONL(jsonlContent: string): string[] {
   const errors: string[] = [];
   const lines = jsonlContent.trim().split("\n").filter((l) => l.trim());
@@ -485,12 +555,14 @@ export async function generateTrainingDataFromChatLogs(
       endDate?: Date;
       minTurns?: number;
       toolUsageOnly?: boolean;
+      excludeBadRated?: boolean;
     } = {};
 
     if (filters.startDate) sessionFilters.startDate = new Date(filters.startDate);
     if (filters.endDate) sessionFilters.endDate = new Date(filters.endDate);
     if (filters.minTurns) sessionFilters.minTurns = filters.minTurns;
     if (filters.toolUsageOnly) sessionFilters.toolUsageOnly = filters.toolUsageOnly;
+    sessionFilters.excludeBadRated = true;
 
     const sessions = await storage.getChatSessionsByAgent(agentType, sessionFilters);
 
@@ -512,9 +584,15 @@ export async function generateTrainingDataFromChatLogs(
     return { jsonl: "", exampleCount: 0, validationErrors: ["No training examples could be generated."], warnings };
   }
 
-  const jsonlLines = allExamples.map((ex) => JSON.stringify(ex));
+  const { kept, stats: qualityStats } = filterByQuality(allExamples);
+  if (qualityStats.filtered > 0) {
+    warnings.push(`Quality filter removed ${qualityStats.filtered} low-quality examples (avg score: ${qualityStats.avgScore}/100).`);
+  }
+
+  const finalExamples = kept;
+  const jsonlLines = finalExamples.map((ex) => JSON.stringify(ex));
   const jsonl = jsonlLines.join("\n");
   const validationErrors = validateJSONL(jsonl);
 
-  return { jsonl, exampleCount: allExamples.length, validationErrors, warnings };
+  return { jsonl, exampleCount: finalExamples.length, validationErrors, warnings, qualityStats };
 }

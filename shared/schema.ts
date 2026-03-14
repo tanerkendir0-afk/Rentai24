@@ -298,6 +298,7 @@ export const conversations = pgTable("conversations", {
   userId: integer("user_id").notNull().references(() => users.id),
   agentType: text("agent_type").notNull(),
   title: text("title").notNull().default("New Chat"),
+  qualityRating: text("quality_rating"),
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
 });
 

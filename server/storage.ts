@@ -65,7 +65,7 @@ export interface IStorage {
 
   saveChatMessage(message: InsertChatMessage): Promise<ChatMessage>;
   getChatMessagesByAgent(agentType: string, filters?: { startDate?: Date; endDate?: Date }): Promise<ChatMessage[]>;
-  getChatSessionsByAgent(agentType: string, filters?: { startDate?: Date; endDate?: Date; minTurns?: number; toolUsageOnly?: boolean }): Promise<{ sessionId: string; messages: ChatMessage[] }[]>;
+  getChatSessionsByAgent(agentType: string, filters?: { startDate?: Date; endDate?: Date; minTurns?: number; toolUsageOnly?: boolean; excludeBadRated?: boolean }): Promise<{ sessionId: string; messages: ChatMessage[] }[]>;
 
   getConversationsByUser(userId: number, agentType: string): Promise<ConversationRecord[]>;
   createConversation(convo: InsertConversation): Promise<ConversationRecord>;
@@ -488,7 +488,7 @@ export class DatabaseStorage implements IStorage {
 
   async getChatSessionsByAgent(
     agentType: string,
-    filters?: { startDate?: Date; endDate?: Date; minTurns?: number; toolUsageOnly?: boolean }
+    filters?: { startDate?: Date; endDate?: Date; minTurns?: number; toolUsageOnly?: boolean; excludeBadRated?: boolean }
   ): Promise<{ sessionId: string; messages: ChatMessage[] }[]> {
     const allMessages = await this.getChatMessagesByAgent(agentType, {
       startDate: filters?.startDate,
@@ -506,6 +506,14 @@ export class DatabaseStorage implements IStorage {
       sessionId,
       messages,
     }));
+
+    if (filters?.excludeBadRated) {
+      const badSessions = await db.select({ visibleId: conversations.visibleId })
+        .from(conversations)
+        .where(and(eq(conversations.agentType, agentType), eq(conversations.qualityRating, "bad")));
+      const badSet = new Set(badSessions.map(s => s.visibleId));
+      sessions = sessions.filter(s => !badSet.has(s.sessionId));
+    }
 
     if (filters?.minTurns && filters.minTurns > 0) {
       sessions = sessions.filter((s) => {

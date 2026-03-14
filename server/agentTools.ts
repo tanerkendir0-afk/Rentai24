@@ -1543,7 +1543,7 @@ export async function executeToolCall(
           agentType,
           actionType: "template_email_sent",
           description: `"${template.name}" template email sent to ${lead.name} (${lead.email})`,
-          metadata: { templateId, leadId, leadName: lead.name, subject: filled.subject },
+          metadata: { templateId, leadId: lead.id, leadName: lead.name, subject: filled.subject },
         });
       }
 

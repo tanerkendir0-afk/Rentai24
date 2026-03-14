@@ -657,14 +657,14 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1 sm:gap-1.5 overflow-x-auto scrollbar-hide min-w-0">
             {user && isSocialMediaAgent && (
               <div className="relative">
                 <Button
                   size="sm"
                   variant="ghost"
                   onClick={() => { setShowSocialPanel(!showSocialPanel); setShowCreditsPanel(false); }}
-                  className="h-8 text-xs gap-1.5 text-muted-foreground"
+                  className="h-8 text-xs gap-1.5 text-muted-foreground shrink-0"
                   data-testid="button-social-accounts"
                 >
                   <Share2 className="w-3.5 h-3.5 text-violet-500" />
@@ -676,7 +676,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                   )}
                 </Button>
                 {showSocialPanel && (
-                  <div className="absolute right-0 sm:right-0 top-full mt-2 w-[calc(100vw-2rem)] sm:w-80 max-w-[320px] bg-card border border-border rounded-xl shadow-2xl z-50 p-4" data-testid="social-panel">
+                  <div className="fixed inset-x-4 top-[7.5rem] sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 w-auto sm:w-80 bg-card border border-border rounded-xl shadow-2xl z-50 p-4 max-h-[calc(100vh-9rem)] overflow-y-auto" data-testid="social-panel">
                     <div className="flex items-center justify-between mb-3">
                       <h4 className="font-semibold text-sm flex items-center gap-2">
                         <Share2 className="w-4 h-4 text-violet-500" />
@@ -794,14 +794,14 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                   size="sm"
                   variant="ghost"
                   onClick={() => { setShowCreditsPanel(!showCreditsPanel); setShowSocialPanel(false); }}
-                  className="h-8 text-xs gap-1.5 text-muted-foreground"
+                  className="h-8 text-xs gap-1.5 text-muted-foreground shrink-0"
                   data-testid="button-image-credits"
                 >
                   <Coins className="w-3.5 h-3.5 text-yellow-500" />
                   {imageCredits}
                 </Button>
                 {showCreditsPanel && (
-                  <div className="absolute right-0 sm:right-0 top-full mt-2 w-[calc(100vw-2rem)] sm:w-80 max-w-[320px] bg-card border border-border rounded-xl shadow-2xl z-50 p-4" data-testid="credits-panel">
+                  <div className="fixed inset-x-4 top-[7.5rem] sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 w-auto sm:w-80 bg-card border border-border rounded-xl shadow-2xl z-50 p-4 max-h-[calc(100vh-9rem)] overflow-y-auto" data-testid="credits-panel">
                     <div className="flex items-center justify-between mb-3">
                       <h4 className="font-semibold text-sm flex items-center gap-2">
                         <Sparkles className="w-4 h-4 text-yellow-500" />
@@ -918,7 +918,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
               size="sm"
               variant="ghost"
               onClick={startNewConversation}
-              className="h-8 text-xs gap-1 text-muted-foreground hover:text-foreground"
+              className="h-8 text-xs gap-1 text-muted-foreground hover:text-foreground shrink-0"
               title="New conversation"
               data-testid="button-new-chat"
             >
@@ -930,7 +930,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                 size="sm"
                 variant={showTasksPanel ? "default" : "ghost"}
                 onClick={() => setShowTasksPanel(!showTasksPanel)}
-                className={`h-8 text-xs gap-1 ${showTasksPanel ? "bg-blue-500/20 text-blue-400" : "text-muted-foreground hover:text-foreground"}`}
+                className={`h-8 text-xs gap-1 shrink-0 ${showTasksPanel ? "bg-blue-500/20 text-blue-400" : "text-muted-foreground hover:text-foreground"}`}
                 title="Tasks & Projects"
                 data-testid="button-toggle-tasks"
               >
@@ -944,7 +944,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                   size="sm"
                   variant="ghost"
                   onClick={() => { setShowCargoPanel(!showCargoPanel); setShowCreditsPanel(false); setShowSocialPanel(false); setShowHelpPanel(false); }}
-                  className="h-8 text-xs gap-1.5 text-muted-foreground"
+                  className="h-8 text-xs gap-1.5 text-muted-foreground shrink-0"
                   data-testid="button-cargo"
                 >
                   <Package className="w-3.5 h-3.5 text-orange-500" />
@@ -956,7 +956,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                   )}
                 </Button>
                 {showCargoPanel && (
-                  <div className="absolute right-0 sm:right-0 top-full mt-2 w-[calc(100vw-2rem)] sm:w-80 max-w-[320px] bg-card border border-border rounded-xl shadow-2xl z-50 p-4" data-testid="cargo-panel">
+                  <div className="fixed inset-x-4 top-[7.5rem] sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 w-auto sm:w-80 bg-card border border-border rounded-xl shadow-2xl z-50 p-4 max-h-[calc(100vh-9rem)] overflow-y-auto" data-testid="cargo-panel">
                     <div className="flex items-center justify-between mb-3">
                       <h4 className="font-semibold text-sm flex items-center gap-2">
                         <Package className="w-4 h-4 text-orange-500" />
@@ -1023,7 +1023,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                   size="sm"
                   variant="ghost"
                   onClick={() => { setShowHelpPanel(!showHelpPanel); setShowCreditsPanel(false); setShowSocialPanel(false); setShowCargoPanel(false); }}
-                  className="h-8 text-xs gap-1 text-muted-foreground hover:text-foreground"
+                  className="h-8 text-xs gap-1 text-muted-foreground hover:text-foreground shrink-0"
                   title="Help & Support"
                   data-testid="button-help"
                 >
@@ -1035,7 +1035,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                   )}
                 </Button>
                 {showHelpPanel && (
-                  <div className="absolute right-0 top-full mt-2 w-[calc(100vw-2rem)] sm:w-96 max-w-[400px] bg-card border border-border rounded-xl shadow-2xl z-50 p-4" data-testid="help-panel">
+                  <div className="fixed inset-x-4 top-[7.5rem] sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 w-auto sm:w-96 bg-card border border-border rounded-xl shadow-2xl z-50 p-4 max-h-[calc(100vh-9rem)] overflow-y-auto" data-testid="help-panel">
                     <div className="flex items-center justify-between mb-3">
                       <h4 className="font-semibold text-sm flex items-center gap-2">
                         <HelpCircle className="w-4 h-4 text-orange-500" />

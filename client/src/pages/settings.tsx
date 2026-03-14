@@ -675,17 +675,17 @@ export default function Settings() {
                 )}
               </div>
             </div>
-            <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-border/50">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-lg bg-muted/30 border border-border/50 gap-3">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-full bg-violet-500/10 flex items-center justify-center">
+                <div className="w-9 h-9 rounded-full bg-violet-500/10 flex items-center justify-center shrink-0">
                   <Mail className="w-4 h-4 text-violet-400" />
                 </div>
-                <div>
+                <div className="min-w-0">
                   <p className="text-sm font-medium text-foreground">Platform Email</p>
                   <p className="text-xs text-muted-foreground">Fallback email service for agent communications</p>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
                 <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/30 gap-1" data-testid="badge-platform-email">
                   <CheckCircle2 className="w-3 h-3" />
                   Active
@@ -1321,19 +1321,19 @@ export default function Settings() {
               {shippingProvidersData.map((sp) => {
                 const cfg = shippingProviderConfig[sp.provider] || { icon: "📦", name: sp.provider, color: "text-gray-400", bgColor: "bg-gray-500/10" };
                 return (
-                  <div key={sp.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-border/50 group" data-testid={`card-shipping-${sp.id}`}>
-                    <div className="flex items-center gap-3">
+                  <div key={sp.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-lg bg-muted/30 border border-border/50 group gap-2" data-testid={`card-shipping-${sp.id}`}>
+                    <div className="flex items-center gap-3 min-w-0">
                       <div className={`w-9 h-9 rounded-full ${cfg.bgColor} flex items-center justify-center shrink-0`}>
                         <span className="text-base">{cfg.icon}</span>
                       </div>
-                      <div>
-                        <p className={`text-sm font-medium ${cfg.color}`} data-testid={`text-shipping-name-${sp.id}`}>
+                      <div className="min-w-0">
+                        <p className={`text-sm font-medium ${cfg.color} truncate`} data-testid={`text-shipping-name-${sp.id}`}>
                           {cfg.name}
                         </p>
-                        <p className="text-xs text-muted-foreground">API Key: ****{sp.apiKey.slice(-4)}</p>
+                        <p className="text-xs text-muted-foreground truncate">API Key: ****{sp.apiKey.slice(-4)}</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
                       <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/30 text-[10px]">
                         <CheckCircle2 className="w-2.5 h-2.5 mr-0.5" />
                         {sp.status}
@@ -1582,7 +1582,7 @@ export default function Settings() {
 
             <div>
               <p className="text-sm font-medium text-foreground mb-3">Purchase Credits</p>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {(creditPrices || []).map((price) => (
                   <button
                     key={price.id}

@@ -108,7 +108,7 @@ export default function About() {
           </motion.div>
 
           <motion.div {...fadeUp}>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-16">
+            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 mb-16">
               {stats.map((stat) => (
                 <Card key={stat.label} className="p-6 bg-card border-border/50 text-center">
                   <div className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent mb-1">

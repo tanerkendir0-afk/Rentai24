@@ -490,7 +490,7 @@ export default function Home() {
         </div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div style={{ y: statsY }}>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-8">
+            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-8">
               {[
                 { value: 150, suffix: "+", label: "AI Workers Available", color: "text-blue-400" },
                 { value: 500, suffix: "+", label: "Businesses Served", color: "text-violet-400" },

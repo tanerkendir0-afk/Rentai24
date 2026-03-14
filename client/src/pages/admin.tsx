@@ -1921,7 +1921,7 @@ function CollaborationPanel({ token }: { token: string }) {
     try {
       const res = await fetch(`${ADMIN_API}/agent-collaboration`, {
         method: "POST",
-        headers,
+        headers: { ...headers, "Content-Type": "application/json" },
         body: JSON.stringify({ topic: topic.trim(), selectedAgents }),
       });
       if (!res.ok) {
@@ -3769,7 +3769,7 @@ function LimitManagementPanel({ token }: { token: string }) {
     try {
       const res = await fetch(`${ADMIN_API}/agent-limits`, {
         method: "POST",
-        headers,
+        headers: { ...headers, "Content-Type": "application/json" },
         body: JSON.stringify({ agentType, period, tokenLimit: edit.tokenLimit, messageLimit: edit.messageLimit }),
       });
       if (!res.ok) throw new Error("Save failed");
@@ -3799,7 +3799,7 @@ function LimitManagementPanel({ token }: { token: string }) {
     try {
       const res = await fetch(`${ADMIN_API}/agent-limits`, {
         method: "POST",
-        headers,
+        headers: { ...headers, "Content-Type": "application/json" },
         body: JSON.stringify({
           agentType: userOverrideAgent,
           period: userOverridePeriod,

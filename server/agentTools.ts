@@ -6,7 +6,6 @@ import { createCalendarEvent } from "./calendarService";
 import { getTemplate, fillTemplate, listTemplates, DRIP_SEQUENCES } from "./emailTemplates";
 import { generateAIImage, findStockImages } from "./imageService";
 import { isUserGmailReady, listInbox, readEmail, replyToEmail } from "./gmailService";
-import { isUserGmailOAuthConnected, getUserGmailAddress } from "./googleOAuth";
 import { computeLeadScore } from "./leadScoring";
 
 const aiClient = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -1182,20 +1181,22 @@ export async function executeToolCall(
   const displayName = agentDisplayNames[agentType] || agentType;
   switch (toolName) {
     case "check_gmail_status": {
-      const gmailConnected = await isUserGmailOAuthConnected(userId);
-      const gmailAddress = await getUserGmailAddress(userId);
+      const { getUserGmailStatus } = await import("./gmailService");
+      const gmailStatus = await getUserGmailStatus(userId);
       let statusMsg = "";
-      if (gmailConnected && gmailAddress) {
-        statusMsg = `✅ **Gmail Connected**\n\nYour Gmail account (${gmailAddress}) is properly configured and ready to use. You can send emails, check your inbox, and reply to messages.`;
+      if (gmailStatus.connected && gmailStatus.method === "oauth") {
+        statusMsg = `✅ **Gmail Connected (Google OAuth)**\n\nYour Gmail account (${gmailStatus.email}) is fully configured. You can send emails, check your inbox, read emails, and reply to messages.`;
+      } else if (gmailStatus.connected && gmailStatus.method === "app_password") {
+        statusMsg = `✅ **Gmail Connected (App Password)**\n\nYour Gmail account (${gmailStatus.email}) is configured for **sending** emails. To also read your inbox and reply to emails, connect via **Google OAuth** in **Settings** → Gmail Account → **Connect with Google**.`;
       } else {
         statusMsg = `❌ **Gmail Not Connected**\n\nTo use email features, please go to **Settings** (click the ⚙️ icon) → Gmail section and click **Connect Gmail** to link your Google account.\n\nOnce connected, I can check your inbox, read emails, send emails, and reply to messages.`;
       }
       await storage.createAgentAction({
         userId, agentType, actionType: "gmail_status_check",
-        description: `Gmail status check: connected: ${gmailConnected ? "yes" : "no"}`,
-        metadata: { gmailConnected, gmailAddress },
+        description: `Gmail status check: connected: ${gmailStatus.connected ? "yes" : "no"}, method: ${gmailStatus.method || "none"}`,
+        metadata: { connected: gmailStatus.connected, method: gmailStatus.method, email: gmailStatus.email },
       });
-      return { result: statusMsg, actionType: "gmail_status_check", actionDescription: `📧 Gmail status: ${gmailConnected ? "Connected" : "Not connected"}` };
+      return { result: statusMsg, actionType: "gmail_status_check", actionDescription: `📧 Gmail status: ${gmailStatus.connected ? `Connected (${gmailStatus.method})` : "Not connected"}` };
     }
 
     case "list_inbox": {

@@ -697,24 +697,47 @@ export default function Settings() {
                     <p className="text-xs text-emerald-400">Connected via {gmailSettings.hasOAuth ? "Google OAuth" : "App Password"}</p>
                   </div>
                 </div>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-7 text-xs text-red-400 border-red-500/30 hover:bg-red-500/10"
-                  onClick={async () => {
-                    try {
-                      await apiRequest("DELETE", "/api/settings/gmail");
-                      queryClient.invalidateQueries({ queryKey: ["/api/settings/gmail"] });
-                      queryClient.invalidateQueries({ queryKey: ["/api/email-status"] });
-                      toast({ title: "Gmail disconnected", description: "Your Google account has been disconnected." });
-                    } catch {
-                      toast({ title: "Error", description: "Failed to disconnect Gmail.", variant: "destructive" });
-                    }
-                  }}
-                  data-testid="button-remove-gmail"
-                >
-                  Disconnect
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-xs border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10"
+                    onClick={async () => {
+                      try {
+                        const res = await apiRequest("GET", "/api/settings/gmail/status");
+                        const status = await res.json();
+                        if (status.connected) {
+                          toast({ title: "Connection OK", description: `Gmail (${status.email}) is connected via ${status.method === "oauth" ? "Google OAuth" : "App Password"}.` });
+                        } else {
+                          toast({ title: "Not connected", description: "Gmail is not connected.", variant: "destructive" });
+                        }
+                      } catch {
+                        toast({ title: "Error", description: "Failed to test Gmail connection.", variant: "destructive" });
+                      }
+                    }}
+                    data-testid="button-test-gmail"
+                  >
+                    <RefreshCw className="w-3 h-3 mr-1" />Test
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-xs text-red-400 border-red-500/30 hover:bg-red-500/10"
+                    onClick={async () => {
+                      try {
+                        await apiRequest("DELETE", "/api/settings/gmail");
+                        queryClient.invalidateQueries({ queryKey: ["/api/settings/gmail"] });
+                        queryClient.invalidateQueries({ queryKey: ["/api/email-status"] });
+                        toast({ title: "Gmail disconnected", description: "Your Google account has been disconnected." });
+                      } catch {
+                        toast({ title: "Error", description: "Failed to disconnect Gmail.", variant: "destructive" });
+                      }
+                    }}
+                    data-testid="button-remove-gmail"
+                  >
+                    Disconnect
+                  </Button>
+                </div>
               </div>
             </div>
           ) : (

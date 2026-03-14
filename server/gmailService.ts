@@ -110,6 +110,10 @@ export async function listInbox(userId: number, maxResults: number = 10): Promis
   try {
     const gmail = await getOAuthGmailClient(userId);
     if (!gmail) {
+      const appPassReady = await isUserGmailAppPasswordReady(userId);
+      if (appPassReady) {
+        return { success: false, message: "Your Gmail is connected via App Password, which supports **sending** emails only. To read your inbox, please connect via **Google OAuth** in **Settings** → Gmail Account → **Connect with Google**." };
+      }
       return { success: false, message: "Gmail is not connected. Please go to **Settings** and click **Connect Gmail** to link your Google account." };
     }
 
@@ -154,6 +158,10 @@ export async function readEmail(userId: number, messageId: string): Promise<{ su
   try {
     const gmail = await getOAuthGmailClient(userId);
     if (!gmail) {
+      const appPassReady = await isUserGmailAppPasswordReady(userId);
+      if (appPassReady) {
+        return { success: false, message: "Your Gmail is connected via App Password, which supports **sending** emails only. To read emails, please connect via **Google OAuth** in **Settings** → Gmail Account → **Connect with Google**." };
+      }
       return { success: false, message: "Gmail is not connected. Please go to **Settings** and click **Connect Gmail**." };
     }
 
@@ -188,6 +196,10 @@ export async function replyToEmail(userId: number, messageId: string, body: stri
   try {
     const gmail = await getOAuthGmailClient(userId);
     if (!gmail) {
+      const appPassReady = await isUserGmailAppPasswordReady(userId);
+      if (appPassReady) {
+        return { success: false, message: "Your Gmail is connected via App Password, which supports **sending** emails only. To reply to emails, please connect via **Google OAuth** in **Settings** → Gmail Account → **Connect with Google**." };
+      }
       return { success: false, message: "Gmail is not connected. Please go to **Settings** and click **Connect Gmail**." };
     }
 

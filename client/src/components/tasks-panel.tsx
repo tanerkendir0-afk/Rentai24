@@ -201,7 +201,7 @@ export default function TasksPanel({ agentType, agentColor, onClose }: {
       <div className="p-3 border-b border-border/50 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2">
           <ListTodo className="w-4 h-4 text-muted-foreground" />
-          <h3 className="text-sm font-semibold text-foreground">Tasks</h3>
+          <h3 className="text-sm font-semibold text-foreground">Projects & Tasks</h3>
           <Badge variant="secondary" className="text-[10px] h-5">{tasks.length}</Badge>
         </div>
         <div className="flex items-center gap-1">

@@ -443,7 +443,7 @@ export async function registerRoutes(
           },
         ];
         for (const rule of defaultRules) {
-          await storage.createEscalationRule(rule);
+          await storage.upsertEscalationRule(rule);
         }
         console.log("[Escalation] Seeded 3 default escalation rules");
       }
@@ -1399,8 +1399,8 @@ export async function registerRoutes(
     if (req.session.userId) {
       let activeEsc = await storage.getActiveEscalationForUser(req.session.userId, agentType);
       if (!activeEsc && agentType === "manager") {
-        const allEscalations = await storage.getEscalations("admin_joined");
-        activeEsc = allEscalations.find((e: any) => e.userId === req.session.userId) || null;
+        const allEscalations = await storage.getEscalations({ status: "admin_joined", userId: req.session.userId });
+        activeEsc = allEscalations.length > 0 ? allEscalations[0] : null;
       }
       if (activeEsc && activeEsc.status === "admin_joined") {
         await storage.createEscalationMessage({
@@ -1926,7 +1926,7 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
                 const adminEmail = "tanerkendir0@gmail.com";
                 const appDomain = process.env.REPLIT_DEV_DOMAIN || process.env.REPL_SLUG + ".repl.co";
                 const adminPath = process.env.ADMIN_PATH || "kontrol-7x9k2";
-                const chatLink = `https://${appDomain}/${adminPath}?tab=escalations&escalationId=${esc.id}`;
+                const chatLink = `https://${appDomain}/${adminPath}?tab=escalations&escalationId=${esc.id}&token=${uniqueToken}`;
 
                 await sendViaResendDirect({
                   to: adminEmail,
@@ -1963,18 +1963,22 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
         usedTool,
       }).catch(err => console.error("Chat message save error:", err.message));
 
-      const responsePayload: Record<string, any> = { reply, actions: actions.length > 0 ? actions : undefined, sessionId: chatSessionId };
-      if (managerRoutedTo) {
-        responsePayload.routedTo = managerRoutedTo;
-        responsePayload.routedToName = agentPersonaMap[managerRoutedTo] || managerRoutedTo;
-      }
+      const responsePayload: Record<string, any> = { sessionId: chatSessionId };
       if (escalationTriggered && escalationData) {
+        responsePayload.reply = escalationData.message || reply;
         responsePayload.escalation = {
           id: escalationData.id,
           message: escalationData.message,
           reason: escalationData.reason,
           priority: escalationData.priority,
         };
+      } else {
+        responsePayload.reply = reply;
+        responsePayload.actions = actions.length > 0 ? actions : undefined;
+        if (managerRoutedTo) {
+          responsePayload.routedTo = managerRoutedTo;
+          responsePayload.routedToName = agentPersonaMap[managerRoutedTo] || managerRoutedTo;
+        }
       }
       if (escalationData?.active) {
         responsePayload.escalationActive = { id: escalationData.id };

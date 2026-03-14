@@ -555,9 +555,6 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
       } else if (data.limitReached) {
         setMessages((prev) => [...prev, { role: "assistant", content: data.reply, isLimitWarning: true }]);
       } else if (data.escalation) {
-        if (data.reply) {
-          setMessages((prev) => [...prev, { role: "assistant", content: data.reply, actions: data.actions }]);
-        }
         setMessages((prev) => [...prev, { role: "system", content: data.escalation.message, isEscalation: true }]);
         setActiveEscalationId(data.escalation.id);
       } else if (data.escalationActive?.adminJoined) {

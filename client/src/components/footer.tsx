@@ -1,12 +1,14 @@
 import { useState } from "react";
 import { Link } from "wouter";
-import { Bot, Mail, ArrowRight, Loader2, CheckCircle2 } from "lucide-react";
+import { Bot, Mail, ArrowRight, Loader2, CheckCircle2, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { useAuth } from "@/lib/auth";
 
 export default function Footer() {
+  const { user } = useAuth();
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [subscribed, setSubscribed] = useState(false);
@@ -60,6 +62,16 @@ export default function Footer() {
                   <Link href={link.href}>
                     <span className="text-sm text-muted-foreground cursor-pointer hover:text-foreground transition-colors" data-testid={`footer-link-${link.href.replace("/", "")}`}>
                       {link.label}
+                    </span>
+                  </Link>
+                </li>
+              ))}
+              {user?.email === "tanerkendir0@gmail.com" && (
+                <li>
+                  <Link href={`/${import.meta.env.VITE_ADMIN_PATH}`}>
+                    <span className="text-sm text-amber-400 cursor-pointer hover:text-amber-300 transition-colors flex items-center gap-1" data-testid="footer-link-admin">
+                      <Shield className="w-3 h-3" />
+                      Admin Panel
                     </span>
                   </Link>
                 </li>

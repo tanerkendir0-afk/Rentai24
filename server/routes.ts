@@ -4,7 +4,7 @@ import OpenAI from "openai";
 import bcrypt from "bcrypt";
 import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
-import { chatMessageSchema, contactFormSchema, registerSchema, loginSchema, newsletterSchema, bossConversations, collaborationSessions, type User, type AgentTask } from "@shared/schema";
+import { chatMessageSchema, contactFormSchema, registerSchema, loginSchema, newsletterSchema, bossConversations, collaborationSessions, rentals, type User, type AgentTask } from "@shared/schema";
 import { z } from "zod";
 import { storage } from "./storage";
 import { requireAuth } from "./auth";
@@ -2802,13 +2802,48 @@ ${members.map(m => `- ${m.name} (${m.email})${m.position ? ` — ${m.position}` 
           COUNT(r.id)::int as active_rentals,
           COALESCE(
             json_agg(
-              json_build_object('agentType', r.agent_type, 'plan', r.plan, 'status', r.status, 'messagesUsed', r.messages_used, 'messagesLimit', r.messages_limit)
+              json_build_object('id', r.id, 'agentType', r.agent_type, 'plan', r.plan, 'status', r.status, 'messagesUsed', r.messages_used, 'messagesLimit', r.messages_limit)
             ) FILTER (WHERE r.id IS NOT NULL), '[]'
           ) as rentals
         FROM users u
         LEFT JOIN rentals r ON u.id = r.user_id AND r.status = 'active'
         GROUP BY u.id
         ORDER BY u.created_at DESC
+      `);
+      res.json(result.rows);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.patch("/api/admin/rentals/:id", requireAdmin, async (req, res) => {
+    try {
+      const rentalId = parseInt(req.params.id);
+      const { messagesLimit, messagesUsed, plan, status } = req.body;
+      const updates: Partial<{ messagesLimit: number; messagesUsed: number; plan: string; status: string }> = {};
+      if (messagesLimit !== undefined) updates.messagesLimit = parseInt(messagesLimit);
+      if (messagesUsed !== undefined) updates.messagesUsed = parseInt(messagesUsed);
+      if (plan !== undefined) updates.plan = plan;
+      if (status !== undefined) updates.status = status;
+      if (Object.keys(updates).length === 0) {
+        return res.status(400).json({ error: "No fields to update" });
+      }
+      await db.update(rentals).set(updates).where(eq(rentals.id, rentalId));
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/admin/all-rentals", requireAdmin, async (_req, res) => {
+    try {
+      const result = await db.execute(sql`
+        SELECT r.id, r.user_id, r.agent_type, r.plan, r.status,
+               r.messages_used, r.messages_limit, r.started_at, r.expires_at,
+               u.email, u.full_name
+        FROM rentals r
+        JOIN users u ON r.user_id = u.id
+        ORDER BY r.started_at DESC
       `);
       res.json(result.rows);
     } catch (error: any) {

@@ -3428,6 +3428,403 @@ function SecurityReportPanel({ token }: { token: string }) {
   );
 }
 
+function PackageManagementPanel({ token }: { token: string }) {
+  const [rentals, setRentals] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editLimit, setEditLimit] = useState("");
+  const [editUsed, setEditUsed] = useState("");
+  const [editPlan, setEditPlan] = useState("");
+  const { toast } = useToast();
+
+  const PLANS = [
+    {
+      id: "starter",
+      name: "Starter",
+      price: "$49/ay",
+      messages: 100,
+      features: ["Temel destek", "Standart yanıt süresi", "Tek ajan erişimi"],
+      color: "from-blue-500 to-blue-600",
+    },
+    {
+      id: "professional",
+      name: "Professional",
+      price: "$39/ay",
+      messages: 500,
+      features: ["Öncelikli destek", "Hızlı yanıtlar", "Tüm araçlar açık", "Gelişmiş analiz"],
+      color: "from-violet-500 to-purple-600",
+      popular: true,
+    },
+    {
+      id: "enterprise",
+      name: "Enterprise",
+      price: "Özel Fiyat",
+      messages: 5000,
+      features: ["Özel destek", "Özel entegrasyonlar", "SLA garantisi", "API erişimi", "Sınırsız ajan"],
+      color: "from-amber-500 to-orange-600",
+    },
+  ];
+
+  const fetchRentals = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/admin/all-rentals", { headers: { Authorization: `Bearer ${token}` } });
+      if (res.ok) setRentals(await res.json());
+    } catch {}
+    setLoading(false);
+  }, [token]);
+
+  useEffect(() => { fetchRentals(); }, [fetchRentals]);
+
+  const startEdit = (rental: any) => {
+    setEditingId(rental.id);
+    setEditLimit(String(rental.messages_limit));
+    setEditUsed(String(rental.messages_used));
+    setEditPlan(rental.plan);
+  };
+
+  const saveEdit = async (id: number) => {
+    try {
+      const res = await fetch(`/api/admin/rentals/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ messagesLimit: editLimit, messagesUsed: editUsed, plan: editPlan }),
+      });
+      if (res.ok) {
+        toast({ title: "Güncellendi", description: "Rental bilgileri başarıyla güncellendi." });
+        setEditingId(null);
+        fetchRentals();
+      } else {
+        const err = await res.json();
+        toast({ title: "Hata", description: err.error, variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Hata", description: "Güncelleme başarısız", variant: "destructive" });
+    }
+  };
+
+  const agentLabel = (slug: string) => {
+    const map: Record<string, string> = {
+      "customer-support": "Ava", "sales-sdr": "Rex", "social-media": "Maya",
+      "bookkeeping": "Finn", "scheduling": "Cal", "hr-recruiting": "Harper",
+      "data-analyst": "DataBot", "ecommerce-ops": "ShopBot", "real-estate": "Reno",
+      "manager": "Manager",
+    };
+    return map[slug] || slug;
+  };
+
+  return (
+    <div className="space-y-6">
+      <Card className="bg-gradient-to-r from-violet-900/50 to-purple-900/50 border-violet-500/30">
+        <CardHeader>
+          <CardTitle className="text-xl text-white flex items-center gap-2">
+            <CreditCard className="w-5 h-5 text-violet-400" />
+            Paket Planları ve Kuralları
+          </CardTitle>
+          <CardDescription className="text-gray-300">
+            Mevcut paket planları, fiyatlandırma ve her planın limitleri.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {PLANS.map((plan) => (
+              <div
+                key={plan.id}
+                className={`relative p-5 rounded-xl border ${plan.popular ? "border-violet-500/50 bg-violet-900/20" : "border-[#1E2448] bg-[#0A0E27]"}`}
+                data-testid={`plan-card-${plan.id}`}
+              >
+                {plan.popular && (
+                  <Badge className="absolute -top-2 right-3 bg-gradient-to-r from-violet-500 to-purple-600 text-white text-xs">
+                    Popüler
+                  </Badge>
+                )}
+                <div className={`w-10 h-10 rounded-lg bg-gradient-to-r ${plan.color} flex items-center justify-center mb-3`}>
+                  <Crown className="w-5 h-5 text-white" />
+                </div>
+                <h3 className="text-lg font-bold text-white">{plan.name}</h3>
+                <p className="text-2xl font-bold text-white mt-1">{plan.price}</p>
+                <div className="mt-3 space-y-1">
+                  <div className="flex items-center gap-2">
+                    <MessageSquare className="w-4 h-4 text-violet-400" />
+                    <span className="text-sm text-gray-300">{plan.messages.toLocaleString()} mesaj/ay</span>
+                  </div>
+                  {plan.features.map((f, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <CheckCircle className="w-3 h-3 text-green-400" />
+                      <span className="text-xs text-gray-400">{f}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-3 pt-3 border-t border-[#1E2448]">
+                  <p className="text-xs text-gray-500">Plan Kuralları:</p>
+                  <ul className="text-xs text-gray-400 mt-1 space-y-0.5">
+                    <li>• Aylık {plan.messages.toLocaleString()} mesaj limiti</li>
+                    <li>• Limit aşılınca mesajlaşma durur</li>
+                    <li>• Her ay limit sıfırlanır</li>
+                    {plan.id === "professional" && <li>• Tüm ajan araçları aktif</li>}
+                    {plan.id === "enterprise" && <li>• Özel SLA ve entegrasyon</li>}
+                  </ul>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="bg-[#0A0E27] border-[#1E2448]">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle className="text-lg text-white flex items-center gap-2">
+              <Users className="w-5 h-5 text-blue-400" />
+              Aktif Kiralama Yönetimi
+            </CardTitle>
+            <CardDescription className="text-gray-400">
+              Kullanıcıların mesaj limitleri ve planlarını düzenle.
+            </CardDescription>
+          </div>
+          <Button variant="ghost" size="sm" onClick={fetchRentals} disabled={loading} data-testid="button-refresh-rentals">
+            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {rentals.length === 0 ? (
+            <p className="text-gray-500 text-center py-6">Henüz aktif kiralama yok.</p>
+          ) : (
+            <div className="space-y-3 max-h-[500px] overflow-y-auto">
+              {rentals.map((rental) => (
+                <div
+                  key={rental.id}
+                  className="p-4 bg-[#111633] rounded-lg border border-[#1E2448]"
+                  data-testid={`rental-row-${rental.id}`}
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-white font-medium">{agentLabel(rental.agent_type)}</span>
+                        <Badge className={`text-xs ${rental.status === "active" ? "bg-green-900/30 text-green-400 border-green-800" : "bg-gray-900/30 text-gray-500 border-gray-700"}`}>
+                          {rental.status}
+                        </Badge>
+                      </div>
+                      <p className="text-gray-400 text-sm">{rental.full_name || rental.email}</p>
+                      <p className="text-gray-500 text-xs">{rental.email}</p>
+                    </div>
+                    {editingId === rental.id ? (
+                      <div className="flex gap-2">
+                        <Button size="sm" onClick={() => saveEdit(rental.id)} className="bg-green-600 hover:bg-green-700 text-white" data-testid={`button-save-rental-${rental.id}`}>
+                          <CheckCircle className="w-3 h-3 mr-1" /> Kaydet
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={() => setEditingId(null)} className="text-gray-400">
+                          İptal
+                        </Button>
+                      </div>
+                    ) : (
+                      <Button size="sm" variant="outline" onClick={() => startEdit(rental)} className="border-[#1E2448] text-gray-300" data-testid={`button-edit-rental-${rental.id}`}>
+                        Düzenle
+                      </Button>
+                    )}
+                  </div>
+                  {editingId === rental.id ? (
+                    <div className="mt-3 grid grid-cols-3 gap-3">
+                      <div>
+                        <label className="text-xs text-gray-500 block mb-1">Plan</label>
+                        <Select value={editPlan} onValueChange={setEditPlan}>
+                          <SelectTrigger className="bg-[#0A0E27] border-[#1E2448] text-white h-8 text-sm">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="bg-[#111633] border-[#1E2448]">
+                            <SelectItem value="starter" className="text-white">Starter</SelectItem>
+                            <SelectItem value="professional" className="text-white">Professional</SelectItem>
+                            <SelectItem value="enterprise" className="text-white">Enterprise</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <label className="text-xs text-gray-500 block mb-1">Mesaj Limiti</label>
+                        <Input
+                          type="number"
+                          value={editLimit}
+                          onChange={(e) => setEditLimit(e.target.value)}
+                          className="bg-[#0A0E27] border-[#1E2448] text-white h-8 text-sm"
+                          data-testid={`input-limit-${rental.id}`}
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs text-gray-500 block mb-1">Kullanılan</label>
+                        <Input
+                          type="number"
+                          value={editUsed}
+                          onChange={(e) => setEditUsed(e.target.value)}
+                          className="bg-[#0A0E27] border-[#1E2448] text-white h-8 text-sm"
+                          data-testid={`input-used-${rental.id}`}
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="mt-2 flex items-center gap-4">
+                      <Badge variant="outline" className="border-[#1E2448] text-gray-300 text-xs capitalize">{rental.plan}</Badge>
+                      <div className="flex-1">
+                        <div className="flex justify-between text-xs text-gray-400 mb-1">
+                          <span>{rental.messages_used}/{rental.messages_limit} mesaj</span>
+                          <span>{Math.round((rental.messages_used / rental.messages_limit) * 100)}%</span>
+                        </div>
+                        <div className="w-full bg-[#0A0E27] rounded-full h-1.5">
+                          <div
+                            className={`h-1.5 rounded-full ${(rental.messages_used / rental.messages_limit) > 0.8 ? "bg-red-500" : "bg-blue-500"}`}
+                            style={{ width: `${Math.min((rental.messages_used / rental.messages_limit) * 100, 100)}%` }}
+                          />
+                        </div>
+                      </div>
+                      <span className="text-xs text-gray-500">
+                        {rental.started_at ? new Date(rental.started_at).toLocaleDateString("tr-TR") : "—"}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function AdminGuidePanel() {
+  const AGENT_DETAILS = [
+    { slug: "customer-support", name: "Ava", role: "Müşteri Destek", desc: "Müşteri sorularını yanıtlar, şikayet yönetir, ticket oluşturur.", icon: "🎧", color: "from-blue-500 to-blue-600" },
+    { slug: "sales-sdr", name: "Rex", role: "Satış Temsilcisi", desc: "Lead takibi, satış maili, CRM güncellemesi, teklif hazırlama.", icon: "📈", color: "from-red-500 to-red-600" },
+    { slug: "social-media", name: "Maya", role: "Sosyal Medya", desc: "Post oluşturma, içerik takvimi, hashtag analizi, kampanya yönetimi.", icon: "📱", color: "from-pink-500 to-pink-600" },
+    { slug: "bookkeeping", name: "Finn", role: "Muhasebe", desc: "Fatura takibi, gelir-gider analizi, mali raporlama.", icon: "📊", color: "from-green-500 to-green-600" },
+    { slug: "scheduling", name: "Cal", role: "Zamanlama", desc: "Takvim yönetimi, randevu planlama, hatırlatmalar.", icon: "📅", color: "from-yellow-500 to-yellow-600" },
+    { slug: "hr-recruiting", name: "Harper", role: "İK & İşe Alım", desc: "Aday taraması, mülakat planlama, iş ilanı yönetimi.", icon: "👥", color: "from-purple-500 to-purple-600" },
+    { slug: "data-analyst", name: "DataBot", role: "Veri Analisti", desc: "Veri analizi, rapor oluşturma, KPI takibi, trend analizi.", icon: "🔬", color: "from-cyan-500 to-cyan-600" },
+    { slug: "ecommerce-ops", name: "ShopBot", role: "E-Ticaret", desc: "Ürün yönetimi, stok takibi, sipariş yönetimi, kampanya.", icon: "🛒", color: "from-orange-500 to-orange-600" },
+    { slug: "real-estate", name: "Reno", role: "Gayrimenkul", desc: "Emlak listeleme, fiyat analizi, müşteri eşleştirme.", icon: "🏠", color: "from-teal-500 to-teal-600" },
+    { slug: "manager", name: "Manager", role: "Akıllı Yönlendirici", desc: "Mesajları doğru ajana yönlendirir, ekip koordinasyonu sağlar.", icon: "🧠", color: "from-amber-500 to-amber-600" },
+  ];
+
+  return (
+    <div className="space-y-6">
+      <Card className="bg-gradient-to-r from-emerald-900/50 to-teal-900/50 border-emerald-500/30">
+        <CardHeader>
+          <CardTitle className="text-xl text-white flex items-center gap-2">
+            <HelpCircle className="w-5 h-5 text-emerald-400" />
+            Admin Rehberi — Platform Kuralları
+          </CardTitle>
+          <CardDescription className="text-gray-300">
+            Platformun nasıl çalıştığı, paket kuralları ve yönetim bilgileri.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="p-4 bg-[#0A0E27] rounded-lg border border-[#1E2448]">
+              <h3 className="text-white font-semibold flex items-center gap-2 mb-3">
+                <Shield className="w-4 h-4 text-blue-400" />
+                Genel Platform Kuralları
+              </h3>
+              <ul className="space-y-2 text-sm text-gray-300">
+                <li className="flex items-start gap-2"><span className="text-blue-400 mt-0.5">•</span> Kullanıcılar e-posta ile kayıt olur ve giriş yapar</li>
+                <li className="flex items-start gap-2"><span className="text-blue-400 mt-0.5">•</span> Her ajan ayrı ayrı kiralanır (ajan başına plan seçimi)</li>
+                <li className="flex items-start gap-2"><span className="text-blue-400 mt-0.5">•</span> Mesaj limiti aşıldığında o ajan ile sohbet durur</li>
+                <li className="flex items-start gap-2"><span className="text-blue-400 mt-0.5">•</span> Admin paneli ayrı şifre ile korunur (ADMIN_PASSWORD)</li>
+                <li className="flex items-start gap-2"><span className="text-blue-400 mt-0.5">•</span> Manager ajanı sadece kiralanmış ajanlara yönlendirir</li>
+                <li className="flex items-start gap-2"><span className="text-blue-400 mt-0.5">•</span> Guardrail sistemi zararlı içeriği otomatik engeller</li>
+                <li className="flex items-start gap-2"><span className="text-blue-400 mt-0.5">•</span> Distillation koruması sistematik veri çekmeyi engeller</li>
+              </ul>
+            </div>
+            <div className="p-4 bg-[#0A0E27] rounded-lg border border-[#1E2448]">
+              <h3 className="text-white font-semibold flex items-center gap-2 mb-3">
+                <CreditCard className="w-4 h-4 text-violet-400" />
+                Paket ve Ödeme Kuralları
+              </h3>
+              <ul className="space-y-2 text-sm text-gray-300">
+                <li className="flex items-start gap-2"><span className="text-violet-400 mt-0.5">•</span> <strong className="text-white">Starter ($49/ay):</strong> 100 mesaj, temel destek</li>
+                <li className="flex items-start gap-2"><span className="text-violet-400 mt-0.5">•</span> <strong className="text-white">Professional ($39/ay):</strong> 500 mesaj, tüm araçlar açık</li>
+                <li className="flex items-start gap-2"><span className="text-violet-400 mt-0.5">•</span> <strong className="text-white">Enterprise (Özel):</strong> 5000 mesaj, SLA garantisi</li>
+                <li className="flex items-start gap-2"><span className="text-violet-400 mt-0.5">•</span> Ödeme test modunda: /api/test-checkout kullanılır</li>
+                <li className="flex items-start gap-2"><span className="text-violet-400 mt-0.5">•</span> Kredi sistemi: Görsel üretim için ayrı kredi satın alınır</li>
+                <li className="flex items-start gap-2"><span className="text-violet-400 mt-0.5">•</span> Admin panelden limit ve plan manuel değiştirilebilir</li>
+                <li className="flex items-start gap-2"><span className="text-violet-400 mt-0.5">•</span> Mesaj kullanımı sıfırlanabilir (admin tarafından)</li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="p-4 bg-[#0A0E27] rounded-lg border border-[#1E2448]">
+            <h3 className="text-white font-semibold flex items-center gap-2 mb-3">
+              <Bot className="w-4 h-4 text-amber-400" />
+              Akış: Kullanıcı Bir Ajan Kiralarken Ne Olur?
+            </h3>
+            <div className="flex flex-wrap gap-2">
+              {["1. Kullanıcı Workers sayfasından ajan seçer", "2. Plan seçer (Starter/Professional)", "3. Ödeme tamamlanır", "4. Rental kaydı oluşur (status: active)", "5. Mesaj limiti plana göre atanır", "6. Kullanıcı sohbet edebilir", "7. Her mesajda messages_used artar", "8. Limit dolunca sohbet durur"].map((step, i) => (
+                <Badge key={i} variant="outline" className="border-[#1E2448] text-gray-300 text-xs py-1.5">
+                  {step}
+                </Badge>
+              ))}
+            </div>
+          </div>
+
+          <div className="p-4 bg-[#0A0E27] rounded-lg border border-[#1E2448]">
+            <h3 className="text-white font-semibold flex items-center gap-2 mb-3">
+              <Activity className="w-4 h-4 text-green-400" />
+              Admin Yetkiler
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {[
+                { title: "Kullanıcı Yönetimi", desc: "Kayıtlı kullanıcıları görüntüleme ve arama" },
+                { title: "Mesaj Limiti Değiştirme", desc: "Herhangi bir rental'ın mesaj limitini artırma/azaltma" },
+                { title: "Plan Değiştirme", desc: "Kullanıcının planını admin panelden değiştirme" },
+                { title: "Mesaj Sayacı Sıfırlama", desc: "Kullanılan mesaj sayısını sıfırlama" },
+                { title: "RAG Doküman Yönetimi", desc: "Ajanlara bilgi dokümanı yükleme ve silme" },
+                { title: "Fine-Tuning", desc: "Ajan eğitim verisi oluşturma ve fine-tuning başlatma" },
+                { title: "Güvenlik Raporları", desc: "Distillation, guardrail ve güvenlik olaylarını izleme" },
+                { title: "Maliyet Analizi", desc: "Token kullanımı ve OpenAI maliyetlerini takip" },
+              ].map((item, i) => (
+                <div key={i} className="flex items-start gap-2">
+                  <CheckCircle className="w-4 h-4 text-green-400 mt-0.5 shrink-0" />
+                  <div>
+                    <p className="text-sm text-white font-medium">{item.title}</p>
+                    <p className="text-xs text-gray-500">{item.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="bg-[#0A0E27] border-[#1E2448]">
+        <CardHeader>
+          <CardTitle className="text-lg text-white flex items-center gap-2">
+            <Bot className="w-5 h-5 text-blue-400" />
+            AI Ajan Rehberi
+          </CardTitle>
+          <CardDescription className="text-gray-400">
+            Tüm ajanlar, görevleri ve özellikleri.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {AGENT_DETAILS.map((agent) => (
+              <div key={agent.slug} className="p-3 bg-[#111633] rounded-lg border border-[#1E2448]" data-testid={`guide-agent-${agent.slug}`}>
+                <div className="flex items-center gap-2 mb-2">
+                  <div className={`w-8 h-8 rounded-lg bg-gradient-to-r ${agent.color} flex items-center justify-center text-lg`}>
+                    {agent.icon}
+                  </div>
+                  <div>
+                    <p className="text-white font-medium text-sm">{agent.name}</p>
+                    <p className="text-gray-500 text-xs">{agent.role}</p>
+                  </div>
+                </div>
+                <p className="text-gray-400 text-xs">{agent.desc}</p>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 export default function AdminPage() {
   const [token, setToken] = useState<string | null>(null);
   const [selectedAgent, setSelectedAgent] = useState(AGENTS[0].slug);
@@ -3588,6 +3985,14 @@ export default function AdminPage() {
               <AlertTriangle className="w-3.5 h-3.5 mr-1" />
               Security
             </TabsTrigger>
+            <TabsTrigger value="packages" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-violet-500 data-[state=active]:to-purple-600 data-[state=active]:text-white" data-testid="tab-packages">
+              <CreditCard className="w-3.5 h-3.5 mr-1" />
+              Paketler
+            </TabsTrigger>
+            <TabsTrigger value="admin-guide" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-500 data-[state=active]:to-teal-600 data-[state=active]:text-white" data-testid="tab-admin-guide">
+              <HelpCircle className="w-3.5 h-3.5 mr-1" />
+              Rehber
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="boss-ai">
@@ -3652,6 +4057,14 @@ export default function AdminPage() {
 
           <TabsContent value="security-report">
             <SecurityReportPanel token={token} />
+          </TabsContent>
+
+          <TabsContent value="packages">
+            <PackageManagementPanel token={token} />
+          </TabsContent>
+
+          <TabsContent value="admin-guide">
+            <AdminGuidePanel />
           </TabsContent>
         </Tabs>
       </div>

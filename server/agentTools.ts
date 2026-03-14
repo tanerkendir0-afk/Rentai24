@@ -2005,6 +2005,16 @@ Be specific to the ${industry} industry. About 400-500 words.`;
         description: `Ticket #${closeId} closed: "${closed.subject}" — ${resolution}`,
         metadata: { ticketId: closeId, resolution },
       });
+      try {
+        const { triggerTaskCompleteNotification } = await import("./bossNotificationService");
+        await triggerTaskCompleteNotification({
+          userId,
+          agentType,
+          teamMemberName: agentType,
+          taskDescription: `Close ticket #${closeId}: "${closed.subject}"`,
+          result: resolution,
+        });
+      } catch (e) { console.error("[BossAI] ticket close notification error:", e); }
 
       return {
         result: `Ticket #${closeId} closed!\n\nSubject: ${closed.subject}\nResolution: ${resolution}`,
@@ -2029,6 +2039,17 @@ Be specific to the ${industry} industry. About 400-500 words.`;
           description: `Customer email sent to ${args.to}: "${args.subject}"`,
           metadata: { to: args.to, subject: args.subject },
         });
+        try {
+          const { triggerEmailReplyNotification } = await import("./bossNotificationService");
+          await triggerEmailReplyNotification({
+            userId,
+            agentType,
+            teamMemberName: agentType,
+            recipientEmail: String(args.to),
+            subject: String(args.subject),
+            replySnippet: String(args.body),
+          });
+        } catch (e) { console.error("[BossAI] customer email notification error:", e); }
       }
 
       return {

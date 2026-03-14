@@ -793,6 +793,36 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/settings/gmail/status", requireAuth, async (req, res) => {
+    try {
+      const { getUserGmailStatus } = await import("./gmailService");
+      const status = await getUserGmailStatus(req.session.userId!);
+      res.json(status);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message || "Failed to check Gmail status" });
+    }
+  });
+
+  app.post("/api/boss/notify", requireAuth, async (req, res) => {
+    try {
+      const { type, teamMemberName, summary, details } = req.body;
+      if (!type || !teamMemberName || !summary) {
+        return res.status(400).json({ error: "type, teamMemberName, and summary are required" });
+      }
+      const { notifyBoss } = await import("./bossNotificationService");
+      await notifyBoss({
+        userId: req.session.userId!,
+        type,
+        teamMemberName,
+        summary,
+        details: details || undefined,
+      });
+      res.json({ success: true, message: "Boss notification created" });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message || "Failed to create notification" });
+    }
+  });
+
   app.get("/api/social-accounts", requireAuth, async (req, res) => {
     const accounts = await storage.getSocialAccounts(req.session.userId!);
     const sanitized = accounts.map(a => ({

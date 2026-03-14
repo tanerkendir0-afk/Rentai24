@@ -8,19 +8,20 @@ export async function notifyBoss(params: {
   summary: string;
   details?: Record<string, any>;
 }): Promise<void> {
+  const notification: InsertBossNotification = {
+    userId: params.userId,
+    type: params.type,
+    teamMemberName: params.teamMemberName,
+    summary: params.summary,
+    details: params.details || null,
+    bossResponse: null,
+    adminNotified: false,
+  };
+
+  const created = await storage.createBossNotification(notification);
+
+  let emailSent = false;
   try {
-    const notification: InsertBossNotification = {
-      userId: params.userId,
-      type: params.type,
-      teamMemberName: params.teamMemberName,
-      summary: params.summary,
-      details: params.details || null,
-      bossResponse: null,
-      adminNotified: false,
-    };
-
-    const created = await storage.createBossNotification(notification);
-
     const user = await storage.getUserById(params.userId);
     if (user?.email) {
       const { sendEmail } = await import("./emailService");
@@ -34,18 +35,13 @@ export async function notifyBoss(params: {
         userId: params.userId,
         agentType: "boss",
       });
-
-      await storage.createBossNotification({
-        ...notification,
-        adminNotified: true,
-        bossResponse: `Email notification sent to ${user.email}`,
-      });
+      emailSent = true;
     }
-
-    console.log(`[BossAI] Notification created for user ${params.userId}: ${params.type} - ${params.teamMemberName}`);
-  } catch (error) {
-    console.error("[BossAI] Failed to create notification:", error);
+  } catch (emailError) {
+    console.error("[BossAI] Email notification failed (notification still saved):", emailError);
   }
+
+  console.log(`[BossAI] Notification created for user ${params.userId}: ${params.type} - ${params.teamMemberName}${emailSent ? " (email sent)" : ""}`);
 }
 
 export async function triggerEmailReplyNotification(params: {

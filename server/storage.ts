@@ -102,7 +102,7 @@ export interface IStorage {
   updateShippingProvider(id: number, userId: number, updates: Partial<Pick<ShippingProvider, "apiKey" | "customerCode" | "username" | "password" | "accountNumber" | "siteId" | "status">>): Promise<ShippingProvider | undefined>;
   deleteShippingProvider(id: number, userId: number): Promise<boolean>;
 
-  getGuardrailLogs(filters?: { agentType?: string; ruleType?: string; limit?: number }): Promise<GuardrailLog[]>;
+  getGuardrailLogs(filters?: { agentType?: string; ruleType?: string; limit?: number; from?: Date; to?: Date }): Promise<GuardrailLog[]>;
 
   createScheduledPost(post: InsertScheduledPost): Promise<ScheduledPost>;
   getScheduledPosts(userId: number): Promise<ScheduledPost[]>;
@@ -759,10 +759,12 @@ export class DatabaseStorage implements IStorage {
     return row?.value ?? null;
   }
 
-  async getGuardrailLogs(filters?: { agentType?: string; ruleType?: string; limit?: number }): Promise<GuardrailLog[]> {
+  async getGuardrailLogs(filters?: { agentType?: string; ruleType?: string; limit?: number; from?: Date; to?: Date }): Promise<GuardrailLog[]> {
     const conditions = [];
     if (filters?.agentType) conditions.push(eq(guardrailLogs.agentType, filters.agentType));
     if (filters?.ruleType) conditions.push(eq(guardrailLogs.ruleType, filters.ruleType));
+    if (filters?.from) conditions.push(gte(guardrailLogs.createdAt, filters.from));
+    if (filters?.to) conditions.push(lte(guardrailLogs.createdAt, filters.to));
 
     const query = db.select().from(guardrailLogs);
     if (conditions.length > 0) {

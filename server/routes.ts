@@ -1024,11 +1024,13 @@ export async function registerRoutes(
   });
 
   app.get("/api/admin/guardrail-logs", requireAdmin, async (req, res) => {
-    const { agentType, ruleType, limit } = req.query;
+    const { agentType, ruleType, limit, from, to } = req.query;
     const logs = await storage.getGuardrailLogs({
       agentType: agentType as string | undefined,
       ruleType: ruleType as string | undefined,
       limit: limit ? parseInt(limit as string) : 100,
+      from: from ? new Date(from as string) : undefined,
+      to: to ? new Date(to as string) : undefined,
     });
     res.json(logs);
   });

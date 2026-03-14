@@ -2866,6 +2866,8 @@ function GuardrailsPanel({ token }: { token: string }) {
   const [loading, setLoading] = useState(true);
   const [agentFilter, setAgentFilter] = useState("all");
   const [ruleFilter, setRuleFilter] = useState("all");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
 
   const fetchLogs = useCallback(async () => {
     try {
@@ -2873,12 +2875,14 @@ function GuardrailsPanel({ token }: { token: string }) {
       const params = new URLSearchParams();
       if (agentFilter !== "all") params.set("agentType", agentFilter);
       if (ruleFilter !== "all") params.set("ruleType", ruleFilter);
+      if (dateFrom) params.set("from", new Date(dateFrom).toISOString());
+      if (dateTo) params.set("to", new Date(dateTo + "T23:59:59").toISOString());
       const res = await fetch(`/api/admin/guardrail-logs?${params}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) setLogs(await res.json());
     } catch { } finally { setLoading(false); }
-  }, [token, agentFilter, ruleFilter]);
+  }, [token, agentFilter, ruleFilter, dateFrom, dateTo]);
 
   useEffect(() => { fetchLogs(); }, [fetchLogs]);
 
@@ -2985,6 +2989,20 @@ function GuardrailsPanel({ token }: { token: string }) {
                   ))}
                 </SelectContent>
               </Select>
+              <input
+                type="date"
+                value={dateFrom}
+                onChange={e => setDateFrom(e.target.value)}
+                className="h-9 px-2 rounded-md bg-[#111633] border border-[#1E2448] text-white text-sm"
+                data-testid="input-guardrail-date-from"
+              />
+              <input
+                type="date"
+                value={dateTo}
+                onChange={e => setDateTo(e.target.value)}
+                className="h-9 px-2 rounded-md bg-[#111633] border border-[#1E2448] text-white text-sm"
+                data-testid="input-guardrail-date-to"
+              />
               <Button size="sm" variant="outline" onClick={fetchLogs} className="border-[#1E2448] text-slate-300" data-testid="button-refresh-guardrails">
                 <RefreshCw className="w-4 h-4" />
               </Button>

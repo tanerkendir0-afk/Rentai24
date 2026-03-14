@@ -336,57 +336,81 @@ export default function TasksPanel({ agentType, agentColor, onClose }: {
             </button>
           </div>
         ) : (
-          <div className="divide-y divide-border/30">
-            {filteredTasks.map(task => {
-              const statusConf = STATUS_CONFIG[task.status] || STATUS_CONFIG.todo;
-              const StatusIcon = statusConf.icon;
-              const dueDateStr = task.dueDate
-                ? new Date(task.dueDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })
-                : null;
-              const isOverdue = task.dueDate && new Date(task.dueDate) < new Date() && task.status !== "done";
+          <div>
+            {(filter === "all" ? ["todo", "in-progress", "done"] : [filter]).map(statusKey => {
+              const groupTasks = filteredTasks.filter(t => t.status === statusKey);
+              if (groupTasks.length === 0 && filter === "all") return null;
+              const groupConf = STATUS_CONFIG[statusKey] || STATUS_CONFIG.todo;
+              const GroupIcon = groupConf.icon;
 
               return (
-                <div key={task.id} className="px-3 py-2 hover:bg-muted/30 transition-colors group" data-testid={`task-item-${task.id}`}>
-                  <div className="flex items-start gap-2">
-                    <button
-                      onClick={() => updateMutation.mutate({ id: task.id, status: statusCycle(task.status) })}
-                      className={`mt-0.5 shrink-0 ${statusConf.color} hover:scale-110 transition-transform`}
-                      title={`Mark as ${statusCycle(task.status)}`}
-                      data-testid={`button-toggle-status-${task.id}`}
-                    >
-                      <StatusIcon className="w-4 h-4" />
-                    </button>
-                    <div className="flex-1 min-w-0">
-                      <p className={`text-xs font-medium leading-tight ${task.status === "done" ? "line-through text-muted-foreground" : "text-foreground"}`}>
-                        {task.title}
-                      </p>
-                      {task.description && (
-                        <p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-2">{task.description}</p>
-                      )}
-                      <div className="flex items-center gap-2 mt-1">
-                        {task.project && (
-                          <Badge variant="secondary" className="text-[9px] h-3.5 px-1.5">{task.project}</Badge>
-                        )}
-                        <span className={`text-[10px] flex items-center gap-0.5 ${PRIORITY_COLORS[task.priority]}`}>
-                          <Flag className="w-2.5 h-2.5" />
-                          {task.priority}
-                        </span>
-                        {dueDateStr && (
-                          <span className={`text-[10px] flex items-center gap-0.5 ${isOverdue ? "text-red-400" : "text-muted-foreground"}`}>
-                            <Calendar className="w-2.5 h-2.5" />
-                            {dueDateStr}
-                          </span>
-                        )}
-                      </div>
+                <div key={statusKey} data-testid={`task-group-${statusKey}`}>
+                  {filter === "all" && (
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 bg-muted/20 border-b border-border/30">
+                      <GroupIcon className={`w-3 h-3 ${groupConf.color}`} />
+                      <span className={`text-[10px] font-semibold uppercase tracking-wider ${groupConf.color}`}>{groupConf.label}</span>
+                      <span className="text-[10px] text-muted-foreground/50">({groupTasks.length})</span>
                     </div>
-                    <button
-                      onClick={() => deleteMutation.mutate(task.id)}
-                      className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-red-400 transition-all shrink-0"
-                      data-testid={`button-delete-task-${task.id}`}
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </button>
-                  </div>
+                  )}
+                  {groupTasks.length === 0 ? (
+                    <div className="px-3 py-2 text-[10px] text-muted-foreground/50 italic">No tasks</div>
+                  ) : (
+                    <div className="divide-y divide-border/30">
+                      {groupTasks.map(task => {
+                        const statusConf = STATUS_CONFIG[task.status] || STATUS_CONFIG.todo;
+                        const StatusIcon = statusConf.icon;
+                        const dueDateStr = task.dueDate
+                          ? new Date(task.dueDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })
+                          : null;
+                        const isOverdue = task.dueDate && new Date(task.dueDate) < new Date() && task.status !== "done";
+
+                        return (
+                          <div key={task.id} className="px-3 py-2 hover:bg-muted/30 transition-colors group" data-testid={`task-item-${task.id}`}>
+                            <div className="flex items-start gap-2">
+                              <button
+                                onClick={() => updateMutation.mutate({ id: task.id, status: statusCycle(task.status) })}
+                                className={`mt-0.5 shrink-0 ${statusConf.color} hover:scale-110 transition-transform`}
+                                title={`Mark as ${statusCycle(task.status)}`}
+                                data-testid={`button-toggle-status-${task.id}`}
+                              >
+                                <StatusIcon className="w-4 h-4" />
+                              </button>
+                              <div className="flex-1 min-w-0">
+                                <p className={`text-xs font-medium leading-tight ${task.status === "done" ? "line-through text-muted-foreground" : "text-foreground"}`}>
+                                  {task.title}
+                                </p>
+                                {task.description && (
+                                  <p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-2">{task.description}</p>
+                                )}
+                                <div className="flex items-center gap-2 mt-1">
+                                  {task.project && (
+                                    <Badge variant="secondary" className="text-[9px] h-3.5 px-1.5">{task.project}</Badge>
+                                  )}
+                                  <span className={`text-[10px] flex items-center gap-0.5 ${PRIORITY_COLORS[task.priority]}`}>
+                                    <Flag className="w-2.5 h-2.5" />
+                                    {task.priority}
+                                  </span>
+                                  {dueDateStr && (
+                                    <span className={`text-[10px] flex items-center gap-0.5 ${isOverdue ? "text-red-400" : "text-muted-foreground"}`}>
+                                      <Calendar className="w-2.5 h-2.5" />
+                                      {dueDateStr}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                              <button
+                                onClick={() => deleteMutation.mutate(task.id)}
+                                className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-red-400 transition-all shrink-0"
+                                data-testid={`button-delete-task-${task.id}`}
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               );
             })}

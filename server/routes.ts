@@ -4,7 +4,7 @@ import OpenAI from "openai";
 import bcrypt from "bcrypt";
 import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
-import { chatMessageSchema, contactFormSchema, registerSchema, loginSchema, newsletterSchema, bossConversations, collaborationSessions, type User } from "@shared/schema";
+import { chatMessageSchema, contactFormSchema, registerSchema, loginSchema, newsletterSchema, bossConversations, collaborationSessions, type User, type AgentTask } from "@shared/schema";
 import { z } from "zod";
 import { storage } from "./storage";
 import { requireAuth } from "./auth";
@@ -629,14 +629,14 @@ export async function registerRoutes(
 
   app.patch("/api/agent-tasks/:id", requireAuth, async (req, res) => {
     const id = parseInt(req.params.id);
-    const updates: Record<string, unknown> = {};
+    const updates: Partial<Pick<AgentTask, "title" | "description" | "status" | "priority" | "dueDate" | "project">> = {};
     if (req.body.title !== undefined) updates.title = req.body.title;
     if (req.body.description !== undefined) updates.description = req.body.description;
     if (req.body.status !== undefined) updates.status = req.body.status;
     if (req.body.priority !== undefined) updates.priority = req.body.priority;
     if (req.body.project !== undefined) updates.project = req.body.project;
     if (req.body.dueDate !== undefined) updates.dueDate = req.body.dueDate ? new Date(req.body.dueDate) : null;
-    const task = await storage.updateAgentTask(id, req.session.userId!, updates as any);
+    const task = await storage.updateAgentTask(id, req.session.userId!, updates);
     if (!task) return res.status(404).json({ error: "Task not found" });
     res.json(task);
   });

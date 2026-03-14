@@ -179,9 +179,11 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
       await apiRequest("DELETE", `/api/conversations/${convo.dbId}`);
       queryClient.invalidateQueries({ queryKey: ['/api/conversations', selectedAgent] });
       if (currentConvoId === convoId) {
+        const currentIndex = conversations.findIndex(c => c.id === convoId);
         const remaining = conversations.filter(c => c.id !== convoId);
         if (remaining.length > 0) {
-          setActiveConvoId(prev => ({ ...prev, [selectedAgent]: remaining[0].id }));
+          const adjacentIndex = Math.min(currentIndex, remaining.length - 1);
+          setActiveConvoId(prev => ({ ...prev, [selectedAgent]: remaining[adjacentIndex].id }));
         }
       }
     } catch {}

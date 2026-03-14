@@ -5,6 +5,14 @@ import { getTemplate, fillTemplate } from "./emailTemplates";
 const CAMPAIGN_CHECK_INTERVAL = 60 * 60 * 1000;
 
 export function startCampaignRunner() {
+  setTimeout(async () => {
+    try {
+      await processPendingCampaigns();
+    } catch (error) {
+      console.error("[CampaignRunner] Initial campaign check error:", error);
+    }
+  }, 5000);
+
   setInterval(async () => {
     try {
       await processPendingCampaigns();

@@ -275,6 +275,82 @@ Suggest the user select a specific agent from the sidebar to get specialized hel
 Respond in the same language the user writes in.
 ${BRAND_CONFIDENTIALITY}`;
 
+const agentPersonaMap: Record<string, string> = {
+  "customer-support": "Ava (Customer Support)",
+  "sales-sdr": "Rex (Sales SDR)",
+  "social-media": "Maya (Social Media)",
+  "bookkeeping": "Finn (Bookkeeping)",
+  "scheduling": "Cal (Scheduling)",
+  "hr-recruiting": "Harper (HR & Recruiting)",
+  "data-analyst": "DataBot (Data Analyst)",
+  "ecommerce-ops": "ShopBot (E-Commerce Ops)",
+  "real-estate": "Reno (Real Estate)",
+};
+
+const agentDomainKeywords: Record<string, string[]> = {
+  "customer-support": ["support", "complaint", "ticket", "refund", "help", "issue", "problem", "customer", "faq", "order tracking", "return", "exchange", "destek", "şikayet", "iade"],
+  "sales-sdr": ["lead", "sale", "prospect", "outreach", "crm", "proposal", "pipeline", "campaign", "email campaign", "cold email", "follow-up", "meeting", "müşteri adayı", "satış", "teklif"],
+  "social-media": ["social media", "post", "instagram", "twitter", "tiktok", "facebook", "linkedin", "content", "hashtag", "engagement", "sosyal medya", "içerik", "paylaş"],
+  "bookkeeping": ["invoice", "expense", "financial", "budget", "tax", "accounting", "receipt", "bookkeeping", "fatura", "gider", "muhasebe", "vergi", "bütçe"],
+  "scheduling": ["appointment", "schedule", "meeting", "calendar", "booking", "reminder", "reschedule", "randevu", "takvim", "toplantı", "hatırlatma"],
+  "hr-recruiting": ["hire", "recruit", "resume", "cv", "job posting", "interview", "candidate", "onboarding", "İK", "işe alım", "mülakat", "aday"],
+  "data-analyst": ["data", "analytics", "report", "kpi", "metrics", "dashboard", "trend", "analysis", "insight", "veri", "rapor", "analiz"],
+  "ecommerce-ops": ["product listing", "e-commerce", "ecommerce", "marketplace", "inventory", "price", "review response", "shipping", "cargo", "kargo", "ürün", "fiyat", "stok"],
+  "real-estate": ["property", "apartment", "rent", "lease", "neighborhood", "real estate", "listing", "house", "market report", "emlak", "daire", "kira", "konut"],
+};
+
+async function classifyManagerMessage(
+  message: string,
+  activeAgentIds: string[],
+  aiClient: OpenAI
+): Promise<{ targetAgent: string | null; suggestedAgent: string | null }> {
+  const msgLower = message.toLowerCase();
+
+  for (const agentId of activeAgentIds) {
+    const keywords = agentDomainKeywords[agentId] || [];
+    if (keywords.some(kw => msgLower.includes(kw))) {
+      return { targetAgent: agentId, suggestedAgent: null };
+    }
+  }
+
+  const allAgentIds = Object.keys(agentDomainKeywords);
+  for (const agentId of allAgentIds) {
+    if (activeAgentIds.includes(agentId)) continue;
+    const keywords = agentDomainKeywords[agentId] || [];
+    if (keywords.some(kw => msgLower.includes(kw))) {
+      return { targetAgent: null, suggestedAgent: agentId };
+    }
+  }
+
+  const agentList = allAgentIds.map(id => `- ${id}: ${agentPersonaMap[id] || id}`).join("\n");
+  try {
+    const classifyResponse = await aiClient.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content: `You are a message classifier for RentAI 24. Determine which agent should handle the user's message. Available agents:\n${agentList}\n\nRespond with ONLY the agent ID (e.g., "sales-sdr") or "none" if no agent clearly matches.`,
+        },
+        { role: "user", content: message },
+      ],
+      max_tokens: 30,
+      temperature: 0,
+    });
+    const classified = classifyResponse.choices[0]?.message?.content?.trim().toLowerCase().replace(/['"]/g, "") || "none";
+    if (classified !== "none" && allAgentIds.includes(classified)) {
+      if (activeAgentIds.includes(classified)) {
+        return { targetAgent: classified, suggestedAgent: null };
+      }
+      return { targetAgent: null, suggestedAgent: classified };
+    }
+  } catch {}
+
+  if (activeAgentIds.length > 0) {
+    return { targetAgent: activeAgentIds[0], suggestedAgent: null };
+  }
+  return { targetAgent: null, suggestedAgent: null };
+}
+
 const agentNameMap: Record<string, string> = {
   "customer-support": "Customer Support Agent",
   "sales-sdr": "Sales Development Rep",
@@ -1176,8 +1252,86 @@ ${members.map(m => `- ${m.name} (${m.email})${m.position ? ` — ${m.position}` 
 
     let hasActiveRental = false;
     let isLoggedIn = !!req.session.userId;
+    let resolvedAgentType = agentType;
+    let managerRoutedTo: string | null = null;
 
-    if (req.session.userId) {
+    if (agentType === "manager" && req.session.userId) {
+      const userRentals = await storage.getRentalsByUser(req.session.userId);
+      const activeRentals = userRentals.filter(r => r.status === "active");
+      const activeAgentIds = activeRentals.map(r => r.agentType);
+
+      if (activeAgentIds.length === 0) {
+        return res.status(403).json({
+          reply: "You haven't hired any AI workers yet. Visit the Workers page to hire your first agent and I'll help route your requests to the right one!",
+        });
+      }
+
+      const classification = await classifyManagerMessage(message, activeAgentIds, openai);
+
+      if (classification.suggestedAgent) {
+        const suggestedName = agentPersonaMap[classification.suggestedAgent] || classification.suggestedAgent;
+        const agentDisplayName = agentNameMap[classification.suggestedAgent] || suggestedName;
+        return res.json({
+          reply: `You haven't hired **${suggestedName}** yet, who would be the best agent for this request. Would you like to add the **${agentDisplayName}** to your team? You can hire them from the [Workers page](/workers).\n\nIn the meantime, I can try to help with your available agents: ${activeAgentIds.map(id => `**${agentPersonaMap[id] || id}**`).join(", ")}.`,
+          routedTo: null,
+          suggestedHire: classification.suggestedAgent,
+        });
+      }
+
+      if (classification.targetAgent) {
+        resolvedAgentType = classification.targetAgent;
+        managerRoutedTo = classification.targetAgent;
+        const rental = activeRentals.find(r => r.agentType === resolvedAgentType);
+        if (rental) {
+          if (rental.messagesUsed >= rental.messagesLimit) {
+            return res.status(403).json({
+              reply: `Message limit reached for ${agentPersonaMap[resolvedAgentType] || resolvedAgentType}. Please upgrade your plan for more messages.`,
+            });
+          }
+          const userSpending = await storage.getTokenSpending(req.session.userId, resolvedAgentType);
+          if (userSpending >= TOKEN_SPENDING_LIMIT_USD) {
+            return res.status(403).json({
+              reply: `Token spending limit reached for ${agentPersonaMap[resolvedAgentType] || resolvedAgentType}. Please upgrade your plan.`,
+              limitReached: true,
+              spent: userSpending,
+              limit: TOKEN_SPENDING_LIMIT_USD,
+            });
+          }
+          hasActiveRental = true;
+          await storage.incrementUsage(rental.id);
+        }
+      }
+
+      systemPrompt = agentSystemPrompts[resolvedAgentType] || defaultSystemPrompt;
+
+      systemPrompt += personalizationBlock;
+      systemPrompt += teamMembersContext;
+
+      if (resolvedAgentType === "social-media") {
+        const socialAccountsList = await storage.getSocialAccounts(req.session.userId);
+        if (socialAccountsList.length > 0) {
+          const accountsStr = socialAccountsList.map(a => {
+            const typeLabel = a.accountType === "business" ? "🔗 API/Business" : "👤 Personal";
+            const canAutoPost = a.accountType === "business";
+            return `- ${a.platform.charAt(0).toUpperCase() + a.platform.slice(1)}: @${a.username} [${typeLabel}] ${canAutoPost ? "(auto-publish ready)" : "(manual sharing only)"}`;
+          }).join("\n");
+          systemPrompt += `\n\nCONNECTED SOCIAL ACCOUNTS:\n${accountsStr}\n\nPOSTING RULES:\n- For "API/Business" accounts: Use publish_post to auto-publish directly via API.\n- For "Personal" accounts: Use prepare_post_for_manual_sharing to create a Publish Assistant card. Do NOT attempt publish_post for personal accounts.\n- Always check account type before choosing the posting method.\n- When user says "paylaş" / "share" / "post this": Check the target platform's account type and use the correct tool.\n- You can schedule future posts for any account type using schedule_post.`;
+        }
+      }
+      if (resolvedAgentType === "ecommerce-ops") {
+        const providerNames: Record<string, string> = {
+          aras: "Aras Kargo", yurtici: "Yurtici Kargo", mng: "MNG Kargo",
+          surat: "Surat Kargo", ptt: "PTT Kargo", ups: "UPS", fedex: "FedEx", dhl: "DHL"
+        };
+        const shippingList = await storage.getShippingProviders(req.session.userId);
+        if (shippingList.length > 0) {
+          const providersStr = shippingList.map(p =>
+            `- ${providerNames[p.provider] || p.provider} (${p.status})`
+          ).join("\n");
+          systemPrompt += `\n\nCONNECTED SHIPPING PROVIDERS:\n${providersStr}\n- User has cargo integrations set up. Help with tracking, shipping cost calculations, and logistics optimization.`;
+        }
+      }
+    } else if (req.session.userId) {
       const userRentals = await storage.getRentalsByUser(req.session.userId);
       const activeRentals = userRentals.filter(r => r.status === "active");
 
@@ -1252,7 +1406,7 @@ ${members.map(m => `- ${m.name} (${m.email})${m.position ? ` — ${m.position}` 
     }
 
     try {
-      const ragChunks = await retrieveRelevantChunks(agentType, message, 3).catch(() => []);
+      const ragChunks = await retrieveRelevantChunks(resolvedAgentType, message, 3).catch(() => []);
       if (ragChunks.length > 0) {
         const context = ragChunks.join("\n\n---\n\n");
         systemPrompt += `\n\n## KNOWLEDGE BASE\n${context}`;
@@ -1260,7 +1414,7 @@ ${members.map(m => `- ${m.name} (${m.email})${m.position ? ` — ${m.position}` 
 
       let modelToUse = "gpt-4o";
       let useDirectClient = false;
-      const fineTunedModel = await getActiveModel(agentType).catch(() => null);
+      const fineTunedModel = await getActiveModel(resolvedAgentType).catch(() => null);
       if (fineTunedModel) {
         modelToUse = fineTunedModel;
         useDirectClient = true;
@@ -1271,7 +1425,7 @@ ${members.map(m => `- ${m.name} (${m.email})${m.position ? ` — ${m.position}` 
         chatClient = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
       }
 
-      const agentTools = hasActiveRental ? getRelevantToolsForMessage(agentType, message) : undefined;
+      const agentTools = hasActiveRental ? getRelevantToolsForMessage(resolvedAgentType, message) : undefined;
       const isAgenticAgent = !!agentTools;
 
       if (!fineTunedModel) {
@@ -1347,7 +1501,7 @@ ${members.map(m => `- ${m.name} (${m.email})${m.position ? ` — ${m.position}` 
             toolCall.function.name,
             args,
             req.session.userId,
-            agentType
+            resolvedAgentType
           );
 
           const toolMessage: OpenAI.ChatCompletionToolMessageParam = {
@@ -1383,7 +1537,7 @@ ${members.map(m => `- ${m.name} (${m.email})${m.position ? ` — ${m.position}` 
 
       storage.logTokenUsage({
         userId: req.session.userId || null,
-        agentType,
+        agentType: resolvedAgentType,
         model: modelToUse,
         promptTokens: totalPromptTokens,
         completionTokens: totalCompletionTokens,
@@ -1393,13 +1547,13 @@ ${members.map(m => `- ${m.name} (${m.email})${m.position ? ` — ${m.position}` 
       }).catch(err => console.error("Token usage log error:", err.message));
 
       const rawReply = assistantMessage?.content || "Sorry, I couldn't generate a response. Please try again.";
-      const reply = sanitizeOutput(rawReply, agentType);
+      const reply = sanitizeOutput(rawReply, resolvedAgentType);
 
       const usedTool = operationType === "tool_call";
 
       storage.saveChatMessage({
         userId: req.session.userId || null,
-        agentType,
+        agentType: resolvedAgentType,
         sessionId: chatSessionId,
         role: "user",
         content: message,
@@ -1408,14 +1562,19 @@ ${members.map(m => `- ${m.name} (${m.email})${m.position ? ` — ${m.position}` 
 
       storage.saveChatMessage({
         userId: req.session.userId || null,
-        agentType,
+        agentType: resolvedAgentType,
         sessionId: chatSessionId,
         role: "assistant",
         content: reply,
         usedTool,
       }).catch(err => console.error("Chat message save error:", err.message));
 
-      res.json({ reply, actions: actions.length > 0 ? actions : undefined, sessionId: chatSessionId });
+      const responsePayload: Record<string, any> = { reply, actions: actions.length > 0 ? actions : undefined, sessionId: chatSessionId };
+      if (managerRoutedTo) {
+        responsePayload.routedTo = managerRoutedTo;
+        responsePayload.routedToName = agentPersonaMap[managerRoutedTo] || managerRoutedTo;
+      }
+      res.json(responsePayload);
     } catch (error: any) {
       console.error("Chat API error:", error?.message || error);
       res.status(502).json({

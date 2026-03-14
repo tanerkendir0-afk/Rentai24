@@ -37,6 +37,7 @@ The RentAI 24 platform uses a modern web stack. The frontend employs React, Type
 *   **Conversation Review System:** Allows admins to browse, filter, and rate conversations, influencing training data quality.
 *   **Training Data Quality Scoring:** Scores conversation quality for training data exports, filtering out low-quality examples.
 *   **Brand Identity Protection:** Agents attribute capabilities to "proprietary RentAI 24 AI technology."
+*   **Manager Agent (Smart Router):** An intelligent routing layer (`agentType: "manager"`) that classifies user messages and routes them to the appropriate hired agent. Uses keyword matching + GPT-4o-mini classification. Only routes to agents the user has active rentals for. If a message matches an unhired agent, suggests hiring it with a link to the Workers page. Available in the chat sidebar for logged-in users with at least one hired agent.
 
 ## External Dependencies
 *   **OpenAI:** GPT-4o, `text-embedding-3-small` (via Replit AI Integrations)

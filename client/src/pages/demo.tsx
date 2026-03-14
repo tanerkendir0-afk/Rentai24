@@ -47,6 +47,7 @@ import {
   ChevronDown,
   ExternalLink,
   Settings2,
+  BrainCircuit,
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
@@ -277,10 +278,12 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
     if (user && hasRentals && !initialAgentSet) {
       const params = new URLSearchParams(window.location.search);
       const agentParam = params.get("agent");
-      if (agentParam && rentedAgentIds.has(agentParam)) {
+      if (agentParam === "manager") {
+        setSelectedAgent("manager");
+      } else if (agentParam && rentedAgentIds.has(agentParam)) {
         setSelectedAgent(agentParam);
       } else {
-        setSelectedAgent(activeRentals[0].agentType);
+        setSelectedAgent("manager");
       }
       setInitialAgentSet(true);
     }
@@ -484,7 +487,8 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
       } else if (data.limitReached) {
         setMessages((prev) => [...prev, { role: "assistant", content: data.reply, isLimitWarning: true }]);
       } else {
-        setMessages((prev) => [...prev, { role: "assistant", content: data.reply, actions: data.actions }]);
+        const routingPrefix = data.routedToName ? `🔀 *Routed to ${data.routedToName}*\n\n` : "";
+        setMessages((prev) => [...prev, { role: "assistant", content: routingPrefix + data.reply, actions: data.actions }]);
       }
       queryClient.invalidateQueries({ queryKey: ["/api/token-spending"] });
       if (isSocialMediaAgent) {
@@ -500,7 +504,8 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
     }
   };
 
-  const currentAgent = agentOptions.find((a) => a.id === selectedAgent)!;
+  const managerOption = { id: "manager", name: "Manager", persona: "Manager", icon: BrainCircuit, color: "from-amber-500 to-orange-500", accent: "text-amber-400", bg: "bg-amber-500/10" };
+  const currentAgent = selectedAgent === "manager" ? managerOption : agentOptions.find((a) => a.id === selectedAgent)!;
   const CurrentIcon = currentAgent.icon;
 
   const quickPrompts = [
@@ -558,6 +563,39 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
             </div>
 
             <div className="flex-1 overflow-y-auto p-1.5 space-y-px">
+              {user && hasRentals && (
+                <>
+                  <button
+                    onClick={() => {
+                      setSelectedAgent("manager");
+                      if (window.innerWidth < 1024) setSidebarOpen(false);
+                      setTimeout(() => inputRef.current?.focus(), 100);
+                    }}
+                    className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-left text-sm transition-all group ${
+                      selectedAgent === "manager"
+                        ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg shadow-amber-500/10"
+                        : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                    }`}
+                    data-testid="button-agent-manager"
+                  >
+                    <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${
+                      selectedAgent === "manager" ? "bg-white/20" : "bg-amber-500/10"
+                    }`}>
+                      <BrainCircuit className={`w-3.5 h-3.5 ${selectedAgent === "manager" ? "text-white" : "text-amber-400"}`} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-medium truncate text-[13px]">Manager</span>
+                        <Badge variant="outline" className={`text-[8px] px-1 py-0 h-3.5 ${selectedAgent === "manager" ? "border-white/30 text-white/80" : "border-amber-500/30 text-amber-400"}`}>AI</Badge>
+                      </div>
+                      <span className={`text-[10px] truncate block ${selectedAgent === "manager" ? "text-white/70" : "text-muted-foreground/60"}`}>
+                        Smart Router
+                      </span>
+                    </div>
+                  </button>
+                  <div className="my-1 border-t border-border/20" />
+                </>
+              )}
               {agentOptions.map((agent) => {
                 const isLocked = user && rentalsReady && hasRentals && !rentedAgentIds.has(agent.id);
                 const isPending = user && !rentalsReady;

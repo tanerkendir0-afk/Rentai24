@@ -5,7 +5,7 @@ import { scheduleFollowup } from "./followupScheduler";
 import { createCalendarEvent } from "./calendarService";
 import { getTemplate, fillTemplate, listTemplates, DRIP_SEQUENCES } from "./emailTemplates";
 import { generateAIImage, findStockImages } from "./imageService";
-import { isGmailConnected, listInbox, readEmail, replyToEmail, getUserGmailInfo } from "./gmailService";
+import { isImapConfigured, listInbox, readEmail, replyToEmail, getUserGmailInfo } from "./gmailService";
 import type { UserGmailCredentials } from "./gmailService";
 
 const gmailInboxTools: OpenAI.ChatCompletionTool[] = [
@@ -1141,14 +1141,12 @@ export async function executeToolCall(
 ): Promise<{ result: string; actionType?: string; actionDescription?: string }> {
   switch (toolName) {
     case "check_gmail_status": {
-      const gmailConnected = await isGmailConnected();
       const userGmailInfo = getUserGmailInfo(userCreds || null);
       const hasUserCreds = !!(userGmailInfo?.hasCredentials);
+      const imapReady = isImapConfigured(userCreds);
       let statusMsg = "";
-      if (gmailConnected && hasUserCreds) {
+      if (hasUserCreds && imapReady) {
         statusMsg = `✅ **Gmail Connected**\n\nYour Gmail account (${userGmailInfo?.email}) is properly configured and ready to use. You can send emails, check your inbox, and reply to messages.`;
-      } else if (gmailConnected) {
-        statusMsg = `✅ **Gmail Connected** (System Level)\n\nGmail is connected via the platform integration. For personalized email (send from your own address), go to **Settings** and add your Gmail address and App Password.`;
       } else if (hasUserCreds) {
         statusMsg = `⚠️ **Gmail Partially Configured**\n\nYour Gmail credentials are saved (${userGmailInfo?.email}), but there may be a connection issue. Please verify your App Password is correct in **Settings** → Gmail section.`;
       } else {
@@ -1156,19 +1154,18 @@ export async function executeToolCall(
       }
       await storage.createAgentAction({
         userId, agentType, actionType: "gmail_status_check",
-        description: `Gmail status check: ${gmailConnected ? "connected" : "not connected"}, user creds: ${hasUserCreds ? "yes" : "no"}`,
-        metadata: { connected: gmailConnected, hasUserCreds },
+        description: `Gmail status check: user creds: ${hasUserCreds ? "yes" : "no"}, imap: ${imapReady ? "yes" : "no"}`,
+        metadata: { hasUserCreds, imapReady },
       });
-      return { result: statusMsg, actionType: "gmail_status_check", actionDescription: `📧 Gmail status: ${gmailConnected ? "Connected" : "Not connected"}` };
+      return { result: statusMsg, actionType: "gmail_status_check", actionDescription: `📧 Gmail status: ${hasUserCreds ? "Connected" : "Not connected"}` };
     }
 
     case "list_inbox": {
-      const connected = await isGmailConnected();
-      if (!connected) {
+      if (!isImapConfigured(userCreds)) {
         await storage.createAgentAction({
           userId, agentType, actionType: "inbox_check_failed",
-          description: "Attempted to check Gmail inbox — Gmail not connected",
-          metadata: { error: "gmail_not_connected" },
+          description: "Attempted to check Gmail inbox — user Gmail not configured",
+          metadata: { error: "gmail_not_configured" },
         });
         return {
           result: "Gmail is not connected. To use email features, please go to **Settings** (click the ⚙️ icon in the top navigation) and connect your Gmail account with your email address and App Password. Once connected, I'll be able to check your inbox, read emails, and send replies.",
@@ -1218,12 +1215,11 @@ export async function executeToolCall(
     }
 
     case "read_email": {
-      const connected = await isGmailConnected();
-      if (!connected) {
+      if (!isImapConfigured(userCreds)) {
         await storage.createAgentAction({
           userId, agentType, actionType: "email_read_failed",
-          description: "Attempted to read email — Gmail not connected",
-          metadata: { error: "gmail_not_connected", emailId: args.email_id },
+          description: "Attempted to read email — user Gmail not configured",
+          metadata: { error: "gmail_not_configured", emailId: args.email_id },
         });
         return {
           result: "Gmail is not connected. To use email features, please go to **Settings** (click the ⚙️ icon in the top navigation) and connect your Gmail account with your email address and App Password.",
@@ -1267,15 +1263,14 @@ export async function executeToolCall(
     }
 
     case "reply_email": {
-      const connected = await isGmailConnected();
-      if (!connected) {
+      if (!isImapConfigured(userCreds)) {
         await storage.createAgentAction({
           userId, agentType, actionType: "email_reply_failed",
-          description: "Attempted to reply to email — Gmail not connected",
-          metadata: { error: "gmail_not_connected", emailId: args.email_id },
+          description: "Attempted to reply to email — user Gmail not configured",
+          metadata: { error: "gmail_not_configured", emailId: args.email_id },
         });
         return {
-          result: "Gmail is not connected. Please connect your Gmail account to reply to emails.",
+          result: "Gmail is not connected. Please go to **Settings** and connect your Gmail account to reply to emails.",
           actionType: "email_reply_failed",
           actionDescription: "❌ Gmail not connected",
         };
@@ -1290,7 +1285,7 @@ export async function executeToolCall(
       }
       const replyEmailId = resolveEmailId(String(args.email_id), userId);
       const replyBody = String(args.body);
-      const replyResult = await replyToEmail(replyEmailId, replyBody);
+      const replyResult = await replyToEmail(replyEmailId, replyBody, userCreds);
       if (!replyResult.success) {
         await storage.createAgentAction({
           userId, agentType, actionType: "email_reply_failed",

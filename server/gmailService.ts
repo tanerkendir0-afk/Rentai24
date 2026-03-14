@@ -306,230 +306,73 @@ async function readEmailViaImap(emailUid: string, userCreds?: UserGmailCredentia
 }
 
 export async function listInbox(maxResults: number = 10, userCreds?: UserGmailCredentials | null): Promise<{ success: boolean; emails?: InboxEmail[]; message: string }> {
-  const attemptGmailApi = async (retry: boolean): Promise<{ success: boolean; emails?: InboxEmail[]; message: string } | null> => {
-    try {
-      const gmail = await getGmailClient();
-      const list = await gmail.users.messages.list({
-        userId: "me",
-        maxResults,
-        labelIds: ["INBOX"],
-      });
-
-      if (!list.data.messages || list.data.messages.length === 0) {
-        return { success: true, emails: [], message: "Inbox is empty." };
-      }
-
-      const emails: InboxEmail[] = [];
-      for (const msg of list.data.messages) {
-        const detail = await gmail.users.messages.get({
-          userId: "me",
-          id: msg.id!,
-          format: "metadata",
-          metadataHeaders: ["From", "Subject", "Date"],
-        });
-        const headers = (detail.data.payload?.headers || []) as Array<{ name: string; value: string }>;
-        emails.push({
-          id: msg.id!,
-          threadId: detail.data.threadId || msg.id!,
-          from: extractHeader(headers, "From"),
-          subject: extractHeader(headers, "Subject"),
-          snippet: detail.data.snippet || "",
-          date: extractHeader(headers, "Date"),
-        });
-      }
-
-      return { success: true, emails, message: `Found ${emails.length} emails in inbox.` };
-    } catch (error: unknown) {
-      const errMsg = error instanceof Error ? error.message : String(error);
-      const isTokenError = /token|expired|invalid.*credentials|unauthorized|401/i.test(errMsg);
-      if (isTokenError && !retry) {
-        console.log("Gmail API token error during listInbox, clearing cache and retrying...");
-        connectionSettings = null;
-        return null;
-      }
-      throw error;
-    }
-  };
-
-  try {
-    const firstAttempt = await attemptGmailApi(false);
-    if (firstAttempt) return firstAttempt;
-    const retryAttempt = await attemptGmailApi(true);
-    if (retryAttempt) return retryAttempt;
-  } catch (error: unknown) {
-    const errMsg = error instanceof Error ? error.message : String(error);
-    if (isImapConfigured(userCreds)) {
-      console.log(`Gmail API error (${errMsg}), falling back to IMAP for inbox reading`);
-      return listInboxViaImap(maxResults, userCreds);
-    }
-    console.error("Gmail listInbox error:", errMsg);
-    return { success: false, message: "Gmail inbox reading requires IMAP configuration. Please set GMAIL_ADDRESS and GMAIL_APP_PASSWORD in your environment settings." };
+  if (isImapConfigured(userCreds)) {
+    return listInboxViaImap(maxResults, userCreds);
   }
 
-  return { success: false, message: "Failed to list inbox: unexpected error" };
+  return { success: false, message: "Gmail inbox reading requires your Gmail credentials. Please go to **Settings** and add your Gmail address and App Password to read your inbox." };
 }
 
 export async function readEmail(messageId: string, userCreds?: UserGmailCredentials | null): Promise<{ success: boolean; email?: FullEmail; message: string }> {
-  if (messageId.startsWith(IMAP_ID_PREFIX)) {
-    const imapUid = messageId.slice(IMAP_ID_PREFIX.length);
-    if (isImapConfigured(userCreds)) {
-      console.log(`Email ID has IMAP prefix, reading directly via IMAP (UID: ${imapUid})`);
-      return readEmailViaImap(imapUid, userCreds);
-    }
-    return { success: false, message: "Email was fetched via IMAP but IMAP is no longer configured." };
+  if (!isImapConfigured(userCreds)) {
+    return { success: false, message: "Gmail credentials are required to read emails. Please go to **Settings** and add your Gmail address and App Password." };
   }
 
-  const attemptGmailApi = async (retry: boolean): Promise<{ success: boolean; email?: FullEmail; message: string } | null> => {
-    try {
-      const gmail = await getGmailClient();
-      const detail = await gmail.users.messages.get({
-        userId: "me",
-        id: messageId,
-        format: "full",
-      });
+  const emailUid = messageId.startsWith(IMAP_ID_PREFIX)
+    ? messageId.slice(IMAP_ID_PREFIX.length)
+    : messageId;
 
-      const headers = (detail.data.payload?.headers || []) as Array<{ name: string; value: string }>;
-      const body = extractPlainTextBody(detail.data.payload);
-
-      const email: FullEmail = {
-        id: messageId,
-        threadId: detail.data.threadId || messageId,
-        from: extractHeader(headers, "From"),
-        to: extractHeader(headers, "To"),
-        subject: extractHeader(headers, "Subject"),
-        body: body || detail.data.snippet || "(no content)",
-        date: extractHeader(headers, "Date"),
-      };
-
-      return { success: true, email, message: "Email retrieved successfully." };
-    } catch (error: unknown) {
-      const errMsg = error instanceof Error ? error.message : String(error);
-      const isTokenError = /token|expired|invalid.*credentials|unauthorized|401/i.test(errMsg);
-      if (isTokenError && !retry) {
-        console.log("Gmail API token error during readEmail, clearing cache and retrying...");
-        connectionSettings = null;
-        return null;
-      }
-      throw error;
-    }
-  };
-
-  try {
-    const firstAttempt = await attemptGmailApi(false);
-    if (firstAttempt) return firstAttempt;
-    const retryAttempt = await attemptGmailApi(true);
-    if (retryAttempt) return retryAttempt;
-  } catch (error: unknown) {
-    const errMsg = error instanceof Error ? error.message : String(error);
-    if (isImapConfigured(userCreds)) {
-      console.log(`Gmail API error (${errMsg}), falling back to IMAP for email reading`);
-      const imapResult = await readEmailViaImap(messageId, userCreds);
-      if (imapResult.success) {
-        imapResult.message = "Email retrieved successfully (via IMAP).";
-        return imapResult;
-      }
-      console.log(`IMAP fallback also failed for ID ${messageId}: ${imapResult.message}`);
-      return { success: false, message: `Could not read this email. Gmail API failed (${errMsg}) and IMAP fallback could not find this email. Try listing your inbox again to get updated references.` };
-    }
-    console.error("Gmail readEmail error:", errMsg);
-    return { success: false, message: "Gmail email reading requires IMAP configuration. Please set GMAIL_ADDRESS and GMAIL_APP_PASSWORD in your environment settings." };
-  }
-
-  return { success: false, message: "Failed to read email: unexpected error" };
+  return readEmailViaImap(emailUid, userCreds);
 }
 
-export async function replyToEmail(messageId: string, body: string): Promise<{ success: boolean; message: string; replyMessageId?: string }> {
-  try {
-    const gmail = await getGmailClient();
+export async function replyToEmail(messageId: string, body: string, userCreds?: UserGmailCredentials | null): Promise<{ success: boolean; message: string; replyMessageId?: string }> {
+  if (!isImapConfigured(userCreds)) {
+    return { success: false, message: "Gmail credentials are required to reply to emails. Please go to **Settings** and add your Gmail address and App Password." };
+  }
 
-    const original = await gmail.users.messages.get({
-      userId: "me",
-      id: messageId,
-      format: "metadata",
-      metadataHeaders: ["From", "Subject", "Message-ID", "References", "In-Reply-To"],
+  const creds = getImapCredentials(userCreds);
+  if (!creds) {
+    return { success: false, message: "Could not resolve Gmail credentials for reply." };
+  }
+
+  try {
+    const originalEmail = await readEmailViaImap(
+      messageId.startsWith(IMAP_ID_PREFIX) ? messageId.slice(IMAP_ID_PREFIX.length) : messageId,
+      userCreds
+    );
+    if (!originalEmail.success || !originalEmail.email) {
+      return { success: false, message: `Could not find the original email to reply to: ${originalEmail.message}` };
+    }
+
+    const orig = originalEmail.email;
+    const emailMatch = orig.from.match(/<([^>]+)>/);
+    const replyTo = emailMatch ? emailMatch[1] : orig.from;
+    const replySubject = orig.subject.startsWith("Re:") ? orig.subject : `Re: ${orig.subject}`;
+
+    const nodemailer = await import("nodemailer");
+    const transporter = nodemailer.createTransport({
+      host: "smtp.gmail.com",
+      port: 465,
+      secure: true,
+      auth: { user: creds.user, pass: creds.pass },
     });
 
-    const headers = (original.data.payload?.headers || []) as Array<{ name: string; value: string }>;
-    const originalFromRaw = extractHeader(headers, "From");
-    const originalSubject = extractHeader(headers, "Subject");
-    const originalMessageId = extractHeader(headers, "Message-ID");
-    const existingReferences = extractHeader(headers, "References");
-    const threadId = original.data.threadId || messageId;
-
-    const emailMatch = originalFromRaw.match(/<([^>]+)>/);
-    const replyTo = emailMatch ? emailMatch[1] : originalFromRaw;
-
-    let myAddress = process.env.GMAIL_ADDRESS || "me";
-    try {
-      const profile = await gmail.users.getProfile({ userId: "me" });
-      myAddress = profile.data.emailAddress || myAddress;
-    } catch {}
-
-    const replySubject = originalSubject.startsWith("Re:") ? originalSubject : `Re: ${originalSubject}`;
-    const references = existingReferences
-      ? `${existingReferences} ${originalMessageId}`
-      : originalMessageId;
-
-    const rawLines = [
-      `From: ${myAddress}`,
-      `To: ${replyTo}`,
-      `Subject: ${encodeSubject(replySubject)}`,
-      `In-Reply-To: ${originalMessageId}`,
-      `References: ${references}`,
-      `MIME-Version: 1.0`,
-      `Content-Type: text/plain; charset="UTF-8"`,
-      `Content-Transfer-Encoding: base64`,
-      ``,
-      Buffer.from(body, "utf-8").toString("base64"),
-    ];
-    const raw = Buffer.from(rawLines.join("\r\n")).toString("base64url");
-
-    const result = await gmail.users.messages.send({
-      userId: "me",
-      requestBody: { raw, threadId },
+    const result = await transporter.sendMail({
+      from: creds.user,
+      to: replyTo,
+      subject: replySubject,
+      text: body,
+      inReplyTo: messageId,
     });
 
     return {
       success: true,
       message: `Reply sent to ${replyTo} in thread "${replySubject}"`,
-      replyMessageId: result.data.id || undefined,
+      replyMessageId: result.messageId || undefined,
     };
   } catch (error: unknown) {
     const errMsg = error instanceof Error ? error.message : String(error);
     console.error("Gmail replyToEmail error:", errMsg);
     return { success: false, message: `Failed to reply: ${errMsg}` };
-  }
-}
-
-export async function sendViaGmail(params: {
-  to: string;
-  subject: string;
-  body: string;
-}): Promise<{ success: boolean; message: string; messageId?: string; fromAddress?: string }> {
-  try {
-    const gmail = await getGmailClient();
-    let fromAddress = process.env.GMAIL_ADDRESS || "me";
-    try {
-      const profile = await gmail.users.getProfile({ userId: "me" });
-      fromAddress = profile.data.emailAddress || fromAddress;
-    } catch {}
-
-    const raw = buildRawEmail(fromAddress, params.to, params.subject, params.body);
-
-    const result = await gmail.users.messages.send({
-      userId: "me",
-      requestBody: { raw },
-    });
-
-    return {
-      success: true,
-      message: `Email sent from your Gmail (${fromAddress}) to ${params.to} with subject "${params.subject}"`,
-      messageId: result.data.id || undefined,
-      fromAddress,
-    };
-  } catch (error: unknown) {
-    const errMsg = error instanceof Error ? error.message : String(error);
-    console.error("Gmail send error:", errMsg);
-    return { success: false, message: `Gmail send failed: ${errMsg}` };
   }
 }

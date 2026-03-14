@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { users, rentals, contactMessages, newsletterSubscribers, leads, agentActions, emailCampaigns, supportTickets, tokenUsage, agentTasks, chatMessages, conversations, teamMembers, bossNotifications, socialAccounts, shippingProviders, guardrailLogs, systemSettings, scheduledPosts, whatsappConfig, whatsappMessages, type User, type InsertUser, type Rental, type InsertRental, type ContactMessage, type InsertContactMessage, type NewsletterSubscriber, type Lead, type InsertLead, type AgentAction, type InsertAgentAction, type EmailCampaign, type InsertEmailCampaign, type SupportTicket, type InsertSupportTicket, type TokenUsage, type InsertTokenUsage, type AgentTask, type InsertAgentTask, type ChatMessage, type InsertChatMessage, type ConversationRecord, type InsertConversation, type TeamMember, type InsertTeamMember, type BossNotification, type InsertBossNotification, type SocialAccount, type InsertSocialAccount, type ShippingProvider, type InsertShippingProvider, type GuardrailLog, type ScheduledPost, type InsertScheduledPost, type WhatsappConfig, type InsertWhatsappConfig, type WhatsappMessage, type InsertWhatsappMessage } from "@shared/schema";
+import { users, rentals, contactMessages, newsletterSubscribers, leads, agentActions, emailCampaigns, supportTickets, tokenUsage, agentTasks, chatMessages, conversations, teamMembers, bossNotifications, socialAccounts, shippingProviders, guardrailLogs, systemSettings, scheduledPosts, whatsappConfig, whatsappMessages, agentLimits, type User, type InsertUser, type Rental, type InsertRental, type ContactMessage, type InsertContactMessage, type NewsletterSubscriber, type Lead, type InsertLead, type AgentAction, type InsertAgentAction, type EmailCampaign, type InsertEmailCampaign, type SupportTicket, type InsertSupportTicket, type TokenUsage, type InsertTokenUsage, type AgentTask, type InsertAgentTask, type ChatMessage, type InsertChatMessage, type ConversationRecord, type InsertConversation, type TeamMember, type InsertTeamMember, type BossNotification, type InsertBossNotification, type SocialAccount, type InsertSocialAccount, type ShippingProvider, type InsertShippingProvider, type GuardrailLog, type ScheduledPost, type InsertScheduledPost, type WhatsappConfig, type InsertWhatsappConfig, type WhatsappMessage, type InsertWhatsappMessage, type AgentLimit, type InsertAgentLimit } from "@shared/schema";
 import { eq, and, sql, desc, gte, lte } from "drizzle-orm";
 import * as cryptoModule from "crypto";
 
@@ -121,6 +121,12 @@ export interface IStorage {
 
   getSystemSetting(key: string): Promise<string | null>;
   setSystemSetting(key: string, value: string): Promise<void>;
+
+  getAgentLimits(agentType?: string, userId?: number | null): Promise<AgentLimit[]>;
+  upsertAgentLimit(limit: InsertAgentLimit): Promise<AgentLimit>;
+  deleteAgentLimit(id: number): Promise<boolean>;
+  getTokenUsageByPeriod(userId: number | null, agentType: string, period: "daily" | "weekly" | "monthly"): Promise<{ tokens: number; messages: number }>;
+  getUsageSummaryByPeriod(agentType: string, period: "daily" | "weekly" | "monthly"): Promise<{ tokens: number; messages: number }>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -884,6 +890,83 @@ export class DatabaseStorage implements IStorage {
         target: systemSettings.key,
         set: { value, updatedAt: new Date() },
       });
+  }
+
+  async getAgentLimits(agentType?: string, userId?: number | null): Promise<AgentLimit[]> {
+    const conditions = [];
+    if (agentType) conditions.push(eq(agentLimits.agentType, agentType));
+    if (userId !== undefined && userId !== null) {
+      conditions.push(eq(agentLimits.userId, userId));
+    }
+    if (conditions.length > 0) {
+      return db.select().from(agentLimits).where(and(...conditions)).orderBy(agentLimits.agentType, agentLimits.period);
+    }
+    return db.select().from(agentLimits).orderBy(agentLimits.agentType, agentLimits.period);
+  }
+
+  async upsertAgentLimit(limit: InsertAgentLimit): Promise<AgentLimit> {
+    const conditions = [
+      eq(agentLimits.agentType, limit.agentType),
+      eq(agentLimits.period, limit.period as "daily" | "weekly" | "monthly"),
+    ];
+    if (limit.userId) {
+      conditions.push(eq(agentLimits.userId, limit.userId));
+    } else {
+      conditions.push(sql`${agentLimits.userId} IS NULL`);
+    }
+    const existing = await db.select().from(agentLimits).where(and(...conditions));
+    if (existing.length > 0) {
+      const [updated] = await db.update(agentLimits)
+        .set({ tokenLimit: limit.tokenLimit, messageLimit: limit.messageLimit, isActive: limit.isActive, updatedAt: new Date() })
+        .where(eq(agentLimits.id, existing[0].id))
+        .returning();
+      return updated;
+    }
+    const [created] = await db.insert(agentLimits).values({ ...limit, updatedAt: new Date() }).returning();
+    return created;
+  }
+
+  async deleteAgentLimit(id: number): Promise<boolean> {
+    const [deleted] = await db.delete(agentLimits).where(eq(agentLimits.id, id)).returning();
+    return !!deleted;
+  }
+
+  async getTokenUsageByPeriod(userId: number | null, agentType: string, period: "daily" | "weekly" | "monthly"): Promise<{ tokens: number; messages: number }> {
+    const now = new Date();
+    let startDate: Date;
+    if (period === "daily") {
+      startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    } else if (period === "weekly") {
+      const day = now.getDay();
+      startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - day);
+    } else {
+      startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+    }
+
+    const conditions = [
+      eq(tokenUsage.agentType, agentType),
+      gte(tokenUsage.createdAt, startDate),
+    ];
+    if (userId) {
+      conditions.push(eq(tokenUsage.userId, userId));
+    }
+
+    const result = await db
+      .select({
+        tokens: sql<number>`COALESCE(SUM(${tokenUsage.totalTokens}), 0)`,
+        messages: sql<number>`COUNT(*)`,
+      })
+      .from(tokenUsage)
+      .where(and(...conditions));
+
+    return {
+      tokens: Number(result[0]?.tokens || 0),
+      messages: Number(result[0]?.messages || 0),
+    };
+  }
+
+  async getUsageSummaryByPeriod(agentType: string, period: "daily" | "weekly" | "monthly"): Promise<{ tokens: number; messages: number }> {
+    return this.getTokenUsageByPeriod(null, agentType, period);
   }
 }
 

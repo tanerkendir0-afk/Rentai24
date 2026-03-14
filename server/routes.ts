@@ -2870,6 +2870,78 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
     }
   });
 
+  app.get(`/api/${ADMIN_PATH}/agent-limits`, requireAdmin, async (req, res) => {
+    try {
+      const agentType = req.query.agentType as string | undefined;
+      const userId = req.query.userId ? parseInt(req.query.userId as string) : undefined;
+      const limits = await storage.getAgentLimits(agentType, userId);
+      res.json(limits);
+    } catch (error: any) {
+      console.error(error); res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.post(`/api/${ADMIN_PATH}/agent-limits`, requireAdmin, async (req, res) => {
+    try {
+      const { agentType, period, tokenLimit, messageLimit, userId, isActive } = req.body;
+      const validPeriods = ["daily", "weekly", "monthly"];
+      const validAgents = ["customer-support", "sales-sdr", "social-media", "bookkeeping", "scheduling", "hr-recruiting", "data-analyst", "ecommerce-ops", "real-estate", "manager"];
+      if (!agentType || !validAgents.includes(agentType)) {
+        return res.status(400).json({ error: "Invalid agentType" });
+      }
+      if (!period || !validPeriods.includes(period)) {
+        return res.status(400).json({ error: "Invalid period. Must be daily, weekly, or monthly" });
+      }
+      const parsedTokenLimit = Math.max(0, parseInt(tokenLimit) || 0);
+      const parsedMessageLimit = Math.max(0, parseInt(messageLimit) || 0);
+      const parsedUserId = userId ? parseInt(userId) : null;
+      if (parsedUserId !== null && (isNaN(parsedUserId) || parsedUserId <= 0)) {
+        return res.status(400).json({ error: "Invalid userId" });
+      }
+      const limit = await storage.upsertAgentLimit({
+        agentType,
+        period,
+        tokenLimit: parsedTokenLimit,
+        messageLimit: parsedMessageLimit,
+        userId: parsedUserId,
+        isActive: isActive !== false,
+      });
+      res.json(limit);
+    } catch (error: any) {
+      console.error(error); res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.delete(`/api/${ADMIN_PATH}/agent-limits/:id`, requireAdmin, async (req, res) => {
+    try {
+      const id = parseInt(String(req.params.id));
+      if (isNaN(id) || id <= 0) {
+        return res.status(400).json({ error: "Invalid limit ID" });
+      }
+      const deleted = await storage.deleteAgentLimit(id);
+      res.json({ success: deleted });
+    } catch (error: any) {
+      console.error(error); res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.get(`/api/${ADMIN_PATH}/agent-limits/usage`, requireAdmin, async (req, res) => {
+    try {
+      const agentType = req.query.agentType as string;
+      const period = req.query.period as "daily" | "weekly" | "monthly";
+      const userId = req.query.userId ? parseInt(req.query.userId as string) : null;
+      if (!agentType || !period) {
+        return res.status(400).json({ error: "agentType and period are required" });
+      }
+      const usage = userId
+        ? await storage.getTokenUsageByPeriod(userId, agentType, period)
+        : await storage.getUsageSummaryByPeriod(agentType, period);
+      res.json(usage);
+    } catch (error: any) {
+      console.error(error); res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   app.get(`/api/${ADMIN_PATH}/users`, requireAdmin, async (_req, res) => {
     try {
       const result = await db.execute(sql`

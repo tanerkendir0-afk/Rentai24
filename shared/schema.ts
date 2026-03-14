@@ -551,6 +551,27 @@ export const insertWhatsappMessageSchema = createInsertSchema(whatsappMessages).
 export type WhatsappMessage = typeof whatsappMessages.$inferSelect;
 export type InsertWhatsappMessage = z.infer<typeof insertWhatsappMessageSchema>;
 
+export const agentLimits = pgTable("agent_limits", {
+  id: serial("id").primaryKey(),
+  agentType: text("agent_type").notNull(),
+  period: text("period", { enum: ["daily", "weekly", "monthly"] }).notNull(),
+  tokenLimit: integer("token_limit").notNull().default(0),
+  messageLimit: integer("message_limit").notNull().default(0),
+  userId: integer("user_id").references(() => users.id),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+  updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
+export const insertAgentLimitSchema = createInsertSchema(agentLimits).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type AgentLimit = typeof agentLimits.$inferSelect;
+export type InsertAgentLimit = z.infer<typeof insertAgentLimitSchema>;
+
 export const securityEvents = pgTable("security_events", {
   id: serial("id").primaryKey(),
   ipAddress: text("ip_address").notNull(),

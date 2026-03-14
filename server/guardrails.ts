@@ -1,6 +1,7 @@
 import { db } from "./db";
-import { tokenUsage, guardrailLogs } from "@shared/schema";
+import { tokenUsage, guardrailLogs, agentLimits } from "@shared/schema";
 import { eq, and, gte, sql } from "drizzle-orm";
+import { storage } from "./storage";
 
 interface GuardrailConfig {
   maxInputTokens: number;
@@ -180,27 +181,83 @@ export async function checkInput(
 
   if (userId) {
     try {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const result = await db
-        .select({ total: sql<number>`COALESCE(SUM(${tokenUsage.totalTokens}), 0)` })
-        .from(tokenUsage)
-        .where(
-          and(
-            eq(tokenUsage.userId, userId),
-            gte(tokenUsage.createdAt, today)
-          )
-        );
-      const dailyUsed = Number(result[0]?.total || 0);
-      if (dailyUsed >= config.dailyTokenLimit) {
-        return { allowed: false, reason: "You have reached your daily usage limit. Please try again tomorrow.", ruleType: "daily_limit" };
+      const periods: Array<"daily" | "weekly" | "monthly"> = ["daily", "weekly", "monthly"];
+      for (const period of periods) {
+        const limit = await getDynamicLimit(agentType, period, userId);
+        if (limit.tokenLimit > 0 || limit.messageLimit > 0) {
+          const usage = await storage.getTokenUsageByPeriod(userId, agentType, period);
+          if (limit.tokenLimit > 0 && usage.tokens >= limit.tokenLimit) {
+            const periodMessages: Record<string, { en: string; tr: string }> = {
+              daily: { en: "You have reached your daily token limit. Please try again tomorrow.", tr: "Günlük token limitinize ulaştınız. Lütfen yarın tekrar deneyin." },
+              weekly: { en: "You have reached your weekly token limit. Please try again next week.", tr: "Haftalık token limitinize ulaştınız. Lütfen gelecek hafta tekrar deneyin." },
+              monthly: { en: "You have reached your monthly token limit. Please try again next month.", tr: "Aylık token limitinize ulaştınız. Lütfen gelecek ay tekrar deneyin." },
+            };
+            return { allowed: false, reason: `${periodMessages[period].tr} / ${periodMessages[period].en}`, ruleType: `${period}_token_limit` };
+          }
+          if (limit.messageLimit > 0 && usage.messages >= limit.messageLimit) {
+            const periodMessages: Record<string, { en: string; tr: string }> = {
+              daily: { en: "You have reached your daily message limit. Please try again tomorrow.", tr: "Günlük mesaj limitinize ulaştınız. Lütfen yarın tekrar deneyin." },
+              weekly: { en: "You have reached your weekly message limit. Please try again next week.", tr: "Haftalık mesaj limitinize ulaştınız. Lütfen gelecek hafta tekrar deneyin." },
+              monthly: { en: "You have reached your monthly message limit. Please try again next month.", tr: "Aylık mesaj limitinize ulaştınız. Lütfen gelecek ay tekrar deneyin." },
+            };
+            return { allowed: false, reason: `${periodMessages[period].tr} / ${periodMessages[period].en}`, ruleType: `${period}_message_limit` };
+          }
+        }
       }
     } catch (err) {
-      console.error("[Guardrail] Daily token check error:", err);
+      console.error("[Guardrail] Limit check error:", err);
     }
   }
 
   return { allowed: true };
+}
+
+async function getDynamicLimit(agentType: string, period: "daily" | "weekly" | "monthly", userId?: number | null): Promise<{ tokenLimit: number; messageLimit: number }> {
+  const defaultDailyConfig = AGENT_CONFIGS[agentType] || DEFAULT_CONFIG;
+  try {
+    if (userId) {
+      const userLimits = await db.select().from(agentLimits).where(
+        and(
+          eq(agentLimits.agentType, agentType),
+          eq(agentLimits.period, period),
+          eq(agentLimits.userId, userId),
+          eq(agentLimits.isActive, true)
+        )
+      );
+      if (userLimits.length > 0) {
+        const row = userLimits[0];
+        return {
+          tokenLimit: row.tokenLimit > 0 ? row.tokenLimit : (period === "daily" ? defaultDailyConfig.dailyTokenLimit : 0),
+          messageLimit: row.messageLimit,
+        };
+      }
+    }
+    const globalLimits = await db.select().from(agentLimits).where(
+      and(
+        eq(agentLimits.agentType, agentType),
+        eq(agentLimits.period, period),
+        sql`${agentLimits.userId} IS NULL`,
+        eq(agentLimits.isActive, true)
+      )
+    );
+    if (globalLimits.length > 0) {
+      const row = globalLimits[0];
+      return {
+        tokenLimit: row.tokenLimit > 0 ? row.tokenLimit : (period === "daily" ? defaultDailyConfig.dailyTokenLimit : 0),
+        messageLimit: row.messageLimit,
+      };
+    }
+    if (period === "daily") {
+      return { tokenLimit: defaultDailyConfig.dailyTokenLimit, messageLimit: 0 };
+    }
+    return { tokenLimit: 0, messageLimit: 0 };
+  } catch (err) {
+    console.error("[Guardrail] getDynamicLimit error:", err);
+    if (period === "daily") {
+      return { tokenLimit: defaultDailyConfig.dailyTokenLimit, messageLimit: 0 };
+    }
+    return { tokenLimit: 0, messageLimit: 0 };
+  }
 }
 
 export function sanitizeOutput(output: string, agentType: string): string {

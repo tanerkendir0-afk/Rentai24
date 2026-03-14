@@ -3691,6 +3691,410 @@ function PackageManagementPanel({ token }: { token: string }) {
   );
 }
 
+interface AgentLimitData {
+  id: number;
+  agentType: string;
+  period: string;
+  tokenLimit: number;
+  messageLimit: number;
+  userId: number | null;
+  isActive: boolean;
+}
+
+interface UsageData {
+  tokens: number;
+  messages: number;
+}
+
+function LimitManagementPanel({ token }: { token: string }) {
+  const [limits, setLimits] = useState<AgentLimitData[]>([]);
+  const [usageCache, setUsageCache] = useState<Record<string, UsageData>>({});
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [selectedAgentFilter, setSelectedAgentFilter] = useState("all");
+  const [editingLimits, setEditingLimits] = useState<Record<string, { tokenLimit: number; messageLimit: number }>>({});
+  const [userOverrideAgent, setUserOverrideAgent] = useState("customer-support");
+  const [userOverridePeriod, setUserOverridePeriod] = useState("daily");
+  const [userOverrideUserId, setUserOverrideUserId] = useState("");
+  const [userOverrideTokenLimit, setUserOverrideTokenLimit] = useState("");
+  const [userOverrideMessageLimit, setUserOverrideMessageLimit] = useState("");
+  const [users, setUsers] = useState<AdminUser[]>([]);
+  const { toast } = useToast();
+
+  const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
+
+  const fetchLimits = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${ADMIN_API}/agent-limits`, { headers: { Authorization: `Bearer ${token}` } });
+      const data = await res.json();
+      if (Array.isArray(data)) setLimits(data);
+    } catch {} finally { setLoading(false); }
+  }, [token]);
+
+  const fetchUsers = useCallback(async () => {
+    try {
+      const res = await fetch(`${ADMIN_API}/users`, { headers: { Authorization: `Bearer ${token}` } });
+      const data = await res.json();
+      if (Array.isArray(data)) setUsers(data);
+    } catch {}
+  }, [token]);
+
+  const fetchUsage = useCallback(async (agentType: string, period: string) => {
+    const key = `${agentType}-${period}`;
+    try {
+      const res = await fetch(`${ADMIN_API}/agent-limits/usage?agentType=${agentType}&period=${period}`, { headers: { Authorization: `Bearer ${token}` } });
+      const data = await res.json();
+      setUsageCache(prev => ({ ...prev, [key]: data }));
+    } catch {}
+  }, [token]);
+
+  useEffect(() => { fetchLimits(); fetchUsers(); }, [fetchLimits, fetchUsers]);
+
+  useEffect(() => {
+    const agentsToFetch = selectedAgentFilter === "all"
+      ? AGENTS.filter(a => a.slug !== "manager").map(a => a.slug)
+      : [selectedAgentFilter];
+    const periods = ["daily", "weekly", "monthly"] as const;
+    agentsToFetch.forEach(agent => {
+      periods.forEach(period => fetchUsage(agent, period));
+    });
+  }, [selectedAgentFilter, fetchUsage]);
+
+  const handleSaveLimit = async (agentType: string, period: string) => {
+    const key = `${agentType}-${period}`;
+    const edit = editingLimits[key];
+    if (!edit) return;
+    setSaving(true);
+    try {
+      const res = await fetch(`${ADMIN_API}/agent-limits`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ agentType, period, tokenLimit: edit.tokenLimit, messageLimit: edit.messageLimit }),
+      });
+      if (!res.ok) throw new Error("Save failed");
+      toast({ title: "Limit kaydedildi", description: `${agentType} — ${period}` });
+      fetchLimits();
+      fetchUsage(agentType, period);
+      setEditingLimits(prev => { const copy = { ...prev }; delete copy[key]; return copy; });
+    } catch (err: any) {
+      toast({ title: "Kaydetme başarısız", description: err.message, variant: "destructive" });
+    } finally { setSaving(false); }
+  };
+
+  const handleDeleteLimit = async (id: number) => {
+    try {
+      const res = await fetch(`${ADMIN_API}/agent-limits/${id}`, { method: "DELETE", headers });
+      if (!res.ok) throw new Error("Delete failed");
+      toast({ title: "Limit silindi" });
+      fetchLimits();
+    } catch (err: any) {
+      toast({ title: "Silme başarısız", description: err.message, variant: "destructive" });
+    }
+  };
+
+  const handleSaveUserOverride = async () => {
+    if (!userOverrideUserId) return;
+    setSaving(true);
+    try {
+      const res = await fetch(`${ADMIN_API}/agent-limits`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          agentType: userOverrideAgent,
+          period: userOverridePeriod,
+          tokenLimit: parseInt(userOverrideTokenLimit) || 0,
+          messageLimit: parseInt(userOverrideMessageLimit) || 0,
+          userId: parseInt(userOverrideUserId),
+        }),
+      });
+      if (!res.ok) throw new Error("Save failed");
+      toast({ title: "Kullanıcı limiti kaydedildi" });
+      fetchLimits();
+      setUserOverrideTokenLimit("");
+      setUserOverrideMessageLimit("");
+    } catch (err: any) {
+      toast({ title: "Kaydetme başarısız", description: err.message, variant: "destructive" });
+    } finally { setSaving(false); }
+  };
+
+  const getEditValue = (agentType: string, period: string) => {
+    const key = `${agentType}-${period}`;
+    if (editingLimits[key]) return editingLimits[key];
+    const existing = limits.find(l => l.agentType === agentType && l.period === period && !l.userId);
+    return existing ? { tokenLimit: existing.tokenLimit, messageLimit: existing.messageLimit } : { tokenLimit: 0, messageLimit: 0 };
+  };
+
+  const setEditValue = (agentType: string, period: string, field: "tokenLimit" | "messageLimit", value: number) => {
+    const key = `${agentType}-${period}`;
+    const current = getEditValue(agentType, period);
+    setEditingLimits(prev => ({ ...prev, [key]: { ...current, [field]: value } }));
+  };
+
+  const getDefaultTokenLimit = (agentType: string) => {
+    const defaults: Record<string, number> = {
+      "customer-support": 40000, "sales-sdr": 30000, "social-media": 40000,
+      "bookkeeping": 35000, "scheduling": 25000, "hr-recruiting": 40000,
+      "data-analyst": 50000, "ecommerce-ops": 40000, "real-estate": 40000,
+    };
+    return defaults[agentType] || 20000;
+  };
+
+  const agentsToShow = selectedAgentFilter === "all"
+    ? AGENTS.filter(a => a.slug !== "manager")
+    : AGENTS.filter(a => a.slug === selectedAgentFilter);
+
+  const periods = ["daily", "weekly", "monthly"] as const;
+  const periodLabels: Record<string, string> = { daily: "Günlük", weekly: "Haftalık", monthly: "Aylık" };
+
+  const userOverrides = limits.filter(l => l.userId !== null);
+
+  return (
+    <div className="space-y-6">
+      <Card className="bg-[#0A0E27] border-[#1E2448]">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle className="text-lg text-white flex items-center gap-2">
+              <Zap className="w-5 h-5 text-yellow-400" />
+              Limit Yönetimi
+            </CardTitle>
+            <CardDescription className="text-gray-400">Ajan bazında günlük, haftalık ve aylık token/mesaj limitleri</CardDescription>
+          </div>
+          <div className="flex items-center gap-2">
+            <Select value={selectedAgentFilter} onValueChange={setSelectedAgentFilter}>
+              <SelectTrigger className="bg-[#111633] border-[#1E2448] text-white w-48" data-testid="select-limit-agent-filter">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-[#111633] border-[#1E2448]">
+                <SelectItem value="all" className="text-white">Tüm Ajanlar</SelectItem>
+                {AGENTS.filter(a => a.slug !== "manager").map(a => (
+                  <SelectItem key={a.slug} value={a.slug} className="text-white">{a.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button variant="ghost" size="sm" onClick={fetchLimits} disabled={loading} data-testid="button-refresh-limits">
+              <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-6">
+            {agentsToShow.map(agent => (
+              <div key={agent.slug} className="p-4 bg-[#111633] rounded-lg border border-[#1E2448]" data-testid={`limit-agent-${agent.slug}`}>
+                <div className="flex items-center gap-2 mb-4">
+                  <Bot className="w-5 h-5 text-blue-400" />
+                  <h4 className="text-white font-medium">{agent.name}</h4>
+                  <Badge variant="outline" className="border-[#1E2448] text-gray-400 text-xs ml-auto">
+                    Varsayılan: {getDefaultTokenLimit(agent.slug).toLocaleString()} token/gün
+                  </Badge>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {periods.map(period => {
+                    const usageKey = `${agent.slug}-${period}`;
+                    const usage = usageCache[usageKey] || { tokens: 0, messages: 0 };
+                    const editVal = getEditValue(agent.slug, period);
+                    const existingLimit = limits.find(l => l.agentType === agent.slug && l.period === period && !l.userId);
+                    const effectiveTokenLimit = editVal.tokenLimit || (period === "daily" ? getDefaultTokenLimit(agent.slug) : 0);
+                    const tokenPercent = effectiveTokenLimit > 0 ? Math.min(100, (usage.tokens / effectiveTokenLimit) * 100) : 0;
+                    const messagePercent = editVal.messageLimit > 0 ? Math.min(100, (usage.messages / editVal.messageLimit) * 100) : 0;
+
+                    return (
+                      <div key={period} className="p-3 bg-[#0A0E27] rounded-lg border border-[#1E2448]">
+                        <div className="flex items-center justify-between mb-3">
+                          <span className="text-sm font-medium text-gray-300">{periodLabels[period]}</span>
+                          {existingLimit && (
+                            <Button variant="ghost" size="sm" onClick={() => handleDeleteLimit(existingLimit.id)} className="text-red-400 hover:text-red-300 h-6 w-6 p-0" data-testid={`button-delete-limit-${agent.slug}-${period}`}>
+                              <Trash2 className="w-3 h-3" />
+                            </Button>
+                          )}
+                        </div>
+                        <div className="space-y-3">
+                          <div>
+                            <label className="text-xs text-gray-500 mb-1 block">Token Limiti</label>
+                            <Input
+                              type="number"
+                              value={editVal.tokenLimit || ""}
+                              onChange={e => setEditValue(agent.slug, period, "tokenLimit", parseInt(e.target.value) || 0)}
+                              placeholder={period === "daily" ? getDefaultTokenLimit(agent.slug).toString() : "0 (limitsiz)"}
+                              className="bg-[#111633] border-[#1E2448] text-white h-8 text-sm"
+                              data-testid={`input-token-limit-${agent.slug}-${period}`}
+                            />
+                            {effectiveTokenLimit > 0 && (
+                              <div className="mt-1">
+                                <div className="flex justify-between text-xs text-gray-500 mb-1">
+                                  <span>{usage.tokens.toLocaleString()} / {effectiveTokenLimit.toLocaleString()}</span>
+                                  <span>{tokenPercent.toFixed(0)}%</span>
+                                </div>
+                                <div className="w-full bg-[#1E2448] rounded-full h-1.5">
+                                  <div
+                                    className={`h-1.5 rounded-full transition-all ${tokenPercent >= 90 ? "bg-red-500" : tokenPercent >= 70 ? "bg-yellow-500" : "bg-emerald-500"}`}
+                                    style={{ width: `${tokenPercent}%` }}
+                                  />
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                          <div>
+                            <label className="text-xs text-gray-500 mb-1 block">Mesaj Limiti</label>
+                            <Input
+                              type="number"
+                              value={editVal.messageLimit || ""}
+                              onChange={e => setEditValue(agent.slug, period, "messageLimit", parseInt(e.target.value) || 0)}
+                              placeholder="0 (limitsiz)"
+                              className="bg-[#111633] border-[#1E2448] text-white h-8 text-sm"
+                              data-testid={`input-message-limit-${agent.slug}-${period}`}
+                            />
+                            {editVal.messageLimit > 0 && (
+                              <div className="mt-1">
+                                <div className="flex justify-between text-xs text-gray-500 mb-1">
+                                  <span>{usage.messages.toLocaleString()} / {editVal.messageLimit.toLocaleString()}</span>
+                                  <span>{messagePercent.toFixed(0)}%</span>
+                                </div>
+                                <div className="w-full bg-[#1E2448] rounded-full h-1.5">
+                                  <div
+                                    className={`h-1.5 rounded-full transition-all ${messagePercent >= 90 ? "bg-red-500" : messagePercent >= 70 ? "bg-yellow-500" : "bg-emerald-500"}`}
+                                    style={{ width: `${messagePercent}%` }}
+                                  />
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                          <Button
+                            size="sm"
+                            onClick={() => handleSaveLimit(agent.slug, period)}
+                            disabled={saving}
+                            className="w-full bg-blue-600 hover:bg-blue-700 h-7 text-xs"
+                            data-testid={`button-save-limit-${agent.slug}-${period}`}
+                          >
+                            {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : "Kaydet"}
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="bg-[#0A0E27] border-[#1E2448]">
+        <CardHeader>
+          <CardTitle className="text-lg text-white flex items-center gap-2">
+            <Crown className="w-5 h-5 text-yellow-400" />
+            Kullanıcı Bazlı Limit Override
+          </CardTitle>
+          <CardDescription className="text-gray-400">Belirli kullanıcılar için özel limit tanımlayın (ör. premium kullanıcıya daha yüksek limit)</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+            <div>
+              <label className="text-xs text-gray-500 mb-1 block">Kullanıcı</label>
+              <Select value={userOverrideUserId} onValueChange={setUserOverrideUserId}>
+                <SelectTrigger className="bg-[#111633] border-[#1E2448] text-white" data-testid="select-override-user">
+                  <SelectValue placeholder="Kullanıcı seçin" />
+                </SelectTrigger>
+                <SelectContent className="bg-[#111633] border-[#1E2448] max-h-48">
+                  {users.map(u => (
+                    <SelectItem key={u.id} value={u.id.toString()} className="text-white">{u.full_name} ({u.email})</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-xs text-gray-500 mb-1 block">Ajan</label>
+              <Select value={userOverrideAgent} onValueChange={setUserOverrideAgent}>
+                <SelectTrigger className="bg-[#111633] border-[#1E2448] text-white" data-testid="select-override-agent">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-[#111633] border-[#1E2448]">
+                  {AGENTS.filter(a => a.slug !== "manager").map(a => (
+                    <SelectItem key={a.slug} value={a.slug} className="text-white">{a.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-xs text-gray-500 mb-1 block">Periyot</label>
+              <Select value={userOverridePeriod} onValueChange={setUserOverridePeriod}>
+                <SelectTrigger className="bg-[#111633] border-[#1E2448] text-white" data-testid="select-override-period">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-[#111633] border-[#1E2448]">
+                  <SelectItem value="daily" className="text-white">Günlük</SelectItem>
+                  <SelectItem value="weekly" className="text-white">Haftalık</SelectItem>
+                  <SelectItem value="monthly" className="text-white">Aylık</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-xs text-gray-500 mb-1 block">Token Limiti</label>
+              <Input
+                type="number"
+                value={userOverrideTokenLimit}
+                onChange={e => setUserOverrideTokenLimit(e.target.value)}
+                placeholder="0"
+                className="bg-[#111633] border-[#1E2448] text-white"
+                data-testid="input-override-token-limit"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-gray-500 mb-1 block">Mesaj Limiti</label>
+              <Input
+                type="number"
+                value={userOverrideMessageLimit}
+                onChange={e => setUserOverrideMessageLimit(e.target.value)}
+                placeholder="0"
+                className="bg-[#111633] border-[#1E2448] text-white"
+                data-testid="input-override-message-limit"
+              />
+            </div>
+            <div className="flex items-end">
+              <Button
+                onClick={handleSaveUserOverride}
+                disabled={saving || !userOverrideUserId}
+                className="w-full bg-yellow-600 hover:bg-yellow-700"
+                data-testid="button-save-user-override"
+              >
+                {saving ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Plus className="w-4 h-4 mr-1" />}
+                Override Ekle
+              </Button>
+            </div>
+          </div>
+
+          {userOverrides.length > 0 && (
+            <div className="space-y-2 mt-4">
+              <h4 className="text-sm font-medium text-gray-400 mb-2">Mevcut Override'lar</h4>
+              {userOverrides.map(override => {
+                const user = users.find(u => u.id === override.userId);
+                const agentName = AGENTS.find(a => a.slug === override.agentType)?.name || override.agentType;
+                return (
+                  <div key={override.id} className="flex items-center justify-between p-3 bg-[#111633] rounded-lg border border-[#1E2448]" data-testid={`override-row-${override.id}`}>
+                    <div className="flex items-center gap-3">
+                      <Crown className="w-4 h-4 text-yellow-400" />
+                      <div>
+                        <span className="text-white text-sm">{user?.full_name || `User #${override.userId}`}</span>
+                        <span className="text-gray-500 text-xs ml-2">({user?.email})</span>
+                      </div>
+                      <Badge variant="outline" className="border-[#1E2448] text-gray-300 text-xs">{agentName}</Badge>
+                      <Badge variant="outline" className="border-[#1E2448] text-gray-300 text-xs">{periodLabels[override.period] || override.period}</Badge>
+                      <span className="text-gray-400 text-xs">Token: {override.tokenLimit.toLocaleString()} · Mesaj: {override.messageLimit.toLocaleString()}</span>
+                    </div>
+                    <Button variant="ghost" size="sm" onClick={() => handleDeleteLimit(override.id)} className="text-red-400 hover:text-red-300" data-testid={`button-delete-override-${override.id}`}>
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 function AdminGuidePanel() {
   const AGENT_DETAILS = [
     { slug: "customer-support", name: "Ava", role: "Müşteri Destek", desc: "Müşteri sorularını yanıtlar, şikayet yönetir, ticket oluşturur.", icon: "🎧", color: "from-blue-500 to-blue-600" },
@@ -3971,6 +4375,10 @@ export default function AdminPage() {
               <Zap className="w-3.5 h-3.5 mr-1" />
               Token Optimization
             </TabsTrigger>
+            <TabsTrigger value="limit-management" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-yellow-500 data-[state=active]:to-orange-600 data-[state=active]:text-white" data-testid="tab-limit-management">
+              <Zap className="w-3.5 h-3.5 mr-1" />
+              Limit Yönetimi
+            </TabsTrigger>
             <TabsTrigger value="costs" className="data-[state=active]:bg-red-600 data-[state=active]:text-white" data-testid="tab-costs">
               <DollarSign className="w-3.5 h-3.5 mr-1" />
               Cost Tracker
@@ -4043,6 +4451,10 @@ export default function AdminPage() {
 
           <TabsContent value="token-optimization">
             <TokenOptimizationPanel token={token} />
+          </TabsContent>
+
+          <TabsContent value="limit-management">
+            <LimitManagementPanel token={token} />
           </TabsContent>
 
           <TabsContent value="costs">

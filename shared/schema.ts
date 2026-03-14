@@ -508,6 +508,49 @@ export const insertScheduledPostSchema = createInsertSchema(scheduledPosts).omit
 export type ScheduledPost = typeof scheduledPosts.$inferSelect;
 export type InsertScheduledPost = z.infer<typeof insertScheduledPostSchema>;
 
+export const whatsappConfig = pgTable("whatsapp_config", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id).unique(),
+  phoneNumberId: text("phone_number_id").notNull(),
+  businessAccountId: text("business_account_id"),
+  accessToken: text("access_token").notNull(),
+  verifyToken: text("verify_token").notNull(),
+  displayName: text("display_name"),
+  status: text("status").notNull().default("active"),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
+export const insertWhatsappConfigSchema = createInsertSchema(whatsappConfig).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type WhatsappConfig = typeof whatsappConfig.$inferSelect;
+export type InsertWhatsappConfig = z.infer<typeof insertWhatsappConfigSchema>;
+
+export const whatsappMessages = pgTable("whatsapp_messages", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  agentType: text("agent_type"),
+  direction: text("direction", { enum: ["inbound", "outbound"] }).notNull(),
+  customerPhone: text("customer_phone").notNull(),
+  customerName: text("customer_name"),
+  messageType: text("message_type", { enum: ["text", "template", "image", "document"] }).notNull().default("text"),
+  content: text("content").notNull(),
+  templateName: text("template_name"),
+  whatsappMessageId: text("whatsapp_message_id"),
+  status: text("status", { enum: ["sent", "delivered", "read", "failed", "received"] }).notNull().default("sent"),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
+export const insertWhatsappMessageSchema = createInsertSchema(whatsappMessages).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type WhatsappMessage = typeof whatsappMessages.$inferSelect;
+export type InsertWhatsappMessage = z.infer<typeof insertWhatsappMessageSchema>;
+
 export type Lead = typeof leads.$inferSelect;
 export type InsertLead = z.infer<typeof insertLeadSchema>;
 export type AgentAction = typeof agentActions.$inferSelect;

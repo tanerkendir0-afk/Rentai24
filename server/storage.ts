@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { users, rentals, contactMessages, newsletterSubscribers, leads, agentActions, emailCampaigns, supportTickets, tokenUsage, agentTasks, chatMessages, conversations, teamMembers, bossNotifications, socialAccounts, shippingProviders, guardrailLogs, systemSettings, scheduledPosts, type User, type InsertUser, type Rental, type InsertRental, type ContactMessage, type InsertContactMessage, type NewsletterSubscriber, type Lead, type InsertLead, type AgentAction, type InsertAgentAction, type EmailCampaign, type InsertEmailCampaign, type SupportTicket, type InsertSupportTicket, type TokenUsage, type InsertTokenUsage, type AgentTask, type InsertAgentTask, type ChatMessage, type InsertChatMessage, type ConversationRecord, type InsertConversation, type TeamMember, type InsertTeamMember, type BossNotification, type InsertBossNotification, type SocialAccount, type InsertSocialAccount, type ShippingProvider, type InsertShippingProvider, type GuardrailLog, type ScheduledPost, type InsertScheduledPost } from "@shared/schema";
+import { users, rentals, contactMessages, newsletterSubscribers, leads, agentActions, emailCampaigns, supportTickets, tokenUsage, agentTasks, chatMessages, conversations, teamMembers, bossNotifications, socialAccounts, shippingProviders, guardrailLogs, systemSettings, scheduledPosts, whatsappConfig, whatsappMessages, type User, type InsertUser, type Rental, type InsertRental, type ContactMessage, type InsertContactMessage, type NewsletterSubscriber, type Lead, type InsertLead, type AgentAction, type InsertAgentAction, type EmailCampaign, type InsertEmailCampaign, type SupportTicket, type InsertSupportTicket, type TokenUsage, type InsertTokenUsage, type AgentTask, type InsertAgentTask, type ChatMessage, type InsertChatMessage, type ConversationRecord, type InsertConversation, type TeamMember, type InsertTeamMember, type BossNotification, type InsertBossNotification, type SocialAccount, type InsertSocialAccount, type ShippingProvider, type InsertShippingProvider, type GuardrailLog, type ScheduledPost, type InsertScheduledPost, type WhatsappConfig, type InsertWhatsappConfig, type WhatsappMessage, type InsertWhatsappMessage } from "@shared/schema";
 import { eq, and, sql, desc, gte, lte } from "drizzle-orm";
 import * as cryptoModule from "crypto";
 
@@ -101,6 +101,15 @@ export interface IStorage {
   addShippingProvider(provider: InsertShippingProvider): Promise<ShippingProvider>;
   updateShippingProvider(id: number, userId: number, updates: Partial<Pick<ShippingProvider, "apiKey" | "customerCode" | "username" | "password" | "accountNumber" | "siteId" | "status">>): Promise<ShippingProvider | undefined>;
   deleteShippingProvider(id: number, userId: number): Promise<boolean>;
+
+  getWhatsappConfig(userId: number): Promise<WhatsappConfig | undefined>;
+  saveWhatsappConfig(config: InsertWhatsappConfig): Promise<WhatsappConfig>;
+  deleteWhatsappConfig(userId: number): Promise<boolean>;
+  getWhatsappConfigByVerifyToken(verifyToken: string): Promise<WhatsappConfig | undefined>;
+  getWhatsappConfigByPhoneNumberId(phoneNumberId: string): Promise<WhatsappConfig | undefined>;
+  saveWhatsappMessage(message: InsertWhatsappMessage): Promise<WhatsappMessage>;
+  getWhatsappMessages(userId: number, filters?: { direction?: string; agentType?: string; limit?: number }): Promise<WhatsappMessage[]>;
+  updateWhatsappMessageStatus(whatsappMessageId: string, status: string): Promise<void>;
 
   getGuardrailLogs(filters?: { agentType?: string; ruleType?: string; limit?: number; from?: Date; to?: Date }): Promise<GuardrailLog[]>;
 
@@ -752,6 +761,64 @@ export class DatabaseStorage implements IStorage {
   async deleteShippingProvider(id: number, userId: number): Promise<boolean> {
     const [deleted] = await db.delete(shippingProviders).where(and(eq(shippingProviders.id, id), eq(shippingProviders.userId, userId))).returning();
     return !!deleted;
+  }
+
+  async getWhatsappConfig(userId: number): Promise<WhatsappConfig | undefined> {
+    const [config] = await db.select().from(whatsappConfig).where(eq(whatsappConfig.userId, userId));
+    return config;
+  }
+
+  async saveWhatsappConfig(config: InsertWhatsappConfig): Promise<WhatsappConfig> {
+    const [created] = await db.insert(whatsappConfig).values(config)
+      .onConflictDoUpdate({
+        target: whatsappConfig.userId,
+        set: {
+          phoneNumberId: config.phoneNumberId,
+          businessAccountId: config.businessAccountId,
+          accessToken: config.accessToken,
+          verifyToken: config.verifyToken,
+          displayName: config.displayName,
+          status: config.status || "active",
+        },
+      })
+      .returning();
+    return created;
+  }
+
+  async deleteWhatsappConfig(userId: number): Promise<boolean> {
+    const [deleted] = await db.delete(whatsappConfig).where(eq(whatsappConfig.userId, userId)).returning();
+    return !!deleted;
+  }
+
+  async getWhatsappConfigByVerifyToken(verifyToken: string): Promise<WhatsappConfig | undefined> {
+    const [config] = await db.select().from(whatsappConfig).where(eq(whatsappConfig.verifyToken, verifyToken));
+    return config;
+  }
+
+  async getWhatsappConfigByPhoneNumberId(phoneNumberId: string): Promise<WhatsappConfig | undefined> {
+    const [config] = await db.select().from(whatsappConfig).where(eq(whatsappConfig.phoneNumberId, phoneNumberId));
+    return config;
+  }
+
+  async saveWhatsappMessage(message: InsertWhatsappMessage): Promise<WhatsappMessage> {
+    const [created] = await db.insert(whatsappMessages).values(message).returning();
+    return created;
+  }
+
+  async getWhatsappMessages(userId: number, filters?: { direction?: string; agentType?: string; limit?: number }): Promise<WhatsappMessage[]> {
+    const conditions = [eq(whatsappMessages.userId, userId)];
+    if (filters?.direction) conditions.push(eq(whatsappMessages.direction, filters.direction as "inbound" | "outbound"));
+    if (filters?.agentType) conditions.push(eq(whatsappMessages.agentType, filters.agentType));
+    return db.select().from(whatsappMessages)
+      .where(and(...conditions))
+      .orderBy(desc(whatsappMessages.createdAt))
+      .limit(filters?.limit || 50);
+  }
+
+  async updateWhatsappMessageStatus(whatsappMessageId: string, status: string): Promise<void> {
+    await db.update(whatsappMessages)
+      .set({ status: status as "sent" | "delivered" | "read" | "failed" | "received" })
+      .where(eq(whatsappMessages.whatsappMessageId, whatsappMessageId));
   }
 
   async getSystemSetting(key: string): Promise<string | null> {

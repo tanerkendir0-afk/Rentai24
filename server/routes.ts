@@ -982,6 +982,105 @@ export async function registerRoutes(
     res.json({ success: true });
   });
 
+  app.get("/api/whatsapp/config", requireAuth, async (req, res) => {
+    const config = await storage.getWhatsappConfig(req.session.userId!);
+    if (!config) return res.json({ connected: false });
+    res.json({
+      connected: true,
+      phoneNumberId: config.phoneNumberId,
+      businessAccountId: config.businessAccountId || null,
+      displayName: config.displayName || null,
+      hasAccessToken: !!config.accessToken,
+      hasVerifyToken: !!config.verifyToken,
+      status: config.status,
+    });
+  });
+
+  app.post("/api/whatsapp/config", requireAuth, async (req, res) => {
+    const { phoneNumberId, businessAccountId, accessToken, verifyToken, displayName } = req.body;
+    if (!phoneNumberId || !accessToken || !verifyToken) {
+      return res.status(400).json({ error: "Phone Number ID, Access Token, and Verify Token are required" });
+    }
+    const config = await storage.saveWhatsappConfig({
+      userId: req.session.userId!,
+      phoneNumberId,
+      businessAccountId: businessAccountId || null,
+      accessToken,
+      verifyToken,
+      displayName: displayName || null,
+      status: "active",
+    });
+    res.json({ success: true, connected: true, phoneNumberId: config.phoneNumberId });
+  });
+
+  app.delete("/api/whatsapp/config", requireAuth, async (req, res) => {
+    const deleted = await storage.deleteWhatsappConfig(req.session.userId!);
+    if (!deleted) return res.status(404).json({ error: "No WhatsApp config found" });
+    res.json({ success: true });
+  });
+
+  app.post("/api/whatsapp/test", requireAuth, async (req, res) => {
+    const config = await storage.getWhatsappConfig(req.session.userId!);
+    if (!config) return res.status(400).json({ error: "WhatsApp not configured" });
+    try {
+      const response = await fetch(`https://graph.facebook.com/v21.0/${config.phoneNumberId}`, {
+        headers: { "Authorization": `Bearer ${config.accessToken}` },
+      });
+      const data = await response.json() as any;
+      if (response.ok) {
+        res.json({ success: true, phone: data.display_phone_number || config.phoneNumberId, name: data.verified_name || config.displayName });
+      } else {
+        res.json({ success: false, error: data?.error?.message || "Connection test failed" });
+      }
+    } catch (e: any) {
+      res.json({ success: false, error: e.message });
+    }
+  });
+
+  app.get("/api/whatsapp/messages", requireAuth, async (req, res) => {
+    const direction = req.query.direction as string | undefined;
+    const agentType = req.query.agentType as string | undefined;
+    const limit = parseInt(req.query.limit as string) || 50;
+    const messages = await storage.getWhatsappMessages(req.session.userId!, { direction, agentType, limit });
+    res.json(messages);
+  });
+
+  app.get("/api/whatsapp/webhook", async (req, res) => {
+    const mode = req.query["hub.mode"];
+    const token = req.query["hub.verify_token"];
+    const challenge = req.query["hub.challenge"];
+    if (mode === "subscribe" && token) {
+      const config = await storage.getWhatsappConfigByVerifyToken(String(token));
+      const envToken = process.env.WHATSAPP_VERIFY_TOKEN;
+      if (config || (envToken && token === envToken)) {
+        console.log("[WhatsApp] Webhook verified");
+        return res.status(200).send(challenge);
+      }
+    }
+    console.warn("[WhatsApp] Webhook verification failed");
+    res.sendStatus(403);
+  });
+
+  app.post("/api/whatsapp/webhook", async (req, res) => {
+    const signature = req.headers["x-hub-signature-256"] as string | undefined;
+    const appSecret = process.env.WHATSAPP_APP_SECRET;
+    if (appSecret && signature) {
+      const { verifyWebhookSignature } = await import("./whatsappService");
+      const rawBody = JSON.stringify(req.body);
+      if (!verifyWebhookSignature(rawBody, signature, appSecret)) {
+        console.warn("[WhatsApp] Invalid webhook signature");
+        return res.sendStatus(403);
+      }
+    }
+    try {
+      const { processIncomingWebhook } = await import("./whatsappService");
+      await processIncomingWebhook(req.body);
+    } catch (e) {
+      console.error("[WhatsApp] Webhook processing error:", e);
+    }
+    res.sendStatus(200);
+  });
+
   app.get("/api/boss/notifications", requireAuth, async (req, res) => {
     const limit = parseInt(req.query.limit as string) || 50;
     const notifications = await storage.getBossNotifications(req.session.userId!, limit);
@@ -1295,6 +1394,15 @@ ${members.map(m => `- ${m.name} (${m.email})${m.position ? ` — ${m.position}` 
         systemPrompt += `\n\nCONNECTED SHIPPING PROVIDERS:\n${providersStr}\n- User has cargo integrations set up. Help with tracking, shipping cost calculations, and logistics optimization.`;
       } else {
         systemPrompt += `\n\nSHIPPING STATUS: No shipping/cargo providers connected yet. On first interaction, suggest the user connect their shipping provider API in Settings > Shipping Providers for cargo tracking and logistics support. Supported: Aras Kargo, Yurtici Kargo, MNG Kargo, Surat Kargo, PTT Kargo, UPS, FedEx, DHL.`;
+      }
+    }
+
+    if (req.session.userId) {
+      const waConfig = await storage.getWhatsappConfig(req.session.userId);
+      if (waConfig && waConfig.status === "active") {
+        systemPrompt += `\n\nWHATSAPP STATUS: Connected (Phone: ${waConfig.displayName || waConfig.phoneNumberId}). You can send WhatsApp messages to customers using the send_whatsapp tool. For notifications outside the 24-hour window, use send_whatsapp_template with approved templates.`;
+      } else {
+        systemPrompt += `\n\nWHATSAPP STATUS: Not connected. If the user wants to send WhatsApp messages, suggest connecting WhatsApp Business API in Settings > WhatsApp Business.`;
       }
     }
 

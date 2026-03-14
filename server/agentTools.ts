@@ -70,8 +70,56 @@ const gmailInboxTools: OpenAI.ChatCompletionTool[] = [
   },
 ];
 
+const whatsappTools: OpenAI.ChatCompletionTool[] = [
+  {
+    type: "function",
+    function: {
+      name: "send_whatsapp",
+      description: "Send a WhatsApp message to a customer or contact. Use when the user asks to message someone on WhatsApp, send a notification, follow up via WhatsApp, or contact a phone number.",
+      parameters: {
+        type: "object",
+        properties: {
+          to: { type: "string", description: "Recipient phone number (with country code, e.g. +905551234567)" },
+          message: { type: "string", description: "Message content to send" },
+        },
+        required: ["to", "message"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "send_whatsapp_template",
+      description: "Send a pre-approved WhatsApp template message. Use for sending notifications outside the 24-hour window (e.g., appointment reminders, order updates, payment confirmations).",
+      parameters: {
+        type: "object",
+        properties: {
+          to: { type: "string", description: "Recipient phone number (with country code)" },
+          template_name: { type: "string", description: "Name of the approved WhatsApp template" },
+          language_code: { type: "string", description: "Template language code (default: en)" },
+          parameters: {
+            type: "array",
+            items: { type: "object", properties: { type: { type: "string" }, text: { type: "string" } }, required: ["text"] },
+            description: "Template parameters to fill in placeholders",
+          },
+        },
+        required: ["to", "template_name"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "check_whatsapp_status",
+      description: "Check if WhatsApp Business is connected and configured. Use when the user asks about WhatsApp connection or has issues sending messages.",
+      parameters: { type: "object", properties: {} },
+    },
+  },
+];
+
 export const salesSdrTools: OpenAI.ChatCompletionTool[] = [
   ...gmailInboxTools,
+  ...whatsappTools,
   {
     type: "function",
     function: {
@@ -316,6 +364,7 @@ export const salesSdrTools: OpenAI.ChatCompletionTool[] = [
 
 export const customerSupportTools: OpenAI.ChatCompletionTool[] = [
   ...gmailInboxTools,
+  ...whatsappTools,
   {
     type: "function",
     function: {
@@ -398,6 +447,7 @@ export const customerSupportTools: OpenAI.ChatCompletionTool[] = [
 
 export const schedulingTools: OpenAI.ChatCompletionTool[] = [
   ...gmailInboxTools,
+  ...whatsappTools,
   {
     type: "function",
     function: {
@@ -466,6 +516,7 @@ export const schedulingTools: OpenAI.ChatCompletionTool[] = [
 ];
 
 export const dataAnalystTools: OpenAI.ChatCompletionTool[] = [
+  ...whatsappTools,
   {
     type: "function",
     function: {
@@ -533,6 +584,7 @@ export const dataAnalystTools: OpenAI.ChatCompletionTool[] = [
 ];
 
 export const socialMediaTools: OpenAI.ChatCompletionTool[] = [
+  ...whatsappTools,
   {
     type: "function",
     function: {
@@ -723,6 +775,7 @@ export const socialMediaTools: OpenAI.ChatCompletionTool[] = [
 ];
 
 export const bookkeepingTools: OpenAI.ChatCompletionTool[] = [
+  ...whatsappTools,
   {
     type: "function",
     function: {
@@ -775,6 +828,7 @@ export const bookkeepingTools: OpenAI.ChatCompletionTool[] = [
 ];
 
 export const hrRecruitingTools: OpenAI.ChatCompletionTool[] = [
+  ...whatsappTools,
   {
     type: "function",
     function: {
@@ -845,6 +899,7 @@ export const hrRecruitingTools: OpenAI.ChatCompletionTool[] = [
 ];
 
 export const ecommerceOpsTools: OpenAI.ChatCompletionTool[] = [
+  ...whatsappTools,
   {
     type: "function",
     function: {
@@ -912,6 +967,7 @@ export const ecommerceOpsTools: OpenAI.ChatCompletionTool[] = [
 ];
 
 export const realEstateTools: OpenAI.ChatCompletionTool[] = [
+  ...whatsappTools,
   {
     type: "function",
     function: {
@@ -1088,6 +1144,9 @@ const TOOL_KEYWORD_MAP: Record<string, string[]> = {
   send_reminder: ["reminder", "hatırlatma", "remind"],
   schedule_followup_reminder: ["follow", "reminder", "hatırlat", "takip"],
   list_connected_accounts: ["account", "hesap", "connect", "bağla", "social", "sosyal", "platform", "instagram", "twitter", "linkedin", "facebook", "tiktok", "youtube", "profile", "profil"],
+  send_whatsapp: ["whatsapp", "mesaj", "message", "telefon", "phone", "numara", "number", "wp", "whatsap"],
+  send_whatsapp_template: ["whatsapp", "template", "şablon", "bildirim", "notification", "hatırlatma", "reminder"],
+  check_whatsapp_status: ["whatsapp", "wp", "bağlantı", "connection", "status", "durum"],
   list_shipping_providers: ["kargo", "cargo", "shipping", "gönderi", "takip", "tracking", "teslimat", "delivery", "aras", "yurtiçi", "mng", "sürat", "ptt", "ups", "fedex", "dhl", "shipment", "paket", "package", "lojistik", "logistics"],
   generate_image: ["image", "visual", "görsel", "photo", "graphic", "design", "resim", "oluştur"],
   find_stock_image: ["stock", "photo", "image", "görsel", "fotoğraf"],
@@ -1197,6 +1256,76 @@ export async function executeToolCall(
         metadata: { connected: gmailStatus.connected, method: gmailStatus.method, email: gmailStatus.email },
       });
       return { result: statusMsg, actionType: "gmail_status_check", actionDescription: `📧 Gmail status: ${gmailStatus.connected ? `Connected (${gmailStatus.method})` : "Not connected"}` };
+    }
+
+    case "check_whatsapp_status": {
+      const { getWhatsappStatus } = await import("./whatsappService");
+      const waStatus = await getWhatsappStatus(userId);
+      let waMsg = "";
+      if (waStatus.connected) {
+        waMsg = `✅ **WhatsApp Business Connected**\n\nPhone Number ID: ${waStatus.phoneNumberId}\n${waStatus.displayName ? `Display Name: ${waStatus.displayName}\n` : ""}You can send WhatsApp messages to customers.`;
+      } else {
+        waMsg = `❌ **WhatsApp Not Connected**\n\nTo send WhatsApp messages, go to **Settings** → WhatsApp Business section and connect your Meta WhatsApp Business API credentials.\n\nYou'll need:\n• Phone Number ID\n• Access Token\n• Verify Token\n\nThese are available in your Meta Business Manager → WhatsApp Developer Dashboard.`;
+      }
+      await storage.createAgentAction({
+        userId, agentType, actionType: "whatsapp_status_check",
+        description: `WhatsApp status: ${waStatus.connected ? "connected" : "not connected"}`,
+        metadata: { connected: waStatus.connected, phoneNumberId: waStatus.phoneNumberId },
+      });
+      return { result: waMsg, actionType: "whatsapp_status_check", actionDescription: `📱 WhatsApp: ${waStatus.connected ? "Connected" : "Not connected"}` };
+    }
+
+    case "send_whatsapp": {
+      const { sendTextMessage } = await import("./whatsappService");
+      const { sanitizeOutput } = await import("./guardrails");
+      const sanitizedMsg = sanitizeOutput(String(args.message), agentType);
+      const waResult = await sendTextMessage(userId, String(args.to), sanitizedMsg, agentType);
+      if (waResult.success) {
+        await storage.createAgentAction({
+          userId, agentType, actionType: "whatsapp_sent",
+          description: `WhatsApp message sent to ${args.to}`,
+          metadata: { to: args.to, messageId: waResult.whatsappMessageId },
+        });
+        try {
+          const { triggerEmailSentNotification } = await import("./bossNotificationService");
+          await triggerEmailSentNotification({
+            userId, agentType, teamMemberName: displayName,
+            recipientEmail: `WhatsApp: ${args.to}`,
+            subject: "WhatsApp Message",
+            bodySnippet: sanitizedMsg,
+          });
+        } catch (e) { console.error("[BossAI] whatsapp notification error:", e); }
+      }
+      return {
+        result: waResult.message,
+        actionType: waResult.success ? "whatsapp_sent" : "whatsapp_failed",
+        actionDescription: waResult.success
+          ? `📱 WhatsApp sent to ${args.to}`
+          : `❌ WhatsApp failed to ${args.to}: ${waResult.message}`,
+      };
+    }
+
+    case "send_whatsapp_template": {
+      const { sendTemplateMessage } = await import("./whatsappService");
+      const templateParams = Array.isArray(args.parameters) ? args.parameters : [];
+      const waTemplateResult = await sendTemplateMessage(
+        userId, String(args.to), String(args.template_name),
+        String(args.language_code || "en"), templateParams, agentType,
+      );
+      if (waTemplateResult.success) {
+        await storage.createAgentAction({
+          userId, agentType, actionType: "whatsapp_template_sent",
+          description: `WhatsApp template "${args.template_name}" sent to ${args.to}`,
+          metadata: { to: args.to, template: args.template_name, messageId: waTemplateResult.whatsappMessageId },
+        });
+      }
+      return {
+        result: waTemplateResult.message,
+        actionType: waTemplateResult.success ? "whatsapp_template_sent" : "whatsapp_template_failed",
+        actionDescription: waTemplateResult.success
+          ? `📱 WhatsApp template "${args.template_name}" sent to ${args.to}`
+          : `❌ WhatsApp template failed: ${waTemplateResult.message}`,
+      };
     }
 
     case "list_inbox": {

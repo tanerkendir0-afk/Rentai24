@@ -40,6 +40,10 @@ import {
   RefreshCw,
   ShieldCheck,
   ChevronDown,
+  Smartphone,
+  Copy,
+  ExternalLink,
+  Zap,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
@@ -123,6 +127,12 @@ export default function Settings() {
   const [shippingForm, setShippingForm] = useState({ provider: "", apiKey: "", customerCode: "", username: "", password: "", accountNumber: "", siteId: "" });
   const [showShippingApiKey, setShowShippingApiKey] = useState(false);
 
+  const [showWhatsappSetup, setShowWhatsappSetup] = useState(false);
+  const [whatsappForm, setWhatsappForm] = useState({ phoneNumberId: "", businessAccountId: "", accessToken: "", verifyToken: "", displayName: "" });
+  const [showWhatsappToken, setShowWhatsappToken] = useState(false);
+  const [whatsappSaving, setWhatsappSaving] = useState(false);
+  const [whatsappTesting, setWhatsappTesting] = useState(false);
+
   const [editingSecretId, setEditingSecretId] = useState<number | null>(null);
   const [secretForm, setSecretForm] = useState<Record<string, string>>({});
   const [secretSaving, setSecretSaving] = useState(false);
@@ -178,6 +188,19 @@ export default function Settings() {
 
   const { data: shippingProvidersData, isLoading: shippingLoading } = useQuery<ShippingProvider[]>({
     queryKey: ["/api/shipping-providers"],
+    enabled: !!user,
+  });
+
+  const { data: whatsappData, isLoading: whatsappLoading } = useQuery<{
+    connected: boolean;
+    phoneNumberId?: string;
+    businessAccountId?: string;
+    displayName?: string;
+    hasAccessToken?: boolean;
+    hasVerifyToken?: boolean;
+    status?: string;
+  }>({
+    queryKey: ["/api/whatsapp/config"],
     enabled: !!user,
   });
 
@@ -413,6 +436,64 @@ export default function Settings() {
     } catch (err: any) {
       toast({ title: "Error", description: err.message || "Failed to remove provider", variant: "destructive" });
     }
+  };
+
+  const handleSaveWhatsapp = async () => {
+    if (!whatsappForm.phoneNumberId.trim() || !whatsappForm.accessToken.trim() || !whatsappForm.verifyToken.trim()) {
+      toast({ title: "Error", description: "Phone Number ID, Access Token, and Verify Token are required", variant: "destructive" });
+      return;
+    }
+    setWhatsappSaving(true);
+    try {
+      await apiRequest("POST", "/api/whatsapp/config", {
+        phoneNumberId: whatsappForm.phoneNumberId.trim(),
+        businessAccountId: whatsappForm.businessAccountId.trim() || null,
+        accessToken: whatsappForm.accessToken.trim(),
+        verifyToken: whatsappForm.verifyToken.trim(),
+        displayName: whatsappForm.displayName.trim() || null,
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/whatsapp/config"] });
+      setShowWhatsappSetup(false);
+      toast({ title: "WhatsApp Connected", description: "WhatsApp Business API has been configured successfully." });
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message || "Failed to save WhatsApp config", variant: "destructive" });
+    } finally {
+      setWhatsappSaving(false);
+    }
+  };
+
+  const handleTestWhatsapp = async () => {
+    setWhatsappTesting(true);
+    try {
+      const res = await apiRequest("POST", "/api/whatsapp/test");
+      const data = await res.json();
+      if (data.success) {
+        toast({ title: "Connection Successful", description: `Phone: ${data.phone}${data.name ? ` (${data.name})` : ""}` });
+      } else {
+        toast({ title: "Connection Failed", description: data.error || "Could not verify WhatsApp connection", variant: "destructive" });
+      }
+    } catch (err: any) {
+      toast({ title: "Test Failed", description: err.message || "Connection test failed", variant: "destructive" });
+    } finally {
+      setWhatsappTesting(false);
+    }
+  };
+
+  const handleDisconnectWhatsapp = async () => {
+    try {
+      await apiRequest("DELETE", "/api/whatsapp/config");
+      queryClient.invalidateQueries({ queryKey: ["/api/whatsapp/config"] });
+      setWhatsappForm({ phoneNumberId: "", businessAccountId: "", accessToken: "", verifyToken: "", displayName: "" });
+      toast({ title: "WhatsApp Disconnected", description: "WhatsApp Business API has been removed." });
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message || "Failed to disconnect WhatsApp", variant: "destructive" });
+    }
+  };
+
+  const copyWebhookUrl = () => {
+    const url = `${window.location.origin}/api/whatsapp/webhook`;
+    navigator.clipboard.writeText(url);
+    toast({ title: "Copied!", description: "Webhook URL copied to clipboard" });
   };
 
   const platformConfig: Record<string, { icon: string; color: string; bgColor: string }> = {
@@ -1264,6 +1345,238 @@ export default function Settings() {
               <Users className="w-8 h-8 mx-auto mb-2 opacity-30" />
               <p className="text-sm">No team members yet</p>
               <p className="text-xs mt-1">Add your team so AI agents can collaborate effectively</p>
+            </div>
+          )}
+        </Card>
+
+        <Card className="p-6 bg-card border-border/50" data-testid="card-whatsapp-business">
+          <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center gap-2">
+              <Smartphone className="w-5 h-5 text-green-400" />
+              <h2 className="text-lg font-semibold text-foreground">WhatsApp Business</h2>
+              {whatsappData?.connected && (
+                <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/30 text-[10px] ml-1">
+                  <CheckCircle2 className="w-2.5 h-2.5 mr-0.5" />Connected
+                </Badge>
+              )}
+            </div>
+            {!whatsappData?.connected && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 text-xs border-green-500/30 text-green-400 hover:bg-green-500/10"
+                onClick={() => setShowWhatsappSetup(true)}
+                data-testid="button-connect-whatsapp"
+              >
+                <Plus className="w-3.5 h-3.5 mr-1" />Connect WhatsApp
+              </Button>
+            )}
+          </div>
+          <p className="text-xs text-muted-foreground mb-4">
+            Connect your Meta WhatsApp Business API so all AI agents can send WhatsApp messages to your customers — invoices, reminders, follow-ups, and more.
+          </p>
+
+          {whatsappLoading ? (
+            <div className="flex justify-center py-6">
+              <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+            </div>
+          ) : whatsappData?.connected ? (
+            <div className="space-y-3">
+              <div className="p-4 rounded-lg bg-muted/30 border border-green-500/20">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Phone Number ID</p>
+                    <p className="text-sm font-medium text-foreground" data-testid="text-wa-phone-id">{whatsappData.phoneNumberId}</p>
+                  </div>
+                  {whatsappData.displayName && (
+                    <div>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Display Name</p>
+                      <p className="text-sm font-medium text-foreground" data-testid="text-wa-display-name">{whatsappData.displayName}</p>
+                    </div>
+                  )}
+                  {whatsappData.businessAccountId && (
+                    <div>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Business Account ID</p>
+                      <p className="text-sm font-medium text-foreground">{whatsappData.businessAccountId}</p>
+                    </div>
+                  )}
+                  <div>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Access Token</p>
+                    <p className="text-sm font-medium text-foreground">****configured</p>
+                  </div>
+                </div>
+
+                <div className="mt-3 pt-3 border-t border-border/50">
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Webhook URL</p>
+                  <div className="flex items-center gap-2">
+                    <code className="text-xs bg-muted/50 px-2 py-1 rounded flex-1 truncate text-foreground" data-testid="text-wa-webhook-url">
+                      {typeof window !== "undefined" ? `${window.location.origin}/api/whatsapp/webhook` : "/api/whatsapp/webhook"}
+                    </code>
+                    <Button size="sm" variant="ghost" className="h-7 px-2" onClick={copyWebhookUrl} data-testid="button-copy-webhook">
+                      <Copy className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    Paste this URL in Meta Business Manager &gt; WhatsApp &gt; Configuration &gt; Webhook URL
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-green-500/30 text-green-400 hover:bg-green-500/10"
+                  onClick={handleTestWhatsapp}
+                  disabled={whatsappTesting}
+                  data-testid="button-test-whatsapp"
+                >
+                  {whatsappTesting ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Zap className="w-3.5 h-3.5 mr-1" />}
+                  Test Connection
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-green-500/30 text-green-400 hover:bg-green-500/10"
+                  onClick={() => { setShowWhatsappSetup(true); setWhatsappForm({ phoneNumberId: whatsappData.phoneNumberId || "", businessAccountId: whatsappData.businessAccountId || "", accessToken: "", verifyToken: "", displayName: whatsappData.displayName || "" }); }}
+                  data-testid="button-edit-whatsapp"
+                >
+                  <Pencil className="w-3.5 h-3.5 mr-1" />Update
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-red-500/30 text-red-400 hover:bg-red-500/10"
+                  onClick={handleDisconnectWhatsapp}
+                  data-testid="button-disconnect-whatsapp"
+                >
+                  <Trash2 className="w-3.5 h-3.5 mr-1" />Disconnect
+                </Button>
+              </div>
+            </div>
+          ) : showWhatsappSetup ? (
+            <div className="p-4 rounded-lg bg-muted/30 border border-green-500/20 space-y-3">
+              <div className="flex items-center gap-2 mb-1">
+                <Smartphone className="w-4 h-4 text-green-400" />
+                <p className="text-sm font-medium text-foreground">Connect WhatsApp Business API</p>
+              </div>
+
+              <div className="p-2 rounded bg-green-500/5 border border-green-500/10">
+                <p className="text-[10px] text-green-400 leading-relaxed">
+                  You need a Meta Business Manager account with WhatsApp Business API enabled.
+                  Go to <span className="font-medium">developers.facebook.com</span> &gt; My Apps &gt; Create App &gt; Business &gt; Add WhatsApp.
+                  Get your Phone Number ID and generate a permanent Access Token.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs text-muted-foreground">Phone Number ID *</Label>
+                  <Input
+                    value={whatsappForm.phoneNumberId}
+                    onChange={(e) => setWhatsappForm(p => ({ ...p, phoneNumberId: e.target.value }))}
+                    placeholder="e.g. 1234567890"
+                    className="mt-1 h-8 text-sm"
+                    data-testid="input-wa-phone-number-id"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Business Account ID</Label>
+                  <Input
+                    value={whatsappForm.businessAccountId}
+                    onChange={(e) => setWhatsappForm(p => ({ ...p, businessAccountId: e.target.value }))}
+                    placeholder="Optional"
+                    className="mt-1 h-8 text-sm"
+                    data-testid="input-wa-business-id"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Access Token *</Label>
+                  <div className="relative">
+                    <Input
+                      type={showWhatsappToken ? "text" : "password"}
+                      value={whatsappForm.accessToken}
+                      onChange={(e) => setWhatsappForm(p => ({ ...p, accessToken: e.target.value }))}
+                      placeholder="Permanent or long-lived token"
+                      className="mt-1 h-8 text-sm pr-8"
+                      data-testid="input-wa-access-token"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowWhatsappToken(!showWhatsappToken)}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 mt-0.5 text-muted-foreground hover:text-foreground"
+                    >
+                      {showWhatsappToken ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                    </button>
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Verify Token *</Label>
+                  <Input
+                    value={whatsappForm.verifyToken}
+                    onChange={(e) => setWhatsappForm(p => ({ ...p, verifyToken: e.target.value }))}
+                    placeholder="Your chosen webhook verify token"
+                    className="mt-1 h-8 text-sm"
+                    data-testid="input-wa-verify-token"
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <Label className="text-xs text-muted-foreground">Display Name</Label>
+                  <Input
+                    value={whatsappForm.displayName}
+                    onChange={(e) => setWhatsappForm(p => ({ ...p, displayName: e.target.value }))}
+                    placeholder="Your business name on WhatsApp"
+                    className="mt-1 h-8 text-sm"
+                    data-testid="input-wa-display-name"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-2 border-t border-border/50">
+                <p className="text-[10px] text-muted-foreground mb-2">Webhook URL (use this in Meta Business Manager):</p>
+                <div className="flex items-center gap-2">
+                  <code className="text-xs bg-muted/50 px-2 py-1 rounded flex-1 truncate text-foreground">
+                    {typeof window !== "undefined" ? `${window.location.origin}/api/whatsapp/webhook` : "/api/whatsapp/webhook"}
+                  </code>
+                  <Button size="sm" variant="ghost" className="h-7 px-2" onClick={copyWebhookUrl} data-testid="button-copy-webhook-setup">
+                    <Copy className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
+              </div>
+
+              <div className="flex gap-2 pt-1">
+                <Button
+                  size="sm"
+                  onClick={handleSaveWhatsapp}
+                  disabled={whatsappSaving || !whatsappForm.phoneNumberId.trim() || !whatsappForm.accessToken.trim() || !whatsappForm.verifyToken.trim()}
+                  className="bg-gradient-to-r from-green-500 to-emerald-500 text-white border-0"
+                  data-testid="button-save-whatsapp"
+                >
+                  {whatsappSaving ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Link2 className="w-3.5 h-3.5 mr-1" />}
+                  Connect
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => setShowWhatsappSetup(false)} data-testid="button-cancel-whatsapp">
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-6 text-muted-foreground">
+              <div className="flex justify-center gap-2 mb-2 opacity-30 text-2xl">
+                <span>📱</span><span>💬</span><span>🟢</span>
+              </div>
+              <p className="text-sm">WhatsApp Business not connected</p>
+              <p className="text-xs mt-1">Connect your Meta WhatsApp API to let AI agents message your customers</p>
+              <a
+                href="https://developers.facebook.com/docs/whatsapp/cloud-api/get-started"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-xs text-green-400 hover:text-green-300 mt-2 transition-colors"
+                data-testid="link-whatsapp-docs"
+              >
+                <ExternalLink className="w-3 h-3" />
+                WhatsApp Cloud API Setup Guide
+              </a>
             </div>
           )}
         </Card>

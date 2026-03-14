@@ -2836,6 +2836,7 @@ BEHAVIOR:
     { slug: "data-analyst", name: "DataBot", perspective: "data-driven insights, metrics, KPIs, analytics recommendations" },
     { slug: "ecommerce-ops", name: "ShopBot", perspective: "e-commerce optimization, conversion, inventory, online sales" },
     { slug: "real-estate", name: "Reno", perspective: "property market, location strategy, real estate opportunities" },
+    { slug: "manager", name: "Manager", perspective: "cross-team coordination, task routing, workflow orchestration, strategic oversight, resource allocation" },
   ];
 
   app.post("/api/admin/agent-collaboration", requireAdmin, async (req, res) => {

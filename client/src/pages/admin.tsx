@@ -24,6 +24,7 @@ const AGENTS = [
   { slug: "data-analyst", name: "DataBot — Data Analyst" },
   { slug: "ecommerce-ops", name: "ShopBot — E-Commerce" },
   { slug: "real-estate", name: "Reno — Real Estate" },
+  { slug: "manager", name: "Manager — Smart Router" },
 ];
 
 interface AgentDocument {
@@ -1949,6 +1950,7 @@ function CollaborationPanel({ token }: { token: string }) {
     "data-analyst": "from-cyan-500 to-cyan-600",
     "ecommerce-ops": "from-orange-500 to-orange-600",
     "real-estate": "from-teal-500 to-teal-600",
+    "manager": "from-amber-500 to-amber-600",
   };
 
   const agentIcons: Record<string, string> = {
@@ -1961,6 +1963,7 @@ function CollaborationPanel({ token }: { token: string }) {
     "data-analyst": "🔬",
     "ecommerce-ops": "🛒",
     "real-estate": "🏠",
+    "manager": "🧠",
   };
 
   const formatCollabText = (text: string) => {

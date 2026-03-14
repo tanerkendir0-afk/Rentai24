@@ -196,20 +196,29 @@ export interface UserGmailCredentials {
   gmailAppPassword: string;
 }
 
-let activeUserCredentials: UserGmailCredentials | null = null;
+const requestScopedCredentials = new WeakMap<object, UserGmailCredentials | null>();
+let currentRequestKey: object | null = null;
 
-export function setActiveUserGmail(creds: UserGmailCredentials | null) {
-  activeUserCredentials = creds;
+export function setActiveUserGmail(creds: UserGmailCredentials | null, requestKey?: object) {
+  const key = requestKey || {};
+  currentRequestKey = key;
+  requestScopedCredentials.set(key, creds);
 }
 
 export function getActiveUserGmailInfo(): { email: string; hasCredentials: boolean } | null {
-  if (!activeUserCredentials) return null;
-  return { email: activeUserCredentials.gmailAddress, hasCredentials: !!(activeUserCredentials.gmailAddress && activeUserCredentials.gmailAppPassword) };
+  const creds = currentRequestKey ? requestScopedCredentials.get(currentRequestKey) : null;
+  if (!creds) return null;
+  return { email: creds.gmailAddress, hasCredentials: !!(creds.gmailAddress && creds.gmailAppPassword) };
 }
 
-function getImapCredentials(): { user: string; pass: string } | null {
-  if (activeUserCredentials) {
-    return { user: activeUserCredentials.gmailAddress, pass: activeUserCredentials.gmailAppPassword };
+export function clearRequestScope() {
+  currentRequestKey = null;
+}
+
+function getImapCredentials(userCreds?: UserGmailCredentials | null): { user: string; pass: string } | null {
+  const creds = userCreds || (currentRequestKey ? requestScopedCredentials.get(currentRequestKey) : null);
+  if (creds) {
+    return { user: creds.gmailAddress, pass: creds.gmailAppPassword };
   }
   const user = process.env.GMAIL_ADDRESS;
   const pass = process.env.GMAIL_APP_PASSWORD;
@@ -217,12 +226,12 @@ function getImapCredentials(): { user: string; pass: string } | null {
   return { user, pass };
 }
 
-export function isImapConfigured(): boolean {
-  return !!getImapCredentials();
+export function isImapConfigured(userCreds?: UserGmailCredentials | null): boolean {
+  return !!getImapCredentials(userCreds);
 }
 
-async function getImapClient(): Promise<ImapFlow> {
-  const creds = getImapCredentials();
+async function getImapClient(userCreds?: UserGmailCredentials | null): Promise<ImapFlow> {
+  const creds = getImapCredentials(userCreds);
   if (!creds) throw new Error("IMAP not configured");
   const client = new ImapFlow({
     host: "imap.gmail.com",

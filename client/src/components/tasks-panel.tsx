@@ -197,7 +197,7 @@ export default function TasksPanel({ agentType, agentColor, onClose }: {
   const projects = [...new Set(tasks.map(t => t.project).filter(Boolean))];
 
   return (
-    <div className="h-full flex flex-col bg-card/50 border-l border-border/50 w-full sm:w-[320px] shrink-0 fixed inset-0 sm:relative z-50 sm:z-auto" data-testid="tasks-panel">
+    <div className="h-full flex flex-col bg-background sm:bg-card/50 border-l border-border/50 w-full sm:w-[320px] shrink-0 fixed inset-0 sm:relative z-[60] sm:z-auto" data-testid="tasks-panel">
       <div className="p-3 border-b border-border/50 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2">
           <ListTodo className="w-4 h-4 text-muted-foreground" />

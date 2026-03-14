@@ -106,6 +106,10 @@ export default function Settings() {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [gmailDisconnecting, setGmailDisconnecting] = useState(false);
   const [gmailReconnecting, setGmailReconnecting] = useState(false);
+  const [showAppPassword, setShowAppPassword] = useState(false);
+  const [appPasswordForm, setAppPasswordForm] = useState({ gmailAddress: "", gmailAppPassword: "" });
+  const [appPasswordSaving, setAppPasswordSaving] = useState(false);
+  const [showAppPass, setShowAppPass] = useState(false);
 
 
   const [showAddMember, setShowAddMember] = useState(false);
@@ -681,7 +685,7 @@ export default function Settings() {
           <p className="text-xs text-muted-foreground mb-4">
             Connect your Google account to let AI agents send and receive emails on your behalf.
           </p>
-          {gmailSettings?.gmailAddress && gmailSettings?.hasOAuth ? (
+          {gmailSettings?.gmailAddress && (gmailSettings?.hasOAuth || gmailSettings?.hasAppPassword) ? (
             <div className="space-y-3">
               <div className="flex items-center justify-between p-3 rounded-lg bg-emerald-500/5 border border-emerald-500/20">
                 <div className="flex items-center gap-3">
@@ -690,7 +694,7 @@ export default function Settings() {
                   </div>
                   <div>
                     <p className="text-sm font-medium text-foreground" data-testid="text-user-gmail">{gmailSettings.gmailAddress}</p>
-                    <p className="text-xs text-emerald-400">Connected via Google OAuth</p>
+                    <p className="text-xs text-emerald-400">Connected via {gmailSettings.hasOAuth ? "Google OAuth" : "App Password"}</p>
                   </div>
                 </div>
                 <Button
@@ -745,6 +749,77 @@ export default function Settings() {
               <p className="text-[10px] text-muted-foreground">
                 You will be redirected to Google to authorize access to your Gmail account.
               </p>
+              <Separator className="my-3" />
+              <button
+                onClick={() => setShowAppPassword(!showAppPassword)}
+                className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
+                data-testid="button-toggle-app-password"
+              >
+                <KeyRound className="w-3 h-3" />
+                {showAppPassword ? "Hide" : "Or use"} App Password
+                <ChevronDown className={`w-3 h-3 transition-transform ${showAppPassword ? "rotate-180" : ""}`} />
+              </button>
+              {showAppPassword && (
+                <div className="mt-3 space-y-3 p-3 rounded-lg border border-border/50 bg-muted/30">
+                  <p className="text-[10px] text-muted-foreground">
+                    Use a Gmail App Password if you cannot connect via Google OAuth. Generate one at myaccount.google.com &gt; Security &gt; App passwords.
+                  </p>
+                  <div className="space-y-2">
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Gmail Address</Label>
+                      <Input
+                        type="email"
+                        placeholder="your@gmail.com"
+                        value={appPasswordForm.gmailAddress}
+                        onChange={(e) => setAppPasswordForm(f => ({ ...f, gmailAddress: e.target.value }))}
+                        className="h-8 text-xs"
+                        data-testid="input-gmail-address"
+                      />
+                    </div>
+                    <div className="relative">
+                      <Label className="text-xs text-muted-foreground">App Password</Label>
+                      <Input
+                        type={showAppPass ? "text" : "password"}
+                        placeholder="xxxx xxxx xxxx xxxx"
+                        value={appPasswordForm.gmailAppPassword}
+                        onChange={(e) => setAppPasswordForm(f => ({ ...f, gmailAppPassword: e.target.value }))}
+                        className="h-8 text-xs pr-8"
+                        data-testid="input-gmail-app-password"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowAppPass(!showAppPass)}
+                        className="absolute right-2 top-[26px] text-muted-foreground hover:text-foreground"
+                      >
+                        {showAppPass ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                      </button>
+                    </div>
+                  </div>
+                  <Button
+                    size="sm"
+                    className="h-7 text-xs"
+                    disabled={appPasswordSaving || !appPasswordForm.gmailAddress || !appPasswordForm.gmailAppPassword}
+                    onClick={async () => {
+                      setAppPasswordSaving(true);
+                      try {
+                        await apiRequest("POST", "/api/settings/gmail", appPasswordForm);
+                        queryClient.invalidateQueries({ queryKey: ["/api/settings/gmail"] });
+                        queryClient.invalidateQueries({ queryKey: ["/api/email-status"] });
+                        setAppPasswordForm({ gmailAddress: "", gmailAppPassword: "" });
+                        setShowAppPassword(false);
+                        toast({ title: "Gmail connected", description: "Your Gmail App Password has been saved." });
+                      } catch (err: any) {
+                        toast({ title: "Error", description: err.message || "Failed to save Gmail settings", variant: "destructive" });
+                      } finally {
+                        setAppPasswordSaving(false);
+                      }
+                    }}
+                    data-testid="button-save-app-password"
+                  >
+                    {appPasswordSaving ? <><Loader2 className="w-3 h-3 animate-spin mr-1" />Saving...</> : <><Save className="w-3 h-3 mr-1" />Save App Password</>}
+                  </Button>
+                </div>
+              )}
             </div>
           )}
         </Card>

@@ -793,6 +793,24 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/settings/gmail", requireAuth, async (req, res) => {
+    try {
+      const { gmailAddress, gmailAppPassword } = req.body;
+      if (!gmailAddress || !gmailAppPassword) {
+        return res.status(400).json({ error: "Gmail address and app password are required" });
+      }
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(gmailAddress)) {
+        return res.status(400).json({ error: "Invalid email address format" });
+      }
+      const updated = await storage.updateUserGmail(req.session.userId!, gmailAddress, gmailAppPassword);
+      if (!updated) return res.status(404).json({ error: "User not found" });
+      res.json({ success: true, gmailAddress: updated.gmailAddress });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message || "Failed to save Gmail settings" });
+    }
+  });
+
   app.get("/api/settings/gmail/status", requireAuth, async (req, res) => {
     try {
       const { getUserGmailStatus } = await import("./gmailService");

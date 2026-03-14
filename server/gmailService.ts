@@ -66,15 +66,44 @@ function extractPlainTextBody(payload: any): string {
   return "";
 }
 
-export async function isUserGmailReady(userId: number): Promise<boolean> {
-  return isUserGmailOAuthConnected(userId);
+async function isUserGmailAppPasswordReady(userId: number): Promise<boolean> {
+  const { storage } = await import("./storage");
+  const user = await storage.getUserById(userId);
+  return !!(user?.gmailAddress && user?.gmailAppPassword);
 }
 
-export async function getUserGmailStatus(userId: number): Promise<{ connected: boolean; email: string | null }> {
-  const connected = await isUserGmailOAuthConnected(userId);
-  if (!connected) return { connected: false, email: null };
-  const email = await getUserGmailAddress(userId);
-  return { connected: true, email };
+async function getAppPasswordGmailClient(userId: number): Promise<{ transporter: any; address: string } | null> {
+  const { storage } = await import("./storage");
+  const user = await storage.getUserById(userId);
+  if (!user?.gmailAddress || !user?.gmailAppPassword) return null;
+  const decrypted = storage.decryptGmailAppPassword(user.gmailAppPassword);
+  const nodemailer = await import("nodemailer");
+  const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: { user: user.gmailAddress, pass: decrypted },
+  });
+  return { transporter, address: user.gmailAddress };
+}
+
+export async function isUserGmailReady(userId: number): Promise<boolean> {
+  const oauthReady = await isUserGmailOAuthConnected(userId);
+  if (oauthReady) return true;
+  return isUserGmailAppPasswordReady(userId);
+}
+
+export async function getUserGmailStatus(userId: number): Promise<{ connected: boolean; email: string | null; method: string | null }> {
+  const oauthConnected = await isUserGmailOAuthConnected(userId);
+  if (oauthConnected) {
+    const email = await getUserGmailAddress(userId);
+    return { connected: true, email, method: "oauth" };
+  }
+  const appPassReady = await isUserGmailAppPasswordReady(userId);
+  if (appPassReady) {
+    const { storage } = await import("./storage");
+    const user = await storage.getUserById(userId);
+    return { connected: true, email: user?.gmailAddress || null, method: "app_password" };
+  }
+  return { connected: false, email: null, method: null };
 }
 
 export async function listInbox(userId: number, maxResults: number = 10): Promise<{ success: boolean; emails?: InboxEmail[]; message: string }> {
@@ -228,29 +257,44 @@ export async function sendViaGmail(userId: number, params: {
 }): Promise<{ success: boolean; message: string; messageId?: string; fromAddress?: string }> {
   try {
     const gmail = await getOAuthGmailClient(userId);
-    if (!gmail) {
-      return { success: false, message: "Gmail is not connected." };
+    if (gmail) {
+      let fromAddress = "me";
+      try {
+        const profile = await gmail.users.getProfile({ userId: "me" });
+        fromAddress = profile.data.emailAddress || fromAddress;
+      } catch {}
+
+      const raw = buildRawEmail(fromAddress, params.to, params.subject, params.body);
+
+      const result = await gmail.users.messages.send({
+        userId: "me",
+        requestBody: { raw },
+      });
+
+      return {
+        success: true,
+        message: `Email sent from your Gmail (${fromAddress}) to ${params.to} with subject "${params.subject}"`,
+        messageId: result.data.id || undefined,
+        fromAddress,
+      };
     }
 
-    let fromAddress = "me";
-    try {
-      const profile = await gmail.users.getProfile({ userId: "me" });
-      fromAddress = profile.data.emailAddress || fromAddress;
-    } catch {}
+    const appPassClient = await getAppPasswordGmailClient(userId);
+    if (appPassClient) {
+      await appPassClient.transporter.sendMail({
+        from: appPassClient.address,
+        to: params.to,
+        subject: params.subject,
+        text: params.body,
+      });
+      return {
+        success: true,
+        message: `Email sent from your Gmail (${appPassClient.address}) to ${params.to} with subject "${params.subject}"`,
+        fromAddress: appPassClient.address,
+      };
+    }
 
-    const raw = buildRawEmail(fromAddress, params.to, params.subject, params.body);
-
-    const result = await gmail.users.messages.send({
-      userId: "me",
-      requestBody: { raw },
-    });
-
-    return {
-      success: true,
-      message: `Email sent from your Gmail (${fromAddress}) to ${params.to} with subject "${params.subject}"`,
-      messageId: result.data.id || undefined,
-      fromAddress,
-    };
+    return { success: false, message: "Gmail is not connected. Please go to Settings to connect your Gmail via Google OAuth or App Password." };
   } catch (error: unknown) {
     const errMsg = error instanceof Error ? error.message : String(error);
     console.error("Gmail send error:", errMsg);

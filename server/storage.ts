@@ -1,6 +1,7 @@
 import { db } from "./db";
 import { users, rentals, contactMessages, newsletterSubscribers, leads, agentActions, emailCampaigns, supportTickets, tokenUsage, agentTasks, chatMessages, conversations, teamMembers, bossNotifications, socialAccounts, shippingProviders, guardrailLogs, systemSettings, scheduledPosts, type User, type InsertUser, type Rental, type InsertRental, type ContactMessage, type InsertContactMessage, type NewsletterSubscriber, type Lead, type InsertLead, type AgentAction, type InsertAgentAction, type EmailCampaign, type InsertEmailCampaign, type SupportTicket, type InsertSupportTicket, type TokenUsage, type InsertTokenUsage, type AgentTask, type InsertAgentTask, type ChatMessage, type InsertChatMessage, type ConversationRecord, type InsertConversation, type TeamMember, type InsertTeamMember, type BossNotification, type InsertBossNotification, type SocialAccount, type InsertSocialAccount, type ShippingProvider, type InsertShippingProvider, type GuardrailLog, type ScheduledPost, type InsertScheduledPost } from "@shared/schema";
 import { eq, and, sql, desc, gte, lte } from "drizzle-orm";
+import * as cryptoModule from "crypto";
 
 export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
@@ -613,15 +614,13 @@ export class DatabaseStorage implements IStorage {
     if (!secret) {
       throw new Error("SESSION_SECRET environment variable is required for credential encryption. Set it in your environment secrets.");
     }
-    const crypto = require("crypto");
-    return crypto.createHash("sha256").update(secret).digest();
+    return cryptoModule.createHash("sha256").update(secret).digest();
   }
 
   async updateUserGmail(userId: number, gmailAddress: string, gmailAppPassword: string): Promise<User | undefined> {
-    const crypto = await import("crypto");
     const key = this.getEncryptionKey();
-    const iv = crypto.randomBytes(16);
-    const cipher = crypto.createCipheriv("aes-256-cbc", key, iv);
+    const iv = cryptoModule.randomBytes(16);
+    const cipher = cryptoModule.createCipheriv("aes-256-cbc", key, iv);
     let encrypted = cipher.update(gmailAppPassword, "utf8", "hex");
     encrypted += cipher.final("hex");
     const encryptedPassword = iv.toString("hex") + ":" + encrypted;
@@ -634,12 +633,11 @@ export class DatabaseStorage implements IStorage {
 
   decryptGmailAppPassword(encryptedPassword: string): string {
     try {
-      const crypto = require("crypto");
       const key = this.getEncryptionKey();
       const [ivHex, encrypted] = encryptedPassword.split(":");
       if (!ivHex || !encrypted) return encryptedPassword;
       const iv = Buffer.from(ivHex, "hex");
-      const decipher = crypto.createDecipheriv("aes-256-cbc", key, iv);
+      const decipher = cryptoModule.createDecipheriv("aes-256-cbc", key, iv);
       let decrypted = decipher.update(encrypted, "hex", "utf8");
       decrypted += decipher.final("utf8");
       return decrypted;

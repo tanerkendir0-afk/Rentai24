@@ -1161,12 +1161,25 @@ function resolveEmailId(rawId: string, userId: number): string {
   return rawId;
 }
 
+const agentDisplayNames: Record<string, string> = {
+  "customer-support": "Customer Support Agent",
+  "sales-sdr": "Sales Development Rep",
+  "social-media": "Social Media Manager",
+  "bookkeeping": "Bookkeeping Assistant",
+  "scheduling": "Appointment & Scheduling Agent",
+  "hr-recruiting": "HR & Recruiting Assistant",
+  "data-analyst": "Data Analyst Agent",
+  "ecommerce-ops": "E-Commerce Operations Agent",
+  "real-estate": "Real Estate & Property Agent",
+};
+
 export async function executeToolCall(
   toolName: string,
   args: Record<string, unknown>,
   userId: number,
   agentType: string
 ): Promise<{ result: string; actionType?: string; actionDescription?: string }> {
+  const displayName = agentDisplayNames[agentType] || agentType;
   switch (toolName) {
     case "check_gmail_status": {
       const gmailConnected = await isUserGmailOAuthConnected(userId);
@@ -1322,12 +1335,14 @@ export async function executeToolCall(
       });
       try {
         const { triggerEmailReplyNotification } = await import("./bossNotificationService");
+        const replyRecipient = replyResult.message.match(/to ([^\s]+)/)?.[1] || replyEmailId;
+        const replySubject = replyResult.message.match(/"([^"]+)"/)?.[1] || "Email Reply";
         await triggerEmailReplyNotification({
           userId,
           agentType,
-          teamMemberName: agentType,
-          recipientEmail: replyEmailId,
-          subject: "Email Reply",
+          teamMemberName: displayName,
+          recipientEmail: replyRecipient,
+          subject: replySubject,
           replySnippet: replyBody,
         });
       } catch (e) { console.error("[BossAI] reply notification error:", e); }
@@ -1352,7 +1367,7 @@ export async function executeToolCall(
           await triggerEmailReplyNotification({
             userId,
             agentType,
-            teamMemberName: agentType,
+            teamMemberName: displayName,
             recipientEmail: String(args.to),
             subject: String(args.subject),
             replySnippet: String(args.body),
@@ -2010,7 +2025,7 @@ Be specific to the ${industry} industry. About 400-500 words.`;
         await triggerTaskCompleteNotification({
           userId,
           agentType,
-          teamMemberName: agentType,
+          teamMemberName: displayName,
           taskDescription: `Close ticket #${closeId}: "${closed.subject}"`,
           result: resolution,
         });
@@ -2044,7 +2059,7 @@ Be specific to the ${industry} industry. About 400-500 words.`;
           await triggerEmailReplyNotification({
             userId,
             agentType,
-            teamMemberName: agentType,
+            teamMemberName: displayName,
             recipientEmail: String(args.to),
             subject: String(args.subject),
             replySnippet: String(args.body),

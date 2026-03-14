@@ -8,6 +8,20 @@ import { generateAIImage, findStockImages } from "./imageService";
 import { isUserGmailReady, listInbox, readEmail, replyToEmail } from "./gmailService";
 import { isUserGmailOAuthConnected, getUserGmailAddress } from "./googleOAuth";
 
+function computeLeadScore(lead: { status: string; updatedAt: Date | string }): string {
+  const statusWeight: Record<string, number> = {
+    won: 100, negotiation: 85, proposal: 70, qualified: 55,
+    contacted: 35, new: 20, lost: 0,
+  };
+  const baseScore = statusWeight[lead.status] || 20;
+  const daysSinceUpdate = Math.floor((Date.now() - new Date(lead.updatedAt).getTime()) / (1000 * 60 * 60 * 24));
+  const recencyBonus = daysSinceUpdate <= 3 ? 15 : daysSinceUpdate <= 7 ? 5 : -10;
+  const totalScore = Math.max(0, Math.min(100, baseScore + recencyBonus));
+  if (totalScore >= 60) return "hot";
+  if (totalScore >= 30) return "warm";
+  return "cold";
+}
+
 const gmailInboxTools: OpenAI.ChatCompletionTool[] = [
   {
     type: "function",
@@ -119,11 +133,12 @@ export const salesSdrTools: OpenAI.ChatCompletionTool[] = [
     type: "function",
     function: {
       name: "list_leads",
-      description: "List all leads in the CRM pipeline. Use this when the user asks about their pipeline, prospects, or lead list.",
+      description: "List all leads in the CRM pipeline. Use this when the user asks about their pipeline, prospects, or lead list. Can filter by status or score (hot/warm/cold). When user asks 'show my hot leads' or 'which leads are hot', use score_filter='hot'.",
       parameters: {
         type: "object",
         properties: {
           status_filter: { type: "string", enum: ["new", "contacted", "qualified", "proposal", "negotiation", "won", "lost"], description: "Optional: filter by status" },
+          score_filter: { type: "string", enum: ["hot", "warm", "cold"], description: "Optional: filter by lead score (hot/warm/cold)" },
         },
       },
     },
@@ -1349,6 +1364,8 @@ export async function executeToolCall(
         company: args.company ? String(args.company) : null,
         notes: args.notes ? String(args.notes) : null,
       });
+      const initialScore = computeLeadScore({ status: lead.status, updatedAt: lead.updatedAt });
+      await storage.updateLead(lead.id, userId, { score: initialScore });
       await storage.createAgentAction({
         userId,
         agentType,
@@ -1376,33 +1393,40 @@ export async function executeToolCall(
       if (!updated) {
         return { result: `Lead with ID ${leadId} not found or you don't have access to it.` };
       }
+      const newScore = computeLeadScore({ status: updated.status, updatedAt: updated.updatedAt });
+      if (newScore !== updated.score) {
+        await storage.updateLead(leadId, userId, { score: newScore });
+      }
       await storage.createAgentAction({
         userId,
         agentType,
         actionType: "lead_updated",
-        description: `Updated lead #${leadId}: ${updated.name}${args.status ? ` → ${args.status}` : ""}`,
-        metadata: { leadId, updates },
+        description: `Updated lead #${leadId}: ${updated.name}${args.status ? ` → ${args.status}` : ""} (Score: ${newScore})`,
+        metadata: { leadId, updates, score: newScore },
       });
       return {
-        result: `Lead #${leadId} (${updated.name}) updated successfully.${args.status ? ` Status: ${args.status}` : ""}`,
+        result: `Lead #${leadId} (${updated.name}) updated successfully.${args.status ? ` Status: ${args.status}` : ""} Score: ${newScore}`,
         actionType: "lead_updated",
-        actionDescription: `✏️ Updated lead: ${updated.name}${args.status ? ` → ${args.status}` : ""}`,
+        actionDescription: `✏️ Updated lead: ${updated.name}${args.status ? ` → ${args.status}` : ""} (${newScore})`,
       };
     }
 
     case "list_leads": {
       const allLeads = await storage.getLeadsByUser(userId);
       const statusFilter = args.status_filter ? String(args.status_filter) : null;
-      const filtered = statusFilter
-        ? allLeads.filter(l => l.status === statusFilter)
-        : allLeads;
+      const scoreFilter = args.score_filter ? String(args.score_filter) : null;
+      let filtered = allLeads;
+      if (statusFilter) filtered = filtered.filter(l => l.status === statusFilter);
+      if (scoreFilter) filtered = filtered.filter(l => l.score === scoreFilter);
 
       if (filtered.length === 0) {
-        return { result: statusFilter ? `No leads found with status "${statusFilter}".` : "No leads in your pipeline yet. Add some with the add_lead tool!" };
+        const filterDesc = [statusFilter && `status "${statusFilter}"`, scoreFilter && `score "${scoreFilter}"`].filter(Boolean).join(" and ");
+        return { result: filterDesc ? `No leads found with ${filterDesc}.` : "No leads in your pipeline yet. Add some with the add_lead tool!" };
       }
 
+      const scoreIcon = (s: string | null) => s === "hot" ? "🔥" : s === "warm" ? "🌤️" : s === "cold" ? "❄️" : "—";
       const leadList = filtered.map(l =>
-        `- #${l.id} ${l.name} (${l.email})${l.company ? ` @ ${l.company}` : ""} | Status: ${l.status}${l.notes ? ` | Notes: ${l.notes}` : ""}`
+        `- #${l.id} ${l.name} (${l.email})${l.company ? ` @ ${l.company}` : ""} | Status: ${l.status} | Score: ${scoreIcon(l.score)} ${l.score || "unscored"}${l.notes ? ` | Notes: ${l.notes}` : ""}`
       ).join("\n");
 
       return { result: `Found ${filtered.length} lead(s):\n${leadList}` };
@@ -1638,22 +1662,12 @@ export async function executeToolCall(
         return { result: "No leads in your pipeline to score." };
       }
 
-      const statusWeight: Record<string, number> = {
-        won: 100, negotiation: 85, proposal: 70, qualified: 55,
-        contacted: 35, new: 20, lost: 0,
-      };
-
       let hot = 0, warm = 0, cold = 0;
       for (const lead of allLeads) {
-        const baseScore = statusWeight[lead.status] || 20;
-        const daysSinceUpdate = Math.floor((Date.now() - new Date(lead.updatedAt).getTime()) / (1000 * 60 * 60 * 24));
-        const recencyBonus = daysSinceUpdate <= 3 ? 15 : daysSinceUpdate <= 7 ? 5 : -10;
-        const totalScore = Math.max(0, Math.min(100, baseScore + recencyBonus));
-
-        let scoreLabel: string;
-        if (totalScore >= 60) { scoreLabel = "hot"; hot++; }
-        else if (totalScore >= 30) { scoreLabel = "warm"; warm++; }
-        else { scoreLabel = "cold"; cold++; }
+        const scoreLabel = computeLeadScore(lead);
+        if (scoreLabel === "hot") hot++;
+        else if (scoreLabel === "warm") warm++;
+        else cold++;
 
         await storage.updateLead(lead.id, userId, { score: scoreLabel });
       }
@@ -1684,17 +1698,18 @@ export async function executeToolCall(
       const weekAgo = now - 7 * 24 * 60 * 60 * 1000;
       const monthAgo = now - 30 * 24 * 60 * 60 * 1000;
 
+      let totalDaysInPipeline = 0;
       for (const lead of allLeads) {
         statusCounts[lead.status] = (statusCounts[lead.status] || 0) + 1;
         const created = new Date(lead.createdAt).getTime();
         if (created >= weekAgo) thisWeek++;
         if (created >= monthAgo) thisMonth++;
+        totalDaysInPipeline += Math.floor((now - created) / (1000 * 60 * 60 * 24));
       }
 
+      const avgDaysInPipeline = Math.round(totalDaysInPipeline / allLeads.length);
       const won = statusCounts["won"] || 0;
-      const lost = statusCounts["lost"] || 0;
-      const closed = won + lost;
-      const conversionRate = closed > 0 ? Math.round((won / closed) * 100) : 0;
+      const conversionRate = allLeads.length > 0 ? Math.round((won / allLeads.length) * 100) : 0;
 
       const statusReport = Object.entries(statusCounts)
         .sort((a, b) => b[1] - a[1])
@@ -1710,9 +1725,10 @@ export async function executeToolCall(
         result: `📊 PIPELINE REPORT\n\n` +
           `Total Leads: ${allLeads.length}\n` +
           `New This Week: ${thisWeek}\n` +
-          `New This Month: ${thisMonth}\n\n` +
+          `New This Month: ${thisMonth}\n` +
+          `Avg. Time in Pipeline: ${avgDaysInPipeline} day${avgDaysInPipeline !== 1 ? "s" : ""}\n\n` +
           `BY STATUS:\n${statusReport}\n\n` +
-          `CONVERSION: ${conversionRate}% (${won} won / ${closed} closed)\n\n` +
+          `CONVERSION: ${conversionRate}% (${won} won / ${allLeads.length} total)\n\n` +
           `LEAD SCORES: 🔥 ${scoreCounts.hot} Hot | 🌤️ ${scoreCounts.warm} Warm | ❄️ ${scoreCounts.cold} Cold`,
       };
     }

@@ -40,6 +40,7 @@ import {
   Info,
   AlertCircle,
   Flame,
+  ArrowRight,
   Search,
   Ticket,
   CheckSquare,
@@ -479,11 +480,32 @@ export default function Dashboard() {
                 const config = severityConfig[alert.severity] || severityConfig.info;
                 const AlertIcon = config.icon;
 
+                const actionLabel = alert.type === "stale_new" ? "Send Outreach"
+                  : alert.type === "stale_contacted" ? "Follow Up"
+                  : alert.type === "qualified_waiting" ? "Create Proposal"
+                  : alert.type === "proposal_stale" ? "Check In"
+                  : alert.type === "hot_lead" ? "Prioritize"
+                  : null;
+
                 return (
                   <Card key={i} className={`p-3 ${config.bg} border ${config.border}`} data-testid={`smart-alert-${i}`}>
                     <div className="flex items-start gap-3">
                       <AlertIcon className={`w-4 h-4 ${config.text} mt-0.5 shrink-0`} />
-                      <p className={`text-sm ${config.text}`}>{alert.message}</p>
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-sm ${config.text}`}>{alert.message}</p>
+                        {actionLabel && alert.leadId && (
+                          <Link href="/agent/sales_sdr" data-testid={`alert-action-${i}`}>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className={`mt-2 h-7 px-2 text-xs ${config.text} hover:bg-white/10`}
+                            >
+                              {actionLabel}
+                              <ArrowRight className="w-3 h-3 ml-1" />
+                            </Button>
+                          </Link>
+                        )}
+                      </div>
                     </div>
                   </Card>
                 );

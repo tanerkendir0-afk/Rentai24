@@ -275,12 +275,14 @@ app.use((req, res, next) => {
     next();
   });
 
-  app.use("/admin", (_req: Request, res: Response) => {
-    res.status(404).json({ message: "Not found" });
-  });
-  app.use("/api/admin", (_req: Request, res: Response) => {
-    res.status(404).json({ message: "Not found" });
-  });
+  if (ADMIN_PATH !== "admin") {
+    app.use("/admin", (_req: Request, res: Response) => {
+      res.status(404).json({ message: "Not found" });
+    });
+    app.use("/api/admin", (_req: Request, res: Response) => {
+      res.status(404).json({ message: "Not found" });
+    });
+  }
 
   if (process.env.NODE_ENV === "production") {
     serveStatic(app);

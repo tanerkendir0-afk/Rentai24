@@ -535,6 +535,7 @@ export default function Dashboard() {
                   drip_email_sent: Repeat,
                   leads_scored: BarChart3,
                   proposal_created: FileText,
+                  proposal_sent: Send,
                   competitor_analysis: Search,
                   ticket_created: Ticket,
                   ticket_updated: Ticket,

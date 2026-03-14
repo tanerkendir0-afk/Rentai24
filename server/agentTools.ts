@@ -277,6 +277,20 @@ export const salesSdrTools: OpenAI.ChatCompletionTool[] = [
   {
     type: "function",
     function: {
+      name: "send_proposal",
+      description: "Send a previously created proposal to a lead via email. Fetches the latest stored proposal for the given lead and emails it. Use when the user says 'send the proposal to lead #5' or 'email the proposal'.",
+      parameters: {
+        type: "object",
+        properties: {
+          lead_id: { type: "number", description: "Lead ID whose proposal to send" },
+        },
+        required: ["lead_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "analyze_competitors",
       description: "Generate a competitive analysis for a prospect's industry. Provides strengths, weaknesses, opportunities, and positioning recommendations. Use when the user asks for competitor research or competitive landscape analysis.",
       parameters: {
@@ -1053,7 +1067,8 @@ const TOOL_KEYWORD_MAP: Record<string, string[]> = {
   list_templates: ["template", "şablon"],
   score_leads: ["score", "hot", "warm", "cold", "puan", "sıcak", "soğuk"],
   pipeline_report: ["pipeline", "report", "stats", "analiz", "istatistik", "performans", "how many leads", "leads this", "conversion", "rate", "summary", "funnel", "kpi", "monthly", "weekly", "analytics", "overview", "numbers", "metrics"],
-  create_proposal: ["proposal", "teklif"],
+  create_proposal: ["proposal", "teklif", "create proposal", "draft proposal"],
+  send_proposal: ["send proposal", "email proposal", "teklif gönder", "proposal"],
   analyze_competitors: ["competitor", "rakip", "competitive"],
   create_ticket: ["ticket", "issue", "sorun", "problem", "create", "oluştur"],
   list_tickets: ["tickets", "list", "open", "listele"],
@@ -1796,9 +1811,59 @@ We look forward to partnering with ${companyName} on this journey.
       });
 
       return {
-        result: `Proposal created for ${lead.name} at ${companyName}!\n\n${proposal}\n\nWould you like me to email this proposal to ${lead.name} at ${lead.email}?`,
+        result: `Proposal created for ${lead.name} at ${companyName}!\n\n${proposal}\n\nWould you like me to email this proposal to ${lead.name} at ${lead.email}? Use send_proposal to send it.`,
         actionType: "proposal_created",
         actionDescription: `📄 Proposal created for ${lead.name} at ${companyName}`,
+      };
+    }
+
+    case "send_proposal": {
+      const leadId = Number(args.lead_id);
+      const lead = await storage.getLeadById(leadId, userId);
+      if (!lead) {
+        return { result: `Lead #${leadId} not found or you don't have access to it.` };
+      }
+      if (!lead.email) {
+        return { result: `Lead #${leadId} (${lead.name}) has no email address. Cannot send proposal.` };
+      }
+
+      const actions = await storage.getActionsByUser(userId);
+      const proposalAction = actions.find(
+        (a) => a.actionType === "proposal_created" && (a.metadata as any)?.leadId === leadId
+      );
+      if (!proposalAction || !(proposalAction.metadata as any)?.proposalContent) {
+        return { result: `No proposal found for lead #${leadId} (${lead.name}). Create one first with create_proposal.` };
+      }
+
+      const proposalContent = (proposalAction.metadata as any).proposalContent;
+      const companyName = lead.company || "your organization";
+      const subject = `Sales Proposal for ${companyName} — RentAI 24`;
+
+      const emailResult = await sendEmail({
+        to: lead.email,
+        subject,
+        body: proposalContent,
+        userId,
+        agentType,
+      });
+
+      if (emailResult.success) {
+        await storage.createAgentAction({
+          userId, agentType,
+          actionType: "proposal_sent",
+          description: `Proposal emailed to ${lead.name} (${lead.email}) at ${companyName}`,
+          metadata: { leadId, leadName: lead.name, company: companyName, email: lead.email },
+        });
+
+        return {
+          result: `Proposal successfully emailed to ${lead.name} at ${lead.email}!`,
+          actionType: "proposal_sent",
+          actionDescription: `📧 Proposal sent to ${lead.name} at ${lead.email}`,
+        };
+      }
+
+      return {
+        result: `Failed to send proposal to ${lead.email}: ${emailResult.message}`,
       };
     }
 

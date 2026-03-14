@@ -25,7 +25,6 @@ import {
   LogOut,
   Loader2,
   Gauge,
-  CreditCard,
   Activity,
   Mail,
   UserPlus,
@@ -175,10 +174,6 @@ export default function Dashboard() {
     setLocation("/");
   };
 
-  const handleManageBilling = () => {
-    setLocation("/settings");
-  };
-
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("checkout") === "success") {
@@ -259,10 +254,6 @@ export default function Dashboard() {
                   Settings
                 </Button>
               </Link>
-              <Button variant="outline" size="sm" onClick={handleManageBilling} data-testid="button-manage-billing">
-                <CreditCard className="w-4 h-4 mr-1" />
-                Manage Billing
-              </Button>
               <Button variant="ghost" size="sm" onClick={handleLogout} data-testid="button-logout">
                 <LogOut className="w-4 h-4 mr-1" />
                 Sign Out

@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { users, rentals, contactMessages, newsletterSubscribers, leads, agentActions, emailCampaigns, supportTickets, tokenUsage, agentTasks, chatMessages, conversations, teamMembers, bossNotifications, socialAccounts, shippingProviders, guardrailLogs, systemSettings, type User, type InsertUser, type Rental, type InsertRental, type ContactMessage, type InsertContactMessage, type NewsletterSubscriber, type Lead, type InsertLead, type AgentAction, type InsertAgentAction, type EmailCampaign, type InsertEmailCampaign, type SupportTicket, type InsertSupportTicket, type TokenUsage, type InsertTokenUsage, type AgentTask, type InsertAgentTask, type ChatMessage, type InsertChatMessage, type ConversationRecord, type InsertConversation, type TeamMember, type InsertTeamMember, type BossNotification, type InsertBossNotification, type SocialAccount, type InsertSocialAccount, type ShippingProvider, type InsertShippingProvider, type GuardrailLog } from "@shared/schema";
+import { users, rentals, contactMessages, newsletterSubscribers, leads, agentActions, emailCampaigns, supportTickets, tokenUsage, agentTasks, chatMessages, conversations, teamMembers, bossNotifications, socialAccounts, shippingProviders, guardrailLogs, systemSettings, scheduledPosts, type User, type InsertUser, type Rental, type InsertRental, type ContactMessage, type InsertContactMessage, type NewsletterSubscriber, type Lead, type InsertLead, type AgentAction, type InsertAgentAction, type EmailCampaign, type InsertEmailCampaign, type SupportTicket, type InsertSupportTicket, type TokenUsage, type InsertTokenUsage, type AgentTask, type InsertAgentTask, type ChatMessage, type InsertChatMessage, type ConversationRecord, type InsertConversation, type TeamMember, type InsertTeamMember, type BossNotification, type InsertBossNotification, type SocialAccount, type InsertSocialAccount, type ShippingProvider, type InsertShippingProvider, type GuardrailLog, type ScheduledPost, type InsertScheduledPost } from "@shared/schema";
 import { eq, and, sql, desc, gte, lte } from "drizzle-orm";
 
 export interface IStorage {
@@ -86,8 +86,9 @@ export interface IStorage {
 
   getSocialAccounts(userId: number): Promise<SocialAccount[]>;
   addSocialAccount(account: InsertSocialAccount): Promise<SocialAccount>;
-  updateSocialAccount(id: number, userId: number, updates: Partial<Pick<SocialAccount, "username" | "profileUrl" | "accessToken" | "status">>): Promise<SocialAccount | undefined>;
+  updateSocialAccount(id: number, userId: number, updates: Partial<SocialAccount>): Promise<SocialAccount | undefined>;
   deleteSocialAccount(id: number, userId: number): Promise<boolean>;
+  getSocialAccountById(id: number, userId: number): Promise<SocialAccount | undefined>;
 
   getShippingProviders(userId: number): Promise<ShippingProvider[]>;
   addShippingProvider(provider: InsertShippingProvider): Promise<ShippingProvider>;
@@ -95,6 +96,12 @@ export interface IStorage {
   deleteShippingProvider(id: number, userId: number): Promise<boolean>;
 
   getGuardrailLogs(filters?: { agentType?: string; ruleType?: string; limit?: number }): Promise<GuardrailLog[]>;
+
+  createScheduledPost(post: InsertScheduledPost): Promise<ScheduledPost>;
+  getScheduledPosts(userId: number): Promise<ScheduledPost[]>;
+  getPendingScheduledPosts(): Promise<ScheduledPost[]>;
+  updateScheduledPost(id: number, updates: Partial<ScheduledPost>): Promise<ScheduledPost | undefined>;
+  cancelScheduledPost(id: number, userId: number): Promise<boolean>;
 
   getSystemSetting(key: string): Promise<string | null>;
   setSystemSetting(key: string, value: string): Promise<void>;
@@ -611,7 +618,7 @@ export class DatabaseStorage implements IStorage {
     return created;
   }
 
-  async updateSocialAccount(id: number, userId: number, updates: Partial<Pick<SocialAccount, "username" | "profileUrl" | "accessToken" | "status">>): Promise<SocialAccount | undefined> {
+  async updateSocialAccount(id: number, userId: number, updates: Partial<SocialAccount>): Promise<SocialAccount | undefined> {
     const [updated] = await db.update(socialAccounts)
       .set(updates)
       .where(and(eq(socialAccounts.id, id), eq(socialAccounts.userId, userId)))
@@ -624,6 +631,12 @@ export class DatabaseStorage implements IStorage {
       .where(and(eq(socialAccounts.id, id), eq(socialAccounts.userId, userId)))
       .returning();
     return !!deleted;
+  }
+
+  async getSocialAccountById(id: number, userId: number): Promise<SocialAccount | undefined> {
+    const [account] = await db.select().from(socialAccounts)
+      .where(and(eq(socialAccounts.id, id), eq(socialAccounts.userId, userId)));
+    return account;
   }
 
   async getShippingProviders(userId: number): Promise<ShippingProvider[]> {
@@ -660,6 +673,42 @@ export class DatabaseStorage implements IStorage {
       return query.where(and(...conditions)).orderBy(desc(guardrailLogs.createdAt)).limit(filters?.limit || 100);
     }
     return query.orderBy(desc(guardrailLogs.createdAt)).limit(filters?.limit || 100);
+  }
+
+  async createScheduledPost(post: InsertScheduledPost): Promise<ScheduledPost> {
+    const [created] = await db.insert(scheduledPosts).values(post).returning();
+    return created;
+  }
+
+  async getScheduledPosts(userId: number): Promise<ScheduledPost[]> {
+    return db.select().from(scheduledPosts)
+      .where(eq(scheduledPosts.userId, userId))
+      .orderBy(desc(scheduledPosts.createdAt));
+  }
+
+  async getPendingScheduledPosts(): Promise<ScheduledPost[]> {
+    return db.select().from(scheduledPosts)
+      .where(and(
+        eq(scheduledPosts.status, "pending"),
+        lte(scheduledPosts.scheduledAt, new Date())
+      ))
+      .orderBy(scheduledPosts.scheduledAt);
+  }
+
+  async updateScheduledPost(id: number, updates: Partial<ScheduledPost>): Promise<ScheduledPost | undefined> {
+    const [updated] = await db.update(scheduledPosts)
+      .set(updates)
+      .where(eq(scheduledPosts.id, id))
+      .returning();
+    return updated;
+  }
+
+  async cancelScheduledPost(id: number, userId: number): Promise<boolean> {
+    const [updated] = await db.update(scheduledPosts)
+      .set({ status: "cancelled" })
+      .where(and(eq(scheduledPosts.id, id), eq(scheduledPosts.userId, userId), eq(scheduledPosts.status, "pending")))
+      .returning();
+    return !!updated;
   }
 
   async setSystemSetting(key: string, value: string): Promise<void> {

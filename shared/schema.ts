@@ -423,6 +423,12 @@ export const socialAccounts = pgTable("social_accounts", {
   username: text("username").notNull(),
   profileUrl: text("profile_url"),
   accessToken: text("access_token"),
+  accountType: text("account_type").notNull().default("personal"),
+  apiKey: text("api_key"),
+  apiSecret: text("api_secret"),
+  accessTokenSecret: text("access_token_secret"),
+  pageId: text("page_id"),
+  businessAccountId: text("business_account_id"),
   status: text("status").notNull().default("connected"),
   connectedAt: timestamp("connected_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
 });
@@ -474,6 +480,29 @@ export const insertGuardrailLogSchema = createInsertSchema(guardrailLogs).omit({
 
 export type GuardrailLog = typeof guardrailLogs.$inferSelect;
 export type InsertGuardrailLog = z.infer<typeof insertGuardrailLogSchema>;
+
+export const scheduledPosts = pgTable("scheduled_posts", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  platform: text("platform").notNull(),
+  accountId: integer("account_id").references(() => socialAccounts.id),
+  content: text("content").notNull(),
+  hashtags: text("hashtags"),
+  imageUrl: text("image_url"),
+  scheduledAt: timestamp("scheduled_at").notNull(),
+  status: text("status").notNull().default("pending"),
+  publishedAt: timestamp("published_at"),
+  errorMessage: text("error_message"),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
+export const insertScheduledPostSchema = createInsertSchema(scheduledPosts).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type ScheduledPost = typeof scheduledPosts.$inferSelect;
+export type InsertScheduledPost = z.infer<typeof insertScheduledPostSchema>;
 
 export type Lead = typeof leads.$inferSelect;
 export type InsertLead = z.infer<typeof insertLeadSchema>;

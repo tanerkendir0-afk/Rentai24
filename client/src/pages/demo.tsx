@@ -52,6 +52,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/lib/auth";
 import ChatMessageContent from "@/components/chat-message";
+import PublishAssistantCard, { parsePublishAssistant } from "@/components/publish-assistant-card";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
 import type { AgentTask } from "@shared/schema";
@@ -1393,7 +1394,15 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                             Token Limit Reached
                           </div>
                         )}
-                        <ChatMessageContent content={msg.content} isUser={isUser} />
+                        {(() => {
+                          const { data: publishData, cleanText } = !isUser ? parsePublishAssistant(msg.content) : { data: null, cleanText: msg.content };
+                          return (
+                            <>
+                              {publishData && <PublishAssistantCard data={publishData} />}
+                              <ChatMessageContent content={cleanText} isUser={isUser} />
+                            </>
+                          );
+                        })()}
                       </div>
                     </div>
                   </motion.div>

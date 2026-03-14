@@ -117,7 +117,7 @@ export default function Settings() {
   const [memberForm, setMemberForm] = useState({ name: "", email: "", position: "", department: "", skills: "", responsibilities: "", phone: "" });
 
   const [showAddSocial, setShowAddSocial] = useState(false);
-  const [socialForm, setSocialForm] = useState({ platform: "", username: "", profileUrl: "" });
+  const [socialForm, setSocialForm] = useState({ platform: "", username: "", profileUrl: "", accountType: "personal" as "personal" | "business", apiKey: "", apiSecret: "", accessToken: "", accessTokenSecret: "", pageId: "", businessAccountId: "" });
 
   const [showAddShipping, setShowAddShipping] = useState(false);
   const [shippingForm, setShippingForm] = useState({ provider: "", apiKey: "", customerCode: "", username: "", password: "", accountNumber: "", siteId: "" });
@@ -319,13 +319,23 @@ export default function Settings() {
       return;
     }
     try {
-      await apiRequest("POST", "/api/social-accounts", {
+      const payload: any = {
         platform: socialForm.platform,
         username: socialForm.username.trim().replace(/^@/, ""),
         profileUrl: socialForm.profileUrl.trim() || null,
-      });
+        accountType: socialForm.accountType,
+      };
+      if (socialForm.accountType === "business") {
+        if (socialForm.apiKey.trim()) payload.apiKey = socialForm.apiKey.trim();
+        if (socialForm.apiSecret.trim()) payload.apiSecret = socialForm.apiSecret.trim();
+        if (socialForm.accessToken.trim()) payload.accessToken = socialForm.accessToken.trim();
+        if (socialForm.accessTokenSecret.trim()) payload.accessTokenSecret = socialForm.accessTokenSecret.trim();
+        if (socialForm.pageId.trim()) payload.pageId = socialForm.pageId.trim();
+        if (socialForm.businessAccountId.trim()) payload.businessAccountId = socialForm.businessAccountId.trim();
+      }
+      await apiRequest("POST", "/api/social-accounts", payload);
       queryClient.invalidateQueries({ queryKey: ["/api/social-accounts"] });
-      setSocialForm({ platform: "", username: "", profileUrl: "" });
+      setSocialForm({ platform: "", username: "", profileUrl: "", accountType: "personal", apiKey: "", apiSecret: "", accessToken: "", accessTokenSecret: "", pageId: "", businessAccountId: "" });
       setShowAddSocial(false);
       toast({ title: "Account connected", description: `${socialForm.platform} account @${socialForm.username.replace(/^@/, "")} has been added.` });
     } catch (err: any) {
@@ -975,7 +985,7 @@ export default function Settings() {
               size="sm"
               variant="outline"
               className="h-8 text-xs border-pink-500/30 text-pink-400 hover:bg-pink-500/10"
-              onClick={() => { setSocialForm({ platform: "", username: "", profileUrl: "" }); setShowAddSocial(true); }}
+              onClick={() => { setSocialForm({ platform: "", username: "", profileUrl: "", accountType: "personal", apiKey: "", apiSecret: "", accessToken: "", accessTokenSecret: "", pageId: "", businessAccountId: "" }); setShowAddSocial(true); }}
               data-testid="button-add-social"
             >
               <Plus className="w-3.5 h-3.5 mr-1" />Connect Account
@@ -1008,6 +1018,40 @@ export default function Settings() {
                   ))}
                 </div>
               </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">Account Type</Label>
+                <div className="flex gap-2 mt-1.5">
+                  <button
+                    onClick={() => setSocialForm(p => ({ ...p, accountType: "personal" }))}
+                    className={`flex-1 p-2.5 rounded-lg border text-center transition-all ${
+                      socialForm.accountType === "personal"
+                        ? "border-pink-500 bg-pink-500/10 ring-1 ring-pink-500/30"
+                        : "border-border/50 hover:border-pink-500/50"
+                    }`}
+                    data-testid="button-account-type-personal"
+                  >
+                    <span className="text-sm">👤</span>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">Personal</p>
+                  </button>
+                  <button
+                    onClick={() => setSocialForm(p => ({ ...p, accountType: "business" }))}
+                    className={`flex-1 p-2.5 rounded-lg border text-center transition-all ${
+                      socialForm.accountType === "business"
+                        ? "border-blue-500 bg-blue-500/10 ring-1 ring-blue-500/30"
+                        : "border-border/50 hover:border-blue-500/50"
+                    }`}
+                    data-testid="button-account-type-business"
+                  >
+                    <span className="text-sm">🔗</span>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">Business / API</p>
+                  </button>
+                </div>
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  {socialForm.accountType === "personal"
+                    ? "Manual sharing — Maya will prepare content for you to copy & paste"
+                    : "Auto-publish — Maya can post directly via API"}
+                </p>
+              </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <Label className="text-xs text-muted-foreground">Username *</Label>
@@ -1030,6 +1074,66 @@ export default function Settings() {
                   />
                 </div>
               </div>
+
+              {socialForm.accountType === "business" && (
+                <div className="p-3 rounded-lg bg-blue-500/5 border border-blue-500/20 space-y-3">
+                  <p className="text-xs font-medium text-blue-400">API Credentials</p>
+                  {(socialForm.platform === "twitter" || socialForm.platform === "tiktok" || socialForm.platform === "youtube" || !socialForm.platform) && (
+                    <>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <Label className="text-[10px] text-muted-foreground">API Key</Label>
+                          <Input value={socialForm.apiKey} onChange={(e) => setSocialForm(p => ({ ...p, apiKey: e.target.value }))} placeholder="API Key" className="mt-0.5 h-7 text-xs" data-testid="input-api-key" />
+                        </div>
+                        <div>
+                          <Label className="text-[10px] text-muted-foreground">API Secret</Label>
+                          <Input value={socialForm.apiSecret} onChange={(e) => setSocialForm(p => ({ ...p, apiSecret: e.target.value }))} placeholder="API Secret" className="mt-0.5 h-7 text-xs" type="password" data-testid="input-api-secret" />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <Label className="text-[10px] text-muted-foreground">Access Token</Label>
+                          <Input value={socialForm.accessToken} onChange={(e) => setSocialForm(p => ({ ...p, accessToken: e.target.value }))} placeholder="Access Token" className="mt-0.5 h-7 text-xs" data-testid="input-access-token" />
+                        </div>
+                        <div>
+                          <Label className="text-[10px] text-muted-foreground">Access Token Secret</Label>
+                          <Input value={socialForm.accessTokenSecret} onChange={(e) => setSocialForm(p => ({ ...p, accessTokenSecret: e.target.value }))} placeholder="Token Secret" className="mt-0.5 h-7 text-xs" type="password" data-testid="input-access-token-secret" />
+                        </div>
+                      </div>
+                    </>
+                  )}
+                  {(socialForm.platform === "instagram" || socialForm.platform === "facebook") && (
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <Label className="text-[10px] text-muted-foreground">{socialForm.platform === "instagram" ? "Meta Access Token" : "Page Access Token"}</Label>
+                        <Input value={socialForm.accessToken} onChange={(e) => setSocialForm(p => ({ ...p, accessToken: e.target.value }))} placeholder="Access Token" className="mt-0.5 h-7 text-xs" type="password" data-testid="input-access-token" />
+                      </div>
+                      <div>
+                        <Label className="text-[10px] text-muted-foreground">{socialForm.platform === "instagram" ? "Business Account ID" : "Page ID"}</Label>
+                        <Input
+                          value={socialForm.platform === "instagram" ? socialForm.businessAccountId : socialForm.pageId}
+                          onChange={(e) => setSocialForm(p => ({ ...p, [socialForm.platform === "instagram" ? "businessAccountId" : "pageId"]: e.target.value }))}
+                          placeholder={socialForm.platform === "instagram" ? "IG Business Account ID" : "Facebook Page ID"}
+                          className="mt-0.5 h-7 text-xs" data-testid="input-business-id"
+                        />
+                      </div>
+                    </div>
+                  )}
+                  {socialForm.platform === "linkedin" && (
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <Label className="text-[10px] text-muted-foreground">Access Token</Label>
+                        <Input value={socialForm.accessToken} onChange={(e) => setSocialForm(p => ({ ...p, accessToken: e.target.value }))} placeholder="LinkedIn Access Token" className="mt-0.5 h-7 text-xs" type="password" data-testid="input-access-token" />
+                      </div>
+                      <div>
+                        <Label className="text-[10px] text-muted-foreground">Organization ID (optional)</Label>
+                        <Input value={socialForm.businessAccountId} onChange={(e) => setSocialForm(p => ({ ...p, businessAccountId: e.target.value }))} placeholder="Company Page ID" className="mt-0.5 h-7 text-xs" data-testid="input-business-id" />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div className="flex gap-2 pt-1">
                 <Button
                   size="sm"
@@ -1079,9 +1183,8 @@ export default function Settings() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/30 text-[10px]">
-                        <CheckCircle2 className="w-2.5 h-2.5 mr-0.5" />
-                        {account.status}
+                      <Badge className={`text-[10px] ${(account as any).accountType === "business" ? "bg-blue-500/10 text-blue-400 border-blue-500/30" : "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"}`}>
+                        {(account as any).accountType === "business" ? "🔗 API" : "👤 Personal"}
                       </Badge>
                       <button
                         onClick={() => handleDeleteSocialAccount(account.id, account.platform, account.username)}

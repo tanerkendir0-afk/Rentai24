@@ -708,11 +708,22 @@ export async function registerRoutes(
 
   app.get("/api/social-accounts", requireAuth, async (req, res) => {
     const accounts = await storage.getSocialAccounts(req.session.userId!);
-    res.json(accounts);
+    const sanitized = accounts.map(a => ({
+      id: a.id,
+      userId: a.userId,
+      platform: a.platform,
+      username: a.username,
+      profileUrl: a.profileUrl,
+      accountType: a.accountType,
+      status: a.status,
+      connectedAt: a.connectedAt,
+      hasApiCredentials: !!(a.apiKey || a.accessToken),
+    }));
+    res.json(sanitized);
   });
 
   app.post("/api/social-accounts", requireAuth, async (req, res) => {
-    const { platform, username, profileUrl, accessToken } = req.body;
+    const { platform, username, profileUrl, accessToken, accountType, apiKey, apiSecret, accessTokenSecret, pageId, businessAccountId } = req.body;
     if (!platform || !username) return res.status(400).json({ error: "Platform and username are required" });
     const validPlatforms = ["instagram", "twitter", "linkedin", "facebook", "tiktok", "youtube"];
     if (!validPlatforms.includes(platform)) return res.status(400).json({ error: "Invalid platform" });
@@ -722,23 +733,35 @@ export async function registerRoutes(
       username,
       profileUrl: profileUrl || null,
       accessToken: accessToken || null,
+      accountType: accountType || "personal",
+      apiKey: apiKey || null,
+      apiSecret: apiSecret || null,
+      accessTokenSecret: accessTokenSecret || null,
+      pageId: pageId || null,
+      businessAccountId: businessAccountId || null,
       status: "connected",
     });
-    res.json(account);
+    res.json({ id: account.id, userId: account.userId, platform: account.platform, username: account.username, profileUrl: account.profileUrl, accountType: account.accountType, status: account.status, connectedAt: account.connectedAt, hasApiCredentials: !!(account.apiKey || account.accessToken) });
   });
 
   app.patch("/api/social-accounts/:id", requireAuth, async (req, res) => {
     const id = parseInt(req.params.id);
     if (isNaN(id)) return res.status(400).json({ error: "Invalid account ID" });
-    const { username, profileUrl, accessToken, status } = req.body;
+    const { username, profileUrl, accessToken, status, accountType, apiKey, apiSecret, accessTokenSecret, pageId, businessAccountId } = req.body;
     const updates: any = {};
     if (username !== undefined) updates.username = username;
     if (profileUrl !== undefined) updates.profileUrl = profileUrl;
     if (accessToken !== undefined) updates.accessToken = accessToken;
     if (status !== undefined) updates.status = status;
+    if (accountType !== undefined) updates.accountType = accountType;
+    if (apiKey !== undefined) updates.apiKey = apiKey;
+    if (apiSecret !== undefined) updates.apiSecret = apiSecret;
+    if (accessTokenSecret !== undefined) updates.accessTokenSecret = accessTokenSecret;
+    if (pageId !== undefined) updates.pageId = pageId;
+    if (businessAccountId !== undefined) updates.businessAccountId = businessAccountId;
     const updated = await storage.updateSocialAccount(id, req.session.userId!, updates);
     if (!updated) return res.status(404).json({ error: "Account not found" });
-    res.json(updated);
+    res.json({ id: updated.id, userId: updated.userId, platform: updated.platform, username: updated.username, profileUrl: updated.profileUrl, accountType: updated.accountType, status: updated.status, connectedAt: updated.connectedAt, hasApiCredentials: !!(updated.apiKey || updated.accessToken) });
   });
 
   app.delete("/api/social-accounts/:id", requireAuth, async (req, res) => {
@@ -746,6 +769,19 @@ export async function registerRoutes(
     if (isNaN(id)) return res.status(400).json({ error: "Invalid account ID" });
     const deleted = await storage.deleteSocialAccount(id, req.session.userId!);
     if (!deleted) return res.status(404).json({ error: "Account not found" });
+    res.json({ success: true });
+  });
+
+  app.get("/api/scheduled-posts", requireAuth, async (req, res) => {
+    const posts = await storage.getScheduledPosts(req.session.userId!);
+    res.json(posts);
+  });
+
+  app.post("/api/scheduled-posts/:id/cancel", requireAuth, async (req, res) => {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ error: "Invalid post ID" });
+    const cancelled = await storage.cancelScheduledPost(id, req.session.userId!);
+    if (!cancelled) return res.status(404).json({ error: "Post not found or already published/cancelled" });
     res.json({ success: true });
   });
 
@@ -1097,12 +1133,14 @@ ${members.map(m => `- ${m.name} (${m.email})${m.position ? ` — ${m.position}` 
     if (agentType === "social-media" && req.session.userId) {
       const socialAccountsList = await storage.getSocialAccounts(req.session.userId);
       if (socialAccountsList.length > 0) {
-        const accountsStr = socialAccountsList.map(a =>
-          `- ${a.platform.charAt(0).toUpperCase() + a.platform.slice(1)}: @${a.username}${a.profileUrl ? ` (${a.profileUrl})` : ""}`
-        ).join("\n");
-        systemPrompt += `\n\nCONNECTED SOCIAL ACCOUNTS:\n${accountsStr}\n- Reference these accounts and usernames when creating platform-specific content.`;
+        const accountsStr = socialAccountsList.map(a => {
+          const typeLabel = a.accountType === "business" ? "🔗 API/Business" : "👤 Personal";
+          const canAutoPost = a.accountType === "business";
+          return `- ${a.platform.charAt(0).toUpperCase() + a.platform.slice(1)}: @${a.username} [${typeLabel}] ${canAutoPost ? "(auto-publish ready)" : "(manual sharing only)"}`;
+        }).join("\n");
+        systemPrompt += `\n\nCONNECTED SOCIAL ACCOUNTS:\n${accountsStr}\n\nPOSTING RULES:\n- For "API/Business" accounts: Use publish_post to auto-publish directly via API.\n- For "Personal" accounts: Use prepare_post_for_manual_sharing to create a Publish Assistant card. Do NOT attempt publish_post for personal accounts.\n- Always check account type before choosing the posting method.\n- When user says "paylaş" / "share" / "post this": Check the target platform's account type and use the correct tool.\n- You can schedule future posts for any account type using schedule_post.`;
       } else {
-        systemPrompt += `\n\nSOCIAL ACCOUNTS STATUS: No accounts connected yet. On first interaction, suggest the user connect their social media accounts in Settings > Social Media Accounts for a more personalized experience.`;
+        systemPrompt += `\n\nSOCIAL ACCOUNTS STATUS: No accounts connected yet. On first interaction, suggest the user connect their social media accounts in Settings > Social Media Accounts for a more personalized experience. They can choose between Personal accounts (manual sharing with Publish Assistant) or Business/API accounts (auto-publishing via API).`;
       }
     }
 

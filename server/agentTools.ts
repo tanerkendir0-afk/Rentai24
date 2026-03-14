@@ -606,6 +606,84 @@ export const socialMediaTools: OpenAI.ChatCompletionTool[] = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "publish_post",
+      description: "Publish a post directly to a connected social media platform via API. Only works for Business/API accounts (Twitter, Instagram Business, Facebook, LinkedIn). For personal accounts, use prepare_post_for_manual_sharing instead.",
+      parameters: {
+        type: "object",
+        properties: {
+          platform: { type: "string", enum: ["twitter", "instagram", "facebook", "linkedin"], description: "Target platform to publish to" },
+          content: { type: "string", description: "The post content/caption text" },
+          hashtags: { type: "string", description: "Hashtags to append (optional)" },
+          image_url: { type: "string", description: "URL of an image to include (optional, required for Instagram)" },
+        },
+        required: ["platform", "content"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "prepare_post_for_manual_sharing",
+      description: "Prepare a post for manual sharing on personal accounts (Instagram, TikTok, etc). Creates a Publish Assistant card with copy-to-clipboard buttons and deep links to open the app. Use this for personal accounts that don't support API posting.",
+      parameters: {
+        type: "object",
+        properties: {
+          platform: { type: "string", enum: ["instagram", "twitter", "linkedin", "facebook", "tiktok", "youtube"], description: "Target platform" },
+          content: { type: "string", description: "The post content/caption text" },
+          hashtags: { type: "string", description: "Hashtags to include" },
+          image_url: { type: "string", description: "URL of the image to share (optional)" },
+        },
+        required: ["platform", "content"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "schedule_post",
+      description: "Schedule a post to be published at a future date/time. For API accounts, it will auto-publish. For personal accounts, it will send a reminder notification.",
+      parameters: {
+        type: "object",
+        properties: {
+          platform: { type: "string", enum: ["instagram", "twitter", "linkedin", "facebook", "tiktok"], description: "Target platform" },
+          content: { type: "string", description: "The post content/caption text" },
+          hashtags: { type: "string", description: "Hashtags to include" },
+          image_url: { type: "string", description: "URL of the image to include (optional)" },
+          scheduled_date: { type: "string", description: "ISO 8601 date/time string for when to publish (e.g. '2025-01-15T14:00:00Z')" },
+        },
+        required: ["platform", "content", "scheduled_date"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "list_scheduled_posts",
+      description: "List all scheduled posts for the user. Shows pending, published, failed, and cancelled posts.",
+      parameters: {
+        type: "object",
+        properties: {},
+        required: [],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "cancel_scheduled_post",
+      description: "Cancel a pending scheduled post by its ID.",
+      parameters: {
+        type: "object",
+        properties: {
+          post_id: { type: "number", description: "The ID of the scheduled post to cancel" },
+        },
+        required: ["post_id"],
+      },
+    },
+  },
 ];
 
 export const bookkeepingTools: OpenAI.ChatCompletionTool[] = [
@@ -979,6 +1057,11 @@ const TOOL_KEYWORD_MAP: Record<string, string[]> = {
   create_content_calendar: ["calendar", "takvim", "plan", "schedule", "content"],
   generate_hashtags: ["hashtag", "etiket"],
   draft_response: ["response", "comment", "yorum", "yanıt", "review"],
+  publish_post: ["publish", "paylaş", "share", "post", "yayınla", "at", "tweet"],
+  prepare_post_for_manual_sharing: ["manual", "share", "paylaş", "copy", "kopyala", "clipboard"],
+  schedule_post: ["schedule", "zamanla", "later", "sonra", "yarın", "tomorrow", "time", "saat"],
+  list_scheduled_posts: ["scheduled", "zamanlı", "pending", "bekleyen", "list"],
+  cancel_scheduled_post: ["cancel", "iptal", "remove", "kaldır"],
   create_invoice: ["invoice", "fatura"],
   log_expense: ["expense", "gider", "harcama", "masraf"],
   financial_summary: ["financial", "summary", "report", "mali", "özet", "rapor", "gelir", "gider"],
@@ -2392,6 +2475,231 @@ ${activeRentals.map(r => `  ${r.agentType}: ${r.messagesUsed}/${r.messagesLimit}
         result: `Drafting a professional response to this ${sentiment} comment on ${platform}.\n\nOriginal: "${originalMessage.substring(0, 200)}${originalMessage.length > 200 ? "..." : ""}"\n\nI'll craft an appropriate, brand-aligned response.`,
         actionType: "response_drafted",
         actionDescription: `💬 ${sentiment} comment response drafted (${platform})`,
+      };
+    }
+
+    case "publish_post": {
+      const platform = String(args.platform);
+      const content = String(args.content);
+      const hashtags = args.hashtags ? String(args.hashtags) : "";
+      const imageUrl = args.image_url ? String(args.image_url) : undefined;
+
+      const accounts = await storage.getSocialAccounts(userId);
+      const account = accounts.find(a => a.platform === platform);
+
+      if (!account) {
+        return {
+          result: `No ${platform} account is connected. Please go to **Settings > Social Media Accounts** to connect your ${platform} account first.`,
+          actionType: "publish_failed",
+          actionDescription: `❌ No ${platform} account connected`,
+        };
+      }
+
+      if (account.accountType === "personal") {
+        return {
+          result: `Your ${platform} account (@${account.username}) is a personal account. Personal accounts don't support API auto-posting. I'll prepare the content for manual sharing instead — use the prepare_post_for_manual_sharing tool.`,
+          actionType: "publish_redirect",
+          actionDescription: `ℹ️ ${platform} is personal — use manual sharing`,
+        };
+      }
+
+      const { publishToSocialMedia } = await import("./socialPostingService");
+      const fullContent = hashtags ? `${content}\n\n${hashtags}` : content;
+      const result = await publishToSocialMedia(account, fullContent, imageUrl);
+
+      if (result.success) {
+        await storage.createAgentAction({
+          userId, agentType,
+          actionType: "post_published",
+          description: `🚀 Post published to ${platform} @${account.username}`,
+          metadata: { platform, postId: result.postId, postUrl: result.postUrl },
+        });
+
+        return {
+          result: `✅ **Post published successfully!**\n\n📱 Platform: ${platform}\n👤 Account: @${account.username}\n🔗 Post URL: ${result.postUrl || "View on platform"}\n\nYour post is now live!`,
+          actionType: "post_published",
+          actionDescription: `🚀 Published to ${platform} @${account.username}`,
+        };
+      }
+
+      return {
+        result: `❌ **Publishing failed**: ${result.error}\n\nPlease check your API credentials in Settings > Social Media Accounts. If the issue persists, I can prepare the content for manual sharing.`,
+        actionType: "publish_failed",
+        actionDescription: `❌ ${platform} publish failed`,
+      };
+    }
+
+    case "prepare_post_for_manual_sharing": {
+      const platform = String(args.platform);
+      const content = String(args.content);
+      const hashtags = args.hashtags ? String(args.hashtags) : "";
+      const imageUrl = args.image_url ? String(args.image_url) : "";
+
+      const deepLinks: Record<string, string> = {
+        instagram: "instagram://app",
+        twitter: "twitter://post",
+        tiktok: "tiktok://",
+        facebook: "fb://",
+        linkedin: "linkedin://",
+        youtube: "youtube://",
+      };
+
+      const webLinks: Record<string, string> = {
+        instagram: "https://instagram.com",
+        twitter: "https://twitter.com/compose/tweet",
+        tiktok: "https://tiktok.com/upload",
+        facebook: "https://facebook.com",
+        linkedin: "https://linkedin.com/feed",
+        youtube: "https://studio.youtube.com",
+      };
+
+      await storage.createAgentAction({
+        userId, agentType,
+        actionType: "manual_post_prepared",
+        description: `📋 Manual sharing content prepared for ${platform}`,
+        metadata: { platform, contentPreview: content.substring(0, 100) },
+      });
+
+      const publishAssistantData = JSON.stringify({
+        type: "publish_assistant",
+        platform,
+        content,
+        hashtags,
+        imageUrl,
+        deepLink: deepLinks[platform] || "",
+        webLink: webLinks[platform] || "",
+      });
+
+      return {
+        result: `📋 **Publish Assistant Ready!**\n\n<!--PUBLISH_ASSISTANT:${publishAssistantData}:END_PUBLISH_ASSISTANT-->\n\nI've prepared your ${platform} post content. Use the card above to:\n1. 📥 Download the image (if included)\n2. 📋 Copy the caption to clipboard\n3. #️⃣ Copy hashtags separately\n4. 📱 Open ${platform} app\n5. ✅ Paste and share!`,
+        actionType: "manual_post_prepared",
+        actionDescription: `📋 ${platform} manual sharing ready`,
+      };
+    }
+
+    case "schedule_post": {
+      const platform = String(args.platform);
+      const content = String(args.content);
+      const hashtags = args.hashtags ? String(args.hashtags) : "";
+      const imageUrl = args.image_url ? String(args.image_url) : null;
+      const scheduledDate = new Date(String(args.scheduled_date));
+
+      if (isNaN(scheduledDate.getTime())) {
+        return {
+          result: "Invalid date format. Please provide a valid ISO 8601 date (e.g., '2025-01-15T14:00:00Z').",
+          actionType: "schedule_failed",
+          actionDescription: "❌ Invalid schedule date",
+        };
+      }
+
+      if (scheduledDate <= new Date()) {
+        return {
+          result: "The scheduled time must be in the future. Please provide a future date/time.",
+          actionType: "schedule_failed",
+          actionDescription: "❌ Schedule date is in the past",
+        };
+      }
+
+      const accounts = await storage.getSocialAccounts(userId);
+      const account = accounts.find(a => a.platform === platform);
+
+      if (!account) {
+        return {
+          result: `No ${platform} account is connected. Please go to **Settings > Social Media Accounts** to connect your account first.`,
+          actionType: "schedule_failed",
+          actionDescription: `❌ No ${platform} account connected`,
+        };
+      }
+
+      const scheduledPost = await storage.createScheduledPost({
+        userId,
+        platform,
+        accountId: account.id,
+        content,
+        hashtags: hashtags || null,
+        imageUrl,
+        scheduledAt: scheduledDate,
+        status: "pending",
+        publishedAt: null,
+        errorMessage: null,
+      });
+
+      const autoPublish = account.accountType === "business";
+      const dateStr = scheduledDate.toLocaleString("tr-TR", { timeZone: "Europe/Istanbul" });
+
+      await storage.createAgentAction({
+        userId, agentType,
+        actionType: "post_scheduled",
+        description: `⏰ Post scheduled for ${platform} on ${dateStr}`,
+        metadata: { postId: scheduledPost.id, platform, scheduledAt: scheduledDate.toISOString(), autoPublish },
+      });
+
+      return {
+        result: `⏰ **Post Scheduled!** (ID: #${scheduledPost.id})\n\n📱 Platform: ${platform}\n👤 Account: @${account.username}\n📅 Scheduled: ${dateStr}\n${autoPublish ? "🤖 Mode: Auto-publish (API)" : "🔔 Mode: Reminder notification (personal account)"}\n\n${autoPublish ? "The post will be automatically published at the scheduled time." : "You'll receive a reminder notification when it's time to post. The content will be ready for you to copy and share."}`,
+        actionType: "post_scheduled",
+        actionDescription: `⏰ Scheduled for ${platform} — ${dateStr}`,
+      };
+    }
+
+    case "list_scheduled_posts": {
+      const posts = await storage.getScheduledPosts(userId);
+
+      if (posts.length === 0) {
+        return {
+          result: "No scheduled posts found. You can schedule posts by telling me when you'd like to publish content.",
+          actionType: "scheduled_posts_listed",
+          actionDescription: "📋 No scheduled posts",
+        };
+      }
+
+      const statusEmojis: Record<string, string> = {
+        pending: "⏳", published: "✅", failed: "❌", cancelled: "🚫", reminder_sent: "🔔",
+      };
+
+      const postList = posts.map(p => {
+        const date = new Date(p.scheduledAt).toLocaleString("tr-TR", { timeZone: "Europe/Istanbul" });
+        const emoji = statusEmojis[p.status] || "❓";
+        return `${emoji} **#${p.id}** — ${p.platform} | ${date} | ${p.status}\n   "${p.content.substring(0, 80)}${p.content.length > 80 ? "..." : ""}"`;
+      }).join("\n\n");
+
+      return {
+        result: `📋 **Scheduled Posts** (${posts.length}):\n\n${postList}`,
+        actionType: "scheduled_posts_listed",
+        actionDescription: `📋 ${posts.length} scheduled posts`,
+      };
+    }
+
+    case "cancel_scheduled_post": {
+      const postId = Number(args.post_id);
+      if (!postId || isNaN(postId)) {
+        return {
+          result: "Please provide a valid post ID. You can use the list_scheduled_posts tool to see all posts.",
+          actionType: "cancel_failed",
+          actionDescription: "❌ Invalid post ID",
+        };
+      }
+
+      const cancelled = await storage.cancelScheduledPost(postId, userId);
+
+      if (!cancelled) {
+        return {
+          result: `Could not cancel post #${postId}. It may not exist, not belong to you, or already be published/cancelled.`,
+          actionType: "cancel_failed",
+          actionDescription: `❌ Could not cancel post #${postId}`,
+        };
+      }
+
+      await storage.createAgentAction({
+        userId, agentType,
+        actionType: "post_cancelled",
+        description: `🚫 Scheduled post #${postId} cancelled`,
+        metadata: { postId },
+      });
+
+      return {
+        result: `🚫 Scheduled post **#${postId}** has been cancelled successfully.`,
+        actionType: "post_cancelled",
+        actionDescription: `🚫 Post #${postId} cancelled`,
       };
     }
 

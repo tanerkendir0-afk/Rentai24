@@ -628,7 +628,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
 
       <div className="flex-1 flex min-w-0">
        <div className="flex-1 flex flex-col min-w-0">
-        <div className={`h-14 border-b border-border/50 flex items-center gap-3 px-4 bg-card/30 backdrop-blur-sm shrink-0`}>
+        <div className={`min-h-[3.5rem] border-b border-border/50 flex items-center gap-3 px-4 bg-card/30 backdrop-blur-sm shrink-0 relative z-20`}>
           {!sidebarOpen && (
             <Button
               variant="ghost"
@@ -657,7 +657,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
             </div>
           </div>
 
-          <div className="flex items-center gap-1 sm:gap-1.5 overflow-x-auto scrollbar-hide min-w-0">
+          <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap">
             {user && isSocialMediaAgent && (
               <div className="relative">
                 <Button

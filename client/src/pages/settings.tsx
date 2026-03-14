@@ -788,190 +788,6 @@ export default function Settings() {
           )}
         </Card>
 
-        <Card className="p-6 bg-card border-border/50" data-testid="card-team-members">
-          <div className="flex items-center justify-between mb-5">
-            <div className="flex items-center gap-2">
-              <Users className="w-5 h-5 text-violet-400" />
-              <h2 className="text-lg font-semibold text-foreground">Team Members</h2>
-              {teamMembers && teamMembers.length > 0 && (
-                <Badge variant="secondary" className="ml-1" data-testid="badge-team-count">{teamMembers.length}</Badge>
-              )}
-            </div>
-            <Button
-              size="sm"
-              variant="outline"
-              className="h-8 text-xs border-violet-500/30 text-violet-400 hover:bg-violet-500/10"
-              onClick={() => { resetMemberForm(); setShowAddMember(true); }}
-              data-testid="button-add-member"
-            >
-              <Plus className="w-3.5 h-3.5 mr-1" />Add Member
-            </Button>
-          </div>
-          <p className="text-xs text-muted-foreground mb-4">
-            Add your team members so AI agents know who everyone is. They can reference team members when sending emails or coordinating tasks.
-          </p>
-
-          {showAddMember && (
-            <div className="mb-4 p-4 rounded-lg bg-muted/30 border border-violet-500/20 space-y-3">
-              <p className="text-sm font-medium text-foreground">{editingMember ? "Edit Member" : "Add New Member"}</p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <Label className="text-xs text-muted-foreground">Name *</Label>
-                  <Input
-                    value={memberForm.name}
-                    onChange={(e) => setMemberForm(p => ({ ...p, name: e.target.value }))}
-                    placeholder="John Doe"
-                    className="mt-1 h-8 text-sm"
-                    data-testid="input-member-name"
-                  />
-                </div>
-                <div>
-                  <Label className="text-xs text-muted-foreground">Email *</Label>
-                  <Input
-                    value={memberForm.email}
-                    onChange={(e) => setMemberForm(p => ({ ...p, email: e.target.value }))}
-                    placeholder="john@company.com"
-                    className="mt-1 h-8 text-sm"
-                    data-testid="input-member-email"
-                  />
-                </div>
-                <div>
-                  <Label className="text-xs text-muted-foreground">Position</Label>
-                  <Input
-                    value={memberForm.position}
-                    onChange={(e) => setMemberForm(p => ({ ...p, position: e.target.value }))}
-                    placeholder="Software Engineer"
-                    className="mt-1 h-8 text-sm"
-                    data-testid="input-member-position"
-                  />
-                </div>
-                <div>
-                  <Label className="text-xs text-muted-foreground">Department</Label>
-                  <Input
-                    value={memberForm.department}
-                    onChange={(e) => setMemberForm(p => ({ ...p, department: e.target.value }))}
-                    placeholder="Engineering"
-                    className="mt-1 h-8 text-sm"
-                    data-testid="input-member-department"
-                  />
-                </div>
-                <div>
-                  <Label className="text-xs text-muted-foreground">Phone</Label>
-                  <Input
-                    value={memberForm.phone}
-                    onChange={(e) => setMemberForm(p => ({ ...p, phone: e.target.value }))}
-                    placeholder="+1 555 0123"
-                    className="mt-1 h-8 text-sm"
-                    data-testid="input-member-phone"
-                  />
-                </div>
-                <div>
-                  <Label className="text-xs text-muted-foreground">Skills</Label>
-                  <Input
-                    value={memberForm.skills}
-                    onChange={(e) => setMemberForm(p => ({ ...p, skills: e.target.value }))}
-                    placeholder="React, Node.js, Python"
-                    className="mt-1 h-8 text-sm"
-                    data-testid="input-member-skills"
-                  />
-                </div>
-              </div>
-              <div>
-                <Label className="text-xs text-muted-foreground">Responsibilities</Label>
-                <Input
-                  value={memberForm.responsibilities}
-                  onChange={(e) => setMemberForm(p => ({ ...p, responsibilities: e.target.value }))}
-                  placeholder="Frontend development, code reviews"
-                  className="mt-1 h-8 text-sm"
-                  data-testid="input-member-responsibilities"
-                />
-              </div>
-              <div className="flex gap-2 pt-1">
-                <Button
-                  size="sm"
-                  onClick={handleSaveMember}
-                  className="bg-gradient-to-r from-violet-500 to-purple-500 text-white border-0"
-                  data-testid="button-save-member"
-                >
-                  <Save className="w-3.5 h-3.5 mr-1" />{editingMember ? "Update" : "Add"}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={resetMemberForm}
-                  data-testid="button-cancel-member"
-                >
-                  Cancel
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {teamLoading ? (
-            <div className="flex justify-center py-6">
-              <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
-            </div>
-          ) : teamMembers && teamMembers.length > 0 ? (
-            <div className="space-y-2">
-              {teamMembers.map((member) => (
-                <div key={member.id} className="flex items-start justify-between p-3 rounded-lg bg-muted/30 border border-border/50 group" data-testid={`card-member-${member.id}`}>
-                  <div className="flex items-start gap-3 min-w-0">
-                    <div className="w-9 h-9 rounded-full bg-violet-500/10 flex items-center justify-center shrink-0 mt-0.5">
-                      <User className="w-4 h-4 text-violet-400" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-foreground" data-testid={`text-member-name-${member.id}`}>{member.name}</p>
-                      <p className="text-xs text-muted-foreground truncate" data-testid={`text-member-email-${member.id}`}>{member.email}</p>
-                      <div className="flex flex-wrap gap-1.5 mt-1">
-                        {member.position && (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 flex items-center gap-0.5">
-                            <Briefcase className="w-2.5 h-2.5" />{member.position}
-                          </span>
-                        )}
-                        {member.department && (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-violet-500/10 text-violet-400">
-                            {member.department}
-                          </span>
-                        )}
-                        {member.phone && (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 flex items-center gap-0.5">
-                            <Phone className="w-2.5 h-2.5" />{member.phone}
-                          </span>
-                        )}
-                      </div>
-                      {member.skills && (
-                        <p className="text-[10px] text-muted-foreground mt-1 truncate">Skills: {member.skills}</p>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                    <button
-                      onClick={() => startEditMember(member)}
-                      className="p-1.5 rounded hover:bg-blue-500/10 text-muted-foreground hover:text-blue-400 transition-colors"
-                      data-testid={`button-edit-member-${member.id}`}
-                    >
-                      <Pencil className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      onClick={() => handleDeleteMember(member.id, member.name)}
-                      className="p-1.5 rounded hover:bg-red-500/10 text-muted-foreground hover:text-red-400 transition-colors"
-                      data-testid={`button-delete-member-${member.id}`}
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-6 text-muted-foreground">
-              <Users className="w-8 h-8 mx-auto mb-2 opacity-30" />
-              <p className="text-sm">No team members yet</p>
-              <p className="text-xs mt-1">Add your team so AI agents can collaborate effectively</p>
-            </div>
-          )}
-        </Card>
-
         <Card className="p-6 bg-card border-border/50" data-testid="card-social-accounts">
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-2">
@@ -1205,6 +1021,190 @@ export default function Settings() {
               </div>
               <p className="text-sm">No social accounts connected</p>
               <p className="text-xs mt-1">Connect your accounts so Maya can create tailored content for your profiles</p>
+            </div>
+          )}
+        </Card>
+
+        <Card className="p-6 bg-card border-border/50" data-testid="card-team-members">
+          <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center gap-2">
+              <Users className="w-5 h-5 text-violet-400" />
+              <h2 className="text-lg font-semibold text-foreground">Team Members</h2>
+              {teamMembers && teamMembers.length > 0 && (
+                <Badge variant="secondary" className="ml-1" data-testid="badge-team-count">{teamMembers.length}</Badge>
+              )}
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 text-xs border-violet-500/30 text-violet-400 hover:bg-violet-500/10"
+              onClick={() => { resetMemberForm(); setShowAddMember(true); }}
+              data-testid="button-add-member"
+            >
+              <Plus className="w-3.5 h-3.5 mr-1" />Add Member
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground mb-4">
+            Add your team members so AI agents know who everyone is. They can reference team members when sending emails or coordinating tasks.
+          </p>
+
+          {showAddMember && (
+            <div className="mb-4 p-4 rounded-lg bg-muted/30 border border-violet-500/20 space-y-3">
+              <p className="text-sm font-medium text-foreground">{editingMember ? "Edit Member" : "Add New Member"}</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs text-muted-foreground">Name *</Label>
+                  <Input
+                    value={memberForm.name}
+                    onChange={(e) => setMemberForm(p => ({ ...p, name: e.target.value }))}
+                    placeholder="John Doe"
+                    className="mt-1 h-8 text-sm"
+                    data-testid="input-member-name"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Email *</Label>
+                  <Input
+                    value={memberForm.email}
+                    onChange={(e) => setMemberForm(p => ({ ...p, email: e.target.value }))}
+                    placeholder="john@company.com"
+                    className="mt-1 h-8 text-sm"
+                    data-testid="input-member-email"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Position</Label>
+                  <Input
+                    value={memberForm.position}
+                    onChange={(e) => setMemberForm(p => ({ ...p, position: e.target.value }))}
+                    placeholder="Software Engineer"
+                    className="mt-1 h-8 text-sm"
+                    data-testid="input-member-position"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Department</Label>
+                  <Input
+                    value={memberForm.department}
+                    onChange={(e) => setMemberForm(p => ({ ...p, department: e.target.value }))}
+                    placeholder="Engineering"
+                    className="mt-1 h-8 text-sm"
+                    data-testid="input-member-department"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Phone</Label>
+                  <Input
+                    value={memberForm.phone}
+                    onChange={(e) => setMemberForm(p => ({ ...p, phone: e.target.value }))}
+                    placeholder="+1 555 0123"
+                    className="mt-1 h-8 text-sm"
+                    data-testid="input-member-phone"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Skills</Label>
+                  <Input
+                    value={memberForm.skills}
+                    onChange={(e) => setMemberForm(p => ({ ...p, skills: e.target.value }))}
+                    placeholder="React, Node.js, Python"
+                    className="mt-1 h-8 text-sm"
+                    data-testid="input-member-skills"
+                  />
+                </div>
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">Responsibilities</Label>
+                <Input
+                  value={memberForm.responsibilities}
+                  onChange={(e) => setMemberForm(p => ({ ...p, responsibilities: e.target.value }))}
+                  placeholder="Frontend development, code reviews"
+                  className="mt-1 h-8 text-sm"
+                  data-testid="input-member-responsibilities"
+                />
+              </div>
+              <div className="flex gap-2 pt-1">
+                <Button
+                  size="sm"
+                  onClick={handleSaveMember}
+                  className="bg-gradient-to-r from-violet-500 to-purple-500 text-white border-0"
+                  data-testid="button-save-member"
+                >
+                  <Save className="w-3.5 h-3.5 mr-1" />{editingMember ? "Update" : "Add"}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={resetMemberForm}
+                  data-testid="button-cancel-member"
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {teamLoading ? (
+            <div className="flex justify-center py-6">
+              <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+            </div>
+          ) : teamMembers && teamMembers.length > 0 ? (
+            <div className="space-y-2">
+              {teamMembers.map((member) => (
+                <div key={member.id} className="flex items-start justify-between p-3 rounded-lg bg-muted/30 border border-border/50 group" data-testid={`card-member-${member.id}`}>
+                  <div className="flex items-start gap-3 min-w-0">
+                    <div className="w-9 h-9 rounded-full bg-violet-500/10 flex items-center justify-center shrink-0 mt-0.5">
+                      <User className="w-4 h-4 text-violet-400" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-foreground" data-testid={`text-member-name-${member.id}`}>{member.name}</p>
+                      <p className="text-xs text-muted-foreground truncate" data-testid={`text-member-email-${member.id}`}>{member.email}</p>
+                      <div className="flex flex-wrap gap-1.5 mt-1">
+                        {member.position && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 flex items-center gap-0.5">
+                            <Briefcase className="w-2.5 h-2.5" />{member.position}
+                          </span>
+                        )}
+                        {member.department && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-violet-500/10 text-violet-400">
+                            {member.department}
+                          </span>
+                        )}
+                        {member.phone && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 flex items-center gap-0.5">
+                            <Phone className="w-2.5 h-2.5" />{member.phone}
+                          </span>
+                        )}
+                      </div>
+                      {member.skills && (
+                        <p className="text-[10px] text-muted-foreground mt-1 truncate">Skills: {member.skills}</p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                    <button
+                      onClick={() => startEditMember(member)}
+                      className="p-1.5 rounded hover:bg-blue-500/10 text-muted-foreground hover:text-blue-400 transition-colors"
+                      data-testid={`button-edit-member-${member.id}`}
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteMember(member.id, member.name)}
+                      className="p-1.5 rounded hover:bg-red-500/10 text-muted-foreground hover:text-red-400 transition-colors"
+                      data-testid={`button-delete-member-${member.id}`}
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-6 text-muted-foreground">
+              <Users className="w-8 h-8 mx-auto mb-2 opacity-30" />
+              <p className="text-sm">No team members yet</p>
+              <p className="text-xs mt-1">Add your team so AI agents can collaborate effectively</p>
             </div>
           )}
         </Card>

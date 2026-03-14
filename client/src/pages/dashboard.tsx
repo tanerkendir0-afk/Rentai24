@@ -21,6 +21,7 @@ import {
   Building2,
   MessageSquare,
   Plus,
+  Zap,
   LogOut,
   Loader2,
   Gauge,
@@ -447,8 +448,8 @@ export default function Dashboard() {
                           <><Loader2 className="w-3 h-3 mr-1 animate-spin" />Processing</>
                         ) : (
                           <>
-                            <Plus className="w-3 h-3 mr-1" />
-                            Install
+                            <Zap className="w-3 h-3 mr-1" />
+                            Hire Now
                           </>
                         )}
                       </Button>

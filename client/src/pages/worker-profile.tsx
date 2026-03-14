@@ -56,6 +56,8 @@ export default function WorkerProfile() {
   const { toast } = useToast();
   const [renting, setRenting] = useState(false);
   const [signupDialogOpen, setSignupDialogOpen] = useState(false);
+  const [planDialogOpen, setPlanDialogOpen] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState("starter");
 
   if (!agent) {
     return (
@@ -114,31 +116,13 @@ export default function WorkerProfile() {
                   className="bg-gradient-to-r from-blue-500 to-violet-500 text-white border-0"
                   data-testid="button-hire-worker"
                   disabled={renting}
-                  onClick={async () => {
-                    setRenting(true);
-                    try {
-                      const res = await apiRequest("POST", "/api/test-checkout", {
-                        plan: "starter",
-                        agentType: agent.id,
-                        cardNumber: "4242424242424242",
-                        expiry: "12/28",
-                        cvc: "123",
-                      });
-                      const data = await res.json();
-                      if (data.success) {
-                        toast({ title: "Worker Hired!", description: `${agent.name} is now active and ready to use.` });
-                        window.location.href = "/dashboard?checkout=success";
-                      }
-                    } catch (error: any) {
-                      const msg = error?.message || "Something went wrong.";
-                      toast({ title: "Error", description: msg, variant: "destructive" });
-                    } finally {
-                      setRenting(false);
-                    }
+                  onClick={() => {
+                    setSelectedPlan("starter");
+                    setPlanDialogOpen(true);
                   }}
                 >
-                  {renting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                  Rent This Worker
+                  {renting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Zap className="w-4 h-4 mr-2" />}
+                  Hire Now
                   <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>
               ) : (
@@ -148,7 +132,8 @@ export default function WorkerProfile() {
                   data-testid="button-hire-worker"
                   onClick={() => setSignupDialogOpen(true)}
                 >
-                  Rent This Worker
+                  <Zap className="w-4 h-4 mr-2" />
+                  Hire Now
                   <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>
               )}
@@ -315,6 +300,104 @@ export default function WorkerProfile() {
                 Sign In
               </Button>
             </Link>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={planDialogOpen} onOpenChange={setPlanDialogOpen}>
+        <DialogContent className="sm:max-w-lg bg-card border-border">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-foreground" data-testid="text-plan-dialog-title">
+              Choose a Plan for {agent?.name}
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              Select the plan that fits your needs. You can upgrade or change anytime.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-4">
+            {[
+              { id: "starter", name: "Starter", price: "$49", msgs: "100 messages/mo", features: ["Basic support", "Standard response time"] },
+              { id: "professional", name: "Professional", price: "$39", msgs: "500 messages/mo", features: ["Priority support", "Faster responses", "All tools unlocked"], popular: true },
+              { id: "enterprise", name: "Enterprise", price: "Custom", msgs: "5,000 messages/mo", features: ["Dedicated support", "Custom integrations", "SLA guarantee"] },
+            ].map((plan) => (
+              <div
+                key={plan.id}
+                onClick={() => plan.id !== "enterprise" && setSelectedPlan(plan.id)}
+                className={`relative p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                  selectedPlan === plan.id
+                    ? "border-blue-500 bg-blue-500/5"
+                    : "border-border hover:border-blue-500/30"
+                } ${plan.id === "enterprise" ? "opacity-60 cursor-not-allowed" : ""}`}
+                data-testid={`plan-option-${plan.id}`}
+              >
+                {plan.popular && (
+                  <Badge className="absolute -top-2.5 right-3 bg-gradient-to-r from-blue-500 to-violet-500 text-white text-xs border-0">
+                    Most Popular
+                  </Badge>
+                )}
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                      selectedPlan === plan.id ? "border-blue-500" : "border-muted-foreground/30"
+                    }`}>
+                      {selectedPlan === plan.id && <div className="w-2 h-2 rounded-full bg-blue-500" />}
+                    </div>
+                    <span className="font-semibold text-foreground">{plan.name}</span>
+                  </div>
+                  <div>
+                    <span className="text-lg font-bold text-foreground">{plan.price}</span>
+                    {plan.id !== "enterprise" && <span className="text-xs text-muted-foreground">/mo</span>}
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground ml-6 mb-1">{plan.msgs}</p>
+                <div className="flex flex-wrap gap-1.5 ml-6">
+                  {plan.features.map((f) => (
+                    <span key={f} className="text-xs text-muted-foreground flex items-center gap-1">
+                      <Check className="w-3 h-3 text-emerald-400" /> {f}
+                    </span>
+                  ))}
+                </div>
+                {plan.id === "enterprise" && (
+                  <p className="text-xs text-muted-foreground ml-6 mt-1 italic">Contact us for enterprise pricing</p>
+                )}
+              </div>
+            ))}
+          </div>
+          <div className="flex gap-3">
+            <Button
+              className="flex-1 bg-gradient-to-r from-blue-500 to-violet-500 text-white border-0"
+              disabled={!selectedPlan || selectedPlan === "enterprise" || renting}
+              onClick={async () => {
+                setPlanDialogOpen(false);
+                setRenting(true);
+                try {
+                  const res = await apiRequest("POST", "/api/test-checkout", {
+                    plan: selectedPlan,
+                    agentType: agent!.id,
+                    cardNumber: "4242424242424242",
+                    expiry: "12/28",
+                    cvc: "123",
+                  });
+                  const data = await res.json();
+                  if (data.success) {
+                    toast({ title: "Worker Hired!", description: `${agent!.name} is now active on the ${selectedPlan} plan.` });
+                    window.location.href = "/dashboard?checkout=success";
+                  }
+                } catch (error: any) {
+                  const msg = error?.message || "Something went wrong.";
+                  toast({ title: "Error", description: msg, variant: "destructive" });
+                } finally {
+                  setRenting(false);
+                }
+              }}
+              data-testid="button-confirm-hire"
+            >
+              <Zap className="w-4 h-4 mr-1" />
+              Confirm & Hire
+            </Button>
+            <Button variant="outline" onClick={() => setPlanDialogOpen(false)} data-testid="button-cancel-plan">
+              Cancel
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

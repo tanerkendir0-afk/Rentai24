@@ -15,6 +15,7 @@ import { processAndStoreDocument, processAndStoreUrl, retrieveRelevantChunks, ge
 import { createFineTuningJob, syncJobStatus, getJobsByAgent, toggleActiveModel, deactivateModel, getActiveModel } from "./fineTuningService";
 import { generateAgentRulesPDF, generateTrainingDataFromChatLogs, validateJSONL, getAgentDefinitions } from "./trainingDataService";
 import { getRelevantToolsForMessage, executeToolCall } from "./agentTools";
+import { computeLeadScore } from "./leadScoring";
 import { checkInput, sanitizeOutput, logGuardrailBlock } from "./guardrails";
 import { getImagePath, chatImageDir } from "./imageService";
 import { db } from "./db";
@@ -938,14 +939,7 @@ export async function registerRoutes(
         alerts.push({ type: "proposal_stale", severity: "urgent", message: `${lead.name}'s proposal has been pending for ${daysSinceUpdate} days — check in!`, leadId: lead.id });
       }
 
-      const effectiveScore = lead.score || (() => {
-        const sw: Record<string, number> = { won: 100, negotiation: 85, proposal: 70, qualified: 55, contacted: 35, new: 20, lost: 0 };
-        const base = sw[lead.status] || 20;
-        const dsu = Math.floor((now - new Date(lead.updatedAt).getTime()) / (1000 * 60 * 60 * 24));
-        const bonus = dsu <= 3 ? 15 : dsu <= 7 ? 5 : -10;
-        const total = Math.max(0, Math.min(100, base + bonus));
-        return total >= 60 ? "hot" : total >= 30 ? "warm" : "cold";
-      })();
+      const effectiveScore = lead.score || computeLeadScore(lead);
       if (effectiveScore === "hot" && lead.status !== "won" && lead.status !== "lost") {
         alerts.push({ type: "hot_lead", severity: "success", message: `${lead.name} is a HOT lead — prioritize closing!`, leadId: lead.id });
       }

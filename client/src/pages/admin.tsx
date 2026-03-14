@@ -4095,6 +4095,394 @@ function LimitManagementPanel({ token }: { token: string }) {
   );
 }
 
+function EscalationsPanel({ token }: { token: string }) {
+  const { toast } = useToast();
+  const headers = { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
+  const [rules, setRules] = useState<any[]>([]);
+  const [escalationsList, setEscalationsList] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [chatEscalation, setChatEscalation] = useState<any>(null);
+  const [chatMessages, setChatMessages] = useState<any[]>([]);
+  const [adminMessage, setAdminMessage] = useState("");
+  const [editingRule, setEditingRule] = useState<number | null>(null);
+  const [editKeywords, setEditKeywords] = useState("");
+  const [editMessage, setEditMessage] = useState("");
+  const [editThreshold, setEditThreshold] = useState(2);
+  const [newKeyword, setNewKeyword] = useState("");
+  const chatEndRef = useRef<HTMLDivElement>(null);
+  const pollingRef = useRef<any>(null);
+
+  const fetchRules = useCallback(async () => {
+    try {
+      const res = await fetch(`${ADMIN_API}/escalation-rules`, { headers: { Authorization: `Bearer ${token}` } });
+      if (res.ok) setRules(await res.json());
+    } catch {}
+  }, [token]);
+
+  const fetchEscalations = useCallback(async () => {
+    try {
+      const url = statusFilter === "all" ? `${ADMIN_API}/escalations` : `${ADMIN_API}/escalations?status=${statusFilter}`;
+      const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+      if (res.ok) setEscalationsList(await res.json());
+    } catch {}
+  }, [token, statusFilter]);
+
+  useEffect(() => {
+    Promise.all([fetchRules(), fetchEscalations()]).then(() => setLoading(false));
+  }, [fetchRules, fetchEscalations]);
+
+  useEffect(() => { fetchEscalations(); }, [statusFilter]);
+
+  const toggleRule = async (id: number, isActive: boolean) => {
+    try {
+      await fetch(`${ADMIN_API}/escalation-rules/${id}`, { method: "PATCH", headers, body: JSON.stringify({ isActive: !isActive }) });
+      fetchRules();
+      toast({ title: !isActive ? "Kural aktifleştirildi" : "Kural devre dışı bırakıldı" });
+    } catch { toast({ title: "Hata", variant: "destructive" }); }
+  };
+
+  const saveRule = async (id: number) => {
+    try {
+      const keywords = editKeywords.split(",").map(k => k.trim()).filter(Boolean);
+      await fetch(`${ADMIN_API}/escalation-rules/${id}`, {
+        method: "PATCH", headers,
+        body: JSON.stringify({ keywords, escalationMessage: editMessage, threshold: editThreshold }),
+      });
+      setEditingRule(null);
+      fetchRules();
+      toast({ title: "Kural güncellendi" });
+    } catch { toast({ title: "Hata", variant: "destructive" }); }
+  };
+
+  const openChat = async (esc: any) => {
+    try {
+      const res = await fetch(`${ADMIN_API}/escalation/${esc.id}`, { headers: { Authorization: `Bearer ${token}` } });
+      if (res.ok) {
+        const data = await res.json();
+        setChatEscalation(data);
+        setChatMessages(data.messages || []);
+        if (data.status === "pending") {
+          await fetch(`${ADMIN_API}/escalation/${esc.id}/join`, { method: "POST", headers });
+          fetchEscalations();
+        }
+        startPolling(esc.id);
+      }
+    } catch { toast({ title: "Hata", variant: "destructive" }); }
+  };
+
+  const startPolling = (escId: number) => {
+    if (pollingRef.current) clearInterval(pollingRef.current);
+    pollingRef.current = setInterval(async () => {
+      try {
+        const res = await fetch(`${ADMIN_API}/escalation/${escId}/messages`, { headers: { Authorization: `Bearer ${token}` } });
+        if (res.ok) {
+          const msgs = await res.json();
+          setChatMessages(msgs);
+        }
+      } catch {}
+    }, 3000);
+  };
+
+  useEffect(() => {
+    return () => { if (pollingRef.current) clearInterval(pollingRef.current); };
+  }, []);
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [chatMessages]);
+
+  const sendAdminMessage = async () => {
+    if (!adminMessage.trim() || !chatEscalation) return;
+    try {
+      await fetch(`${ADMIN_API}/escalation/${chatEscalation.id}/message`, {
+        method: "POST", headers, body: JSON.stringify({ content: adminMessage }),
+      });
+      setAdminMessage("");
+      const res = await fetch(`${ADMIN_API}/escalation/${chatEscalation.id}/messages`, { headers: { Authorization: `Bearer ${token}` } });
+      if (res.ok) setChatMessages(await res.json());
+    } catch { toast({ title: "Mesaj gönderilemedi", variant: "destructive" }); }
+  };
+
+  const resolveEscalation = async (id: number) => {
+    try {
+      await fetch(`${ADMIN_API}/escalation/${id}/resolve`, { method: "POST", headers });
+      if (chatEscalation?.id === id) {
+        setChatEscalation(null);
+        setChatMessages([]);
+        if (pollingRef.current) clearInterval(pollingRef.current);
+      }
+      fetchEscalations();
+      toast({ title: "Escalation çözüldü" });
+    } catch { toast({ title: "Hata", variant: "destructive" }); }
+  };
+
+  const dismissEscalation = async (id: number) => {
+    try {
+      await fetch(`${ADMIN_API}/escalation/${id}/dismiss`, { method: "POST", headers });
+      fetchEscalations();
+      toast({ title: "Escalation reddedildi" });
+    } catch { toast({ title: "Hata", variant: "destructive" }); }
+  };
+
+  const priorityColors: Record<string, string> = {
+    low: "bg-gray-500/20 text-gray-400",
+    medium: "bg-yellow-500/20 text-yellow-400",
+    high: "bg-orange-500/20 text-orange-400",
+    critical: "bg-red-500/20 text-red-400",
+  };
+
+  const statusColors: Record<string, string> = {
+    pending: "bg-yellow-500/20 text-yellow-400",
+    admin_joined: "bg-blue-500/20 text-blue-400",
+    resolved: "bg-green-500/20 text-green-400",
+    dismissed: "bg-gray-500/20 text-gray-400",
+  };
+
+  const statusLabels: Record<string, string> = {
+    pending: "Bekliyor",
+    admin_joined: "Chat Aktif",
+    resolved: "Çözüldü",
+    dismissed: "Reddedildi",
+  };
+
+  const reasonLabels: Record<string, string> = {
+    angry_customer: "Sinirli Müşteri",
+    repeated_failure: "Tekrar Hatası",
+    sensitive_topic: "Hassas Konu",
+  };
+
+  if (loading) return <div className="flex items-center justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-blue-400" /></div>;
+
+  if (chatEscalation) {
+    return (
+      <div className="space-y-4" data-testid="escalation-chat-view">
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="sm" onClick={() => { setChatEscalation(null); setChatMessages([]); if (pollingRef.current) clearInterval(pollingRef.current); }} data-testid="button-back-escalations">
+            <ChevronLeft className="w-4 h-4 mr-1" /> Geri
+          </Button>
+          <div className="flex-1">
+            <h3 className="text-white font-medium">{chatEscalation.userName} — {reasonLabels[chatEscalation.reason] || chatEscalation.reason}</h3>
+            <p className="text-gray-400 text-xs">{chatEscalation.userEmail} · {chatEscalation.agentType}</p>
+          </div>
+          <Badge className={statusColors[chatEscalation.status]} data-testid="badge-escalation-status">{statusLabels[chatEscalation.status]}</Badge>
+          {(chatEscalation.status === "pending" || chatEscalation.status === "admin_joined") && (
+            <Button size="sm" variant="outline" className="border-green-500/30 text-green-400 hover:bg-green-500/10" onClick={() => resolveEscalation(chatEscalation.id)} data-testid="button-resolve-escalation">
+              <CheckCircle className="w-3.5 h-3.5 mr-1" /> Çözüldü
+            </Button>
+          )}
+        </div>
+
+        <Card className="bg-[#0D1135] border-[#1E2448]">
+          <CardHeader className="py-2 px-4 border-b border-[#1E2448]">
+            <CardTitle className="text-sm text-gray-300">Orijinal Mesaj</CardTitle>
+          </CardHeader>
+          <CardContent className="p-4">
+            <p className="text-gray-300 text-sm">{chatEscalation.userMessage}</p>
+            {chatEscalation.chatHistory && Array.isArray(chatEscalation.chatHistory) && chatEscalation.chatHistory.length > 0 && (
+              <div className="mt-3 space-y-2 border-t border-[#1E2448] pt-3">
+                <p className="text-xs text-gray-500 mb-2">Son chat geçmişi:</p>
+                {(chatEscalation.chatHistory as any[]).slice(-4).map((m: any, i: number) => (
+                  <div key={i} className={`text-xs p-2 rounded ${m.role === "user" ? "bg-blue-500/10 text-blue-300" : "bg-[#111633] text-gray-400"}`}>
+                    <span className="font-medium">{m.role === "user" ? "Müşteri" : "Ajan"}:</span> {(m.content || "").slice(0, 200)}
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="bg-[#0D1135] border-[#1E2448] flex flex-col" style={{ height: "400px" }}>
+          <CardContent className="flex-1 overflow-y-auto p-4 space-y-3" data-testid="escalation-chat-messages">
+            {chatMessages.length === 0 && (
+              <p className="text-center text-gray-500 text-sm py-8">Henüz mesaj yok. Müşteriye yazmaya başlayın.</p>
+            )}
+            {chatMessages.map((msg: any) => (
+              <div key={msg.id} className={`flex ${msg.senderType === "admin" ? "justify-end" : "justify-start"}`}>
+                <div className={`max-w-[75%] rounded-xl px-4 py-2.5 ${
+                  msg.senderType === "admin"
+                    ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-tr-md"
+                    : "bg-[#111633] text-gray-300 border border-[#1E2448] rounded-tl-md"
+                }`} data-testid={`escalation-msg-${msg.id}`}>
+                  <p className="text-xs font-medium mb-1 opacity-70">{msg.senderType === "admin" ? "Admin" : "Müşteri"}</p>
+                  <p className="text-sm">{msg.content}</p>
+                  <p className="text-[10px] opacity-50 mt-1">{new Date(msg.createdAt).toLocaleTimeString("tr-TR")}</p>
+                </div>
+              </div>
+            ))}
+            <div ref={chatEndRef} />
+          </CardContent>
+          {(chatEscalation.status === "pending" || chatEscalation.status === "admin_joined") && (
+            <div className="border-t border-[#1E2448] p-3 flex gap-2">
+              <Input
+                value={adminMessage}
+                onChange={(e) => setAdminMessage(e.target.value)}
+                placeholder="Müşteriye mesaj yazın..."
+                className="bg-[#111633] border-[#1E2448] text-white"
+                onKeyDown={(e) => e.key === "Enter" && sendAdminMessage()}
+                data-testid="input-admin-message"
+              />
+              <Button onClick={sendAdminMessage} className="bg-gradient-to-r from-amber-500 to-orange-500 text-white" data-testid="button-send-admin-message">
+                <Send className="w-4 h-4" />
+              </Button>
+            </div>
+          )}
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6" data-testid="escalations-panel">
+      <Card className="bg-[#0D1135] border-[#1E2448]">
+        <CardHeader>
+          <CardTitle className="text-white flex items-center gap-2"><AlertTriangle className="w-5 h-5 text-orange-400" /> Escalation Kuralları</CardTitle>
+          <CardDescription className="text-gray-400">Hangi durumlarda müşteri yetkiliye devredilsin belirleyin</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {rules.map(rule => (
+            <div key={rule.id} className="p-4 bg-[#111633] rounded-lg border border-[#1E2448]" data-testid={`rule-card-${rule.id}`}>
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-3">
+                  <button onClick={() => toggleRule(rule.id, rule.isActive)} data-testid={`toggle-rule-${rule.id}`}>
+                    {rule.isActive ? <ToggleRight className="w-8 h-5 text-green-400" /> : <ToggleLeft className="w-8 h-5 text-gray-500" />}
+                  </button>
+                  <div>
+                    <h4 className="text-white font-medium text-sm">{rule.name}</h4>
+                    <span className="text-xs text-gray-500">{reasonLabels[rule.type] || rule.type}</span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge className={priorityColors[rule.priority]}>{rule.priority}</Badge>
+                  <Button variant="ghost" size="sm" onClick={() => {
+                    if (editingRule === rule.id) { setEditingRule(null); } else {
+                      setEditingRule(rule.id);
+                      setEditKeywords(rule.keywords.join(", "));
+                      setEditMessage(rule.escalationMessage);
+                      setEditThreshold(rule.threshold);
+                    }
+                  }} data-testid={`button-edit-rule-${rule.id}`}>
+                    {editingRule === rule.id ? <XCircle className="w-4 h-4" /> : <FileText className="w-4 h-4" />}
+                  </Button>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-1 mb-2">
+                {rule.keywords.slice(0, 8).map((kw: string, i: number) => (
+                  <span key={i} className="text-[10px] px-2 py-0.5 rounded-full bg-[#1a1f4a] text-gray-400 border border-[#2a2f5a]">{kw}</span>
+                ))}
+                {rule.keywords.length > 8 && <span className="text-[10px] px-2 py-0.5 text-gray-500">+{rule.keywords.length - 8} more</span>}
+              </div>
+
+              {editingRule === rule.id && (
+                <div className="mt-3 space-y-3 pt-3 border-t border-[#2a2f5a]">
+                  <div>
+                    <label className="text-xs text-gray-400 mb-1 block">Anahtar Kelimeler (virgülle ayırın)</label>
+                    <textarea
+                      value={editKeywords}
+                      onChange={(e) => setEditKeywords(e.target.value)}
+                      className="w-full bg-[#0D1135] border border-[#1E2448] rounded-lg p-2 text-sm text-white min-h-[60px]"
+                      data-testid={`input-keywords-${rule.id}`}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-400 mb-1 block">Escalation Mesajı</label>
+                    <textarea
+                      value={editMessage}
+                      onChange={(e) => setEditMessage(e.target.value)}
+                      className="w-full bg-[#0D1135] border border-[#1E2448] rounded-lg p-2 text-sm text-white min-h-[60px]"
+                      data-testid={`input-message-${rule.id}`}
+                    />
+                  </div>
+                  {rule.type === "repeated_failure" && (
+                    <div>
+                      <label className="text-xs text-gray-400 mb-1 block">Eşik Değeri (kaç tekrardan sonra)</label>
+                      <Input type="number" value={editThreshold} onChange={(e) => setEditThreshold(Number(e.target.value))} className="bg-[#0D1135] border-[#1E2448] text-white w-24" data-testid={`input-threshold-${rule.id}`} />
+                    </div>
+                  )}
+                  <Button size="sm" onClick={() => saveRule(rule.id)} className="bg-blue-600 text-white" data-testid={`button-save-rule-${rule.id}`}>
+                    <CheckCircle className="w-3.5 h-3.5 mr-1" /> Kaydet
+                  </Button>
+                </div>
+              )}
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+
+      <Card className="bg-[#0D1135] border-[#1E2448]">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-white flex items-center gap-2"><MessageSquare className="w-5 h-5 text-blue-400" /> Escalation Listesi</CardTitle>
+              <CardDescription className="text-gray-400">Müşteri devirleri ve chat kayıtları</CardDescription>
+            </div>
+            <div className="flex items-center gap-2">
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-[140px] bg-[#111633] border-[#1E2448] text-white" data-testid="select-escalation-filter">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tümü</SelectItem>
+                  <SelectItem value="pending">Bekliyor</SelectItem>
+                  <SelectItem value="admin_joined">Aktif Chat</SelectItem>
+                  <SelectItem value="resolved">Çözüldü</SelectItem>
+                  <SelectItem value="dismissed">Reddedildi</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button variant="ghost" size="sm" onClick={fetchEscalations} data-testid="button-refresh-escalations">
+                <RefreshCw className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {escalationsList.length === 0 ? (
+            <p className="text-gray-500 text-center py-8">Henüz escalation yok</p>
+          ) : (
+            <div className="space-y-3">
+              {escalationsList.map(esc => (
+                <div key={esc.id} className="p-4 bg-[#111633] rounded-lg border border-[#1E2448] flex items-center gap-4" data-testid={`escalation-row-${esc.id}`}>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-white font-medium text-sm truncate">{esc.userName}</span>
+                      <span className="text-gray-500 text-xs">{esc.userEmail}</span>
+                    </div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Badge className={statusColors[esc.status]} data-testid={`badge-status-${esc.id}`}>{statusLabels[esc.status] || esc.status}</Badge>
+                      <span className="text-xs text-gray-500">{reasonLabels[esc.reason] || esc.reason}</span>
+                      <span className="text-xs text-gray-600">{esc.agentType}</span>
+                      <span className="text-xs text-gray-600">{new Date(esc.createdAt).toLocaleDateString("tr-TR")} {new Date(esc.createdAt).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })}</span>
+                    </div>
+                    <p className="text-xs text-gray-400 mt-1 truncate">{esc.userMessage}</p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {(esc.status === "pending" || esc.status === "admin_joined") && (
+                      <>
+                        <Button size="sm" className="bg-gradient-to-r from-amber-500 to-orange-500 text-white" onClick={() => openChat(esc)} data-testid={`button-join-chat-${esc.id}`}>
+                          <MessageSquare className="w-3.5 h-3.5 mr-1" /> Chat'e Katıl
+                        </Button>
+                        <Button size="sm" variant="ghost" className="text-gray-400 hover:text-red-400" onClick={() => dismissEscalation(esc.id)} data-testid={`button-dismiss-${esc.id}`}>
+                          <XCircle className="w-3.5 h-3.5" />
+                        </Button>
+                      </>
+                    )}
+                    {esc.status === "resolved" && (
+                      <Button size="sm" variant="ghost" onClick={() => openChat(esc)} data-testid={`button-view-chat-${esc.id}`}>
+                        <History className="w-3.5 h-3.5 mr-1" /> Görüntüle
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 function AdminGuidePanel() {
   const AGENT_DETAILS = [
     { slug: "customer-support", name: "Ava", role: "Müşteri Destek", desc: "Müşteri sorularını yanıtlar, şikayet yönetir, ticket oluşturur.", icon: "🎧", color: "from-blue-500 to-blue-600" },
@@ -4264,6 +4652,11 @@ export default function AdminPage() {
   const handleLogin = (tkn: string) => {
     setToken(tkn);
     fetchStats(selectedAgent, tkn);
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get("tab") === "escalations") {
+      setActiveCategory("security");
+      setActiveTab("escalations");
+    }
   };
 
   const handleLogout = () => {
@@ -4345,7 +4738,7 @@ export default function AdminPage() {
             "messages": "analytics", "spend-analysis": "analytics", "token-optimization": "analytics",
             "costs": "analytics", "performance": "analytics", "conversation-review": "analytics",
             "limit-management": "limits", "packages": "limits",
-            "guardrails": "security", "support-tickets": "security", "security-report": "security", "collaboration": "security",
+            "guardrails": "security", "support-tickets": "security", "security-report": "security", "escalations": "security", "collaboration": "security",
             "admin-guide": "help",
           };
           if (tabToCategory[val]) setActiveCategory(tabToCategory[val]);
@@ -4478,6 +4871,10 @@ export default function AdminPage() {
                     <AlertTriangle className="w-3.5 h-3.5 mr-1" />
                     Security
                   </TabsTrigger>
+                  <TabsTrigger value="escalations" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-amber-500 data-[state=active]:to-orange-600 data-[state=active]:text-white" data-testid="tab-escalations">
+                    <AlertTriangle className="w-3.5 h-3.5 mr-1" />
+                    Escalations
+                  </TabsTrigger>
                   <TabsTrigger value="collaboration" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:to-purple-600 data-[state=active]:text-white" data-testid="tab-collaboration">
                     <Brain className="w-3.5 h-3.5 mr-1" />
                     Collaboration
@@ -4547,6 +4944,10 @@ export default function AdminPage() {
 
           <TabsContent value="guardrails">
             <GuardrailsPanel token={token} />
+          </TabsContent>
+
+          <TabsContent value="escalations">
+            <EscalationsPanel token={token} />
           </TabsContent>
 
           <TabsContent value="performance">

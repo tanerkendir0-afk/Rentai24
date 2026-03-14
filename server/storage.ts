@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { users, rentals, contactMessages, newsletterSubscribers, leads, agentActions, emailCampaigns, supportTickets, tokenUsage, agentTasks, chatMessages, conversations, teamMembers, bossNotifications, socialAccounts, shippingProviders, guardrailLogs, systemSettings, scheduledPosts, whatsappConfig, whatsappMessages, agentLimits, type User, type InsertUser, type Rental, type InsertRental, type ContactMessage, type InsertContactMessage, type NewsletterSubscriber, type Lead, type InsertLead, type AgentAction, type InsertAgentAction, type EmailCampaign, type InsertEmailCampaign, type SupportTicket, type InsertSupportTicket, type TokenUsage, type InsertTokenUsage, type AgentTask, type InsertAgentTask, type ChatMessage, type InsertChatMessage, type ConversationRecord, type InsertConversation, type TeamMember, type InsertTeamMember, type BossNotification, type InsertBossNotification, type SocialAccount, type InsertSocialAccount, type ShippingProvider, type InsertShippingProvider, type GuardrailLog, type ScheduledPost, type InsertScheduledPost, type WhatsappConfig, type InsertWhatsappConfig, type WhatsappMessage, type InsertWhatsappMessage, type AgentLimit, type InsertAgentLimit } from "@shared/schema";
+import { users, rentals, contactMessages, newsletterSubscribers, leads, agentActions, emailCampaigns, supportTickets, tokenUsage, agentTasks, chatMessages, conversations, teamMembers, bossNotifications, socialAccounts, shippingProviders, guardrailLogs, systemSettings, scheduledPosts, whatsappConfig, whatsappMessages, agentLimits, escalationRules, escalations, escalationMessages, type User, type InsertUser, type Rental, type InsertRental, type ContactMessage, type InsertContactMessage, type NewsletterSubscriber, type Lead, type InsertLead, type AgentAction, type InsertAgentAction, type EmailCampaign, type InsertEmailCampaign, type SupportTicket, type InsertSupportTicket, type TokenUsage, type InsertTokenUsage, type AgentTask, type InsertAgentTask, type ChatMessage, type InsertChatMessage, type ConversationRecord, type InsertConversation, type TeamMember, type InsertTeamMember, type BossNotification, type InsertBossNotification, type SocialAccount, type InsertSocialAccount, type ShippingProvider, type InsertShippingProvider, type GuardrailLog, type ScheduledPost, type InsertScheduledPost, type WhatsappConfig, type InsertWhatsappConfig, type WhatsappMessage, type InsertWhatsappMessage, type AgentLimit, type InsertAgentLimit, type EscalationRule, type InsertEscalationRule, type Escalation, type InsertEscalation, type EscalationMessage, type InsertEscalationMessage } from "@shared/schema";
 import { eq, and, sql, desc, gte, lte } from "drizzle-orm";
 import * as cryptoModule from "crypto";
 
@@ -127,6 +127,23 @@ export interface IStorage {
   deleteAgentLimit(id: number): Promise<boolean>;
   getTokenUsageByPeriod(userId: number | null, agentType: string, period: "daily" | "weekly" | "monthly"): Promise<{ tokens: number; messages: number }>;
   getUsageSummaryByPeriod(agentType: string, period: "daily" | "weekly" | "monthly"): Promise<{ tokens: number; messages: number }>;
+
+  getEscalationRules(): Promise<EscalationRule[]>;
+  getActiveEscalationRules(): Promise<EscalationRule[]>;
+  upsertEscalationRule(rule: InsertEscalationRule): Promise<EscalationRule>;
+  updateEscalationRule(id: number, updates: Partial<InsertEscalationRule>): Promise<EscalationRule | undefined>;
+  deleteEscalationRule(id: number): Promise<boolean>;
+
+  createEscalation(escalation: InsertEscalation): Promise<Escalation>;
+  getEscalations(filters?: { status?: string; userId?: number }): Promise<Escalation[]>;
+  getEscalationById(id: number): Promise<Escalation | undefined>;
+  getEscalationByToken(token: string): Promise<Escalation | undefined>;
+  getActiveEscalationForUser(userId: number, agentType: string): Promise<Escalation | undefined>;
+  updateEscalationStatus(id: number, status: string, resolvedAt?: Date): Promise<Escalation | undefined>;
+  joinEscalation(id: number): Promise<Escalation | undefined>;
+
+  createEscalationMessage(msg: InsertEscalationMessage): Promise<EscalationMessage>;
+  getEscalationMessages(escalationId: number, after?: Date): Promise<EscalationMessage[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -967,6 +984,85 @@ export class DatabaseStorage implements IStorage {
 
   async getUsageSummaryByPeriod(agentType: string, period: "daily" | "weekly" | "monthly"): Promise<{ tokens: number; messages: number }> {
     return this.getTokenUsageByPeriod(null, agentType, period);
+  }
+
+  async getEscalationRules(): Promise<EscalationRule[]> {
+    return db.select().from(escalationRules).orderBy(escalationRules.id);
+  }
+
+  async getActiveEscalationRules(): Promise<EscalationRule[]> {
+    return db.select().from(escalationRules).where(eq(escalationRules.isActive, true));
+  }
+
+  async upsertEscalationRule(rule: InsertEscalationRule): Promise<EscalationRule> {
+    const [created] = await db.insert(escalationRules).values(rule).returning();
+    return created;
+  }
+
+  async updateEscalationRule(id: number, updates: Partial<InsertEscalationRule>): Promise<EscalationRule | undefined> {
+    const [updated] = await db.update(escalationRules).set({ ...updates, updatedAt: new Date() }).where(eq(escalationRules.id, id)).returning();
+    return updated;
+  }
+
+  async deleteEscalationRule(id: number): Promise<boolean> {
+    const [deleted] = await db.delete(escalationRules).where(eq(escalationRules.id, id)).returning();
+    return !!deleted;
+  }
+
+  async createEscalation(escalation: InsertEscalation): Promise<Escalation> {
+    const [created] = await db.insert(escalations).values(escalation).returning();
+    return created;
+  }
+
+  async getEscalations(filters?: { status?: string; userId?: number }): Promise<Escalation[]> {
+    const conditions = [];
+    if (filters?.status) conditions.push(eq(escalations.status, filters.status));
+    if (filters?.userId) conditions.push(eq(escalations.userId, filters.userId));
+    return db.select().from(escalations).where(conditions.length > 0 ? and(...conditions) : undefined).orderBy(desc(escalations.createdAt));
+  }
+
+  async getEscalationById(id: number): Promise<Escalation | undefined> {
+    const [esc] = await db.select().from(escalations).where(eq(escalations.id, id));
+    return esc;
+  }
+
+  async getEscalationByToken(token: string): Promise<Escalation | undefined> {
+    const [esc] = await db.select().from(escalations).where(eq(escalations.uniqueToken, token));
+    return esc;
+  }
+
+  async getActiveEscalationForUser(userId: number, agentType: string): Promise<Escalation | undefined> {
+    const [esc] = await db.select().from(escalations).where(
+      and(
+        eq(escalations.userId, userId),
+        eq(escalations.agentType, agentType),
+        sql`${escalations.status} IN ('pending', 'admin_joined')`
+      )
+    ).orderBy(desc(escalations.createdAt)).limit(1);
+    return esc;
+  }
+
+  async updateEscalationStatus(id: number, status: string, resolvedAt?: Date): Promise<Escalation | undefined> {
+    const updates: any = { status };
+    if (resolvedAt) updates.resolvedAt = resolvedAt;
+    const [updated] = await db.update(escalations).set(updates).where(eq(escalations.id, id)).returning();
+    return updated;
+  }
+
+  async joinEscalation(id: number): Promise<Escalation | undefined> {
+    const [updated] = await db.update(escalations).set({ status: "admin_joined", adminJoinedAt: new Date() }).where(eq(escalations.id, id)).returning();
+    return updated;
+  }
+
+  async createEscalationMessage(msg: InsertEscalationMessage): Promise<EscalationMessage> {
+    const [created] = await db.insert(escalationMessages).values(msg).returning();
+    return created;
+  }
+
+  async getEscalationMessages(escalationId: number, after?: Date): Promise<EscalationMessage[]> {
+    const conditions = [eq(escalationMessages.escalationId, escalationId)];
+    if (after) conditions.push(gte(escalationMessages.createdAt, after));
+    return db.select().from(escalationMessages).where(and(...conditions)).orderBy(escalationMessages.createdAt);
   }
 }
 

@@ -92,6 +92,12 @@ EFFICIENCY RULES:
 - If a tool returns an error about authorization or connection, explain the issue clearly and direct the user to fix it in Settings before retrying. Do not retry the same failing tool.
 - Keep tool usage minimal and purposeful. Each tool call costs resources.`;
 
+const ESCALATION_PROTOCOL = `
+ESCALATION PROTOCOL (IMPORTANT):
+If a customer is extremely angry, frustrated, or threatening, OR if the conversation involves refunds, legal matters, lawsuits, or consumer rights issues, you should add [ESCALATION] at the very END of your response. This signals the system to connect them with a human representative.
+When you detect these situations, still respond helpfully but end your message with [ESCALATION].
+Do NOT mention this tag to the user. The system will handle it automatically.`;
+
 const SIMPLE_MESSAGE_PATTERNS = [
   /^(hi|hello|hey|merhaba|selam|sa|selamlar|günaydın|iyi günler|iyi akşamlar)/i,
   /^(thanks|thank you|teşekkür|sağ ol|eyvallah|tşk|ty)/i,
@@ -1359,6 +1365,22 @@ export async function registerRoutes(
 
     const { message, agentType, conversationHistory, sessionId: clientSessionId } = parsed.data;
 
+    if (req.session.userId) {
+      const activeEsc = await storage.getActiveEscalationForUser(req.session.userId, agentType);
+      if (activeEsc && activeEsc.status === "admin_joined") {
+        await storage.createEscalationMessage({
+          escalationId: activeEsc.id,
+          senderType: "user",
+          content: message,
+        });
+        return res.json({
+          reply: "",
+          escalationActive: { id: activeEsc.id, adminJoined: true },
+          sessionId: clientSessionId || `session-${Date.now()}`,
+        });
+      }
+    }
+
     const clientIp = (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() || req.socket.remoteAddress || "unknown";
     const guardrailResult = await checkInput(message, agentType, req.session.userId || null, clientIp);
     if (!guardrailResult.allowed) {
@@ -1431,6 +1453,7 @@ ${members.map(m => `- ${m.name} (${m.email})${m.position ? ` — ${m.position}` 
 
     systemPrompt += personalizationBlock;
     systemPrompt += teamMembersContext;
+    systemPrompt += ESCALATION_PROTOCOL;
 
     if (agentType === "social-media" && req.session.userId) {
       const socialAccountsList = await storage.getSocialAccounts(req.session.userId);
@@ -1804,9 +1827,88 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
 
       const rawReply = assistantMessage?.content ?? "Sorry, I couldn't generate a response. Please try again.";
       const sanitized = sanitizeOutput(rawReply, resolvedAgentType);
-      const reply = addWatermark(sanitized, req.session.userId || null, clientIp);
+      let reply = addWatermark(sanitized, req.session.userId || null, clientIp);
 
       const usedTool = operationType === "tool_call";
+
+      let escalationTriggered = false;
+      let escalationData: any = null;
+
+      if (req.session.userId) {
+        const hasEscalationTag = reply.includes("[ESCALATION]");
+        reply = reply.replace(/\[ESCALATION\]/g, "").trim();
+
+        try {
+          const activeRules = await storage.getActiveEscalationRules();
+          let matchedRule = null;
+          const msgLower = message.toLowerCase();
+
+          for (const rule of activeRules) {
+            if (rule.type === "angry_customer" || rule.type === "sensitive_topic") {
+              const matched = rule.keywords.some(kw => msgLower.includes(kw.toLowerCase()));
+              if (matched || hasEscalationTag) {
+                matchedRule = rule;
+                break;
+              }
+            } else if (rule.type === "repeated_failure") {
+              if (conversationHistory && conversationHistory.length >= rule.threshold * 2) {
+                const recentUserMsgs = conversationHistory
+                  .filter((m: any) => m.role === "user")
+                  .slice(-rule.threshold);
+                const hasSimilarMessages = recentUserMsgs.length >= rule.threshold &&
+                  rule.keywords.some(kw => msgLower.includes(kw.toLowerCase()));
+                if (hasSimilarMessages) {
+                  matchedRule = rule;
+                  break;
+                }
+              }
+            }
+          }
+
+          if (matchedRule) {
+            const existingEscalation = await storage.getActiveEscalationForUser(req.session.userId, resolvedAgentType);
+            if (!existingEscalation) {
+              const uniqueToken = crypto.randomUUID();
+              const chatHistorySlice = (conversationHistory || []).slice(-5);
+              const esc = await storage.createEscalation({
+                uniqueToken,
+                userId: req.session.userId,
+                agentType: resolvedAgentType,
+                ruleId: matchedRule.id,
+                reason: matchedRule.type,
+                userMessage: message,
+                chatHistory: chatHistorySlice,
+                sessionId: chatSessionId,
+                status: "pending",
+              });
+              escalationTriggered = true;
+              escalationData = { id: esc.id, message: matchedRule.escalationMessage, reason: matchedRule.type, priority: matchedRule.priority };
+
+              try {
+                const { sendViaResendDirect } = await import("./emailService");
+                const currentUser = await storage.getUserById(req.session.userId);
+                const agentName = agentPersonaMap[resolvedAgentType] || resolvedAgentType;
+                const adminEmail = "tanerkendir0@gmail.com";
+                const appDomain = process.env.REPLIT_DEV_DOMAIN || process.env.REPL_SLUG + ".repl.co";
+                const adminPath = process.env.ADMIN_PATH || "kontrol-7x9k2";
+                const chatLink = `https://${appDomain}/${adminPath}?tab=escalations&escalationId=${esc.id}`;
+
+                await sendViaResendDirect({
+                  to: adminEmail,
+                  subject: `🚨 [${matchedRule.priority.toUpperCase()}] Escalation: ${matchedRule.name} — ${currentUser?.fullName || "User"}`,
+                  body: `Yeni bir escalation oluşturuldu.\n\nMüşteri: ${currentUser?.fullName || "Unknown"} (${currentUser?.email || "N/A"})\nAjan: ${agentName}\nSebep: ${matchedRule.name}\nÖncelik: ${matchedRule.priority}\nMesaj: ${message}\n\nChat'e katılmak için:\n${chatLink}`,
+                });
+              } catch (emailErr) {
+                console.error("Escalation email notification error:", emailErr);
+              }
+            } else {
+              escalationData = { id: existingEscalation.id, active: true };
+            }
+          }
+        } catch (escErr) {
+          console.error("Escalation detection error:", escErr);
+        }
+      }
 
       storage.saveChatMessage({
         userId: req.session.userId || null,
@@ -1822,7 +1924,7 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
         agentType: resolvedAgentType,
         sessionId: chatSessionId,
         role: "assistant",
-        content: reply,
+        content: escalationTriggered && escalationData?.message ? escalationData.message : reply,
         usedTool,
       }).catch(err => console.error("Chat message save error:", err.message));
 
@@ -1830,6 +1932,17 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
       if (managerRoutedTo) {
         responsePayload.routedTo = managerRoutedTo;
         responsePayload.routedToName = agentPersonaMap[managerRoutedTo] || managerRoutedTo;
+      }
+      if (escalationTriggered && escalationData) {
+        responsePayload.escalation = {
+          id: escalationData.id,
+          message: escalationData.message,
+          reason: escalationData.reason,
+          priority: escalationData.priority,
+        };
+      }
+      if (escalationData?.active) {
+        responsePayload.escalationActive = { id: escalationData.id };
       }
       res.json(responsePayload);
     } catch (error: any) {
@@ -3801,6 +3914,178 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
     } catch (error: unknown) {
       const errMsg = error instanceof Error ? error.message : String(error);
       console.error(errMsg); res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.get("/api/escalation/active", requireAuth, async (req: any, res) => {
+    try {
+      const { agentType } = req.query;
+      if (!agentType) return res.json({ escalation: null });
+      const esc = await storage.getActiveEscalationForUser(req.session.userId, agentType as string);
+      if (!esc) return res.json({ escalation: null });
+      const messages = await storage.getEscalationMessages(esc.id);
+      res.json({ escalation: { ...esc, messages } });
+    } catch (error: unknown) {
+      console.error("Escalation active check error:", error);
+      res.json({ escalation: null });
+    }
+  });
+
+  app.get("/api/escalation/:id/messages", requireAuth, async (req: any, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ error: "Invalid ID" });
+      const afterParam = req.query.after ? new Date(req.query.after as string) : undefined;
+      const messages = await storage.getEscalationMessages(id, afterParam);
+      const esc = await storage.getEscalationById(id);
+      res.json({ messages, status: esc?.status });
+    } catch (error: unknown) {
+      console.error("Escalation messages error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.get(`/api/${ADMIN_PATH}/escalation-rules`, requireAdmin, async (_req, res) => {
+    try {
+      const rules = await storage.getEscalationRules();
+      res.json(rules);
+    } catch (error: unknown) {
+      console.error("Get escalation rules error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.post(`/api/${ADMIN_PATH}/escalation-rules`, requireAdmin, async (req, res) => {
+    try {
+      const rule = await storage.upsertEscalationRule(req.body);
+      res.json(rule);
+    } catch (error: unknown) {
+      console.error("Create escalation rule error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.patch(`/api/${ADMIN_PATH}/escalation-rules/:id`, requireAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ error: "Invalid ID" });
+      const updated = await storage.updateEscalationRule(id, req.body);
+      if (!updated) return res.status(404).json({ error: "Rule not found" });
+      res.json(updated);
+    } catch (error: unknown) {
+      console.error("Update escalation rule error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.delete(`/api/${ADMIN_PATH}/escalation-rules/:id`, requireAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const deleted = await storage.deleteEscalationRule(id);
+      res.json({ success: deleted });
+    } catch (error: unknown) {
+      console.error("Delete escalation rule error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.get(`/api/${ADMIN_PATH}/escalations`, requireAdmin, async (req, res) => {
+    try {
+      const { status } = req.query;
+      const escalationsList = await storage.getEscalations(status ? { status: status as string } : undefined);
+      const enriched = await Promise.all(escalationsList.map(async (esc) => {
+        const user = esc.userId ? await storage.getUserById(esc.userId) : null;
+        return { ...esc, userName: user?.fullName || user?.username || "Unknown", userEmail: user?.email || "N/A" };
+      }));
+      res.json(enriched);
+    } catch (error: unknown) {
+      console.error("Get escalations error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.get(`/api/${ADMIN_PATH}/escalation/:id`, requireAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ error: "Invalid ID" });
+      const esc = await storage.getEscalationById(id);
+      if (!esc) return res.status(404).json({ error: "Escalation not found" });
+      const user = esc.userId ? await storage.getUserById(esc.userId) : null;
+      const messages = await storage.getEscalationMessages(id);
+      res.json({ ...esc, userName: user?.fullName || user?.username || "Unknown", userEmail: user?.email || "N/A", messages });
+    } catch (error: unknown) {
+      console.error("Get escalation error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.post(`/api/${ADMIN_PATH}/escalation/:id/join`, requireAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ error: "Invalid ID" });
+      const esc = await storage.joinEscalation(id);
+      if (!esc) return res.status(404).json({ error: "Escalation not found" });
+      res.json(esc);
+    } catch (error: unknown) {
+      console.error("Join escalation error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.post(`/api/${ADMIN_PATH}/escalation/:id/message`, requireAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ error: "Invalid ID" });
+      const { content } = req.body;
+      if (!content || !content.trim()) return res.status(400).json({ error: "Message content required" });
+      const msg = await storage.createEscalationMessage({
+        escalationId: id,
+        senderType: "admin",
+        content: content.trim(),
+      });
+      res.json(msg);
+    } catch (error: unknown) {
+      console.error("Send escalation message error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.get(`/api/${ADMIN_PATH}/escalation/:id/messages`, requireAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ error: "Invalid ID" });
+      const afterParam = req.query.after ? new Date(req.query.after as string) : undefined;
+      const messages = await storage.getEscalationMessages(id, afterParam);
+      res.json(messages);
+    } catch (error: unknown) {
+      console.error("Get escalation messages error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.post(`/api/${ADMIN_PATH}/escalation/:id/resolve`, requireAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ error: "Invalid ID" });
+      const esc = await storage.updateEscalationStatus(id, "resolved", new Date());
+      if (!esc) return res.status(404).json({ error: "Escalation not found" });
+      res.json(esc);
+    } catch (error: unknown) {
+      console.error("Resolve escalation error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.post(`/api/${ADMIN_PATH}/escalation/:id/dismiss`, requireAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ error: "Invalid ID" });
+      const esc = await storage.updateEscalationStatus(id, "dismissed", new Date());
+      if (!esc) return res.status(404).json({ error: "Escalation not found" });
+      res.json(esc);
+    } catch (error: unknown) {
+      console.error("Dismiss escalation error:", error);
+      res.status(500).json({ error: "Internal server error" });
     }
   });
 

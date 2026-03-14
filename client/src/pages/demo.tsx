@@ -48,6 +48,7 @@ import {
   ExternalLink,
   Settings2,
   BrainCircuit,
+  Shield,
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
@@ -65,10 +66,14 @@ interface AgentAction {
 }
 
 interface Message {
-  role: "user" | "assistant";
+  role: "user" | "assistant" | "admin" | "system";
   content: string;
   actions?: AgentAction[];
   isLimitWarning?: boolean;
+  isEscalation?: boolean;
+  isAdminJoined?: boolean;
+  isAdminMessage?: boolean;
+  isResolved?: boolean;
 }
 
 interface Conversation {
@@ -106,6 +111,9 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
 
   const [activeConvoId, setActiveConvoId] = useState<Record<string, string>>({});
   const [localMessages, setLocalMessages] = useState<Record<string, Message[]>>({});
+  const [activeEscalationId, setActiveEscalationId] = useState<number | null>(null);
+  const escalationPollRef = useRef<any>(null);
+  const lastEscMsgIdRef = useRef<number>(0);
 
   const { data: serverConversations = [], isLoading: convosLoading } = useQuery<any[]>({
     queryKey: ['/api/conversations', selectedAgent],
@@ -141,6 +149,61 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
       setLocalMessages(prev => ({ ...prev, [currentConvoId]: mapped }));
     }
   }, [serverMessages, currentConvoId]);
+
+  useEffect(() => {
+    if (activeEscalationId && user) {
+      lastEscMsgIdRef.current = 0;
+      if (escalationPollRef.current) clearInterval(escalationPollRef.current);
+      escalationPollRef.current = setInterval(async () => {
+        try {
+          const res = await fetch(`/api/escalation/${activeEscalationId}/messages`);
+          if (!res.ok) return;
+          const data = await res.json();
+          if (data.status === "resolved") {
+            setActiveEscalationId(null);
+            setMessages((prev: Message[]) => [...prev, { role: "system", content: "✅ Yetkilimiz konuşmayı tamamladı. Ajan tekrar hizmetinizde.", isResolved: true }]);
+            if (escalationPollRef.current) clearInterval(escalationPollRef.current);
+            return;
+          }
+          const adminMsgs = (data.messages || []).filter((m: any) => m.senderType === "admin");
+          const newAdminMsgs = adminMsgs.filter((m: any) => m.id > lastEscMsgIdRef.current);
+          if (newAdminMsgs.length > 0) {
+            if (data.status === "admin_joined") {
+              setMessages((prev: Message[]) => {
+                if (prev.some(m => m.isAdminJoined)) return prev;
+                return [...prev, { role: "system", content: "🟢 Yetkilimiz chat'e katıldı", isAdminJoined: true }];
+              });
+            }
+            newAdminMsgs.forEach((m: any) => {
+              setMessages((prev: Message[]) => [...prev, { role: "admin", content: m.content, isAdminMessage: true }]);
+            });
+            lastEscMsgIdRef.current = Math.max(...adminMsgs.map((m: any) => m.id));
+          } else if (data.status === "admin_joined") {
+            setMessages((prev: Message[]) => {
+              if (prev.some(m => m.isAdminJoined)) return prev;
+              return [...prev, { role: "system", content: "🟢 Yetkilimiz chat'e katıldı", isAdminJoined: true }];
+            });
+          }
+        } catch {}
+      }, 3000);
+    }
+    return () => { if (escalationPollRef.current) clearInterval(escalationPollRef.current); };
+  }, [activeEscalationId, user]);
+
+  useEffect(() => {
+    if (user && selectedAgent) {
+      fetch(`/api/escalation/active?agentType=${selectedAgent}`)
+        .then(r => r.json())
+        .then(data => {
+          if (data.escalation && (data.escalation.status === "pending" || data.escalation.status === "admin_joined")) {
+            setActiveEscalationId(data.escalation.id);
+          } else {
+            setActiveEscalationId(null);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [user, selectedAgent]);
 
   const messages = localMessages[currentConvoId] || [];
 
@@ -491,6 +554,14 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
         setMessages((prev) => [...prev, { role: "assistant", content: `⚠️ ${data.reply}`, isLimitWarning: true }]);
       } else if (data.limitReached) {
         setMessages((prev) => [...prev, { role: "assistant", content: data.reply, isLimitWarning: true }]);
+      } else if (data.escalation) {
+        if (data.reply) {
+          setMessages((prev) => [...prev, { role: "assistant", content: data.reply, actions: data.actions }]);
+        }
+        setMessages((prev) => [...prev, { role: "system", content: data.escalation.message, isEscalation: true }]);
+        setActiveEscalationId(data.escalation.id);
+      } else if (data.escalationActive?.adminJoined) {
+        setActiveEscalationId(data.escalationActive.id);
       } else {
         const routingPrefix = data.routedToName ? `🔀 *Routed to ${data.routedToName}*\n\n` : "";
         setMessages((prev) => [...prev, { role: "assistant", content: routingPrefix + data.reply, actions: data.actions }]);
@@ -1504,6 +1575,53 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
           ) : (
             <div className="max-w-3xl mx-auto w-full px-4 py-6 space-y-1">
               {messages.map((msg, i) => {
+                if (msg.role === "system") {
+                  return (
+                    <motion.div
+                      key={i}
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="flex justify-center my-3"
+                    >
+                      <div className={`rounded-xl px-4 py-3 max-w-[85%] text-center text-sm border ${
+                        msg.isEscalation
+                          ? "bg-orange-500/10 border-orange-500/30 text-orange-300"
+                          : msg.isAdminJoined
+                            ? "bg-green-500/10 border-green-500/30 text-green-300"
+                            : msg.isResolved
+                              ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
+                              : "bg-blue-500/10 border-blue-500/30 text-blue-300"
+                      }`} data-testid={`system-message-${i}`}>
+                        {msg.content}
+                      </div>
+                    </motion.div>
+                  );
+                }
+
+                if (msg.role === "admin") {
+                  return (
+                    <motion.div
+                      key={i}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="flex gap-2 mt-4"
+                    >
+                      <div className="w-8 shrink-0">
+                        <div className="w-8 h-8 rounded-full flex items-center justify-center bg-gradient-to-br from-amber-500 to-orange-500 shadow-md">
+                          <Shield className="w-4 h-4 text-white" />
+                        </div>
+                      </div>
+                      <div className="max-w-[80%] flex flex-col gap-1.5 items-start">
+                        <span className="text-[11px] font-medium px-1 text-amber-400">Admin</span>
+                        <div className="rounded-2xl px-4 py-2.5 bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-foreground rounded-tl-md border border-amber-500/30" data-testid={`admin-message-${i}`}>
+                          <ChatMessageContent content={msg.content} />
+                        </div>
+                      </div>
+                    </motion.div>
+                  );
+                }
+
                 const isUser = msg.role === "user";
                 const showAvatar = i === 0 || messages[i - 1].role !== msg.role;
 

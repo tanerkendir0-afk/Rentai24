@@ -599,3 +599,65 @@ export type EmailCampaign = typeof emailCampaigns.$inferSelect;
 export type InsertEmailCampaign = z.infer<typeof insertEmailCampaignSchema>;
 export type SupportTicket = typeof supportTickets.$inferSelect;
 export type InsertSupportTicket = z.infer<typeof insertSupportTicketSchema>;
+
+export const escalationRules = pgTable("escalation_rules", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  type: text("type", { enum: ["angry_customer", "repeated_failure", "sensitive_topic"] }).notNull(),
+  isActive: boolean("is_active").notNull().default(true),
+  keywords: text("keywords").array().notNull().default([]),
+  threshold: integer("threshold").notNull().default(2),
+  escalationMessage: text("escalation_message").notNull(),
+  priority: text("priority", { enum: ["low", "medium", "high", "critical"] }).notNull().default("medium"),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+  updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
+export const insertEscalationRuleSchema = createInsertSchema(escalationRules).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type EscalationRule = typeof escalationRules.$inferSelect;
+export type InsertEscalationRule = z.infer<typeof insertEscalationRuleSchema>;
+
+export const escalations = pgTable("escalations", {
+  id: serial("id").primaryKey(),
+  uniqueToken: text("unique_token").notNull().unique(),
+  userId: integer("user_id").references(() => users.id),
+  agentType: text("agent_type").notNull(),
+  ruleId: integer("rule_id").references(() => escalationRules.id),
+  reason: text("reason").notNull(),
+  userMessage: text("user_message").notNull(),
+  chatHistory: jsonb("chat_history").default([]),
+  sessionId: text("session_id"),
+  status: text("status", { enum: ["pending", "admin_joined", "resolved", "dismissed"] }).notNull().default("pending"),
+  adminJoinedAt: timestamp("admin_joined_at"),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+  resolvedAt: timestamp("resolved_at"),
+});
+
+export const insertEscalationSchema = createInsertSchema(escalations).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type Escalation = typeof escalations.$inferSelect;
+export type InsertEscalation = z.infer<typeof insertEscalationSchema>;
+
+export const escalationMessages = pgTable("escalation_messages", {
+  id: serial("id").primaryKey(),
+  escalationId: integer("escalation_id").notNull().references(() => escalations.id),
+  senderType: text("sender_type", { enum: ["user", "admin"] }).notNull(),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
+export const insertEscalationMessageSchema = createInsertSchema(escalationMessages).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type EscalationMessage = typeof escalationMessages.$inferSelect;
+export type InsertEscalationMessage = z.infer<typeof insertEscalationMessageSchema>;

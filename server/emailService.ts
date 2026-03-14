@@ -150,6 +150,20 @@ export async function sendEmail(params: {
   }
 }
 
+export async function sendViaResendDirect(params: {
+  to: string;
+  subject: string;
+  body: string;
+}): Promise<{ success: boolean; message: string }> {
+  try {
+    const result = await sendViaResend(params);
+    return result;
+  } catch (error: unknown) {
+    const errMsg = error instanceof Error ? error.message : String(error);
+    return { success: false, message: errMsg };
+  }
+}
+
 export async function getEmailStatus(userId?: number): Promise<{ provider: string; address: string | null; connected: boolean; canRead?: boolean; canSend?: boolean }> {
   const disabled = await isGmailDisabledByUser(userId);
   if (disabled) {

@@ -1725,7 +1725,11 @@ export async function executeToolCall(
 
       const scoreCounts: Record<string, number> = { hot: 0, warm: 0, cold: 0 };
       for (const lead of allLeads) {
-        if (lead.score) scoreCounts[lead.score] = (scoreCounts[lead.score] || 0) + 1;
+        const freshScore = computeLeadScore(lead);
+        if (freshScore !== lead.score) {
+          await storage.updateLeadScore(lead.id, userId, freshScore);
+        }
+        scoreCounts[freshScore] = (scoreCounts[freshScore] || 0) + 1;
       }
 
       return {

@@ -510,9 +510,17 @@ interface AgentPerfStat {
   dupRate: number;
 }
 
+interface ProblematicSession {
+  session_id: string;
+  agent_type: string;
+  msg_count: number;
+  tool_count: number;
+  started_at: string;
+}
+
 function PerformancePanel({ token }: { token: string }) {
   const [stats, setStats] = useState<AgentPerfStat[]>([]);
-  const [problematic, setProblematic] = useState<any[]>([]);
+  const [problematic, setProblematic] = useState<ProblematicSession[]>([]);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const headers = { Authorization: `Bearer ${token}` };
@@ -637,11 +645,30 @@ function PerformancePanel({ token }: { token: string }) {
   );
 }
 
+interface ConvReviewItem {
+  id: number;
+  visible_id: string;
+  agent_type: string;
+  title: string;
+  quality_rating: string | null;
+  created_at: string;
+  message_count: number;
+  tool_count: number;
+}
+
+interface ConvReviewMessage {
+  id: number;
+  role: string;
+  content: string;
+  used_tool: boolean;
+  created_at: string;
+}
+
 function ConversationReviewPanel({ token }: { token: string }) {
-  const [conversations, setConversations] = useState<any[]>([]);
+  const [conversations, setConversations] = useState<ConvReviewItem[]>([]);
   const [loading, setLoading] = useState(false);
-  const [selectedConv, setSelectedConv] = useState<any | null>(null);
-  const [messages, setMessages] = useState<any[]>([]);
+  const [selectedConv, setSelectedConv] = useState<ConvReviewItem | null>(null);
+  const [messages, setMessages] = useState<ConvReviewMessage[]>([]);
   const [loadingMsgs, setLoadingMsgs] = useState(false);
   const [agentFilter, setAgentFilter] = useState("all");
   const [ratingFilter, setRatingFilter] = useState("all");

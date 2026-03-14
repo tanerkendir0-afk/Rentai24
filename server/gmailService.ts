@@ -191,6 +191,11 @@ export function setActiveUserGmail(creds: UserGmailCredentials | null) {
   activeUserCredentials = creds;
 }
 
+export function getActiveUserGmailInfo(): { email: string; hasCredentials: boolean } | null {
+  if (!activeUserCredentials) return null;
+  return { email: activeUserCredentials.gmailAddress, hasCredentials: !!(activeUserCredentials.gmailAddress && activeUserCredentials.gmailAppPassword) };
+}
+
 function getImapCredentials(): { user: string; pass: string } | null {
   if (activeUserCredentials) {
     return { user: activeUserCredentials.gmailAddress, pass: activeUserCredentials.gmailAppPassword };

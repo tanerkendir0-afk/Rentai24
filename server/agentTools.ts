@@ -5,7 +5,7 @@ import { scheduleFollowup } from "./followupScheduler";
 import { createCalendarEvent } from "./calendarService";
 import { getTemplate, fillTemplate, listTemplates, DRIP_SEQUENCES } from "./emailTemplates";
 import { generateAIImage, findStockImages } from "./imageService";
-import { isGmailConnected, listInbox, readEmail, replyToEmail } from "./gmailService";
+import { isGmailConnected, listInbox, readEmail, replyToEmail, getActiveUserGmailInfo } from "./gmailService";
 
 const gmailInboxTools: OpenAI.ChatCompletionTool[] = [
   {
@@ -1140,14 +1140,15 @@ export async function executeToolCall(
   switch (toolName) {
     case "check_gmail_status": {
       const gmailConnected = await isGmailConnected();
-      const hasUserCreds = !!(activeUserCredentials?.email && activeUserCredentials?.appPassword);
+      const userGmailInfo = getActiveUserGmailInfo();
+      const hasUserCreds = !!(userGmailInfo?.hasCredentials);
       let statusMsg = "";
       if (gmailConnected && hasUserCreds) {
-        statusMsg = `✅ **Gmail Connected**\n\nYour Gmail account (${activeUserCredentials?.email}) is properly configured and ready to use. You can send emails, check your inbox, and reply to messages.`;
+        statusMsg = `✅ **Gmail Connected**\n\nYour Gmail account (${userGmailInfo?.email}) is properly configured and ready to use. You can send emails, check your inbox, and reply to messages.`;
       } else if (gmailConnected) {
         statusMsg = `✅ **Gmail Connected** (System Level)\n\nGmail is connected via the platform integration. For personalized email (send from your own address), go to **Settings** and add your Gmail address and App Password.`;
       } else if (hasUserCreds) {
-        statusMsg = `⚠️ **Gmail Partially Configured**\n\nYour Gmail credentials are saved (${activeUserCredentials?.email}), but there may be a connection issue. Please verify your App Password is correct in **Settings** → Gmail section.`;
+        statusMsg = `⚠️ **Gmail Partially Configured**\n\nYour Gmail credentials are saved (${userGmailInfo?.email}), but there may be a connection issue. Please verify your App Password is correct in **Settings** → Gmail section.`;
       } else {
         statusMsg = `❌ **Gmail Not Connected**\n\nTo use email features, please go to **Settings** (click the ⚙️ icon) → Gmail section:\n1. Enter your Gmail address\n2. Generate an App Password from your Google Account (Security → 2-Step Verification → App Passwords)\n3. Enter the App Password and save\n\nOnce connected, I can check your inbox, read emails, send emails, and reply to messages.`;
       }

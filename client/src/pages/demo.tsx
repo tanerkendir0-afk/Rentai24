@@ -215,7 +215,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
   const [socialSaving, setSocialSaving] = useState(false);
   const [showCargoPanel, setShowCargoPanel] = useState(false);
   const [cargoQuickAdd, setCargoQuickAdd] = useState(false);
-  const [cargoAddForm, setCargoAddForm] = useState({ provider: "", apiKey: "", customerCode: "", username: "", password: "" });
+  const [cargoAddForm, setCargoAddForm] = useState({ provider: "", apiKey: "", customerCode: "", username: "", password: "", accountNumber: "", siteId: "" });
   const [cargoSaving, setCargoSaving] = useState(false);
   const [showHelpPanel, setShowHelpPanel] = useState(false);
   const [helpView, setHelpView] = useState<"menu" | "report" | "tickets">("menu");
@@ -1113,15 +1113,15 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                             { key: "surat", name: "Surat", fields: ["apiKey","customerCode"] },
                             { key: "ptt", name: "PTT", fields: ["apiKey","username"] },
                             { key: "ups", name: "UPS", fields: ["apiKey","username","password"] },
-                            { key: "fedex", name: "FedEx", fields: ["apiKey"] },
-                            { key: "dhl", name: "DHL", fields: ["apiKey"] },
+                            { key: "fedex", name: "FedEx", fields: ["apiKey","accountNumber"] },
+                            { key: "dhl", name: "DHL", fields: ["apiKey","siteId"] },
                           ].filter(p => !shippingProviders.some(sp => sp.provider === p.key)).map(p => (
                             <Button
                               key={p.key}
                               size="sm"
                               variant="outline"
                               className={`h-6 text-[10px] px-2 ${cargoAddForm.provider === p.key ? "border-orange-500 bg-orange-500/10 text-orange-400" : ""}`}
-                              onClick={() => setCargoAddForm({ provider: p.key, apiKey: "", customerCode: "", username: "", password: "" })}
+                              onClick={() => setCargoAddForm({ provider: p.key, apiKey: "", customerCode: "", username: "", password: "", accountNumber: "", siteId: "" })}
                               data-testid={`button-cargo-select-${p.key}`}
                             >
                               {p.name}
@@ -1133,9 +1133,9 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                             aras: ["apiKey","customerCode"], yurtici: ["apiKey","username","password"],
                             mng: ["apiKey","customerCode"], surat: ["apiKey","customerCode"],
                             ptt: ["apiKey","username"], ups: ["apiKey","username","password"],
-                            fedex: ["apiKey"], dhl: ["apiKey"],
+                            fedex: ["apiKey","accountNumber"], dhl: ["apiKey","siteId"],
                           };
-                          const labels: Record<string, string> = { apiKey: "API Key", customerCode: "Customer Code", username: "Username", password: "Password" };
+                          const labels: Record<string, string> = { apiKey: "API Key", customerCode: "Customer Code", username: "Username", password: "Password", accountNumber: "Account Number", siteId: "Site ID" };
                           const fields = fieldMap[cargoAddForm.provider] || ["apiKey"];
                           return (
                             <div className="space-y-1.5 mt-2">
@@ -1162,9 +1162,11 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                                       if (cargoAddForm.customerCode.trim()) body.customerCode = cargoAddForm.customerCode.trim();
                                       if (cargoAddForm.username.trim()) body.username = cargoAddForm.username.trim();
                                       if (cargoAddForm.password.trim()) body.password = cargoAddForm.password.trim();
+                                      if (cargoAddForm.accountNumber.trim()) body.accountNumber = cargoAddForm.accountNumber.trim();
+                                      if (cargoAddForm.siteId.trim()) body.siteId = cargoAddForm.siteId.trim();
                                       await apiRequest("POST", "/api/shipping-providers", body);
                                       queryClient.invalidateQueries({ queryKey: ["/api/shipping-providers"] });
-                                      setCargoAddForm({ provider: "", apiKey: "", customerCode: "", username: "", password: "" });
+                                      setCargoAddForm({ provider: "", apiKey: "", customerCode: "", username: "", password: "", accountNumber: "", siteId: "" });
                                       setCargoQuickAdd(false);
                                       toast({ title: "Provider connected", description: `${cargoAddForm.provider} has been added.` });
                                     } catch { toast({ title: "Error", description: "Failed to connect provider.", variant: "destructive" }); }
@@ -1178,7 +1180,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                                   size="sm"
                                   variant="ghost"
                                   className="h-7 text-xs"
-                                  onClick={() => { setCargoQuickAdd(false); setCargoAddForm({ provider: "", apiKey: "", customerCode: "", username: "", password: "" }); }}
+                                  onClick={() => { setCargoQuickAdd(false); setCargoAddForm({ provider: "", apiKey: "", customerCode: "", username: "", password: "", accountNumber: "", siteId: "" }); }}
                                   data-testid="button-cargo-cancel"
                                 >
                                   Cancel

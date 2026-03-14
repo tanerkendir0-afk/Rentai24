@@ -2044,6 +2044,7 @@ ${members.map(m => `- ${m.name} (${m.email})${m.position ? ` — ${m.position}` 
         validationErrors: result.validationErrors,
         warnings: result.warnings,
         isValid: result.validationErrors.length === 0,
+        qualityStats: result.qualityStats || null,
       });
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "Unknown error";
@@ -2062,8 +2063,14 @@ ${members.map(m => `- ${m.name} (${m.email})${m.position ? ` — ${m.position}` 
         return res.status(404).json({ error: "No training data available for this agent." });
       }
 
+      const validationInfo = {
+        totalExamples: result.exampleCount,
+        meetsMinimum: result.exampleCount >= 10,
+        qualityStats: result.qualityStats || null,
+      };
       res.setHeader("Content-Type", "application/jsonl");
       res.setHeader("Content-Disposition", `attachment; filename=${agentType}_training_data.jsonl`);
+      res.setHeader("X-Training-Validation", JSON.stringify(validationInfo));
       res.send(result.jsonl);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "Unknown error";

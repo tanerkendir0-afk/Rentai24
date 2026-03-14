@@ -159,6 +159,12 @@ app.use((req, res, next) => {
       );
 
       await pool.query(`
+        ALTER TABLE conversations ADD COLUMN IF NOT EXISTS quality_rating TEXT
+      `).catch((err: unknown) =>
+        console.warn("conversations quality_rating column:", err instanceof Error ? err.message : String(err))
+      );
+
+      await pool.query(`
         CREATE TABLE IF NOT EXISTS boss_conversations (
           id SERIAL PRIMARY KEY,
           topic TEXT NOT NULL,

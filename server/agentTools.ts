@@ -50,6 +50,14 @@ const gmailInboxTools: OpenAI.ChatCompletionTool[] = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "check_gmail_status",
+      description: "Check if Gmail is properly connected and configured. Use when the user has issues with email functionality or asks about their email connection status.",
+      parameters: { type: "object", properties: {} },
+    },
+  },
 ];
 
 export const salesSdrTools: OpenAI.ChatCompletionTool[] = [
@@ -1022,6 +1030,7 @@ export function getToolsForAgent(agentType: string): OpenAI.ChatCompletionTool[]
 }
 
 const TOOL_KEYWORD_MAP: Record<string, string[]> = {
+  check_gmail_status: ["gmail", "email status", "email connection", "mail bağlantı", "e-posta durumu", "connected"],
   list_inbox: ["inbox", "email", "mail", "e-posta", "gelen kutusu", "mesaj", "check email"],
   read_email: ["read", "open", "email", "mail", "e-posta", "oku"],
   reply_email: ["reply", "respond", "yanıtla", "cevap", "email", "mail"],
@@ -1129,6 +1138,27 @@ export async function executeToolCall(
   agentType: string
 ): Promise<{ result: string; actionType?: string; actionDescription?: string }> {
   switch (toolName) {
+    case "check_gmail_status": {
+      const gmailConnected = await isGmailConnected();
+      const hasUserCreds = !!(activeUserCredentials?.email && activeUserCredentials?.appPassword);
+      let statusMsg = "";
+      if (gmailConnected && hasUserCreds) {
+        statusMsg = `✅ **Gmail Connected**\n\nYour Gmail account (${activeUserCredentials?.email}) is properly configured and ready to use. You can send emails, check your inbox, and reply to messages.`;
+      } else if (gmailConnected) {
+        statusMsg = `✅ **Gmail Connected** (System Level)\n\nGmail is connected via the platform integration. For personalized email (send from your own address), go to **Settings** and add your Gmail address and App Password.`;
+      } else if (hasUserCreds) {
+        statusMsg = `⚠️ **Gmail Partially Configured**\n\nYour Gmail credentials are saved (${activeUserCredentials?.email}), but there may be a connection issue. Please verify your App Password is correct in **Settings** → Gmail section.`;
+      } else {
+        statusMsg = `❌ **Gmail Not Connected**\n\nTo use email features, please go to **Settings** (click the ⚙️ icon) → Gmail section:\n1. Enter your Gmail address\n2. Generate an App Password from your Google Account (Security → 2-Step Verification → App Passwords)\n3. Enter the App Password and save\n\nOnce connected, I can check your inbox, read emails, send emails, and reply to messages.`;
+      }
+      await storage.createAgentAction({
+        userId, agentType, actionType: "gmail_status_check",
+        description: `Gmail status check: ${gmailConnected ? "connected" : "not connected"}, user creds: ${hasUserCreds ? "yes" : "no"}`,
+        metadata: { connected: gmailConnected, hasUserCreds },
+      });
+      return { result: statusMsg, actionType: "gmail_status_check", actionDescription: `📧 Gmail status: ${gmailConnected ? "Connected" : "Not connected"}` };
+    }
+
     case "list_inbox": {
       const connected = await isGmailConnected();
       if (!connected) {

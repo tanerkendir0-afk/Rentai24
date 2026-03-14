@@ -887,9 +887,10 @@ function TrainingDataPanel({ agentType, token }: { agentType: string; token: str
       const validation = res.headers.get("X-Training-Validation");
       if (validation) {
         const v = JSON.parse(validation);
+        const qualityInfo = v.qualityStats ? ` Quality: ${v.qualityStats.avgScore}/100 (${v.qualityStats.filtered} filtered).` : "";
         toast({
           title: "Training Data Exported",
-          description: `${v.totalExamples} conversations exported. ${v.meetsMinimum ? "✅ Meets minimum (10+)" : "⚠️ Below minimum (need 10+)"}`,
+          description: `${v.totalExamples} conversations exported. ${v.meetsMinimum ? "✅ Meets minimum (10+)" : "⚠️ Below minimum (need 10+)"}${qualityInfo}`,
         });
       }
     } catch (err: any) {

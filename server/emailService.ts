@@ -1,6 +1,7 @@
 import { Resend } from "resend";
 import { storage } from "./storage";
-import { isGmailConnected, sendViaGmail, clearGmailConnectionCache } from "./gmailService";
+import { clearGmailConnectionCache } from "./gmailService";
+import * as nodemailer from "nodemailer";
 
 let resendConnectionSettings: Record<string, string> | null = null;
 
@@ -86,6 +87,44 @@ async function sendViaResend(params: {
   };
 }
 
+async function sendViaUserSmtp(params: {
+  to: string;
+  subject: string;
+  body: string;
+  gmailAddress: string;
+  gmailAppPassword: string;
+}): Promise<{ success: boolean; message: string; fromAddress: string }> {
+  const transporter = nodemailer.createTransport({
+    host: "smtp.gmail.com",
+    port: 465,
+    secure: true,
+    auth: {
+      user: params.gmailAddress,
+      pass: params.gmailAppPassword,
+    },
+  });
+
+  await transporter.sendMail({
+    from: params.gmailAddress,
+    to: params.to,
+    subject: params.subject,
+    text: params.body,
+  });
+
+  return {
+    success: true,
+    message: `Email sent from your Gmail (${params.gmailAddress}) to ${params.to} with subject "${params.subject}"`,
+    fromAddress: params.gmailAddress,
+  };
+}
+
+async function getUserGmailCredentials(userId: number): Promise<{ gmailAddress: string; gmailAppPassword: string } | null> {
+  const user = await storage.getUserById(userId);
+  if (!user?.gmailAddress || !user?.gmailAppPassword) return null;
+  const decryptedPassword = storage.decryptGmailAppPassword(user.gmailAppPassword);
+  return { gmailAddress: user.gmailAddress, gmailAppPassword: decryptedPassword };
+}
+
 export async function sendEmail(params: {
   userId: number;
   to: string;
@@ -95,27 +134,34 @@ export async function sendEmail(params: {
 }): Promise<{ success: boolean; message: string; provider?: string }> {
   try {
     const disabled = await isGmailDisabledByUser(params.userId);
-    const gmailAvailable = !disabled && await isGmailConnected();
 
-    if (gmailAvailable) {
-      const gmailResult = await sendViaGmail({
-        to: params.to,
-        subject: params.subject,
-        body: params.body,
-      });
+    if (!disabled) {
+      const userCreds = await getUserGmailCredentials(params.userId);
+      if (userCreds) {
+        try {
+          const smtpResult = await sendViaUserSmtp({
+            to: params.to,
+            subject: params.subject,
+            body: params.body,
+            gmailAddress: userCreds.gmailAddress,
+            gmailAppPassword: userCreds.gmailAppPassword,
+          });
 
-      if (gmailResult.success) {
-        await storage.createAgentAction({
-          userId: params.userId,
-          agentType: params.agentType,
-          actionType: "email_sent",
-          description: `Email sent from Gmail (${gmailResult.fromAddress}) to ${params.to}: "${params.subject}"`,
-          metadata: { to: params.to, subject: params.subject, body: params.body, provider: "gmail", gmailMessageId: gmailResult.messageId, fromAddress: gmailResult.fromAddress },
-        });
-        return { success: true, message: gmailResult.message, provider: "gmail" };
+          if (smtpResult.success) {
+            await storage.createAgentAction({
+              userId: params.userId,
+              agentType: params.agentType,
+              actionType: "email_sent",
+              description: `Email sent from user Gmail (${smtpResult.fromAddress}) to ${params.to}: "${params.subject}"`,
+              metadata: { to: params.to, subject: params.subject, body: params.body, provider: "user_gmail", fromAddress: smtpResult.fromAddress },
+            });
+            return { success: true, message: smtpResult.message, provider: "user_gmail" };
+          }
+        } catch (smtpErr: unknown) {
+          const smtpErrMsg = smtpErr instanceof Error ? smtpErr.message : String(smtpErr);
+          console.error(`User Gmail SMTP failed for userId ${params.userId}, falling back to platform email:`, smtpErrMsg);
+        }
       }
-
-      console.error("Gmail failed, falling back to platform email:", gmailResult.message);
     }
 
     const resendResult = await sendViaResend({
@@ -156,16 +202,19 @@ export async function getEmailStatus(userId?: number): Promise<{ provider: strin
   if (disabled) {
     return { provider: "platform", address: null, connected: true };
   }
-  const { verifyGmailConnection } = await import("./gmailService");
-  const verification = await verifyGmailConnection();
-  if (verification.valid) {
-    return {
-      provider: "gmail",
-      address: verification.address || "Connected",
-      connected: true,
-      canRead: verification.canRead,
-      canSend: verification.canSend,
-    };
+
+  if (userId) {
+    const userCreds = await getUserGmailCredentials(userId);
+    if (userCreds) {
+      return {
+        provider: "user_gmail",
+        address: userCreds.gmailAddress,
+        connected: true,
+        canRead: true,
+        canSend: true,
+      };
+    }
   }
+
   return { provider: "platform", address: null, connected: true };
 }

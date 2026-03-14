@@ -460,6 +460,18 @@ function scoreConversationQuality(example: TrainingExample): QualityScore {
     reasons.push(`${duplicateResponses} duplicate assistant response(s)`);
   }
 
+  const toolCallPattern = /(?:checking|searching|looking up|fetching|calling|running)\s+\w+/i;
+  const toolCallMsgs = assistantMsgs.filter(m => toolCallPattern.test(m.content));
+  const toolCallSignatures = toolCallMsgs.map(m => {
+    const match = m.content.match(toolCallPattern);
+    return match ? match[0].toLowerCase() : "";
+  }).filter(Boolean);
+  const repeatedToolCalls = toolCallSignatures.length - new Set(toolCallSignatures).size;
+  if (repeatedToolCalls >= 3) {
+    score -= 20 * Math.min(repeatedToolCalls, 3);
+    reasons.push(`${repeatedToolCalls} repeated identical tool invocation(s)`);
+  }
+
   const skippedPattern = /\[Skipped\]|already executed|duplicate/i;
   const skippedMsgs = example.messages.filter(m => skippedPattern.test(m.content));
   if (skippedMsgs.length > 0) {
@@ -578,8 +590,13 @@ export async function generateTrainingDataFromChatLogs(
     warnings.push(`Could not fetch chat logs from database: ${errorMessage}. Including sample conversations as baseline training data.`);
   }
 
-  const sampleExamples = generateSampleExamples(agentType, filters);
-  allExamples.push(...sampleExamples);
+  if (allExamples.length === 0) {
+    const sampleExamples = generateSampleExamples(agentType, filters);
+    allExamples.push(...sampleExamples);
+    if (sampleExamples.length > 0) {
+      warnings.push("No reviewed 'good' conversations found. Including sample conversations as baseline training data only.");
+    }
+  }
 
   if (allExamples.length === 0) {
     return { jsonl: "", exampleCount: 0, validationErrors: ["No training examples could be generated."], warnings };

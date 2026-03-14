@@ -515,6 +515,8 @@ interface ProblematicSession {
   agent_type: string;
   msg_count: number;
   tool_count: number;
+  auth_error_count: number;
+  max_response_length: number;
   started_at: string;
 }
 
@@ -624,7 +626,7 @@ function PerformancePanel({ token }: { token: string }) {
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {problematic.map((s: any, i: number) => (
+              {problematic.map((s: ProblematicSession, i: number) => (
                 <div key={i} className="flex items-center justify-between bg-[#0A0E27] rounded-lg p-3 border border-[#1E2448]" data-testid={`row-problematic-${i}`}>
                   <div className="flex items-center gap-3">
                     <Badge variant="outline" className="border-[#1E2448] text-gray-300">{agentNameMap[s.agent_type] || s.agent_type}</Badge>
@@ -633,6 +635,8 @@ function PerformancePanel({ token }: { token: string }) {
                   <div className="flex gap-3 text-xs">
                     <span className="text-gray-400">{s.msg_count} msgs</span>
                     <span className={Number(s.tool_count) > 5 ? "text-orange-400" : "text-gray-400"}>{s.tool_count} tools</span>
+                    {Number(s.auth_error_count) > 0 && <span className="text-red-400">{s.auth_error_count} auth errs</span>}
+                    {Number(s.max_response_length) > 3000 && <span className="text-yellow-400">long resp</span>}
                     <span className="text-gray-500">{s.started_at ? new Date(s.started_at).toLocaleDateString() : ""}</span>
                   </div>
                 </div>

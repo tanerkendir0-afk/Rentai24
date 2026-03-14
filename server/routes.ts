@@ -2135,11 +2135,15 @@ ${members.map(m => `- ${m.name} (${m.email})${m.position ? ` — ${m.position}` 
       const problematicSessions = await db.execute(sql`
         SELECT cm.session_id, cm.agent_type, COUNT(*) as msg_count,
           COUNT(CASE WHEN cm.used_tool THEN 1 END) as tool_count,
+          COUNT(CASE WHEN cm.content ILIKE '%not connected%' OR cm.content ILIKE '%authentication%failed%' OR cm.content ILIKE '%app password%' OR cm.content ILIKE '%credentials%' THEN 1 END) as auth_error_count,
+          MAX(LENGTH(cm.content)) as max_response_length,
           MIN(cm.created_at) as started_at
         FROM chat_messages cm
         GROUP BY cm.session_id, cm.agent_type
         HAVING COUNT(CASE WHEN cm.used_tool THEN 1 END) > 5
           OR COUNT(*) > 20
+          OR COUNT(CASE WHEN cm.content ILIKE '%not connected%' OR cm.content ILIKE '%authentication%failed%' OR cm.content ILIKE '%app password%' THEN 1 END) > 2
+          OR MAX(LENGTH(cm.content)) > 3000
         ORDER BY COUNT(CASE WHEN cm.used_tool THEN 1 END) DESC
         LIMIT 20
       `);

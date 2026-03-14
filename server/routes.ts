@@ -2775,7 +2775,7 @@ RULES:
           if (usage) {
             costUsd = calculateTokenCost("gpt-4o-mini", usage.prompt_tokens, usage.completion_tokens);
             await storage.logTokenUsage({
-              userId: 0,
+              userId: null,
               agentType: agent.slug,
               model: "gpt-4o-mini",
               promptTokens: usage.prompt_tokens,
@@ -2849,7 +2849,7 @@ Be decisive and actionable. Format with clear sections.`,
           synthesisCost = calculateTokenCost("gpt-4o", synthUsage.prompt_tokens, synthUsage.completion_tokens);
           synthesisTokens = synthUsage.total_tokens;
           await storage.logTokenUsage({
-            userId: 0,
+            userId: null,
             agentType: "boss-collaboration",
             model: "gpt-4o",
             promptTokens: synthUsage.prompt_tokens,

@@ -90,12 +90,34 @@ export async function triggerEmailReplyNotification(params: {
     userId: params.userId,
     type: "email_reply",
     teamMemberName: params.teamMemberName,
-    summary: `${params.teamMemberName} sent an email to ${params.recipientEmail} regarding "${params.subject}"`,
+    summary: `${params.teamMemberName} replied to an email from ${params.recipientEmail} regarding "${params.subject}"`,
     details: {
       agentType: params.agentType,
       recipient: params.recipientEmail,
       subject: params.subject,
       replySnippet: params.replySnippet.substring(0, 200),
+    },
+  });
+}
+
+export async function triggerEmailSentNotification(params: {
+  userId: number;
+  agentType: string;
+  teamMemberName: string;
+  recipientEmail: string;
+  subject: string;
+  bodySnippet: string;
+}): Promise<void> {
+  await notifyBoss({
+    userId: params.userId,
+    type: "email_sent",
+    teamMemberName: params.teamMemberName,
+    summary: `${params.teamMemberName} sent an email to ${params.recipientEmail}: "${params.subject}"`,
+    details: {
+      agentType: params.agentType,
+      recipient: params.recipientEmail,
+      subject: params.subject,
+      bodySnippet: params.bodySnippet.substring(0, 200),
     },
   });
 }

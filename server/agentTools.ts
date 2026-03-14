@@ -1364,14 +1364,14 @@ export async function executeToolCall(
       });
       if (emailResult.success) {
         try {
-          const { triggerEmailReplyNotification } = await import("./bossNotificationService");
-          await triggerEmailReplyNotification({
+          const { triggerEmailSentNotification } = await import("./bossNotificationService");
+          await triggerEmailSentNotification({
             userId,
             agentType,
             teamMemberName: displayName,
             recipientEmail: String(args.to),
             subject: String(args.subject),
-            replySnippet: String(args.body),
+            bodySnippet: String(args.body),
           });
         } catch (e) { console.error("[BossAI] send email notification error:", e); }
       }
@@ -2056,14 +2056,14 @@ Be specific to the ${industry} industry. About 400-500 words.`;
           metadata: { to: args.to, subject: args.subject },
         });
         try {
-          const { triggerEmailReplyNotification } = await import("./bossNotificationService");
-          await triggerEmailReplyNotification({
+          const { triggerEmailSentNotification } = await import("./bossNotificationService");
+          await triggerEmailSentNotification({
             userId,
             agentType,
             teamMemberName: displayName,
             recipientEmail: String(args.to),
             subject: String(args.subject),
-            replySnippet: String(args.body),
+            bodySnippet: String(args.body),
           });
         } catch (e) { console.error("[BossAI] customer email notification error:", e); }
       }

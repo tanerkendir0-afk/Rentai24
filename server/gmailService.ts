@@ -85,10 +85,32 @@ async function getAppPasswordGmailClient(userId: number): Promise<{ transporter:
   return { transporter, address: user.gmailAddress };
 }
 
+function isEnvGmailConfigured(): boolean {
+  return !!(process.env.GMAIL_ADDRESS && process.env.GMAIL_APP_PASSWORD);
+}
+
+async function getEnvGmailClient(): Promise<{ transporter: any; address: string } | null> {
+  const address = process.env.GMAIL_ADDRESS;
+  const password = process.env.GMAIL_APP_PASSWORD;
+  if (!address || !password) return null;
+  try {
+    const nodemailer = await import("nodemailer");
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: { user: address, pass: password },
+    });
+    return { transporter, address };
+  } catch {
+    return null;
+  }
+}
+
 export async function isUserGmailReady(userId: number): Promise<boolean> {
   const oauthReady = await isUserGmailOAuthConnected(userId);
   if (oauthReady) return true;
-  return isUserGmailAppPasswordReady(userId);
+  const appPassReady = await isUserGmailAppPasswordReady(userId);
+  if (appPassReady) return true;
+  return isEnvGmailConfigured();
 }
 
 export async function getUserGmailStatus(userId: number): Promise<{ connected: boolean; email: string | null; method: string | null }> {
@@ -102,6 +124,9 @@ export async function getUserGmailStatus(userId: number): Promise<{ connected: b
     const { storage } = await import("./storage");
     const user = await storage.getUserById(userId);
     return { connected: true, email: user?.gmailAddress || null, method: "app_password" };
+  }
+  if (isEnvGmailConfigured()) {
+    return { connected: true, email: process.env.GMAIL_ADDRESS || null, method: "env" };
   }
   return { connected: false, email: null, method: null };
 }
@@ -303,6 +328,21 @@ export async function sendViaGmail(userId: number, params: {
         success: true,
         message: `Email sent from your Gmail (${appPassClient.address}) to ${params.to} with subject "${params.subject}"`,
         fromAddress: appPassClient.address,
+      };
+    }
+
+    const envClient = await getEnvGmailClient();
+    if (envClient) {
+      await envClient.transporter.sendMail({
+        from: envClient.address,
+        to: params.to,
+        subject: params.subject,
+        text: params.body,
+      });
+      return {
+        success: true,
+        message: `Email sent from platform Gmail (${envClient.address}) to ${params.to} with subject "${params.subject}"`,
+        fromAddress: envClient.address,
       };
     }
 

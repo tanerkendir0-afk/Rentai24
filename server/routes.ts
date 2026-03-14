@@ -1802,7 +1802,7 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
         operationType,
       }).catch(err => console.error("Token usage log error:", err.message));
 
-      const rawReply = assistantMessage?.content || "Sorry, I couldn't generate a response. Please try again.";
+      const rawReply = assistantMessage?.content ?? "Sorry, I couldn't generate a response. Please try again.";
       const sanitized = sanitizeOutput(rawReply, resolvedAgentType);
       const reply = addWatermark(sanitized, req.session.userId || null, clientIp);
 

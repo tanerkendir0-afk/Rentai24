@@ -9,9 +9,10 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Menu, Bot, User, LayoutDashboard, Download, Smartphone, Wifi, Bell, Settings, LogOut, BookOpen } from "lucide-react";
+import { Menu, Bot, User, LayoutDashboard, Download, Smartphone, Wifi, Bell, Settings, LogOut, BookOpen, Share, Plus, MoreHorizontal, Monitor, Globe, ExternalLink } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { usePwaInstall } from "@/hooks/use-pwa-install";
+import type { PwaPlatform } from "@/hooks/use-pwa-install";
 
 const navLinks = [
   { href: "/workers", label: "AI Workers" },
@@ -21,16 +22,159 @@ const navLinks = [
   { href: "/contact", label: "Contact" },
 ];
 
+function ManualInstallGuide({ platform }: { platform: PwaPlatform }) {
+  if (platform === "ios-safari") {
+    return (
+      <div className="space-y-4 py-4" data-testid="guide-ios-safari">
+        <p className="text-sm text-muted-foreground">Follow these steps to add RentAI 24 to your home screen:</p>
+        <div className="space-y-3">
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0">
+              <span className="text-sm font-bold text-blue-400">1</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <p className="text-sm text-foreground">Tap the <strong>Share</strong> button in the toolbar</p>
+              <Share className="w-5 h-5 text-blue-400 shrink-0" />
+            </div>
+          </div>
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0">
+              <span className="text-sm font-bold text-blue-400">2</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <p className="text-sm text-foreground">Scroll down and tap <strong>"Add to Home Screen"</strong></p>
+              <Plus className="w-5 h-5 text-blue-400 shrink-0" />
+            </div>
+          </div>
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0">
+              <span className="text-sm font-bold text-blue-400">3</span>
+            </div>
+            <div>
+              <p className="text-sm text-foreground">Tap <strong>"Add"</strong> in the top-right corner</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (platform === "macos-safari") {
+    return (
+      <div className="space-y-4 py-4" data-testid="guide-macos-safari">
+        <p className="text-sm text-muted-foreground">Follow these steps to add RentAI 24 to your Dock:</p>
+        <div className="space-y-3">
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0">
+              <span className="text-sm font-bold text-blue-400">1</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <p className="text-sm text-foreground">Click <strong>File</strong> in the Safari menu bar</p>
+              <Monitor className="w-5 h-5 text-blue-400 shrink-0" />
+            </div>
+          </div>
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0">
+              <span className="text-sm font-bold text-blue-400">2</span>
+            </div>
+            <div>
+              <p className="text-sm text-foreground">Select <strong>"Add to Dock"</strong></p>
+            </div>
+          </div>
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0">
+              <span className="text-sm font-bold text-blue-400">3</span>
+            </div>
+            <div>
+              <p className="text-sm text-foreground">Click <strong>"Add"</strong> to confirm</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (platform === "firefox") {
+    return (
+      <div className="space-y-4 py-4" data-testid="guide-firefox">
+        <p className="text-sm text-muted-foreground">Firefox has limited PWA support. You can try:</p>
+        <div className="space-y-3">
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0">
+              <span className="text-sm font-bold text-blue-400">1</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <p className="text-sm text-foreground">Tap the <strong>menu button</strong> (three dots) in the address bar</p>
+              <MoreHorizontal className="w-5 h-5 text-blue-400 shrink-0" />
+            </div>
+          </div>
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0">
+              <span className="text-sm font-bold text-blue-400">2</span>
+            </div>
+            <div>
+              <p className="text-sm text-foreground">Look for <strong>"Install"</strong> or <strong>"Add to Home Screen"</strong></p>
+            </div>
+          </div>
+        </div>
+        <div className="mt-2 p-3 bg-muted/50 rounded-lg">
+          <p className="text-xs text-muted-foreground">
+            <strong>Tip:</strong> For the best experience, open this site in Chrome, Edge, or Safari to install the app natively.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4 py-4" data-testid="guide-other">
+      <p className="text-sm text-muted-foreground">To install this app, try one of the following:</p>
+      <div className="space-y-3">
+        <div className="flex items-start gap-3">
+          <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0">
+            <Globe className="w-4 h-4 text-blue-400" />
+          </div>
+          <div>
+            <p className="text-sm text-foreground">Look for an <strong>install icon</strong> in your browser's address bar or menu</p>
+          </div>
+        </div>
+        <div className="flex items-start gap-3">
+          <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0">
+            <ExternalLink className="w-4 h-4 text-blue-400" />
+          </div>
+          <div>
+            <p className="text-sm text-foreground">Or open this site in <strong>Chrome</strong>, <strong>Edge</strong>, or <strong>Safari</strong> for the best install experience</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function getGuideDialogTitle(platform: PwaPlatform): string {
+  switch (platform) {
+    case "ios-safari": return "Add to Home Screen";
+    case "macos-safari": return "Add to Dock";
+    case "firefox": return "Install RentAI 24";
+    default: return "Install RentAI 24";
+  }
+}
+
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
   const [installDialogOpen, setInstallDialogOpen] = useState(false);
+  const [guideDialogOpen, setGuideDialogOpen] = useState(false);
   const [location, setLoc] = useLocation();
   const { user, isLoading, logout } = useAuth();
-  const { canInstall, install } = usePwaInstall();
+  const { canInstall, install, showManualGuide, platform } = usePwaInstall();
 
   const handleInstallClick = () => {
-    setInstallDialogOpen(true);
+    if (canInstall) {
+      setInstallDialogOpen(true);
+    } else if (showManualGuide) {
+      setGuideDialogOpen(true);
+    }
   };
 
   const confirmInstall = async () => {
@@ -48,6 +192,8 @@ export default function Navbar() {
     window.addEventListener("scroll", onScroll);
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+
+  const showInstallButton = canInstall || showManualGuide;
 
   return (
     <header
@@ -90,7 +236,7 @@ export default function Navbar() {
           </nav>
 
           <div className="flex items-center gap-3">
-            {canInstall && (
+            {showInstallButton && (
               <Button
                 size="sm"
                 variant="outline"
@@ -194,7 +340,7 @@ export default function Navbar() {
                       </span>
                     </Link>
                   ))}
-                  {canInstall && (
+                  {showInstallButton && (
                     <div className="px-4 mt-4">
                       <Button
                         variant="outline"
@@ -332,6 +478,24 @@ export default function Navbar() {
             </Button>
             <Button variant="outline" onClick={() => setInstallDialogOpen(false)} data-testid="button-cancel-install">
               Not Now
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={guideDialogOpen} onOpenChange={setGuideDialogOpen}>
+        <DialogContent className="sm:max-w-md bg-card border-border">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-foreground" data-testid="text-guide-dialog-title">
+              {getGuideDialogTitle(platform)}
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              Your browser doesn't support automatic installation. Follow the steps below:
+            </DialogDescription>
+          </DialogHeader>
+          <ManualInstallGuide platform={platform} />
+          <div className="flex justify-end">
+            <Button variant="outline" onClick={() => setGuideDialogOpen(false)} data-testid="button-close-guide">
+              Got it
             </Button>
           </div>
         </DialogContent>

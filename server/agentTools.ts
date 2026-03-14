@@ -5,7 +5,8 @@ import { scheduleFollowup } from "./followupScheduler";
 import { createCalendarEvent } from "./calendarService";
 import { getTemplate, fillTemplate, listTemplates, DRIP_SEQUENCES } from "./emailTemplates";
 import { generateAIImage, findStockImages } from "./imageService";
-import { isGmailConnected, listInbox, readEmail, replyToEmail, getActiveUserGmailInfo } from "./gmailService";
+import { isGmailConnected, listInbox, readEmail, replyToEmail, getUserGmailInfo } from "./gmailService";
+import type { UserGmailCredentials } from "./gmailService";
 
 const gmailInboxTools: OpenAI.ChatCompletionTool[] = [
   {
@@ -1135,12 +1136,13 @@ export async function executeToolCall(
   toolName: string,
   args: Record<string, unknown>,
   userId: number,
-  agentType: string
+  agentType: string,
+  userCreds?: UserGmailCredentials | null
 ): Promise<{ result: string; actionType?: string; actionDescription?: string }> {
   switch (toolName) {
     case "check_gmail_status": {
       const gmailConnected = await isGmailConnected();
-      const userGmailInfo = getActiveUserGmailInfo();
+      const userGmailInfo = getUserGmailInfo(userCreds || null);
       const hasUserCreds = !!(userGmailInfo?.hasCredentials);
       let statusMsg = "";
       if (gmailConnected && hasUserCreds) {
@@ -1175,7 +1177,7 @@ export async function executeToolCall(
         };
       }
       const maxResults = Math.min(Math.max(Number(args.max_results) || 10, 1), 20);
-      const inboxResult = await listInbox(maxResults);
+      const inboxResult = await listInbox(maxResults, userCreds);
       if (!inboxResult.success || !inboxResult.emails) {
         const errorMsg = inboxResult.message || "Unknown error";
         const isImapRelated = /IMAP/i.test(errorMsg);
@@ -1238,7 +1240,7 @@ export async function executeToolCall(
         return { result: "Please provide an email ID or number to read.", actionType: "email_read_failed", actionDescription: "❌ No email ID provided" };
       }
       const emailId = resolveEmailId(String(args.email_id), userId);
-      const readResult = await readEmail(emailId);
+      const readResult = await readEmail(emailId, userCreds);
       if (!readResult.success || !readResult.email) {
         const readErrorMsg = readResult.message || "Unknown error";
         const readGuidance = `\n\n**How to fix:** Go to **Settings** → Gmail section and check your connection settings.`;

@@ -1247,15 +1247,12 @@ ${members.map(m => `- ${m.name} (${m.email})${m.position ? ` — ${m.position}` 
 - Do NOT have long conversations. After 2-3 exchanges, remind them to create an account to continue.`;
     }
 
-    const requestKey = {};
+    let userGmailCreds: import("./gmailService").UserGmailCredentials | null = null;
     if (req.session.userId) {
       const userForGmail = await storage.getUserById(req.session.userId);
-      const { setActiveUserGmail } = await import("./gmailService");
       if (userForGmail?.gmailAddress && userForGmail?.gmailAppPassword) {
         const decryptedPassword = storage.decryptGmailAppPassword(userForGmail.gmailAppPassword);
-        setActiveUserGmail({ gmailAddress: userForGmail.gmailAddress, gmailAppPassword: decryptedPassword }, requestKey);
-      } else {
-        setActiveUserGmail(null, requestKey);
+        userGmailCreds = { gmailAddress: userForGmail.gmailAddress, gmailAppPassword: decryptedPassword };
       }
     }
 
@@ -1355,7 +1352,8 @@ ${members.map(m => `- ${m.name} (${m.email})${m.position ? ` — ${m.position}` 
             toolCall.function.name,
             args,
             req.session.userId,
-            agentType
+            agentType,
+            userGmailCreds
           );
 
           const toolMessage: OpenAI.ChatCompletionToolMessageParam = {

@@ -196,29 +196,14 @@ export interface UserGmailCredentials {
   gmailAppPassword: string;
 }
 
-const requestScopedCredentials = new WeakMap<object, UserGmailCredentials | null>();
-let currentRequestKey: object | null = null;
-
-export function setActiveUserGmail(creds: UserGmailCredentials | null, requestKey?: object) {
-  const key = requestKey || {};
-  currentRequestKey = key;
-  requestScopedCredentials.set(key, creds);
-}
-
-export function getActiveUserGmailInfo(): { email: string; hasCredentials: boolean } | null {
-  const creds = currentRequestKey ? requestScopedCredentials.get(currentRequestKey) : null;
-  if (!creds) return null;
-  return { email: creds.gmailAddress, hasCredentials: !!(creds.gmailAddress && creds.gmailAppPassword) };
-}
-
-export function clearRequestScope() {
-  currentRequestKey = null;
+export function getUserGmailInfo(userCreds: UserGmailCredentials | null): { email: string; hasCredentials: boolean } | null {
+  if (!userCreds) return null;
+  return { email: userCreds.gmailAddress, hasCredentials: !!(userCreds.gmailAddress && userCreds.gmailAppPassword) };
 }
 
 function getImapCredentials(userCreds?: UserGmailCredentials | null): { user: string; pass: string } | null {
-  const creds = userCreds || (currentRequestKey ? requestScopedCredentials.get(currentRequestKey) : null);
-  if (creds) {
-    return { user: creds.gmailAddress, pass: creds.gmailAppPassword };
+  if (userCreds) {
+    return { user: userCreds.gmailAddress, pass: userCreds.gmailAppPassword };
   }
   const user = process.env.GMAIL_ADDRESS;
   const pass = process.env.GMAIL_APP_PASSWORD;
@@ -246,10 +231,10 @@ async function getImapClient(userCreds?: UserGmailCredentials | null): Promise<I
 
 const IMAP_ID_PREFIX = "imap_";
 
-async function listInboxViaImap(maxResults: number): Promise<{ success: boolean; emails?: InboxEmail[]; message: string }> {
+async function listInboxViaImap(maxResults: number, userCreds?: UserGmailCredentials | null): Promise<{ success: boolean; emails?: InboxEmail[]; message: string }> {
   let client: ImapFlow | null = null;
   try {
-    client = await getImapClient();
+    client = await getImapClient(userCreds);
     const lock = await client.getMailboxLock("INBOX");
     try {
       const total = client.mailbox?.exists || 0;
@@ -283,10 +268,10 @@ async function listInboxViaImap(maxResults: number): Promise<{ success: boolean;
   }
 }
 
-async function readEmailViaImap(emailUid: string): Promise<{ success: boolean; email?: FullEmail; message: string }> {
+async function readEmailViaImap(emailUid: string, userCreds?: UserGmailCredentials | null): Promise<{ success: boolean; email?: FullEmail; message: string }> {
   let client: ImapFlow | null = null;
   try {
-    client = await getImapClient();
+    client = await getImapClient(userCreds);
     const lock = await client.getMailboxLock("INBOX");
     try {
       const uid = parseInt(emailUid, 10);
@@ -320,7 +305,7 @@ async function readEmailViaImap(emailUid: string): Promise<{ success: boolean; e
   }
 }
 
-export async function listInbox(maxResults: number = 10): Promise<{ success: boolean; emails?: InboxEmail[]; message: string }> {
+export async function listInbox(maxResults: number = 10, userCreds?: UserGmailCredentials | null): Promise<{ success: boolean; emails?: InboxEmail[]; message: string }> {
   const attemptGmailApi = async (retry: boolean): Promise<{ success: boolean; emails?: InboxEmail[]; message: string } | null> => {
     try {
       const gmail = await getGmailClient();
@@ -373,9 +358,9 @@ export async function listInbox(maxResults: number = 10): Promise<{ success: boo
     if (retryAttempt) return retryAttempt;
   } catch (error: unknown) {
     const errMsg = error instanceof Error ? error.message : String(error);
-    if (isImapConfigured()) {
+    if (isImapConfigured(userCreds)) {
       console.log(`Gmail API error (${errMsg}), falling back to IMAP for inbox reading`);
-      return listInboxViaImap(maxResults);
+      return listInboxViaImap(maxResults, userCreds);
     }
     console.error("Gmail listInbox error:", errMsg);
     return { success: false, message: "Gmail inbox reading requires IMAP configuration. Please set GMAIL_ADDRESS and GMAIL_APP_PASSWORD in your environment settings." };
@@ -384,12 +369,12 @@ export async function listInbox(maxResults: number = 10): Promise<{ success: boo
   return { success: false, message: "Failed to list inbox: unexpected error" };
 }
 
-export async function readEmail(messageId: string): Promise<{ success: boolean; email?: FullEmail; message: string }> {
+export async function readEmail(messageId: string, userCreds?: UserGmailCredentials | null): Promise<{ success: boolean; email?: FullEmail; message: string }> {
   if (messageId.startsWith(IMAP_ID_PREFIX)) {
     const imapUid = messageId.slice(IMAP_ID_PREFIX.length);
-    if (isImapConfigured()) {
+    if (isImapConfigured(userCreds)) {
       console.log(`Email ID has IMAP prefix, reading directly via IMAP (UID: ${imapUid})`);
-      return readEmailViaImap(imapUid);
+      return readEmailViaImap(imapUid, userCreds);
     }
     return { success: false, message: "Email was fetched via IMAP but IMAP is no longer configured." };
   }
@@ -436,9 +421,9 @@ export async function readEmail(messageId: string): Promise<{ success: boolean; 
     if (retryAttempt) return retryAttempt;
   } catch (error: unknown) {
     const errMsg = error instanceof Error ? error.message : String(error);
-    if (isImapConfigured()) {
+    if (isImapConfigured(userCreds)) {
       console.log(`Gmail API error (${errMsg}), falling back to IMAP for email reading`);
-      const imapResult = await readEmailViaImap(messageId);
+      const imapResult = await readEmailViaImap(messageId, userCreds);
       if (imapResult.success) {
         imapResult.message = "Email retrieved successfully (via IMAP).";
         return imapResult;

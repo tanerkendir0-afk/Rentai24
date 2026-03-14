@@ -595,9 +595,9 @@ export class DatabaseStorage implements IStorage {
   }
 
   private getEncryptionKey(): Buffer {
-    const secret = process.env.SESSION_SECRET || process.env.REPL_ID || "";
+    const secret = process.env.SESSION_SECRET;
     if (!secret) {
-      throw new Error("SESSION_SECRET environment variable is required for credential encryption");
+      throw new Error("SESSION_SECRET environment variable is required for credential encryption. Set it in your environment secrets.");
     }
     const crypto = require("crypto");
     return crypto.createHash("sha256").update(secret).digest();

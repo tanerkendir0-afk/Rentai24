@@ -214,6 +214,9 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
   const [socialUsername, setSocialUsername] = useState("");
   const [socialSaving, setSocialSaving] = useState(false);
   const [showCargoPanel, setShowCargoPanel] = useState(false);
+  const [cargoQuickAdd, setCargoQuickAdd] = useState(false);
+  const [cargoAddForm, setCargoAddForm] = useState({ provider: "", apiKey: "", customerCode: "", username: "", password: "" });
+  const [cargoSaving, setCargoSaving] = useState(false);
   const [showHelpPanel, setShowHelpPanel] = useState(false);
   const [helpView, setHelpView] = useState<"menu" | "report" | "tickets">("menu");
   const [helpCategory, setHelpCategory] = useState("bug");
@@ -1047,52 +1050,170 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                       </Button>
                     </div>
 
-                    {shippingProviders.length === 0 ? (
-                      <div className="text-center py-4">
-                        <Package className="w-8 h-8 text-muted-foreground/30 mx-auto mb-2" />
-                        <p className="text-xs text-muted-foreground mb-3">No shipping providers connected</p>
-                        <Button size="sm" onClick={() => { setShowCargoPanel(false); window.location.href = "/settings"; }} className="bg-orange-500 hover:bg-orange-600 text-white text-xs" data-testid="button-cargo-settings">
-                          <Settings2 className="w-3 h-3 mr-1" /> Connect in Settings
-                        </Button>
-                      </div>
-                    ) : (
-                      <>
-                        <div className="space-y-1.5 mb-3">
-                          {shippingProviders.map((sp) => {
-                            const providerNames: Record<string, { name: string; icon: string }> = {
-                              aras: { name: "Aras Kargo", icon: "📦" }, yurtici: { name: "Yurtici Kargo", icon: "🚛" },
-                              mng: { name: "MNG Kargo", icon: "📮" }, surat: { name: "Surat Kargo", icon: "⚡" },
-                              ptt: { name: "PTT Kargo", icon: "🏤" }, ups: { name: "UPS", icon: "🟤" },
-                              fedex: { name: "FedEx", icon: "📬" }, dhl: { name: "DHL", icon: "✈️" },
-                            };
-                            const cfg = providerNames[sp.provider] || { name: sp.provider, icon: "📦" };
-                            return (
-                              <div key={sp.id} className="flex items-center justify-between p-2 rounded-lg bg-muted/30 group" data-testid={`cargo-item-${sp.id}`}>
-                                <div className="flex items-center gap-2 min-w-0">
-                                  <span className="text-base shrink-0">{cfg.icon}</span>
-                                  <div className="min-w-0">
-                                    <p className="text-xs font-medium truncate">{cfg.name}</p>
-                                    <p className="text-[10px] text-muted-foreground truncate">API: ****{sp.apiKey.slice(-4)}</p>
-                                  </div>
+                    {shippingProviders.length > 0 && (
+                      <div className="space-y-1.5 mb-3">
+                        {shippingProviders.map((sp) => {
+                          const providerNames: Record<string, { name: string; icon: string }> = {
+                            aras: { name: "Aras Kargo", icon: "📦" }, yurtici: { name: "Yurtici Kargo", icon: "🚛" },
+                            mng: { name: "MNG Kargo", icon: "📮" }, surat: { name: "Surat Kargo", icon: "⚡" },
+                            ptt: { name: "PTT Kargo", icon: "🏤" }, ups: { name: "UPS", icon: "🟤" },
+                            fedex: { name: "FedEx", icon: "📬" }, dhl: { name: "DHL", icon: "✈️" },
+                          };
+                          const cfg = providerNames[sp.provider] || { name: sp.provider, icon: "📦" };
+                          return (
+                            <div key={sp.id} className="flex items-center justify-between p-2 rounded-lg bg-muted/30 group" data-testid={`cargo-item-${sp.id}`}>
+                              <div className="flex items-center gap-2 min-w-0">
+                                <span className="text-base shrink-0">{cfg.icon}</span>
+                                <div className="min-w-0">
+                                  <p className="text-xs font-medium truncate">{cfg.name}</p>
+                                  <p className="text-[10px] text-muted-foreground truncate">API: ****{sp.apiKey.slice(-4)}</p>
                                 </div>
+                              </div>
+                              <div className="flex items-center gap-1.5">
                                 <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/30 text-[9px] shrink-0">
                                   {sp.status}
                                 </Badge>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-opacity"
+                                  onClick={async () => {
+                                    try {
+                                      await apiRequest("DELETE", `/api/shipping-providers/${sp.id}`);
+                                      queryClient.invalidateQueries({ queryKey: ["/api/shipping-providers"] });
+                                      toast({ title: "Provider removed", description: `${cfg.name} has been disconnected.` });
+                                    } catch { toast({ title: "Error", description: "Failed to remove provider.", variant: "destructive" }); }
+                                  }}
+                                  data-testid={`button-cargo-remove-${sp.id}`}
+                                >
+                                  <X className="w-3 h-3" />
+                                </Button>
                               </div>
-                            );
-                          })}
-                        </div>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => { setShowCargoPanel(false); window.location.href = "/settings"; }}
-                          className="w-full h-8 text-xs text-muted-foreground hover:text-orange-400 gap-1"
-                          data-testid="button-cargo-manage"
-                        >
-                          <Settings2 className="w-3 h-3" /> Manage in Settings
-                        </Button>
-                      </>
+                            </div>
+                          );
+                        })}
+                      </div>
                     )}
+
+                    {shippingProviders.length === 0 && !cargoQuickAdd && (
+                      <div className="text-center py-4">
+                        <Package className="w-8 h-8 text-muted-foreground/30 mx-auto mb-2" />
+                        <p className="text-xs text-muted-foreground mb-3">No shipping providers connected</p>
+                      </div>
+                    )}
+
+                    {cargoQuickAdd ? (
+                      <div className="space-y-2 border border-border/50 rounded-lg p-3 mb-2">
+                        <p className="text-xs font-medium text-foreground">Quick Connect</p>
+                        <div className="flex flex-wrap gap-1">
+                          {[
+                            { key: "aras", name: "Aras", fields: ["apiKey","customerCode"] },
+                            { key: "yurtici", name: "Yurtici", fields: ["apiKey","username","password"] },
+                            { key: "mng", name: "MNG", fields: ["apiKey","customerCode"] },
+                            { key: "surat", name: "Surat", fields: ["apiKey","customerCode"] },
+                            { key: "ptt", name: "PTT", fields: ["apiKey","username"] },
+                            { key: "ups", name: "UPS", fields: ["apiKey","username","password"] },
+                            { key: "fedex", name: "FedEx", fields: ["apiKey"] },
+                            { key: "dhl", name: "DHL", fields: ["apiKey"] },
+                          ].filter(p => !shippingProviders.some(sp => sp.provider === p.key)).map(p => (
+                            <Button
+                              key={p.key}
+                              size="sm"
+                              variant="outline"
+                              className={`h-6 text-[10px] px-2 ${cargoAddForm.provider === p.key ? "border-orange-500 bg-orange-500/10 text-orange-400" : ""}`}
+                              onClick={() => setCargoAddForm({ provider: p.key, apiKey: "", customerCode: "", username: "", password: "" })}
+                              data-testid={`button-cargo-select-${p.key}`}
+                            >
+                              {p.name}
+                            </Button>
+                          ))}
+                        </div>
+                        {cargoAddForm.provider && (() => {
+                          const fieldMap: Record<string, string[]> = {
+                            aras: ["apiKey","customerCode"], yurtici: ["apiKey","username","password"],
+                            mng: ["apiKey","customerCode"], surat: ["apiKey","customerCode"],
+                            ptt: ["apiKey","username"], ups: ["apiKey","username","password"],
+                            fedex: ["apiKey"], dhl: ["apiKey"],
+                          };
+                          const labels: Record<string, string> = { apiKey: "API Key", customerCode: "Customer Code", username: "Username", password: "Password" };
+                          const fields = fieldMap[cargoAddForm.provider] || ["apiKey"];
+                          return (
+                            <div className="space-y-1.5 mt-2">
+                              {fields.map(f => (
+                                <Input
+                                  key={f}
+                                  type={f === "apiKey" || f === "password" ? "password" : "text"}
+                                  placeholder={labels[f]}
+                                  value={(cargoAddForm as any)[f] || ""}
+                                  onChange={e => setCargoAddForm(prev => ({ ...prev, [f]: e.target.value }))}
+                                  className="h-7 text-xs bg-muted/30"
+                                  data-testid={`input-cargo-${f}`}
+                                />
+                              ))}
+                              <div className="flex gap-1.5 mt-1">
+                                <Button
+                                  size="sm"
+                                  className="flex-1 h-7 text-xs bg-orange-500 hover:bg-orange-600 text-white"
+                                  disabled={!cargoAddForm.apiKey.trim() || cargoSaving}
+                                  onClick={async () => {
+                                    setCargoSaving(true);
+                                    try {
+                                      const body: any = { provider: cargoAddForm.provider, apiKey: cargoAddForm.apiKey.trim() };
+                                      if (cargoAddForm.customerCode.trim()) body.customerCode = cargoAddForm.customerCode.trim();
+                                      if (cargoAddForm.username.trim()) body.username = cargoAddForm.username.trim();
+                                      if (cargoAddForm.password.trim()) body.password = cargoAddForm.password.trim();
+                                      await apiRequest("POST", "/api/shipping-providers", body);
+                                      queryClient.invalidateQueries({ queryKey: ["/api/shipping-providers"] });
+                                      setCargoAddForm({ provider: "", apiKey: "", customerCode: "", username: "", password: "" });
+                                      setCargoQuickAdd(false);
+                                      toast({ title: "Provider connected", description: `${cargoAddForm.provider} has been added.` });
+                                    } catch { toast({ title: "Error", description: "Failed to connect provider.", variant: "destructive" }); }
+                                    setCargoSaving(false);
+                                  }}
+                                  data-testid="button-cargo-save"
+                                >
+                                  {cargoSaving ? "Saving..." : "Connect"}
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-7 text-xs"
+                                  onClick={() => { setCargoQuickAdd(false); setCargoAddForm({ provider: "", apiKey: "", customerCode: "", username: "", password: "" }); }}
+                                  data-testid="button-cargo-cancel"
+                                >
+                                  Cancel
+                                </Button>
+                              </div>
+                            </div>
+                          );
+                        })()}
+                        {!cargoAddForm.provider && (
+                          <div className="flex justify-end mt-1">
+                            <Button size="sm" variant="ghost" className="h-6 text-[10px]" onClick={() => setCargoQuickAdd(false)} data-testid="button-cargo-cancel">Cancel</Button>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setCargoQuickAdd(true)}
+                        className="w-full h-8 text-xs text-muted-foreground hover:text-orange-400 gap-1 border border-dashed border-border/50"
+                        data-testid="button-cargo-add"
+                      >
+                        <Plus className="w-3 h-3" /> Add Provider
+                      </Button>
+                    )}
+
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => { setShowCargoPanel(false); window.location.href = "/settings"; }}
+                      className="w-full h-7 text-[10px] text-muted-foreground hover:text-orange-400 gap-1 mt-1"
+                      data-testid="button-cargo-manage"
+                    >
+                      <Settings2 className="w-3 h-3" /> Full Settings
+                    </Button>
                   </div>
                 )}
               </div>

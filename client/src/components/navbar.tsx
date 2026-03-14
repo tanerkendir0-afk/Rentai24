@@ -9,7 +9,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Menu, Bot, User, LayoutDashboard, Download, Smartphone, Wifi, Bell, Settings } from "lucide-react";
+import { Menu, Bot, User, LayoutDashboard, Download, Smartphone, Wifi, Bell, Settings, LogOut, BookOpen } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { usePwaInstall } from "@/hooks/use-pwa-install";
 
@@ -25,8 +25,8 @@ export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
   const [installDialogOpen, setInstallDialogOpen] = useState(false);
-  const [location] = useLocation();
-  const { user, isLoading } = useAuth();
+  const [location, setLoc] = useLocation();
+  const { user, isLoading, logout } = useAuth();
   const { canInstall, install } = usePwaInstall();
 
   const handleInstallClick = () => {
@@ -36,6 +36,11 @@ export default function Navbar() {
   const confirmInstall = async () => {
     setInstallDialogOpen(false);
     await install();
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    setLoc("/");
   };
 
   useEffect(() => {
@@ -99,6 +104,16 @@ export default function Navbar() {
             )}
             {!isLoading && user ? (
               <div className="hidden sm:flex items-center gap-2">
+                <Link href="/guide">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    data-testid="button-guide"
+                  >
+                    <BookOpen className="w-4 h-4 mr-1" />
+                    Guide
+                  </Button>
+                </Link>
                 <Link href="/settings">
                   <Button
                     size="sm"
@@ -119,6 +134,16 @@ export default function Navbar() {
                     Dashboard
                   </Button>
                 </Link>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={handleLogout}
+                  className="text-muted-foreground hover:text-foreground"
+                  data-testid="button-logout"
+                >
+                  <LogOut className="w-4 h-4 mr-1" />
+                  Sign Out
+                </Button>
               </div>
             ) : !isLoading ? (
               <div className="hidden sm:flex items-center gap-2">
@@ -195,6 +220,17 @@ export default function Navbar() {
                             Dashboard
                           </Button>
                         </Link>
+                        <Link href="/guide">
+                          <Button
+                            variant="outline"
+                            className="w-full"
+                            onClick={() => setOpen(false)}
+                            data-testid="button-mobile-guide"
+                          >
+                            <BookOpen className="w-4 h-4 mr-1" />
+                            Guide
+                          </Button>
+                        </Link>
                         <Link href="/settings">
                           <Button
                             variant="outline"
@@ -206,6 +242,15 @@ export default function Navbar() {
                             Settings
                           </Button>
                         </Link>
+                        <Button
+                          variant="ghost"
+                          className="w-full text-muted-foreground hover:text-foreground"
+                          onClick={() => { setOpen(false); handleLogout(); }}
+                          data-testid="button-mobile-logout"
+                        >
+                          <LogOut className="w-4 h-4 mr-1" />
+                          Sign Out
+                        </Button>
                       </>
                     ) : (
                       <>

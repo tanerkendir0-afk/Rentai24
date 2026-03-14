@@ -42,6 +42,7 @@ import {
 } from "lucide-react";
 import { agents, testimonials, faqItems, industries } from "@/data/agents";
 import SectionCTA from "@/components/section-cta";
+import PlatformGuide from "@/components/platform-guide";
 
 const agentIcons: Record<string, any> = {
   "customer-support": Headphones,
@@ -404,7 +405,28 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="py-16 sm:py-24 relative bg-card/30">
+      <section className="py-16 sm:py-24 relative bg-card/30" data-testid="section-platform-demo">
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-[20%] right-[10%] w-[400px] h-[400px] bg-violet-500/5 rounded-full blur-[120px]" />
+          <div className="absolute bottom-[20%] left-[10%] w-[300px] h-[300px] bg-blue-500/5 rounded-full blur-[100px]" />
+        </div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <motion.div className="text-center mb-10 sm:mb-16" {...fadeUp}>
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-3 sm:mb-4" data-testid="text-demo-title">
+              See It in{" "}
+              <span className="bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent">
+                Action
+              </span>
+            </h2>
+            <p className="text-muted-foreground text-sm sm:text-lg max-w-2xl mx-auto">
+              Watch how businesses use RentAI 24 to automate their operations
+            </p>
+          </motion.div>
+          <PlatformGuide variant="home" />
+        </div>
+      </section>
+
+      <section className="py-16 sm:py-24 relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div className="text-center mb-10 sm:mb-16" {...fadeUp}>
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-3 sm:mb-4" data-testid="text-catalog-title">

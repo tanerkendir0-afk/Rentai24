@@ -37,6 +37,7 @@ import {
   Loader2,
   Zap,
   Check,
+  MessageSquare,
 } from "lucide-react";
 import { agents, categories } from "@/data/agents";
 import { useAuth } from "@/lib/auth";
@@ -75,6 +76,30 @@ export default function Workers() {
   const [selectedPlan, setSelectedPlan] = useState("starter");
   const { user } = useAuth();
   const { toast } = useToast();
+
+  interface RentalInfo {
+    id: number;
+    agentType: string;
+    plan: string;
+    status: string;
+    messagesUsed: number;
+    messagesLimit: number;
+  }
+
+  const { data: rentals } = useQuery<RentalInfo[]>({
+    queryKey: ["/api/rentals"],
+    enabled: !!user,
+  });
+
+  const rentalMap = useMemo(() => {
+    const map: Record<string, RentalInfo> = {};
+    if (rentals) {
+      for (const r of rentals) {
+        if (r.status === "active") map[r.agentType] = r;
+      }
+    }
+    return map;
+  }, [rentals]);
 
   async function handleHire(agentId: string) {
     if (!user) {
@@ -120,7 +145,7 @@ export default function Workers() {
   }
 
   const filtered = useMemo(() => {
-    return agents.filter((agent) => {
+    const list = agents.filter((agent) => {
       const matchSearch =
         search === "" ||
         agent.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -134,7 +159,15 @@ export default function Workers() {
         (priceFilter === "high" && agent.price > 139);
       return matchSearch && matchCategory && matchPrice;
     });
-  }, [search, categoryFilter, priceFilter]);
+    if (user && rentals) {
+      const hired = list.filter(a => rentalMap[a.id]);
+      const available = list.filter(a => !rentalMap[a.id]);
+      return [...hired, ...available];
+    }
+    return list;
+  }, [search, categoryFilter, priceFilter, user, rentals, rentalMap]);
+
+  const hiredCount = user ? filtered.filter(a => rentalMap[a.id]).length : 0;
 
   return (
     <div className="pt-16">
@@ -148,13 +181,26 @@ export default function Workers() {
             transition={{ duration: 0.6 }}
           >
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-foreground mb-3 sm:mb-4" data-testid="text-workers-title">
-              Browse Our{" "}
-              <span className="bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent">
-                AI Workforce
-              </span>
+              {user && hiredCount > 0 ? (
+                <>
+                  Your{" "}
+                  <span className="bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent">
+                    AI Team
+                  </span>
+                </>
+              ) : (
+                <>
+                  Browse Our{" "}
+                  <span className="bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent">
+                    AI Workforce
+                  </span>
+                </>
+              )}
             </h1>
             <p className="text-muted-foreground text-sm sm:text-lg max-w-2xl mx-auto">
-              Every agent is pre-trained, battle-tested, and ready to deploy.
+              {user && hiredCount > 0
+                ? `You have ${hiredCount} active agent${hiredCount > 1 ? "s" : ""}. Manage your team or discover new talent.`
+                : "Every agent is pre-trained, battle-tested, and ready to deploy."}
             </p>
           </motion.div>
 
@@ -191,19 +237,54 @@ export default function Workers() {
             </Select>
           </motion.div>
 
+          {user && hiredCount > 0 && (
+            <div className="mb-6">
+              <h2 className="text-lg font-semibold text-foreground flex items-center gap-2 mb-1" data-testid="text-hired-section">
+                <div className="w-2 h-2 rounded-full bg-emerald-400" />
+                Active Agents
+              </h2>
+              <p className="text-xs text-muted-foreground">Your currently hired AI team members</p>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
             {filtered.map((agent, i) => {
               const Icon = agentIcons[agent.id] || Bot;
+              const rental = rentalMap[agent.id];
+              const isHired = !!rental;
+              const showDivider = user && hiredCount > 0 && i === hiredCount;
+
               return (
-                <motion.div key={agent.id} {...stagger} transition={{ duration: 0.5, delay: i * 0.08 }}>
-                  <Card className="p-4 sm:p-6 bg-card border-border/50 h-full flex flex-col hover-elevate" data-testid={`card-agent-${agent.id}`}>
+                <motion.div key={agent.id} {...stagger} transition={{ duration: 0.5, delay: i * 0.08 }}
+                  className={showDivider ? "col-span-full contents" : ""}
+                >
+                  {showDivider && (
+                    <div className="col-span-full my-4" data-testid="divider-available">
+                      <div className="flex items-center gap-3">
+                        <div className="h-px flex-1 bg-border/50" />
+                        <span className="text-sm font-medium text-muted-foreground">Discover More Agents</span>
+                        <div className="h-px flex-1 bg-border/50" />
+                      </div>
+                    </div>
+                  )}
+                  <Card className={`p-4 sm:p-6 bg-card h-full flex flex-col hover-elevate ${
+                    isHired ? "border-emerald-500/30 ring-1 ring-emerald-500/10" : "border-border/50"
+                  }`} data-testid={`card-agent-${agent.id}`}>
                     <div className="flex items-start justify-between gap-2 mb-3 sm:mb-4">
                       <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-md bg-gradient-to-br from-blue-500 to-violet-500 flex items-center justify-center shrink-0">
                         <Icon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                       </div>
                       <div className="flex items-center gap-1.5">
-                        <div className="w-2 h-2 rounded-full bg-emerald-400" />
-                        <span className="text-xs text-emerald-400">24/7</span>
+                        {isHired ? (
+                          <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 text-xs" data-testid={`badge-active-${agent.id}`}>
+                            Active
+                          </Badge>
+                        ) : (
+                          <>
+                            <div className="w-2 h-2 rounded-full bg-emerald-400" />
+                            <span className="text-xs text-emerald-400">24/7</span>
+                          </>
+                        )}
                       </div>
                     </div>
 
@@ -220,7 +301,7 @@ export default function Workers() {
                       )}
                     </div>
 
-                    {agent.tag && (
+                    {!isHired && agent.tag && (
                       <Badge className="self-start mb-3 bg-blue-500/10 text-blue-400 border-blue-500/20 text-xs no-default-active-elevate">{agent.tag}</Badge>
                     )}
 
@@ -231,34 +312,72 @@ export default function Workers() {
                     </div>
 
                     <div className="mt-auto pt-4 border-t border-border/50">
-                      <div className="flex items-center justify-between gap-2 mb-3">
-                        <div>
-                          <span className="text-xl font-bold bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent">${agent.price}</span>
-                          <span className="text-xs text-muted-foreground">/mo</span>
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <Link href={`/workers/${agent.slug}`} className="flex-1">
-                          <Button variant="outline" className="w-full" size="sm" data-testid={`button-profile-${agent.id}`}>
-                            View Profile
-                          </Button>
-                        </Link>
-                        <div className="flex-1">
-                          <Button
-                            className="w-full bg-gradient-to-r from-blue-500 to-violet-500 text-white border-0"
-                            size="sm"
-                            disabled={checkingOut === agent.id}
-                            onClick={() => handleHire(agent.id)}
-                            data-testid={`button-hire-${agent.id}`}
-                          >
-                            {checkingOut === agent.id ? (
-                              <><Loader2 className="w-3 h-3 mr-1 animate-spin" />Processing</>
-                            ) : (
-                              "Hire Now"
-                            )}
-                          </Button>
-                        </div>
-                      </div>
+                      {isHired && rental ? (
+                        <>
+                          <div className="flex items-center justify-between gap-2 mb-3">
+                            <div className="text-xs text-muted-foreground">
+                              <span className="capitalize">{rental.plan}</span> Plan
+                            </div>
+                            <div className="text-xs text-foreground font-medium" data-testid={`text-usage-${agent.id}`}>
+                              {rental.messagesUsed} / {rental.messagesLimit}
+                            </div>
+                          </div>
+                          <div className="w-full h-1.5 bg-border/50 rounded-full mb-3 overflow-hidden">
+                            <div
+                              className="h-full bg-gradient-to-r from-blue-500 to-violet-500 rounded-full transition-all"
+                              style={{ width: `${Math.min(100, (rental.messagesUsed / rental.messagesLimit) * 100)}%` }}
+                            />
+                          </div>
+                          <div className="flex gap-2">
+                            <Link href={`/workers/${agent.slug}`} className="flex-1">
+                              <Button variant="outline" className="w-full" size="sm" data-testid={`button-profile-${agent.id}`}>
+                                View Profile
+                              </Button>
+                            </Link>
+                            <Link href={`/chat?agent=${agent.id}`} className="flex-1">
+                              <Button
+                                className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 text-white border-0"
+                                size="sm"
+                                data-testid={`button-chat-${agent.id}`}
+                              >
+                                <MessageSquare className="w-3 h-3 mr-1" />
+                                Chat
+                              </Button>
+                            </Link>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="flex items-center justify-between gap-2 mb-3">
+                            <div>
+                              <span className="text-xl font-bold bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent">${agent.price}</span>
+                              <span className="text-xs text-muted-foreground">/mo</span>
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <Link href={`/workers/${agent.slug}`} className="flex-1">
+                              <Button variant="outline" className="w-full" size="sm" data-testid={`button-profile-${agent.id}`}>
+                                View Profile
+                              </Button>
+                            </Link>
+                            <div className="flex-1">
+                              <Button
+                                className="w-full bg-gradient-to-r from-blue-500 to-violet-500 text-white border-0"
+                                size="sm"
+                                disabled={checkingOut === agent.id}
+                                onClick={() => handleHire(agent.id)}
+                                data-testid={`button-hire-${agent.id}`}
+                              >
+                                {checkingOut === agent.id ? (
+                                  <><Loader2 className="w-3 h-3 mr-1 animate-spin" />Processing</>
+                                ) : (
+                                  "Hire Now"
+                                )}
+                              </Button>
+                            </div>
+                          </div>
+                        </>
+                      )}
                     </div>
                   </Card>
                 </motion.div>

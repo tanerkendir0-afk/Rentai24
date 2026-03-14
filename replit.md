@@ -39,6 +39,9 @@ The RentAI 24 platform uses a modern web stack. The frontend employs React, Type
 *   **Training Data Quality Scoring:** Scores conversation quality for training data exports, filtering out low-quality examples.
 *   **Brand Identity Protection:** Agents attribute capabilities to "proprietary RentAI 24 AI technology."
 *   **Manager Agent (Smart Router):** An intelligent routing layer (`agentType: "manager"`) that classifies user messages and routes them to the appropriate hired agent. Uses keyword matching + GPT-4o-mini classification. Only routes to agents the user has active rentals for. If a message matches an unhired agent, suggests hiring it with a link to the Workers page. Available in the chat sidebar for logged-in users with at least one hired agent.
+*   **Auth-aware Workers Page:** Logged-in users see hired agents first with "Active" badge, usage stats, progress bars, and "Chat" buttons. Unhired agents appear below a divider with standard pricing and "Hire Now". Page header adapts to "Your AI Team" when agents are hired.
+*   **Animated Platform Guide:** Interactive, animated walkthrough with 4 auto-advancing steps (Browse & Hire, Chat, Tasks, Dashboard). Each step has a live animated demo panel. Embedded on the homepage for guests (eye-catching showcase), and available as a full `/guide` page for logged-in users.
+*   **Navbar Sign Out:** Sign Out button available in the main navbar (desktop + mobile) for logged-in users. Guide link also added to navbar.
 
 ## External Dependencies
 *   **OpenAI:** GPT-4o, `text-embedding-3-small` (via Replit AI Integrations)

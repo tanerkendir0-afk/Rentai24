@@ -4095,7 +4095,7 @@ function LimitManagementPanel({ token }: { token: string }) {
   );
 }
 
-function EscalationsPanel({ token }: { token: string }) {
+function EscalationsPanel({ token, autoOpenId }: { token: string; autoOpenId?: number }) {
   const { toast } = useToast();
   const headers = { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
   const [rules, setRules] = useState<any[]>([]);
@@ -4133,6 +4133,12 @@ function EscalationsPanel({ token }: { token: string }) {
   }, [fetchRules, fetchEscalations]);
 
   useEffect(() => { fetchEscalations(); }, [statusFilter]);
+
+  useEffect(() => {
+    if (autoOpenId && !loading) {
+      openChat({ id: autoOpenId });
+    }
+  }, [autoOpenId, loading]);
 
   const toggleRule = async (id: number, isActive: boolean) => {
     try {
@@ -4625,6 +4631,7 @@ export default function AdminPage() {
   const [stats, setStats] = useState<AgentStats | null>(null);
   const [activeTab, setActiveTab] = useState("overview");
   const [activeCategory, setActiveCategory] = useState("dashboard");
+  const [autoOpenEscalationId, setAutoOpenEscalationId] = useState<number | undefined>();
 
   useEffect(() => {
     const meta = document.createElement("meta");
@@ -4656,6 +4663,10 @@ export default function AdminPage() {
     if (urlParams.get("tab") === "escalations") {
       setActiveCategory("security");
       setActiveTab("escalations");
+      const escId = urlParams.get("escalationId");
+      if (escId) {
+        setAutoOpenEscalationId(parseInt(escId));
+      }
     }
   };
 
@@ -4947,7 +4958,7 @@ export default function AdminPage() {
           </TabsContent>
 
           <TabsContent value="escalations">
-            <EscalationsPanel token={token} />
+            <EscalationsPanel token={token} autoOpenId={autoOpenEscalationId} />
           </TabsContent>
 
           <TabsContent value="performance">

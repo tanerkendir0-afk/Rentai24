@@ -421,6 +421,37 @@ export async function registerRoutes(
     next();
   });
 
+  (async () => {
+    try {
+      const existingRules = await storage.getEscalationRules();
+      if (existingRules.length === 0) {
+        const defaultRules = [
+          {
+            name: "Sinirli Müşteri", type: "angry_customer", isActive: true, priority: "high", threshold: 1,
+            keywords: ["şikayet","rezalet","saçmalık","berbat","complaint","angry","furious","terrible","ridiculous","müdürünüzle","supervisor","yöneticiyle","unacceptable","kabul edilemez","skandal","felaket","iğrenç","disgusting","worst","en kötü","lanet","damn","yazıklar olsun","shame on you"],
+            escalationMessage: "⚠️ Talebiniz yetkiliye iletildi. En kısa sürede size dönüş yapılacaktır. Lütfen bekleyin...",
+          },
+          {
+            name: "Tekrar Hatası", type: "repeated_failure", isActive: true, priority: "medium", threshold: 2,
+            keywords: ["anlamıyorsun","tekrar ediyorum","daha önce söyledim","yine aynı","anlayamadım","repeat","already told you","again","not understanding","hala anlamadın","kaç kere söyleyeceğim","how many times"],
+            escalationMessage: "⚠️ Yaşadığınız sorunu daha iyi çözebilmek için talebiniz yetkiliye iletildi. Kısa süre içinde size yardımcı olacağız.",
+          },
+          {
+            name: "Hassas Konu", type: "sensitive_topic", isActive: true, priority: "critical", threshold: 1,
+            keywords: ["iade","refund","geri ödeme","avukat","dava","yasal","hukuki","lawyer","legal","sue","lawsuit","mahkeme","court","savcılık","tüketici hakları","consumer rights","şikayetvar","money back","paramı istiyorum","para iadesi"],
+            escalationMessage: "⚠️ Bu konu hassas bir konudur. Talebiniz yetkili ekibimize iletilmiştir. En kısa sürede size geri dönüş yapılacaktır.",
+          },
+        ];
+        for (const rule of defaultRules) {
+          await storage.createEscalationRule(rule);
+        }
+        console.log("[Escalation] Seeded 3 default escalation rules");
+      }
+    } catch (err) {
+      console.error("[Escalation] Error seeding default rules:", err);
+    }
+  })();
+
   app.post("/api/auth/register", async (req, res) => {
     const parsed = registerSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -1366,7 +1397,11 @@ export async function registerRoutes(
     const { message, agentType, conversationHistory, sessionId: clientSessionId } = parsed.data;
 
     if (req.session.userId) {
-      const activeEsc = await storage.getActiveEscalationForUser(req.session.userId, agentType);
+      let activeEsc = await storage.getActiveEscalationForUser(req.session.userId, agentType);
+      if (!activeEsc && agentType === "manager") {
+        const allEscalations = await storage.getEscalations("admin_joined");
+        activeEsc = allEscalations.find((e: any) => e.userId === req.session.userId) || null;
+      }
       if (activeEsc && activeEsc.status === "admin_joined") {
         await storage.createEscalationMessage({
           escalationId: activeEsc.id,
@@ -3935,10 +3970,13 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) return res.status(400).json({ error: "Invalid ID" });
+      const esc = await storage.getEscalationById(id);
+      if (!esc || esc.userId !== req.session.userId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
       const afterParam = req.query.after ? new Date(req.query.after as string) : undefined;
       const messages = await storage.getEscalationMessages(id, afterParam);
-      const esc = await storage.getEscalationById(id);
-      res.json({ messages, status: esc?.status });
+      res.json({ messages, status: esc.status });
     } catch (error: unknown) {
       console.error("Escalation messages error:", error);
       res.status(500).json({ error: "Internal server error" });

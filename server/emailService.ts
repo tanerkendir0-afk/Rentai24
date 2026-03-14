@@ -153,9 +153,9 @@ export async function sendEmail(params: {
               agentType: params.agentType,
               actionType: "email_sent",
               description: `Email sent from user Gmail (${smtpResult.fromAddress}) to ${params.to}: "${params.subject}"`,
-              metadata: { to: params.to, subject: params.subject, body: params.body, provider: "user_gmail", fromAddress: smtpResult.fromAddress },
+              metadata: { to: params.to, subject: params.subject, body: params.body, provider: "gmail", fromAddress: smtpResult.fromAddress },
             });
-            return { success: true, message: smtpResult.message, provider: "user_gmail" };
+            return { success: true, message: smtpResult.message, provider: "gmail" };
           }
         } catch (smtpErr: unknown) {
           const smtpErrMsg = smtpErr instanceof Error ? smtpErr.message : String(smtpErr);
@@ -207,7 +207,7 @@ export async function getEmailStatus(userId?: number): Promise<{ provider: strin
     const userCreds = await getUserGmailCredentials(userId);
     if (userCreds) {
       return {
-        provider: "user_gmail",
+        provider: "gmail",
         address: userCreds.gmailAddress,
         connected: true,
         canRead: true,

@@ -33,6 +33,8 @@ The RentAI 24 platform uses a modern web stack. The frontend employs React, Type
 *   **Boss AI Notification System:** Notifies Boss AI of agent actions and sends email notifications to users with configured Gmail.
 *   **PWA Support:** Provides an installable, app-like experience.
 *   **AI Guardrails System:** Implements multi-layer security with input guardrails (prompt injection detection, blocked topics, rate limiting) and output guardrails (sensitive data sanitization, response length limits), logging all blocks.
+*   **Distillation Protection:** Detects systematic AI model data extraction attempts — blocks users/IPs querying 5+ different agents or sending 8+ similar queries within 10 minutes. Adds invisible zero-width character watermarks to AI responses for traceability. Events logged to `security_events` table (`server/distillationProtection.ts`).
+*   **Admin Security Report:** New "Security" tab in admin panel showing security event statistics by type (distillation attempts, guardrail blocks, rate limits, suspicious patterns), top suspicious IPs, time-based event charts, and detailed event logs with configurable time periods (24h/7d/30d).
 *   **Agent Behavior Improvements:** Includes efficiency rules, tool call deduplication, and better error handling for Gmail.
 *   **Agent Performance Dashboard:** Displays per-agent statistics like sessions, messages, error rates, and health status.
 *   **Conversation Review System:** Allows admins to browse, filter, and rate conversations, influencing training data quality.

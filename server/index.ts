@@ -179,6 +179,21 @@ app.use((req, res, next) => {
       );
 
       await pool.query(`
+        CREATE TABLE IF NOT EXISTS security_events (
+          id SERIAL PRIMARY KEY,
+          ip_address TEXT NOT NULL,
+          event_type TEXT NOT NULL CHECK (event_type IN ('distillation_attempt', 'guardrail_block', 'rate_limit', 'suspicious_pattern')),
+          endpoint TEXT,
+          user_agent TEXT,
+          user_id INTEGER REFERENCES users(id),
+          detail TEXT,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+        )
+      `).catch((err: unknown) =>
+        console.warn("security_events table setup:", err instanceof Error ? err.message : String(err))
+      );
+
+      await pool.query(`
         CREATE TABLE IF NOT EXISTS collaboration_sessions (
           id SERIAL PRIMARY KEY,
           topic TEXT NOT NULL,

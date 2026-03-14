@@ -3242,6 +3242,192 @@ function SupportTicketsPanel({ token }: { token: string }) {
   );
 }
 
+interface SecurityEventItem {
+  id: number;
+  ipAddress: string;
+  eventType: string;
+  endpoint: string | null;
+  userAgent: string | null;
+  userId: number | null;
+  detail: string | null;
+  createdAt: string;
+}
+
+interface SecurityReportData {
+  events: SecurityEventItem[];
+  typeCounts: { eventType: string; count: number }[];
+  topIps: { ipAddress: string; count: number; lastSeen: string }[];
+  hourlyStats: { hour: string; count: number }[];
+  totalCount: number;
+  period: string;
+}
+
+function SecurityReportPanel({ token }: { token: string }) {
+  const [data, setData] = useState<SecurityReportData | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [period, setPeriod] = useState("24h");
+
+  const headers = { Authorization: `Bearer ${token}` };
+
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/admin/security-events?period=${period}`, { headers });
+      const d = await res.json();
+      setData(d);
+    } catch {
+    } finally {
+      setLoading(false);
+    }
+  }, [token, period]);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
+
+  const eventTypeLabels: Record<string, { label: string; color: string }> = {
+    distillation_attempt: { label: "Distillation Attempt", color: "text-red-400 bg-red-900/30 border-red-800" },
+    guardrail_block: { label: "Guardrail Block", color: "text-yellow-400 bg-yellow-900/30 border-yellow-800" },
+    rate_limit: { label: "Rate Limit", color: "text-orange-400 bg-orange-900/30 border-orange-800" },
+    suspicious_pattern: { label: "Suspicious Pattern", color: "text-purple-400 bg-purple-900/30 border-purple-800" },
+  };
+
+  const maxHourlyCount = data?.hourlyStats ? Math.max(...data.hourlyStats.map(h => h.count), 1) : 1;
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+          <AlertTriangle className="w-5 h-5 text-red-400" />
+          Security Report
+        </h3>
+        <div className="flex items-center gap-2">
+          <Select value={period} onValueChange={setPeriod}>
+            <SelectTrigger className="w-[120px] bg-[#0A0E27] border-[#1E2448] text-white" data-testid="select-security-period">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="24h">Last 24h</SelectItem>
+              <SelectItem value="7d">Last 7 days</SelectItem>
+              <SelectItem value="30d">Last 30 days</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button variant="ghost" size="sm" onClick={fetchData} disabled={loading} data-testid="button-refresh-security">
+            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+          </Button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {Object.entries(eventTypeLabels).map(([type, cfg]) => {
+          const count = data?.typeCounts.find(t => t.eventType === type)?.count || 0;
+          return (
+            <Card key={type} className="bg-[#0A0E27] border-[#1E2448]">
+              <CardContent className="p-4">
+                <p className="text-xs text-gray-400">{cfg.label}</p>
+                <p className={`text-2xl font-bold ${cfg.color.split(" ")[0]}`} data-testid={`text-security-count-${type}`}>
+                  {count}
+                </p>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+
+      {data?.hourlyStats && data.hourlyStats.length > 0 && (
+        <Card className="bg-[#0A0E27] border-[#1E2448]">
+          <CardHeader>
+            <CardTitle className="text-lg text-white flex items-center gap-2">
+              <BarChart3 className="w-5 h-5 text-blue-400" />
+              Events Over Time
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-end gap-1 h-32 overflow-x-auto">
+              {data.hourlyStats.map((stat, i) => (
+                <div key={i} className="flex flex-col items-center min-w-[24px]" title={`${stat.hour}: ${stat.count} events`}>
+                  <div
+                    className="w-5 bg-gradient-to-t from-red-500 to-orange-400 rounded-t"
+                    style={{ height: `${(stat.count / maxHourlyCount) * 100}%`, minHeight: stat.count > 0 ? "4px" : "0px" }}
+                  />
+                  <span className="text-[9px] text-gray-500 mt-1 rotate-[-45deg] origin-top-left whitespace-nowrap">
+                    {stat.hour.split(" ")[1] || stat.hour}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      <Card className="bg-[#0A0E27] border-[#1E2448]">
+        <CardHeader>
+          <CardTitle className="text-lg text-white flex items-center gap-2">
+            <Shield className="w-5 h-5 text-orange-400" />
+            Top Suspicious IPs ({data?.topIps?.length || 0})
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {!data?.topIps || data.topIps.length === 0 ? (
+            <p className="text-gray-500 text-center py-6">No suspicious activity detected in this period</p>
+          ) : (
+            <div className="space-y-2">
+              {data.topIps.map((ip, i) => (
+                <div key={i} className="flex items-center justify-between p-3 bg-[#111633] rounded-lg border border-[#1E2448]" data-testid={`security-ip-row-${i}`}>
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-red-900/30 flex items-center justify-center">
+                      <AlertTriangle className="w-4 h-4 text-red-400" />
+                    </div>
+                    <div>
+                      <p className="text-white text-sm font-mono">{ip.ipAddress}</p>
+                      <p className="text-gray-500 text-xs">Last seen: {new Date(ip.lastSeen).toLocaleString()}</p>
+                    </div>
+                  </div>
+                  <Badge className="bg-red-900/30 text-red-400 border-red-800">
+                    {ip.count} events
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="bg-[#0A0E27] border-[#1E2448]">
+        <CardHeader>
+          <CardTitle className="text-lg text-white flex items-center gap-2">
+            <Clock className="w-5 h-5 text-cyan-400" />
+            Recent Security Events ({data?.totalCount || 0})
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {!data?.events || data.events.length === 0 ? (
+            <p className="text-gray-500 text-center py-6">No security events in this period</p>
+          ) : (
+            <div className="space-y-2 max-h-[500px] overflow-y-auto">
+              {data.events.slice(0, 50).map((evt) => {
+                const cfg = eventTypeLabels[evt.eventType] || { label: evt.eventType, color: "text-gray-400 bg-gray-900/30 border-gray-700" };
+                return (
+                  <div key={evt.id} className="p-3 bg-[#111633] rounded-lg border border-[#1E2448]" data-testid={`security-event-${evt.id}`}>
+                    <div className="flex items-start justify-between mb-1">
+                      <div className="flex items-center gap-2">
+                        <Badge className={`text-xs ${cfg.color}`}>{cfg.label}</Badge>
+                        <span className="text-gray-500 text-xs font-mono">{evt.ipAddress}</span>
+                      </div>
+                      <span className="text-gray-500 text-xs">{new Date(evt.createdAt).toLocaleString()}</span>
+                    </div>
+                    {evt.endpoint && <p className="text-gray-400 text-xs">Endpoint: {evt.endpoint}</p>}
+                    {evt.detail && <p className="text-gray-300 text-xs mt-1">{evt.detail}</p>}
+                    {evt.userAgent && <p className="text-gray-600 text-xs mt-1 truncate" title={evt.userAgent}>UA: {evt.userAgent}</p>}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 export default function AdminPage() {
   const [token, setToken] = useState<string | null>(null);
   const [selectedAgent, setSelectedAgent] = useState(AGENTS[0].slug);
@@ -3398,6 +3584,10 @@ export default function AdminPage() {
               <MessageSquare className="w-3.5 h-3.5 mr-1" />
               Conv. Review
             </TabsTrigger>
+            <TabsTrigger value="security-report" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-600 data-[state=active]:to-orange-600 data-[state=active]:text-white" data-testid="tab-security-report">
+              <AlertTriangle className="w-3.5 h-3.5 mr-1" />
+              Security
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="boss-ai">
@@ -3458,6 +3648,10 @@ export default function AdminPage() {
 
           <TabsContent value="conversation-review">
             <ConversationReviewPanel token={token} />
+          </TabsContent>
+
+          <TabsContent value="security-report">
+            <SecurityReportPanel token={token} />
           </TabsContent>
         </Tabs>
       </div>

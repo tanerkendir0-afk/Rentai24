@@ -551,6 +551,25 @@ export const insertWhatsappMessageSchema = createInsertSchema(whatsappMessages).
 export type WhatsappMessage = typeof whatsappMessages.$inferSelect;
 export type InsertWhatsappMessage = z.infer<typeof insertWhatsappMessageSchema>;
 
+export const securityEvents = pgTable("security_events", {
+  id: serial("id").primaryKey(),
+  ipAddress: text("ip_address").notNull(),
+  eventType: text("event_type", { enum: ["distillation_attempt", "guardrail_block", "rate_limit", "suspicious_pattern"] }).notNull(),
+  endpoint: text("endpoint"),
+  userAgent: text("user_agent"),
+  userId: integer("user_id").references(() => users.id),
+  detail: text("detail"),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
+export const insertSecurityEventSchema = createInsertSchema(securityEvents).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type SecurityEvent = typeof securityEvents.$inferSelect;
+export type InsertSecurityEvent = z.infer<typeof insertSecurityEventSchema>;
+
 export type Lead = typeof leads.$inferSelect;
 export type InsertLead = z.infer<typeof insertLeadSchema>;
 export type AgentAction = typeof agentActions.$inferSelect;

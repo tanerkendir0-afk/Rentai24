@@ -17,6 +17,7 @@ import { generateAgentRulesPDF, generateTrainingDataFromChatLogs, validateJSONL,
 import { getRelevantToolsForMessage, executeToolCall } from "./agentTools";
 import { computeLeadScore } from "./leadScoring";
 import { checkInput, sanitizeOutput, logGuardrailBlock } from "./guardrails";
+import { checkDistillation, addWatermark } from "./distillationProtection";
 import { getImagePath, chatImageDir } from "./imageService";
 import { db } from "./db";
 import { sql, eq, desc } from "drizzle-orm";
@@ -1328,6 +1329,24 @@ export async function registerRoutes(
       });
     }
 
+    const distillationResult = await checkDistillation(
+      message,
+      agentType,
+      req.session.userId || null,
+      clientIp,
+      "/api/chat",
+      req.headers["user-agent"] || undefined
+    );
+    if (!distillationResult.allowed) {
+      return res.status(429).json({
+        reply: distillationResult.reason,
+        code: "DISTILLATION_BLOCKED",
+      });
+    }
+    if (distillationResult.throttle) {
+      await new Promise(resolve => setTimeout(resolve, 2000));
+    }
+
     let systemPrompt = agentSystemPrompts[agentType] || defaultSystemPrompt;
 
     let userName: string | null = null;
@@ -1706,7 +1725,8 @@ ${members.map(m => `- ${m.name} (${m.email})${m.position ? ` — ${m.position}` 
       }).catch(err => console.error("Token usage log error:", err.message));
 
       const rawReply = assistantMessage?.content || "Sorry, I couldn't generate a response. Please try again.";
-      const reply = sanitizeOutput(rawReply, resolvedAgentType);
+      const sanitized = sanitizeOutput(rawReply, resolvedAgentType);
+      const reply = addWatermark(sanitized, req.session.userId || null, clientIp);
 
       const usedTool = operationType === "tool_call";
 
@@ -2536,6 +2556,79 @@ ${members.map(m => `- ${m.name} (${m.email})${m.position ? ` — ${m.position}` 
 
       await db.update(conversations).set({ qualityRating: rating }).where(eq(conversations.id, Number(req.params.id)));
       res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/admin/security-events", requireAdmin, async (req, res) => {
+    try {
+      const { securityEvents } = await import("@shared/schema");
+      const { desc, gte, sql: sqlFn } = await import("drizzle-orm");
+
+      const period = (req.query.period as string) || "24h";
+      let since: Date;
+      const now = new Date();
+      if (period === "7d") {
+        since = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      } else if (period === "30d") {
+        since = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      } else {
+        since = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+      }
+
+      const events = await db
+        .select()
+        .from(securityEvents)
+        .where(gte(securityEvents.createdAt, since))
+        .orderBy(desc(securityEvents.createdAt))
+        .limit(500);
+
+      const typeCounts = await db
+        .select({
+          eventType: securityEvents.eventType,
+          count: sqlFn<number>`COUNT(*)::int`,
+        })
+        .from(securityEvents)
+        .where(gte(securityEvents.createdAt, since))
+        .groupBy(securityEvents.eventType);
+
+      const topIps = await db
+        .select({
+          ipAddress: securityEvents.ipAddress,
+          count: sqlFn<number>`COUNT(*)::int`,
+          lastSeen: sqlFn<string>`MAX(${securityEvents.createdAt})`,
+        })
+        .from(securityEvents)
+        .where(gte(securityEvents.createdAt, since))
+        .groupBy(securityEvents.ipAddress)
+        .orderBy(sqlFn`COUNT(*) DESC`)
+        .limit(20);
+
+      const hourlyStats = await db
+        .select({
+          hour: sqlFn<string>`TO_CHAR(${securityEvents.createdAt}, 'YYYY-MM-DD HH24:00')`,
+          count: sqlFn<number>`COUNT(*)::int`,
+        })
+        .from(securityEvents)
+        .where(gte(securityEvents.createdAt, since))
+        .groupBy(sqlFn`TO_CHAR(${securityEvents.createdAt}, 'YYYY-MM-DD HH24:00')`)
+        .orderBy(sqlFn`TO_CHAR(${securityEvents.createdAt}, 'YYYY-MM-DD HH24:00')`);
+
+      const totalResult = await db
+        .select({ count: sqlFn<number>`COUNT(*)::int` })
+        .from(securityEvents)
+        .where(gte(securityEvents.createdAt, since));
+      const totalCount = totalResult[0]?.count || 0;
+
+      res.json({
+        events,
+        typeCounts,
+        topIps,
+        hourlyStats,
+        totalCount,
+        period,
+      });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }

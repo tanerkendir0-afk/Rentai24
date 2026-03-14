@@ -4236,6 +4236,7 @@ export default function AdminPage() {
   const [selectedAgent, setSelectedAgent] = useState(AGENTS[0].slug);
   const [stats, setStats] = useState<AgentStats | null>(null);
   const [activeTab, setActiveTab] = useState("overview");
+  const [activeCategory, setActiveCategory] = useState("dashboard");
 
   useEffect(() => {
     const meta = document.createElement("meta");
@@ -4336,82 +4337,161 @@ export default function AdminPage() {
           </div>
         )}
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 sm:space-y-6">
-          <TabsList className="bg-[#111633] border border-[#1E2448] flex-wrap h-auto gap-0.5 sm:gap-1 p-1 overflow-x-auto max-w-full">
-            <TabsTrigger value="boss-ai" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-amber-500 data-[state=active]:to-orange-600 data-[state=active]:text-white" data-testid="tab-boss-ai">
-              <Crown className="w-3.5 h-3.5 mr-1" />
-              Boss AI
-            </TabsTrigger>
-            <TabsTrigger value="overview" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white" data-testid="tab-overview">
-              <BarChart3 className="w-3.5 h-3.5 mr-1" />
-              Overview
-            </TabsTrigger>
-            <TabsTrigger value="users" className="data-[state=active]:bg-cyan-600 data-[state=active]:text-white" data-testid="tab-users">
-              <Users className="w-3.5 h-3.5 mr-1" />
-              Users
-            </TabsTrigger>
-            <TabsTrigger value="rag" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white" data-testid="tab-rag">
-              Knowledge Base
-            </TabsTrigger>
-            <TabsTrigger value="training-data" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white" data-testid="tab-training-data">
-              <Database className="w-3.5 h-3.5 mr-1" />
-              Training Data
-            </TabsTrigger>
-            <TabsTrigger value="fine-tuning" className="data-[state=active]:bg-violet-600 data-[state=active]:text-white" data-testid="tab-fine-tuning">
-              Fine-Tuning
-            </TabsTrigger>
-            <TabsTrigger value="messages" className="data-[state=active]:bg-teal-600 data-[state=active]:text-white" data-testid="tab-messages">
-              Messages
-            </TabsTrigger>
-            <TabsTrigger value="collaboration" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:to-purple-600 data-[state=active]:text-white" data-testid="tab-collaboration">
-              <Brain className="w-3.5 h-3.5 mr-1" />
-              Collaboration
-            </TabsTrigger>
-            <TabsTrigger value="spend-analysis" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-500 data-[state=active]:to-teal-600 data-[state=active]:text-white" data-testid="tab-spend-analysis">
-              <BarChart3 className="w-3.5 h-3.5 mr-1" />
-              Spend Analysis
-            </TabsTrigger>
-            <TabsTrigger value="token-optimization" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-yellow-500 data-[state=active]:to-amber-600 data-[state=active]:text-white" data-testid="tab-token-optimization">
-              <Zap className="w-3.5 h-3.5 mr-1" />
-              Token Optimization
-            </TabsTrigger>
-            <TabsTrigger value="limit-management" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-yellow-500 data-[state=active]:to-orange-600 data-[state=active]:text-white" data-testid="tab-limit-management">
-              <Zap className="w-3.5 h-3.5 mr-1" />
-              Limit Yönetimi
-            </TabsTrigger>
-            <TabsTrigger value="costs" className="data-[state=active]:bg-red-600 data-[state=active]:text-white" data-testid="tab-costs">
-              <DollarSign className="w-3.5 h-3.5 mr-1" />
-              Cost Tracker
-            </TabsTrigger>
-            <TabsTrigger value="support-tickets" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-red-600 data-[state=active]:text-white" data-testid="tab-support-tickets">
-              <HelpCircle className="w-3.5 h-3.5 mr-1" />
-              Support Tickets
-            </TabsTrigger>
-            <TabsTrigger value="guardrails" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-500 data-[state=active]:to-rose-600 data-[state=active]:text-white" data-testid="tab-guardrails">
-              <Shield className="w-3.5 h-3.5 mr-1" />
-              Guardrails
-            </TabsTrigger>
-            <TabsTrigger value="performance" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-500 data-[state=active]:to-emerald-600 data-[state=active]:text-white" data-testid="tab-performance">
-              <Activity className="w-3.5 h-3.5 mr-1" />
-              Performance
-            </TabsTrigger>
-            <TabsTrigger value="conversation-review" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-teal-500 data-[state=active]:to-cyan-600 data-[state=active]:text-white" data-testid="tab-conversation-review">
-              <MessageSquare className="w-3.5 h-3.5 mr-1" />
-              Conv. Review
-            </TabsTrigger>
-            <TabsTrigger value="security-report" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-600 data-[state=active]:to-orange-600 data-[state=active]:text-white" data-testid="tab-security-report">
-              <AlertTriangle className="w-3.5 h-3.5 mr-1" />
-              Security
-            </TabsTrigger>
-            <TabsTrigger value="packages" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-violet-500 data-[state=active]:to-purple-600 data-[state=active]:text-white" data-testid="tab-packages">
-              <CreditCard className="w-3.5 h-3.5 mr-1" />
-              Paketler
-            </TabsTrigger>
-            <TabsTrigger value="admin-guide" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-500 data-[state=active]:to-teal-600 data-[state=active]:text-white" data-testid="tab-admin-guide">
-              <HelpCircle className="w-3.5 h-3.5 mr-1" />
-              Rehber
-            </TabsTrigger>
-          </TabsList>
+        <Tabs value={activeTab} onValueChange={(val) => {
+          setActiveTab(val);
+          const tabToCategory: Record<string, string> = {
+            "boss-ai": "dashboard", "overview": "dashboard", "users": "dashboard",
+            "rag": "ai-training", "training-data": "ai-training", "fine-tuning": "ai-training",
+            "messages": "analytics", "spend-analysis": "analytics", "token-optimization": "analytics",
+            "costs": "analytics", "performance": "analytics", "conversation-review": "analytics", "collaboration": "analytics",
+            "limit-management": "limits", "packages": "limits",
+            "guardrails": "security", "support-tickets": "security", "security-report": "security",
+            "admin-guide": "help",
+          };
+          if (tabToCategory[val]) setActiveCategory(tabToCategory[val]);
+        }} className="space-y-4 sm:space-y-6">
+          <div className="space-y-2">
+            <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
+              {[
+                { id: "dashboard", label: "Dashboard", icon: Crown, gradient: "from-amber-500 to-orange-600" },
+                { id: "ai-training", label: "AI Training", icon: Database, gradient: "from-violet-500 to-purple-600" },
+                { id: "analytics", label: "Analytics", icon: BarChart3, gradient: "from-emerald-500 to-teal-600" },
+                { id: "limits", label: "Limits & Paketler", icon: Zap, gradient: "from-yellow-500 to-amber-600" },
+                { id: "security", label: "Security & Support", icon: Shield, gradient: "from-red-500 to-rose-600" },
+                { id: "help", label: "Rehber", icon: HelpCircle, gradient: "from-cyan-500 to-blue-600" },
+              ].map(cat => {
+                const Icon = cat.icon;
+                return (
+                  <button
+                    key={cat.id}
+                    onClick={() => {
+                      setActiveCategory(cat.id);
+                      const firstTab: Record<string, string> = {
+                        "dashboard": "boss-ai",
+                        "ai-training": "rag",
+                        "analytics": "messages",
+                        "limits": "limit-management",
+                        "security": "guardrails",
+                        "help": "admin-guide",
+                      };
+                      setActiveTab(firstTab[cat.id] || "overview");
+                    }}
+                    className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition-all shrink-0 ${
+                      activeCategory === cat.id
+                        ? `bg-gradient-to-r ${cat.gradient} text-white shadow-lg`
+                        : "bg-[#111633] text-gray-400 hover:text-white hover:bg-[#1a1f4a] border border-[#1E2448]"
+                    }`}
+                    data-testid={`category-${cat.id}`}
+                  >
+                    <Icon className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">{cat.label}</span>
+                    <span className="sm:hidden">{cat.label.split(" ")[0]}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            <TabsList className="bg-[#111633] border border-[#1E2448] h-auto gap-0.5 sm:gap-1 p-1 overflow-x-auto max-w-full flex">
+              {activeCategory === "dashboard" && (
+                <>
+                  <TabsTrigger value="boss-ai" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-amber-500 data-[state=active]:to-orange-600 data-[state=active]:text-white" data-testid="tab-boss-ai">
+                    <Crown className="w-3.5 h-3.5 mr-1" />
+                    Boss AI
+                  </TabsTrigger>
+                  <TabsTrigger value="overview" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white" data-testid="tab-overview">
+                    <BarChart3 className="w-3.5 h-3.5 mr-1" />
+                    Overview
+                  </TabsTrigger>
+                  <TabsTrigger value="users" className="data-[state=active]:bg-cyan-600 data-[state=active]:text-white" data-testid="tab-users">
+                    <Users className="w-3.5 h-3.5 mr-1" />
+                    Users
+                  </TabsTrigger>
+                </>
+              )}
+              {activeCategory === "ai-training" && (
+                <>
+                  <TabsTrigger value="rag" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white" data-testid="tab-rag">
+                    <Database className="w-3.5 h-3.5 mr-1" />
+                    Knowledge Base
+                  </TabsTrigger>
+                  <TabsTrigger value="training-data" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white" data-testid="tab-training-data">
+                    <Database className="w-3.5 h-3.5 mr-1" />
+                    Training Data
+                  </TabsTrigger>
+                  <TabsTrigger value="fine-tuning" className="data-[state=active]:bg-violet-600 data-[state=active]:text-white" data-testid="tab-fine-tuning">
+                    <Cpu className="w-3.5 h-3.5 mr-1" />
+                    Fine-Tuning
+                  </TabsTrigger>
+                </>
+              )}
+              {activeCategory === "analytics" && (
+                <>
+                  <TabsTrigger value="messages" className="data-[state=active]:bg-teal-600 data-[state=active]:text-white" data-testid="tab-messages">
+                    <MessageSquare className="w-3.5 h-3.5 mr-1" />
+                    Messages
+                  </TabsTrigger>
+                  <TabsTrigger value="spend-analysis" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-500 data-[state=active]:to-teal-600 data-[state=active]:text-white" data-testid="tab-spend-analysis">
+                    <BarChart3 className="w-3.5 h-3.5 mr-1" />
+                    Spend
+                  </TabsTrigger>
+                  <TabsTrigger value="token-optimization" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-yellow-500 data-[state=active]:to-amber-600 data-[state=active]:text-white" data-testid="tab-token-optimization">
+                    <Zap className="w-3.5 h-3.5 mr-1" />
+                    Token Opt.
+                  </TabsTrigger>
+                  <TabsTrigger value="costs" className="data-[state=active]:bg-red-600 data-[state=active]:text-white" data-testid="tab-costs">
+                    <DollarSign className="w-3.5 h-3.5 mr-1" />
+                    Costs
+                  </TabsTrigger>
+                  <TabsTrigger value="performance" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-500 data-[state=active]:to-emerald-600 data-[state=active]:text-white" data-testid="tab-performance">
+                    <Activity className="w-3.5 h-3.5 mr-1" />
+                    Performance
+                  </TabsTrigger>
+                  <TabsTrigger value="conversation-review" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-teal-500 data-[state=active]:to-cyan-600 data-[state=active]:text-white" data-testid="tab-conversation-review">
+                    <MessageSquare className="w-3.5 h-3.5 mr-1" />
+                    Conv. Review
+                  </TabsTrigger>
+                  <TabsTrigger value="collaboration" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:to-purple-600 data-[state=active]:text-white" data-testid="tab-collaboration">
+                    <Brain className="w-3.5 h-3.5 mr-1" />
+                    Collaboration
+                  </TabsTrigger>
+                </>
+              )}
+              {activeCategory === "limits" && (
+                <>
+                  <TabsTrigger value="limit-management" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-yellow-500 data-[state=active]:to-orange-600 data-[state=active]:text-white" data-testid="tab-limit-management">
+                    <Zap className="w-3.5 h-3.5 mr-1" />
+                    Limit Yönetimi
+                  </TabsTrigger>
+                  <TabsTrigger value="packages" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-violet-500 data-[state=active]:to-purple-600 data-[state=active]:text-white" data-testid="tab-packages">
+                    <CreditCard className="w-3.5 h-3.5 mr-1" />
+                    Paketler
+                  </TabsTrigger>
+                </>
+              )}
+              {activeCategory === "security" && (
+                <>
+                  <TabsTrigger value="guardrails" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-500 data-[state=active]:to-rose-600 data-[state=active]:text-white" data-testid="tab-guardrails">
+                    <Shield className="w-3.5 h-3.5 mr-1" />
+                    Guardrails
+                  </TabsTrigger>
+                  <TabsTrigger value="support-tickets" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-red-600 data-[state=active]:text-white" data-testid="tab-support-tickets">
+                    <HelpCircle className="w-3.5 h-3.5 mr-1" />
+                    Support Tickets
+                  </TabsTrigger>
+                  <TabsTrigger value="security-report" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-600 data-[state=active]:to-orange-600 data-[state=active]:text-white" data-testid="tab-security-report">
+                    <AlertTriangle className="w-3.5 h-3.5 mr-1" />
+                    Security
+                  </TabsTrigger>
+                </>
+              )}
+              {activeCategory === "help" && (
+                <TabsTrigger value="admin-guide" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-500 data-[state=active]:to-teal-600 data-[state=active]:text-white" data-testid="tab-admin-guide">
+                  <HelpCircle className="w-3.5 h-3.5 mr-1" />
+                  Rehber
+                </TabsTrigger>
+              )}
+            </TabsList>
+          </div>
 
           <TabsContent value="boss-ai">
             <BossAIPanel token={token} />

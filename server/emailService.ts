@@ -159,11 +159,12 @@ export async function getEmailStatus(userId?: number): Promise<{ provider: strin
   if (userId) {
     const gmailStatus = await getUserGmailStatus(userId);
     if (gmailStatus.connected) {
+      const canRead = gmailStatus.method === "oauth";
       return {
         provider: "gmail",
         address: gmailStatus.email,
         connected: true,
-        canRead: true,
+        canRead,
         canSend: true,
       };
     }

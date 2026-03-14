@@ -131,7 +131,7 @@ export const salesSdrTools: OpenAI.ChatCompletionTool[] = [
     type: "function",
     function: {
       name: "schedule_followup",
-      description: "Schedule a follow-up email to be sent to a lead at a future time. The email will be automatically sent via Resend when the scheduled time arrives.",
+      description: "Schedule a follow-up email to be sent to a lead at a future time. The email will be automatically sent via the user's connected email provider (Gmail if connected, otherwise platform email) when the scheduled time arrives.",
       parameters: {
         type: "object",
         properties: {
@@ -1437,7 +1437,7 @@ export async function executeToolCall(
       });
 
       return {
-        result: `Follow-up email #${followupId} scheduled for ${sendAt.toLocaleDateString()} (${delayDays} days from now) to ${args.to} with subject "${args.subject}". The email will be automatically sent via Resend at that time.`,
+        result: `Follow-up email #${followupId} scheduled for ${sendAt.toLocaleDateString()} (${delayDays} days from now) to ${args.to} with subject "${args.subject}". The email will be automatically sent via your connected email provider at that time.`,
         actionType: "followup_scheduled",
         actionDescription: `⏰ Follow-up scheduled for ${args.to} on ${sendAt.toLocaleDateString()}`,
       };

@@ -508,7 +508,8 @@ export async function registerRoutes(
   app.get("/api/email-status", requireAuth, async (req, res) => {
     try {
       const { getEmailStatus } = await import("./emailService");
-      const status = await getEmailStatus();
+      const userId = req.session.userId;
+      const status = await getEmailStatus(userId);
       res.json(status);
     } catch {
       res.json({ provider: "platform", address: null, connected: true });
@@ -518,7 +519,8 @@ export async function registerRoutes(
   app.post("/api/integrations/gmail/disconnect", requireAuth, async (req, res) => {
     try {
       const { setGmailDisabled } = await import("./emailService");
-      await setGmailDisabled(true);
+      const userId = req.session.userId;
+      await setGmailDisabled(true, userId);
       res.json({ success: true, message: "Gmail disconnected" });
     } catch (error: unknown) {
       const errMsg = error instanceof Error ? error.message : String(error);
@@ -536,7 +538,8 @@ export async function registerRoutes(
         return;
       }
       const { setGmailDisabled } = await import("./emailService");
-      await setGmailDisabled(false);
+      const userId = req.session.userId;
+      await setGmailDisabled(false, userId);
       res.json({ success: true, message: "Gmail reconnected", address: verification.address || "Connected" });
     } catch (error: unknown) {
       const errMsg = error instanceof Error ? error.message : String(error);
@@ -1248,7 +1251,8 @@ ${members.map(m => `- ${m.name} (${m.email})${m.position ? ` — ${m.position}` 
       const userForGmail = await storage.getUserById(req.session.userId);
       const { setActiveUserGmail } = await import("./gmailService");
       if (userForGmail?.gmailAddress && userForGmail?.gmailAppPassword) {
-        setActiveUserGmail({ gmailAddress: userForGmail.gmailAddress, gmailAppPassword: userForGmail.gmailAppPassword });
+        const decryptedPassword = storage.decryptGmailAppPassword(userForGmail.gmailAppPassword);
+        setActiveUserGmail({ gmailAddress: userForGmail.gmailAddress, gmailAppPassword: decryptedPassword });
       } else {
         setActiveUserGmail(null);
       }

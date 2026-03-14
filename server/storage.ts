@@ -80,6 +80,7 @@ export interface IStorage {
 
   updateUserGmail(userId: number, gmailAddress: string, gmailAppPassword: string): Promise<User | undefined>;
   clearUserGmail(userId: number): Promise<User | undefined>;
+  decryptGmailAppPassword(encryptedPassword: string): string;
 
   createBossNotification(notification: InsertBossNotification): Promise<BossNotification>;
   getBossNotifications(userId: number, limit?: number): Promise<BossNotification[]>;
@@ -594,11 +595,34 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateUserGmail(userId: number, gmailAddress: string, gmailAppPassword: string): Promise<User | undefined> {
+    const crypto = await import("crypto");
+    const encKey = process.env.SESSION_SECRET || "rentai24-default-enc-key";
+    const iv = crypto.randomBytes(16);
+    const cipher = crypto.createCipheriv("aes-256-cbc", crypto.createHash("sha256").update(encKey).digest(), iv);
+    let encrypted = cipher.update(gmailAppPassword, "utf8", "hex");
+    encrypted += cipher.final("hex");
+    const encryptedPassword = iv.toString("hex") + ":" + encrypted;
     const [updated] = await db.update(users)
-      .set({ gmailAddress, gmailAppPassword })
+      .set({ gmailAddress, gmailAppPassword: encryptedPassword })
       .where(eq(users.id, userId))
       .returning();
     return updated;
+  }
+
+  decryptGmailAppPassword(encryptedPassword: string): string {
+    try {
+      const crypto = require("crypto");
+      const encKey = process.env.SESSION_SECRET || "rentai24-default-enc-key";
+      const [ivHex, encrypted] = encryptedPassword.split(":");
+      if (!ivHex || !encrypted) return encryptedPassword;
+      const iv = Buffer.from(ivHex, "hex");
+      const decipher = crypto.createDecipheriv("aes-256-cbc", crypto.createHash("sha256").update(encKey).digest(), iv);
+      let decrypted = decipher.update(encrypted, "hex", "utf8");
+      decrypted += decipher.final("utf8");
+      return decrypted;
+    } catch {
+      return encryptedPassword;
+    }
   }
 
   async clearUserGmail(userId: number): Promise<User | undefined> {

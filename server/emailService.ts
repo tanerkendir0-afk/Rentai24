@@ -6,16 +6,23 @@ let resendConnectionSettings: Record<string, string> | null = null;
 
 const GMAIL_DISABLED_KEY = "gmail_disabled";
 
-export async function setGmailDisabled(disabled: boolean): Promise<void> {
-  await storage.setSystemSetting(GMAIL_DISABLED_KEY, disabled ? "true" : "false");
+export async function setGmailDisabled(disabled: boolean, userId?: number): Promise<void> {
+  const key = userId ? `${GMAIL_DISABLED_KEY}_${userId}` : GMAIL_DISABLED_KEY;
+  await storage.setSystemSetting(key, disabled ? "true" : "false");
   if (disabled) {
     clearGmailConnectionCache();
   }
 }
 
-export async function isGmailDisabledByUser(): Promise<boolean> {
-  const value = await storage.getSystemSetting(GMAIL_DISABLED_KEY);
-  return value === "true";
+export async function isGmailDisabledByUser(userId?: number): Promise<boolean> {
+  const key = userId ? `${GMAIL_DISABLED_KEY}_${userId}` : GMAIL_DISABLED_KEY;
+  const value = await storage.getSystemSetting(key);
+  if (value !== null) return value === "true";
+  if (userId) {
+    const globalValue = await storage.getSystemSetting(GMAIL_DISABLED_KEY);
+    return globalValue === "true";
+  }
+  return false;
 }
 
 async function getResendCredentials(): Promise<{ apiKey: string; fromEmail: string }> {
@@ -87,7 +94,7 @@ export async function sendEmail(params: {
   agentType: string;
 }): Promise<{ success: boolean; message: string; provider?: string }> {
   try {
-    const disabled = await isGmailDisabledByUser();
+    const disabled = await isGmailDisabledByUser(params.userId);
     const gmailAvailable = !disabled && await isGmailConnected();
 
     if (gmailAvailable) {
@@ -144,8 +151,8 @@ export async function sendEmail(params: {
   }
 }
 
-export async function getEmailStatus(): Promise<{ provider: string; address: string | null; connected: boolean; canRead?: boolean; canSend?: boolean }> {
-  const disabled = await isGmailDisabledByUser();
+export async function getEmailStatus(userId?: number): Promise<{ provider: string; address: string | null; connected: boolean; canRead?: boolean; canSend?: boolean }> {
+  const disabled = await isGmailDisabledByUser(userId);
   if (disabled) {
     return { provider: "platform", address: null, connected: true };
   }

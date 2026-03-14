@@ -44,7 +44,7 @@ export interface IStorage {
   createEmailCampaign(campaign: InsertEmailCampaign): Promise<EmailCampaign>;
   getCampaignsByUser(userId: number): Promise<EmailCampaign[]>;
   getActiveCampaigns(userId: number): Promise<EmailCampaign[]>;
-  updateCampaignStep(id: number, userId: number, currentStep: number, status?: string): Promise<EmailCampaign | undefined>;
+  updateCampaignStep(id: number, userId: number, currentStep: number, status?: string, steps?: unknown): Promise<EmailCampaign | undefined>;
 
   createSupportTicket(ticket: InsertSupportTicket): Promise<SupportTicket>;
   getTicketsByUser(userId: number): Promise<SupportTicket[]>;
@@ -326,9 +326,10 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(emailCampaigns).where(and(eq(emailCampaigns.userId, userId), eq(emailCampaigns.status, "active"))).orderBy(desc(emailCampaigns.createdAt));
   }
 
-  async updateCampaignStep(id: number, userId: number, currentStep: number, status?: string): Promise<EmailCampaign | undefined> {
+  async updateCampaignStep(id: number, userId: number, currentStep: number, status?: string, steps?: unknown): Promise<EmailCampaign | undefined> {
     const updates: Record<string, unknown> = { currentStep };
     if (status) updates.status = status;
+    if (steps) updates.steps = steps;
     const [updated] = await db
       .update(emailCampaigns)
       .set(updates)

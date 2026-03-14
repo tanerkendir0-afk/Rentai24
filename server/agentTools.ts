@@ -1574,6 +1574,12 @@ export async function executeToolCall(
         return { result: `Lead #${leadId} (${lead.name}) has no email address. Cannot start drip campaign.` };
       }
 
+      const existingCampaigns = await storage.getActiveCampaigns(userId);
+      const duplicateCampaign = existingCampaigns.find(c => c.leadId === leadId);
+      if (duplicateCampaign) {
+        return { result: `Lead #${leadId} (${lead.name}) already has an active drip campaign (#${duplicateCampaign.id}). Complete or cancel it before starting a new one.` };
+      }
+
       const campaign = await storage.createEmailCampaign({
         userId,
         leadId,

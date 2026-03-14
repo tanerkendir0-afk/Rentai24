@@ -72,7 +72,7 @@ async function processOneCampaign(campaign: { id: number; userId: number; leadId
     steps[currentStepIndex].sentAt = new Date().toISOString();
     const nextStep = currentStepIndex + 1;
     const newStatus = nextStep >= steps.length ? "completed" : "active";
-    await storage.updateCampaignStep(campaign.id, userId, nextStep, newStatus);
+    await storage.updateCampaignStep(campaign.id, userId, nextStep, newStatus, steps);
 
     await storage.createAgentAction({
       userId,

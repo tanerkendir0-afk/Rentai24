@@ -180,6 +180,15 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("checkout") === "success") {
+      queryClient.invalidateQueries({ queryKey: ["/api/rentals"] });
+      toast({ title: "Agent Activated!", description: "Your new AI worker is ready to use in your dashboard." });
+      window.history.replaceState({}, "", "/dashboard");
+    }
+  }, [toast]);
+
+  useEffect(() => {
     if (!authLoading && !user) {
       setLocation("/login");
     }

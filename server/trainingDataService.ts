@@ -556,13 +556,14 @@ export async function generateTrainingDataFromChatLogs(
       minTurns?: number;
       toolUsageOnly?: boolean;
       excludeBadRated?: boolean;
+      goodOnly?: boolean;
     } = {};
 
     if (filters.startDate) sessionFilters.startDate = new Date(filters.startDate);
     if (filters.endDate) sessionFilters.endDate = new Date(filters.endDate);
     if (filters.minTurns) sessionFilters.minTurns = filters.minTurns;
     if (filters.toolUsageOnly) sessionFilters.toolUsageOnly = filters.toolUsageOnly;
-    sessionFilters.excludeBadRated = true;
+    sessionFilters.goodOnly = true;
 
     const sessions = await storage.getChatSessionsByAgent(agentType, sessionFilters);
 

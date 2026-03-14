@@ -65,7 +65,7 @@ export interface IStorage {
 
   saveChatMessage(message: InsertChatMessage): Promise<ChatMessage>;
   getChatMessagesByAgent(agentType: string, filters?: { startDate?: Date; endDate?: Date }): Promise<ChatMessage[]>;
-  getChatSessionsByAgent(agentType: string, filters?: { startDate?: Date; endDate?: Date; minTurns?: number; toolUsageOnly?: boolean; excludeBadRated?: boolean }): Promise<{ sessionId: string; messages: ChatMessage[] }[]>;
+  getChatSessionsByAgent(agentType: string, filters?: { startDate?: Date; endDate?: Date; minTurns?: number; toolUsageOnly?: boolean; excludeBadRated?: boolean; goodOnly?: boolean }): Promise<{ sessionId: string; messages: ChatMessage[] }[]>;
 
   getConversationsByUser(userId: number, agentType: string): Promise<ConversationRecord[]>;
   createConversation(convo: InsertConversation): Promise<ConversationRecord>;
@@ -488,7 +488,7 @@ export class DatabaseStorage implements IStorage {
 
   async getChatSessionsByAgent(
     agentType: string,
-    filters?: { startDate?: Date; endDate?: Date; minTurns?: number; toolUsageOnly?: boolean; excludeBadRated?: boolean }
+    filters?: { startDate?: Date; endDate?: Date; minTurns?: number; toolUsageOnly?: boolean; excludeBadRated?: boolean; goodOnly?: boolean }
   ): Promise<{ sessionId: string; messages: ChatMessage[] }[]> {
     const allMessages = await this.getChatMessagesByAgent(agentType, {
       startDate: filters?.startDate,
@@ -507,7 +507,13 @@ export class DatabaseStorage implements IStorage {
       messages,
     }));
 
-    if (filters?.excludeBadRated) {
+    if (filters?.goodOnly) {
+      const goodSessions = await db.select({ visibleId: conversations.visibleId })
+        .from(conversations)
+        .where(and(eq(conversations.agentType, agentType), eq(conversations.qualityRating, "good")));
+      const goodSet = new Set(goodSessions.map(s => s.visibleId));
+      sessions = sessions.filter(s => goodSet.has(s.sessionId));
+    } else if (filters?.excludeBadRated) {
       const badSessions = await db.select({ visibleId: conversations.visibleId })
         .from(conversations)
         .where(and(eq(conversations.agentType, agentType), eq(conversations.qualityRating, "bad")));

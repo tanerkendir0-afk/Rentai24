@@ -792,7 +792,7 @@ function ConversationReviewPanel({ token }: { token: string }) {
             Conversation Review
           </CardTitle>
           <CardDescription className="text-gray-400">
-            Review conversations, rate quality for fine-tuning data curation. Conversations rated "bad" are excluded from training data export. Unrated and "good" rated conversations are included.
+            Review conversations and rate quality for fine-tuning data curation. Only conversations rated "good" are included in training data exports. Unrated and "bad" rated conversations are excluded.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

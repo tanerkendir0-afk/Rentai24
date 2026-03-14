@@ -1414,10 +1414,10 @@ export async function executeToolCall(
     case "list_leads": {
       const allLeads = await storage.getLeadsByUser(userId);
       for (const lead of allLeads) {
-        if (!lead.score) {
-          const s = computeLeadScore(lead);
-          await storage.updateLeadScore(lead.id, userId, s);
-          lead.score = s;
+        const freshScore = computeLeadScore(lead);
+        if (freshScore !== lead.score) {
+          await storage.updateLeadScore(lead.id, userId, freshScore);
+          lead.score = freshScore;
         }
       }
       const statusFilter = args.status_filter ? String(args.status_filter) : null;

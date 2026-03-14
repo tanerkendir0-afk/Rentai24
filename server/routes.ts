@@ -516,35 +516,6 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/integrations/gmail/disconnect", requireAuth, async (req, res) => {
-    try {
-      const { setGmailDisabled } = await import("./emailService");
-      const userId = req.session.userId;
-      await setGmailDisabled(true, userId);
-      res.json({ success: true, message: "Gmail disconnected" });
-    } catch (error: unknown) {
-      const errMsg = error instanceof Error ? error.message : String(error);
-      res.status(500).json({ success: false, message: `Failed to disconnect Gmail: ${errMsg}` });
-    }
-  });
-
-  app.post("/api/integrations/gmail/reconnect", requireAuth, async (req, res) => {
-    try {
-      const userId = req.session.userId!;
-      const user = await storage.getUserById(userId);
-      if (!user?.gmailAddress || !user?.gmailAppPassword) {
-        res.status(400).json({ success: false, message: "Gmail credentials not configured. Please go to Settings and add your Gmail address and App Password first." });
-        return;
-      }
-      const { setGmailDisabled } = await import("./emailService");
-      await setGmailDisabled(false, userId);
-      res.json({ success: true, message: "Gmail reconnected", address: user.gmailAddress });
-    } catch (error: unknown) {
-      const errMsg = error instanceof Error ? error.message : String(error);
-      res.status(500).json({ success: false, message: `Failed to reconnect Gmail: ${errMsg}` });
-    }
-  });
-
   app.get("/api/leads", requireAuth, async (req, res) => {
     const userLeads = await storage.getLeadsByUser(req.session.userId!);
     res.json(userLeads);

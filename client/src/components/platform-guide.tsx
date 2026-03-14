@@ -11,8 +11,6 @@ import {
   BarChart3,
   LayoutDashboard,
   ArrowRight,
-  Play,
-  Pause,
   ChevronLeft,
   ChevronRight,
   Headphones,
@@ -377,13 +375,12 @@ const stepAnimations: Record<string, React.ComponentType<{active: boolean}>> = {
 
 export default function PlatformGuide({ variant = "home" }: PlatformGuideProps) {
   const [activeStep, setActiveStep] = useState(0);
-  const [isPaused, setIsPaused] = useState(false);
   const [animKey, setAnimKey] = useState(0);
   const containerRef = useRef(null);
   const isInView = useInView(containerRef, { once: false, amount: 0.3 });
 
   useEffect(() => {
-    if (!isInView || isPaused) return;
+    if (!isInView) return;
     const timer = setInterval(() => {
       setActiveStep(prev => {
         const next = (prev + 1) % steps.length;
@@ -392,7 +389,7 @@ export default function PlatformGuide({ variant = "home" }: PlatformGuideProps) 
       });
     }, 5500);
     return () => clearInterval(timer);
-  }, [isInView, isPaused]);
+  }, [isInView]);
 
   const goToStep = (idx: number) => {
     setActiveStep(idx);
@@ -409,8 +406,6 @@ export default function PlatformGuide({ variant = "home" }: PlatformGuideProps) 
     <div
       ref={containerRef}
       className="relative"
-      onMouseEnter={() => setIsPaused(true)}
-      onMouseLeave={() => setIsPaused(false)}
       data-testid="platform-guide"
     >
       <div className={`max-w-6xl mx-auto ${isFullPage ? "px-4 sm:px-6 lg:px-8" : ""}`}>
@@ -425,7 +420,7 @@ export default function PlatformGuide({ variant = "home" }: PlatformGuideProps) 
                   data-testid={`guide-step-${step.id}`}
                 >
                   <div className="relative h-1 rounded-full bg-border/30 overflow-hidden mb-2">
-                    {i === activeStep && !isPaused && (
+                    {i === activeStep && (
                       <motion.div
                         className={`absolute inset-y-0 left-0 bg-gradient-to-r ${step.color} rounded-full`}
                         initial={{ width: "0%" }}
@@ -436,9 +431,6 @@ export default function PlatformGuide({ variant = "home" }: PlatformGuideProps) 
                     )}
                     {i < activeStep && (
                       <div className={`absolute inset-0 bg-gradient-to-r ${step.color} rounded-full`} />
-                    )}
-                    {i === activeStep && isPaused && (
-                      <div className={`absolute inset-0 bg-gradient-to-r ${step.color} rounded-full opacity-60`} />
                     )}
                   </div>
                   <span className={`text-[10px] font-medium transition-colors ${
@@ -513,15 +505,6 @@ export default function PlatformGuide({ variant = "home" }: PlatformGuideProps) 
                 data-testid="guide-prev"
               >
                 <ChevronLeft className="w-4 h-4" />
-              </Button>
-              <Button
-                size="icon"
-                variant="ghost"
-                className="w-8 h-8"
-                onClick={() => setIsPaused(!isPaused)}
-                data-testid="guide-pause"
-              >
-                {isPaused ? <Play className="w-4 h-4" /> : <Pause className="w-4 h-4" />}
               </Button>
               <Button
                 size="icon"

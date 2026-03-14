@@ -14,6 +14,8 @@ import {
   Plus, Clock, ChevronLeft, MoreVertical, History
 } from "lucide-react";
 
+const ADMIN_API = `/api/${import.meta.env.VITE_ADMIN_PATH}`;
+
 const AGENTS = [
   { slug: "customer-support", name: "Ava — Customer Support" },
   { slug: "sales-sdr", name: "Rex — Sales SDR" },
@@ -86,7 +88,7 @@ function AdminLoginForm({ onLogin }: { onLogin: (token: string) => void }) {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await fetch("/api/admin/auth", {
+      const res = await fetch(`${ADMIN_API}/auth`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ password }),
@@ -145,7 +147,7 @@ function OverviewPanel({ token }: { token: string }) {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/admin/overview", { headers });
+      const res = await fetch(`${ADMIN_API}/overview`, { headers });
       const d = await res.json();
       setData(d);
     } catch {
@@ -207,7 +209,7 @@ function UsersPanel({ token }: { token: string }) {
   const fetchUsers = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/admin/users", { headers });
+      const res = await fetch(`${ADMIN_API}/users`, { headers });
       const data = await res.json();
       if (Array.isArray(data)) setUsers(data);
     } catch {
@@ -313,7 +315,7 @@ function DocumentsPanel({ agentType, token }: { agentType: string; token: string
   const fetchDocs = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/admin/agents/${agentType}/documents`, { headers });
+      const res = await fetch(`${ADMIN_API}/agents/${agentType}/documents`, { headers });
       const data = await res.json();
       if (Array.isArray(data)) setDocuments(data);
     } catch {
@@ -331,7 +333,7 @@ function DocumentsPanel({ agentType, token }: { agentType: string; token: string
     try {
       const formData = new FormData();
       formData.append("file", file);
-      const res = await fetch(`/api/admin/agents/${agentType}/documents`, {
+      const res = await fetch(`${ADMIN_API}/agents/${agentType}/documents`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
         body: formData,
@@ -352,7 +354,7 @@ function DocumentsPanel({ agentType, token }: { agentType: string; token: string
     if (!urlInput.trim()) return;
     setUrlLoading(true);
     try {
-      const res = await fetch(`/api/admin/agents/${agentType}/documents/url`, {
+      const res = await fetch(`${ADMIN_API}/agents/${agentType}/documents/url`, {
         method: "POST",
         headers: { ...headers, "Content-Type": "application/json" },
         body: JSON.stringify({ url: urlInput }),
@@ -371,7 +373,7 @@ function DocumentsPanel({ agentType, token }: { agentType: string; token: string
 
   const handleDelete = async (docId: number) => {
     try {
-      const res = await fetch(`/api/admin/documents/${docId}`, {
+      const res = await fetch(`${ADMIN_API}/documents/${docId}`, {
         method: "DELETE",
         headers,
       });
@@ -531,7 +533,7 @@ function PerformancePanel({ token }: { token: string }) {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/admin/agent-performance", { headers });
+      const res = await fetch(`${ADMIN_API}/agent-performance`, { headers });
       if (!res.ok) throw new Error("Failed to fetch performance data");
       const data = await res.json();
       setStats(data.stats || []);
@@ -689,7 +691,7 @@ function ConversationReviewPanel({ token }: { token: string }) {
       const params = new URLSearchParams();
       if (agentFilter !== "all") params.set("agentType", agentFilter);
       if (ratingFilter !== "all") params.set("rating", ratingFilter);
-      const res = await fetch(`/api/admin/conversation-review?${params}`, { headers });
+      const res = await fetch(`${ADMIN_API}/conversation-review?${params}`, { headers });
       if (!res.ok) throw new Error("Failed to fetch conversations");
       const data = await res.json();
       setConversations(data.conversations || []);
@@ -704,7 +706,7 @@ function ConversationReviewPanel({ token }: { token: string }) {
     setSelectedConv(conv);
     setLoadingMsgs(true);
     try {
-      const res = await fetch(`/api/admin/conversation-review/${conv.visible_id}/messages`, { headers });
+      const res = await fetch(`${ADMIN_API}/conversation-review/${conv.visible_id}/messages`, { headers });
       if (!res.ok) throw new Error("Failed to fetch messages");
       const data = await res.json();
       setMessages(data.messages || []);
@@ -715,7 +717,7 @@ function ConversationReviewPanel({ token }: { token: string }) {
 
   const rateConversation = async (id: number, rating: string | null) => {
     try {
-      const res = await fetch(`/api/admin/conversation-review/${id}/rate`, {
+      const res = await fetch(`${ADMIN_API}/conversation-review/${id}/rate`, {
         method: "PATCH", headers: { ...headers, "Content-Type": "application/json" },
         body: JSON.stringify({ rating }),
       });
@@ -884,7 +886,7 @@ function TrainingDataPanel({ agentType, token }: { agentType: string; token: str
   const fetchStats = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/admin/agents/${agentType}/training-data-stats`, { headers });
+      const res = await fetch(`${ADMIN_API}/agents/${agentType}/training-data-stats`, { headers });
       if (!res.ok) throw new Error("Failed to fetch stats");
       const data = await res.json();
       if (typeof data.total_conversations === "number") {
@@ -902,7 +904,7 @@ function TrainingDataPanel({ agentType, token }: { agentType: string; token: str
     setExporting(true);
     try {
       const params = new URLSearchParams({ minTurns, toolsOnly: String(toolsOnly) });
-      const res = await fetch(`/api/admin/agents/${agentType}/download-training-data?${params}`, { headers });
+      const res = await fetch(`${ADMIN_API}/agents/${agentType}/download-training-data?${params}`, { headers });
       if (!res.ok) {
         let errorMsg = "Export failed";
         try { const err = await res.json(); errorMsg = err.error || errorMsg; } catch {}
@@ -932,7 +934,7 @@ function TrainingDataPanel({ agentType, token }: { agentType: string; token: str
 
   const handleDownloadRules = async () => {
     try {
-      const res = await fetch("/api/admin/agent-rules-pdf", { headers });
+      const res = await fetch(`${ADMIN_API}/agent-rules-pdf`, { headers });
       if (!res.ok) throw new Error("Download failed");
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
@@ -1081,7 +1083,7 @@ function FineTuningPanel({ agentType, token }: { agentType: string; token: strin
   const fetchJobs = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/admin/agents/${agentType}/fine-tuning`, { headers });
+      const res = await fetch(`${ADMIN_API}/agents/${agentType}/fine-tuning`, { headers });
       const data = await res.json();
       if (Array.isArray(data)) setJobs(data);
     } catch {
@@ -1099,7 +1101,7 @@ function FineTuningPanel({ agentType, token }: { agentType: string; token: strin
     try {
       const formData = new FormData();
       formData.append("file", file);
-      const res = await fetch(`/api/admin/agents/${agentType}/fine-tuning`, {
+      const res = await fetch(`${ADMIN_API}/agents/${agentType}/fine-tuning`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
         body: formData,
@@ -1118,7 +1120,7 @@ function FineTuningPanel({ agentType, token }: { agentType: string; token: strin
 
   const handleSync = async (jobId: number) => {
     try {
-      const res = await fetch(`/api/admin/fine-tuning/${jobId}/sync`, { method: "POST", headers });
+      const res = await fetch(`${ADMIN_API}/fine-tuning/${jobId}/sync`, { method: "POST", headers });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       toast({ title: "Status synced", description: `Status: ${data.status}` });
@@ -1130,7 +1132,7 @@ function FineTuningPanel({ agentType, token }: { agentType: string; token: strin
 
   const handleActivate = async (jobId: number) => {
     try {
-      const res = await fetch(`/api/admin/fine-tuning/${jobId}/activate`, {
+      const res = await fetch(`${ADMIN_API}/fine-tuning/${jobId}/activate`, {
         method: "POST",
         headers: { ...headers, "Content-Type": "application/json" },
         body: JSON.stringify({ agentType }),
@@ -1146,7 +1148,7 @@ function FineTuningPanel({ agentType, token }: { agentType: string; token: strin
 
   const handleDeactivate = async () => {
     try {
-      const res = await fetch(`/api/admin/agents/${agentType}/fine-tuning/deactivate`, { method: "POST", headers });
+      const res = await fetch(`${ADMIN_API}/agents/${agentType}/fine-tuning/deactivate`, { method: "POST", headers });
       if (!res.ok) throw new Error("Deactivation failed");
       toast({ title: "All models deactivated for this agent" });
       fetchJobs();
@@ -1283,8 +1285,8 @@ function MessagesPanel({ token }: { token: string }) {
     setLoading(true);
     try {
       const [msgRes, subRes] = await Promise.all([
-        fetch("/api/admin/contact-messages", { headers }),
-        fetch("/api/admin/newsletter-subscribers", { headers }),
+        fetch(`${ADMIN_API}/contact-messages`, { headers }),
+        fetch(`${ADMIN_API}/newsletter-subscribers`, { headers }),
       ]);
       const msgData = await msgRes.json();
       const subData = await subRes.json();
@@ -1439,7 +1441,7 @@ function TokenOptimizationPanel({ token }: { token: string }) {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/admin/token-optimization", { headers });
+      const res = await fetch(`${ADMIN_API}/token-optimization`, { headers });
       const d = await res.json();
       setData(d);
     } catch {
@@ -1629,9 +1631,9 @@ function CostTrackerPanel({ token }: { token: string }) {
     try {
       const minCost = showExpensive ? 0.01 : 0;
       const [totalsRes, summaryRes, detailedRes] = await Promise.all([
-        fetch("/api/admin/token-usage/totals", { headers }),
-        fetch("/api/admin/token-usage/summary", { headers }),
-        fetch(`/api/admin/token-usage/detailed?minCost=${minCost}`, { headers }),
+        fetch(`${ADMIN_API}/token-usage/totals`, { headers }),
+        fetch(`${ADMIN_API}/token-usage/summary`, { headers }),
+        fetch(`${ADMIN_API}/token-usage/detailed?minCost=${minCost}`, { headers }),
       ]);
       const t = await totalsRes.json();
       const s = await summaryRes.json();
@@ -1860,7 +1862,7 @@ function CollaborationPanel({ token }: { token: string }) {
 
   const fetchSessions = useCallback(async () => {
     try {
-      const res = await fetch("/api/admin/collaboration-sessions", { headers: { Authorization: `Bearer ${token}` } });
+      const res = await fetch(`${ADMIN_API}/collaboration-sessions`, { headers: { Authorization: `Bearer ${token}` } });
       if (res.ok) {
         const data: SavedCollabSession[] = await res.json();
         setSessions(data);
@@ -1888,7 +1890,7 @@ function CollaborationPanel({ token }: { token: string }) {
 
   const deleteSession = async (id: number) => {
     try {
-      const res = await fetch(`/api/admin/collaboration-sessions/${id}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
+      const res = await fetch(`${ADMIN_API}/collaboration-sessions/${id}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
       if (res.ok) {
         setSessions(prev => prev.filter(s => s.id !== id));
         toast({ title: "Deleted", description: "Session removed" });
@@ -1917,7 +1919,7 @@ function CollaborationPanel({ token }: { token: string }) {
     }, 1000);
 
     try {
-      const res = await fetch("/api/admin/agent-collaboration", {
+      const res = await fetch(`${ADMIN_API}/agent-collaboration`, {
         method: "POST",
         headers,
         body: JSON.stringify({ topic: topic.trim(), selectedAgents }),
@@ -2248,7 +2250,7 @@ function SpendAnalysisPanel({ token }: { token: string }) {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/admin/spend-analysis", { headers });
+      const res = await fetch(`${ADMIN_API}/spend-analysis`, { headers });
       if (res.ok) {
         const d: SpendData = await res.json();
         setData(d);
@@ -2463,7 +2465,7 @@ function BossAIPanel({ token }: { token: string }) {
 
   const fetchConversations = useCallback(async () => {
     try {
-      const res = await fetch("/api/admin/boss-conversations", {
+      const res = await fetch(`${ADMIN_API}/boss-conversations`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {
@@ -2481,7 +2483,7 @@ function BossAIPanel({ token }: { token: string }) {
     try {
       const hasTools = msgs.some(m => m.toolsUsed);
       if (convId) {
-        const res = await fetch(`/api/admin/boss-conversations/${convId}`, {
+        const res = await fetch(`${ADMIN_API}/boss-conversations/${convId}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
           body: JSON.stringify({ messages: msgs, toolsUsed: hasTools }),
@@ -2490,7 +2492,7 @@ function BossAIPanel({ token }: { token: string }) {
         return convId;
       } else {
         const topic = autoTopic || msgs.find(m => m.role === "user")?.content.slice(0, 80) || "New Conversation";
-        const res = await fetch("/api/admin/boss-conversations", {
+        const res = await fetch(`${ADMIN_API}/boss-conversations`, {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
           body: JSON.stringify({ topic, messages: msgs, toolsUsed: hasTools }),
@@ -2519,7 +2521,7 @@ function BossAIPanel({ token }: { token: string }) {
     setLoading(true);
 
     try {
-      const res = await fetch("/api/admin/boss-chat", {
+      const res = await fetch(`${ADMIN_API}/boss-chat`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -2576,7 +2578,7 @@ function BossAIPanel({ token }: { token: string }) {
 
   const deleteConversation = async (id: number) => {
     try {
-      await fetch(`/api/admin/boss-conversations/${id}`, {
+      await fetch(`${ADMIN_API}/boss-conversations/${id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -2590,7 +2592,7 @@ function BossAIPanel({ token }: { token: string }) {
 
   const updateTopic = async (id: number, newTopic: string) => {
     try {
-      await fetch(`/api/admin/boss-conversations/${id}`, {
+      await fetch(`${ADMIN_API}/boss-conversations/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ topic: newTopic }),
@@ -2880,7 +2882,7 @@ function GuardrailsPanel({ token }: { token: string }) {
       if (ruleFilter !== "all") params.set("ruleType", ruleFilter);
       if (dateFrom) params.set("from", new Date(dateFrom).toISOString());
       if (dateTo) params.set("to", new Date(dateTo + "T23:59:59").toISOString());
-      const res = await fetch(`/api/admin/guardrail-logs?${params}`, {
+      const res = await fetch(`${ADMIN_API}/guardrail-logs?${params}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) setLogs(await res.json());
@@ -3069,7 +3071,7 @@ function SupportTicketsPanel({ token }: { token: string }) {
 
   const fetchTickets = useCallback(async () => {
     try {
-      const res = await fetch("/api/admin/support-tickets", {
+      const res = await fetch(`${ADMIN_API}/support-tickets`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
@@ -3082,7 +3084,7 @@ function SupportTicketsPanel({ token }: { token: string }) {
 
   const handleUpdateTicket = async (id: number, updates: Record<string, string>) => {
     try {
-      await fetch(`/api/admin/support-tickets/${id}`, {
+      await fetch(`${ADMIN_API}/support-tickets/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify(updates),
@@ -3272,7 +3274,7 @@ function SecurityReportPanel({ token }: { token: string }) {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/admin/security-events?period=${period}`, { headers });
+      const res = await fetch(`${ADMIN_API}/security-events?period=${period}`, { headers });
       const d = await res.json();
       setData(d);
     } catch {
@@ -3831,9 +3833,17 @@ export default function AdminPage() {
   const [stats, setStats] = useState<AgentStats | null>(null);
   const [activeTab, setActiveTab] = useState("overview");
 
+  useEffect(() => {
+    const meta = document.createElement("meta");
+    meta.name = "robots";
+    meta.content = "noindex, nofollow";
+    document.head.appendChild(meta);
+    return () => { document.head.removeChild(meta); };
+  }, []);
+
   const fetchStats = useCallback(async (agent: string, tkn: string) => {
     try {
-      const res = await fetch(`/api/admin/agents/${agent}/stats`, {
+      const res = await fetch(`${ADMIN_API}/agents/${agent}/stats`, {
         headers: { Authorization: `Bearer ${tkn}` },
       });
       const data = await res.json();

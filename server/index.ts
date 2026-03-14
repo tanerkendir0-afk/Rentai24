@@ -12,8 +12,24 @@ import { getStripeSync } from "./stripeClient";
 import { WebhookHandlers } from "./webhookHandlers";
 import { pool } from "./db";
 
+const ADMIN_PATH = process.env.ADMIN_PATH;
+if (!ADMIN_PATH) {
+  console.error("FATAL: ADMIN_PATH environment variable is not set. Application cannot start.");
+  process.exit(1);
+}
+
 const app = express();
 const httpServer = createServer(app);
+
+app.disable("x-powered-by");
+
+app.use((_req: Request, res: Response, next: NextFunction) => {
+  res.removeHeader("Server");
+  res.setHeader("X-Frame-Options", "DENY");
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  next();
+});
 
 declare module "http" {
   interface IncomingMessage {
@@ -107,7 +123,7 @@ app.use((req, res, next) => {
     const duration = Date.now() - start;
     if (path.startsWith("/api")) {
       let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      const sensitiveRoutes = ["/api/stripe/checkout", "/api/stripe/portal", "/api/stripe/config", "/api/admin/auth", "/api/admin/"];
+      const sensitiveRoutes = ["/api/stripe/checkout", "/api/stripe/portal", "/api/stripe/config", `/api/${ADMIN_PATH}/auth`, `/api/${ADMIN_PATH}/`];
       if (capturedJsonResponse && !sensitiveRoutes.some(r => path.startsWith(r))) {
         logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
       }
@@ -244,7 +260,6 @@ app.use((req, res, next) => {
 
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
 
     console.error("Internal Server Error:", err);
 
@@ -252,12 +267,21 @@ app.use((req, res, next) => {
       return next(err);
     }
 
-    return res.status(status).json({ message });
+    return res.status(status).json({ message: status === 404 ? "Not found" : "Internal server error" });
   });
 
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
+  app.use(`/${ADMIN_PATH}`, (_req: Request, res: Response, next: NextFunction) => {
+    res.setHeader("X-Robots-Tag", "noindex, nofollow");
+    next();
+  });
+
+  app.use("/admin", (_req: Request, res: Response) => {
+    res.status(404).json({ message: "Not found" });
+  });
+  app.use("/api/admin", (_req: Request, res: Response) => {
+    res.status(404).json({ message: "Not found" });
+  });
+
   if (process.env.NODE_ENV === "production") {
     serveStatic(app);
   } else {

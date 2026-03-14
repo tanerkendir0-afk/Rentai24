@@ -1,0 +1,13 @@
+User-agent: *
+Allow: /
+Allow: /workers
+Allow: /pricing
+Allow: /about
+Allow: /how-it-works
+Allow: /contact
+
+Disallow: /admin
+Disallow: /api
+Disallow: /dashboard
+Disallow: /settings
+Disallow: /chat

@@ -395,6 +395,16 @@ export async function registerRoutes(
   app: Express
 ): Promise<Server> {
 
+  const ADMIN_PATH = process.env.ADMIN_PATH;
+  if (!ADMIN_PATH) {
+    throw new Error("ADMIN_PATH environment variable is not set");
+  }
+
+  app.use(`/api/${ADMIN_PATH}`, (_req, res, next) => {
+    res.setHeader("X-Robots-Tag", "noindex");
+    next();
+  });
+
   app.post("/api/auth/register", async (req, res) => {
     const parsed = registerSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -816,7 +826,7 @@ export async function registerRoutes(
       await disconnectUserGmail(req.session.userId!);
       res.json({ success: true });
     } catch (err: any) {
-      res.status(500).json({ error: err.message || "Failed to disconnect Gmail" });
+      console.error(err); res.status(500).json({ error: "Failed to disconnect Gmail" });
     }
   });
 
@@ -834,7 +844,7 @@ export async function registerRoutes(
       if (!updated) return res.status(404).json({ error: "User not found" });
       res.json({ success: true, gmailAddress: updated.gmailAddress });
     } catch (err: any) {
-      res.status(500).json({ error: err.message || "Failed to save Gmail settings" });
+      console.error(err); res.status(500).json({ error: "Failed to save Gmail settings" });
     }
   });
 
@@ -844,7 +854,7 @@ export async function registerRoutes(
       const status = await getUserGmailStatus(req.session.userId!);
       res.json(status);
     } catch (err: any) {
-      res.status(500).json({ error: err.message || "Failed to check Gmail status" });
+      console.error(err); res.status(500).json({ error: "Failed to check Gmail status" });
     }
   });
 
@@ -864,7 +874,7 @@ export async function registerRoutes(
       });
       res.json({ success: true, message: "Boss notification created" });
     } catch (err: any) {
-      res.status(500).json({ error: err.message || "Failed to create notification" });
+      console.error(err); res.status(500).json({ error: "Failed to create notification" });
     }
   });
 
@@ -1136,12 +1146,12 @@ export async function registerRoutes(
     res.json(ticket);
   });
 
-  app.get("/api/admin/support-tickets", requireAdmin, async (_req, res) => {
+  app.get(`/api/${ADMIN_PATH}/support-tickets`, requireAdmin, async (_req, res) => {
     const tickets = await storage.getAllTickets();
     res.json(tickets);
   });
 
-  app.patch("/api/admin/support-tickets/:id", requireAdmin, async (req, res) => {
+  app.patch(`/api/${ADMIN_PATH}/support-tickets/:id`, requireAdmin, async (req, res) => {
     const id = parseInt(req.params.id as string);
     const { status, priority, resolution, adminReply } = req.body;
     const updated = await storage.adminUpdateTicket(id, { status, priority, resolution, adminReply });
@@ -1149,7 +1159,7 @@ export async function registerRoutes(
     res.json(updated);
   });
 
-  app.get("/api/admin/guardrail-logs", requireAdmin, async (req, res) => {
+  app.get(`/api/${ADMIN_PATH}/guardrail-logs`, requireAdmin, async (req, res) => {
     const { agentType, ruleType, limit, from, to } = req.query;
     const logs = await storage.getGuardrailLogs({
       agentType: agentType as string | undefined,
@@ -2063,7 +2073,7 @@ ${members.map(m => `- ${m.name} (${m.email})${m.position ? ` — ${m.position}` 
       if (!user) return res.status(401).json({ error: "User not found" });
       res.json({ credits: user.imageCredits });
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      console.error(error); res.status(500).json({ error: "Internal server error" });
     }
   });
 
@@ -2140,7 +2150,7 @@ ${members.map(m => `- ${m.name} (${m.email})${m.position ? ` — ${m.position}` 
         .sort((a: any, b: any) => a.credits - b.credits);
       res.json(prices);
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      console.error(error); res.status(500).json({ error: "Internal server error" });
     }
   });
 
@@ -2197,7 +2207,7 @@ ${members.map(m => `- ${m.name} (${m.email})${m.position ? ` — ${m.position}` 
     next();
   }
 
-  app.post("/api/admin/auth", (req, res) => {
+  app.post(`/api/${ADMIN_PATH}/auth`, (req, res) => {
     const { password } = req.body;
     const adminPassword = process.env.ADMIN_PASSWORD;
     if (!adminPassword) {
@@ -2211,16 +2221,16 @@ ${members.map(m => `- ${m.name} (${m.email})${m.position ? ` — ${m.position}` 
     res.json({ success: true, token });
   });
 
-  app.get("/api/admin/agents/:agentType/documents", requireAdmin, async (req, res) => {
+  app.get(`/api/${ADMIN_PATH}/agents/:agentType/documents`, requireAdmin, async (req, res) => {
     try {
       const docs = await getDocumentsByAgent(req.params.agentType as string);
       res.json(docs);
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      console.error(error); res.status(500).json({ error: "Internal server error" });
     }
   });
 
-  app.post("/api/admin/agents/:agentType/documents", requireAdmin, (req, res, next) => {
+  app.post(`/api/${ADMIN_PATH}/agents/:agentType/documents`, requireAdmin, (req, res, next) => {
     uploadDocument.single("file")(req, res, async (err) => {
       if (err) {
         return res.status(400).json({ error: err.message });
@@ -2238,12 +2248,12 @@ ${members.map(m => `- ${m.name} (${m.email})${m.position ? ` — ${m.position}` 
         );
         res.json(doc);
       } catch (error: any) {
-        res.status(500).json({ error: error.message });
+        console.error(error); res.status(500).json({ error: "Internal server error" });
       }
     });
   });
 
-  app.post("/api/admin/agents/:agentType/documents/url", requireAdmin, async (req, res) => {
+  app.post(`/api/${ADMIN_PATH}/agents/:agentType/documents/url`, requireAdmin, async (req, res) => {
     try {
       const { url } = req.body;
       if (!url || typeof url !== "string") {
@@ -2252,29 +2262,29 @@ ${members.map(m => `- ${m.name} (${m.email})${m.position ? ` — ${m.position}` 
       const doc = await processAndStoreUrl(url, req.params.agentType as string);
       res.json(doc);
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      console.error(error); res.status(500).json({ error: "Internal server error" });
     }
   });
 
-  app.delete("/api/admin/documents/:docId", requireAdmin, async (req, res) => {
+  app.delete(`/api/${ADMIN_PATH}/documents/:docId`, requireAdmin, async (req, res) => {
     try {
       await deleteDocument(parseInt(req.params.docId as string));
       res.json({ success: true });
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      console.error(error); res.status(500).json({ error: "Internal server error" });
     }
   });
 
-  app.get("/api/admin/agents/:agentType/fine-tuning", requireAdmin, async (req, res) => {
+  app.get(`/api/${ADMIN_PATH}/agents/:agentType/fine-tuning`, requireAdmin, async (req, res) => {
     try {
       const jobs = await getJobsByAgent(req.params.agentType as string);
       res.json(jobs);
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      console.error(error); res.status(500).json({ error: "Internal server error" });
     }
   });
 
-  app.post("/api/admin/agents/:agentType/fine-tuning", requireAdmin, (req, res, next) => {
+  app.post(`/api/${ADMIN_PATH}/agents/:agentType/fine-tuning`, requireAdmin, (req, res, next) => {
     uploadTrainingFile.single("file")(req, res, async (err) => {
       if (err) {
         return res.status(400).json({ error: err.message });
@@ -2290,21 +2300,21 @@ ${members.map(m => `- ${m.name} (${m.email})${m.position ? ` — ${m.position}` 
         );
         res.json(job);
       } catch (error: any) {
-        res.status(500).json({ error: error.message });
+        console.error(error); res.status(500).json({ error: "Internal server error" });
       }
     });
   });
 
-  app.post("/api/admin/fine-tuning/:jobId/sync", requireAdmin, async (req, res) => {
+  app.post(`/api/${ADMIN_PATH}/fine-tuning/:jobId/sync`, requireAdmin, async (req, res) => {
     try {
       const job = await syncJobStatus(parseInt(req.params.jobId as string));
       res.json(job);
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      console.error(error); res.status(500).json({ error: "Internal server error" });
     }
   });
 
-  app.post("/api/admin/fine-tuning/:jobId/activate", requireAdmin, async (req, res) => {
+  app.post(`/api/${ADMIN_PATH}/fine-tuning/:jobId/activate`, requireAdmin, async (req, res) => {
     try {
       const { agentType } = req.body;
       if (!agentType) {
@@ -2313,27 +2323,27 @@ ${members.map(m => `- ${m.name} (${m.email})${m.position ? ` — ${m.position}` 
       const job = await toggleActiveModel(parseInt(req.params.jobId as string), agentType);
       res.json(job);
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      console.error(error); res.status(500).json({ error: "Internal server error" });
     }
   });
 
-  app.post("/api/admin/agents/:agentType/fine-tuning/deactivate", requireAdmin, async (req, res) => {
+  app.post(`/api/${ADMIN_PATH}/agents/:agentType/fine-tuning/deactivate`, requireAdmin, async (req, res) => {
     try {
       await deactivateModel(req.params.agentType as string);
       res.json({ success: true });
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      console.error(error); res.status(500).json({ error: "Internal server error" });
     }
   });
 
-  app.get("/api/admin/agent-rules-pdf", requireAdmin, async (_req, res) => {
+  app.get(`/api/${ADMIN_PATH}/agent-rules-pdf`, requireAdmin, async (_req, res) => {
     try {
       const pdfBuffer = await generateAgentRulesPDF();
       res.setHeader("Content-Type", "application/pdf");
       res.setHeader("Content-Disposition", "attachment; filename=RentAI24_Agent_Rules.pdf");
       res.send(pdfBuffer);
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      console.error(error); res.status(500).json({ error: "Internal server error" });
     }
   });
 
@@ -2346,7 +2356,7 @@ ${members.map(m => `- ${m.name} (${m.email})${m.position ? ` — ${m.position}` 
     };
   }
 
-  app.get("/api/admin/agents/:agentType/training-data-stats", requireAdmin, async (req, res) => {
+  app.get(`/api/${ADMIN_PATH}/agents/:agentType/training-data-stats`, requireAdmin, async (req, res) => {
     try {
       const { agentType } = req.params;
       let totalConversations = 0;
@@ -2389,11 +2399,11 @@ ${members.map(m => `- ${m.name} (${m.email})${m.position ? ` — ${m.position}` 
       });
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "Unknown error";
-      res.status(500).json({ error: message });
+      console.error(message); res.status(500).json({ error: "Internal server error" });
     }
   });
 
-  app.get("/api/admin/agents/:agentType/export-training-data", requireAdmin, async (req, res) => {
+  app.get(`/api/${ADMIN_PATH}/agents/:agentType/export-training-data`, requireAdmin, async (req, res) => {
     try {
       const agentType = req.params.agentType as string;
       const filters = parseTrainingDataFilters(req.query);
@@ -2409,11 +2419,11 @@ ${members.map(m => `- ${m.name} (${m.email})${m.position ? ` — ${m.position}` 
       });
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "Unknown error";
-      res.status(500).json({ error: message });
+      console.error(message); res.status(500).json({ error: "Internal server error" });
     }
   });
 
-  app.get("/api/admin/agents/:agentType/download-training-data", requireAdmin, async (req, res) => {
+  app.get(`/api/${ADMIN_PATH}/agents/:agentType/download-training-data`, requireAdmin, async (req, res) => {
     try {
       const agentType = req.params.agentType as string;
       const filters = parseTrainingDataFilters(req.query);
@@ -2435,11 +2445,11 @@ ${members.map(m => `- ${m.name} (${m.email})${m.position ? ` — ${m.position}` 
       res.send(result.jsonl);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "Unknown error";
-      res.status(500).json({ error: message });
+      console.error(message); res.status(500).json({ error: "Internal server error" });
     }
   });
 
-  app.post("/api/admin/validate-training-data", requireAdmin, async (req, res) => {
+  app.post(`/api/${ADMIN_PATH}/validate-training-data`, requireAdmin, async (req, res) => {
     try {
       const { jsonlContent } = req.body;
       if (!jsonlContent || typeof jsonlContent !== "string") {
@@ -2453,11 +2463,11 @@ ${members.map(m => `- ${m.name} (${m.email})${m.position ? ` — ${m.position}` 
         errors,
       });
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      console.error(error); res.status(500).json({ error: "Internal server error" });
     }
   });
 
-  app.get("/api/admin/agent-performance", requireAdmin, async (_req, res) => {
+  app.get(`/api/${ADMIN_PATH}/agent-performance`, requireAdmin, async (_req, res) => {
     try {
       const { db } = await import("./db");
       const { agentActions, chatMessages } = await import("@shared/schema");
@@ -2511,11 +2521,11 @@ ${members.map(m => `- ${m.name} (${m.email})${m.position ? ` — ${m.position}` 
 
       res.json({ stats, problematicSessions: problematicSessions.rows || [] });
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      console.error(error); res.status(500).json({ error: "Internal server error" });
     }
   });
 
-  app.get("/api/admin/conversation-review", requireAdmin, async (req, res) => {
+  app.get(`/api/${ADMIN_PATH}/conversation-review`, requireAdmin, async (req, res) => {
     try {
       const { db } = await import("./db");
       const { conversations, chatMessages } = await import("@shared/schema");
@@ -2549,11 +2559,11 @@ ${members.map(m => `- ${m.name} (${m.email})${m.position ? ` — ${m.position}` 
       const result = await db.execute(query);
       res.json({ conversations: result.rows || [] });
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      console.error(error); res.status(500).json({ error: "Internal server error" });
     }
   });
 
-  app.get("/api/admin/conversation-review/:visibleId/messages", requireAdmin, async (req, res) => {
+  app.get(`/api/${ADMIN_PATH}/conversation-review/:visibleId/messages`, requireAdmin, async (req, res) => {
     try {
       const { db } = await import("./db");
       const { chatMessages } = await import("@shared/schema");
@@ -2565,11 +2575,11 @@ ${members.map(m => `- ${m.name} (${m.email})${m.position ? ` — ${m.position}` 
 
       res.json({ messages });
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      console.error(error); res.status(500).json({ error: "Internal server error" });
     }
   });
 
-  app.patch("/api/admin/conversation-review/:id/rate", requireAdmin, async (req, res) => {
+  app.patch(`/api/${ADMIN_PATH}/conversation-review/:id/rate`, requireAdmin, async (req, res) => {
     try {
       const { db } = await import("./db");
       const { conversations } = await import("@shared/schema");
@@ -2583,11 +2593,11 @@ ${members.map(m => `- ${m.name} (${m.email})${m.position ? ` — ${m.position}` 
       await db.update(conversations).set({ qualityRating: rating }).where(eq(conversations.id, Number(req.params.id)));
       res.json({ success: true });
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      console.error(error); res.status(500).json({ error: "Internal server error" });
     }
   });
 
-  app.get("/api/admin/security-events", requireAdmin, async (req, res) => {
+  app.get(`/api/${ADMIN_PATH}/security-events`, requireAdmin, async (req, res) => {
     try {
       const { securityEvents } = await import("@shared/schema");
       const { desc, gte, sql: sqlFn } = await import("drizzle-orm");
@@ -2656,44 +2666,44 @@ ${members.map(m => `- ${m.name} (${m.email})${m.position ? ` — ${m.position}` 
         period,
       });
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      console.error(error); res.status(500).json({ error: "Internal server error" });
     }
   });
 
-  app.get("/api/admin/contact-messages", requireAdmin, async (_req, res) => {
+  app.get(`/api/${ADMIN_PATH}/contact-messages`, requireAdmin, async (_req, res) => {
     try {
       const messages = await storage.getContactMessages();
       res.json(messages);
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      console.error(error); res.status(500).json({ error: "Internal server error" });
     }
   });
 
-  app.get("/api/admin/newsletter-subscribers", requireAdmin, async (_req, res) => {
+  app.get(`/api/${ADMIN_PATH}/newsletter-subscribers`, requireAdmin, async (_req, res) => {
     try {
       const subscribers = await storage.getNewsletterSubscribers();
       res.json(subscribers);
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      console.error(error); res.status(500).json({ error: "Internal server error" });
     }
   });
 
-  app.get("/api/admin/token-usage/summary", requireAdmin, async (_req, res) => {
+  app.get(`/api/${ADMIN_PATH}/token-usage/summary`, requireAdmin, async (_req, res) => {
     try {
       const summary = await storage.getTokenUsageSummary();
       res.json(summary);
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      console.error(error); res.status(500).json({ error: "Internal server error" });
     }
   });
 
-  app.get("/api/admin/token-usage/detailed", requireAdmin, async (req, res) => {
+  app.get(`/api/${ADMIN_PATH}/token-usage/detailed`, requireAdmin, async (req, res) => {
     try {
       const minCost = parseFloat(req.query.minCost as string) || 0;
       const detailed = await storage.getTokenUsageDetailed(minCost);
       res.json(detailed);
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      console.error(error); res.status(500).json({ error: "Internal server error" });
     }
   });
 
@@ -2714,11 +2724,11 @@ ${members.map(m => `- ${m.name} (${m.email})${m.position ? ` — ${m.position}` 
         limitReached: spent >= limit,
       });
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      console.error(error); res.status(500).json({ error: "Internal server error" });
     }
   });
 
-  app.get("/api/admin/token-usage/totals", requireAdmin, async (_req, res) => {
+  app.get(`/api/${ADMIN_PATH}/token-usage/totals`, requireAdmin, async (_req, res) => {
     try {
       const result = await db.execute(sql`
         SELECT
@@ -2733,11 +2743,11 @@ ${members.map(m => `- ${m.name} (${m.email})${m.position ? ` — ${m.position}` 
       `);
       res.json(result.rows[0] || {});
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      console.error(error); res.status(500).json({ error: "Internal server error" });
     }
   });
 
-  app.get("/api/admin/token-optimization", requireAdmin, async (_req, res) => {
+  app.get(`/api/${ADMIN_PATH}/token-optimization`, requireAdmin, async (_req, res) => {
     try {
       const [modelDistribution, avgTokens, dailyStats] = await Promise.all([
         db.execute(sql`
@@ -2799,11 +2809,11 @@ ${members.map(m => `- ${m.name} (${m.email})${m.position ? ` — ${m.position}` 
         summaryCacheHits: summaryStats.summaryCacheHits,
       });
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      console.error(error); res.status(500).json({ error: "Internal server error" });
     }
   });
 
-  app.get("/api/admin/agents/:agentType/stats", requireAdmin, async (req, res) => {
+  app.get(`/api/${ADMIN_PATH}/agents/:agentType/stats`, requireAdmin, async (req, res) => {
     try {
       const docCount = await getDocumentCount(req.params.agentType as string);
       const ftJobs = await getJobsByAgent(req.params.agentType as string);
@@ -2814,11 +2824,11 @@ ${members.map(m => `- ${m.name} (${m.email})${m.position ? ` — ${m.position}` 
         activeModel: activeModel || null,
       });
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      console.error(error); res.status(500).json({ error: "Internal server error" });
     }
   });
 
-  app.get("/api/admin/users", requireAdmin, async (_req, res) => {
+  app.get(`/api/${ADMIN_PATH}/users`, requireAdmin, async (_req, res) => {
     try {
       const result = await db.execute(sql`
         SELECT
@@ -2838,11 +2848,11 @@ ${members.map(m => `- ${m.name} (${m.email})${m.position ? ` — ${m.position}` 
       `);
       res.json(result.rows);
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      console.error(error); res.status(500).json({ error: "Internal server error" });
     }
   });
 
-  app.patch("/api/admin/rentals/:id", requireAdmin, async (req, res) => {
+  app.patch(`/api/${ADMIN_PATH}/rentals/:id`, requireAdmin, async (req, res) => {
     try {
       const rentalId = parseInt(req.params.id);
       const { messagesLimit, messagesUsed, plan, status } = req.body;
@@ -2857,11 +2867,11 @@ ${members.map(m => `- ${m.name} (${m.email})${m.position ? ` — ${m.position}` 
       await db.update(rentals).set(updates).where(eq(rentals.id, rentalId));
       res.json({ success: true });
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      console.error(error); res.status(500).json({ error: "Internal server error" });
     }
   });
 
-  app.get("/api/admin/all-rentals", requireAdmin, async (_req, res) => {
+  app.get(`/api/${ADMIN_PATH}/all-rentals`, requireAdmin, async (_req, res) => {
     try {
       const result = await db.execute(sql`
         SELECT r.id, r.user_id, r.agent_type, r.plan, r.status,
@@ -2873,11 +2883,11 @@ ${members.map(m => `- ${m.name} (${m.email})${m.position ? ` — ${m.position}` 
       `);
       res.json(result.rows);
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      console.error(error); res.status(500).json({ error: "Internal server error" });
     }
   });
 
-  app.get("/api/admin/overview", requireAdmin, async (_req, res) => {
+  app.get(`/api/${ADMIN_PATH}/overview`, requireAdmin, async (_req, res) => {
     try {
       const [usersResult, rentalsResult, costResult, messagesResult] = await Promise.all([
         db.execute(sql`SELECT COUNT(*)::int as total FROM users`),
@@ -2894,7 +2904,7 @@ ${members.map(m => `- ${m.name} (${m.email})${m.position ? ` — ${m.position}` 
         totalContacts: (messagesResult.rows[0] as any)?.contacts || 0,
       });
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      console.error(error); res.status(500).json({ error: "Internal server error" });
     }
   });
 
@@ -2994,7 +3004,7 @@ ${SYSTEM_SECRECY}`;
     { slug: "manager", name: "Manager", perspective: "cross-team coordination, task routing, workflow orchestration, strategic oversight, resource allocation" },
   ];
 
-  app.post("/api/admin/agent-collaboration", requireAdmin, async (req, res) => {
+  app.post(`/api/${ADMIN_PATH}/agent-collaboration`, requireAdmin, async (req, res) => {
     try {
       const { topic, selectedAgents } = req.body;
       if (!topic || typeof topic !== "string") {
@@ -3156,11 +3166,11 @@ Be decisive and actionable. Format with clear sections.`,
     } catch (error: unknown) {
       const errMsg = error instanceof Error ? error.message : String(error);
       console.error("Collaboration error:", errMsg);
-      res.status(500).json({ error: errMsg });
+      console.error(errMsg); res.status(500).json({ error: "Internal server error" });
     }
   });
 
-  app.get("/api/admin/collaboration-sessions", requireAdmin, async (_req, res) => {
+  app.get(`/api/${ADMIN_PATH}/collaboration-sessions`, requireAdmin, async (_req, res) => {
     try {
       const sessions = await db
         .select()
@@ -3169,11 +3179,11 @@ Be decisive and actionable. Format with clear sections.`,
       res.json(sessions);
     } catch (error: unknown) {
       const errMsg = error instanceof Error ? error.message : String(error);
-      res.status(500).json({ error: errMsg });
+      console.error(errMsg); res.status(500).json({ error: "Internal server error" });
     }
   });
 
-  app.delete("/api/admin/collaboration-sessions/:id", requireAdmin, async (req, res) => {
+  app.delete(`/api/${ADMIN_PATH}/collaboration-sessions/:id`, requireAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id as string);
       if (isNaN(id)) return res.status(400).json({ error: "Invalid ID" });
@@ -3185,11 +3195,11 @@ Be decisive and actionable. Format with clear sections.`,
       res.json({ success: true });
     } catch (error: unknown) {
       const errMsg = error instanceof Error ? error.message : String(error);
-      res.status(500).json({ error: errMsg });
+      console.error(errMsg); res.status(500).json({ error: "Internal server error" });
     }
   });
 
-  app.get("/api/admin/spend-analysis", requireAdmin, async (_req, res) => {
+  app.get(`/api/${ADMIN_PATH}/spend-analysis`, requireAdmin, async (_req, res) => {
     try {
       const overallResult = await db.execute(sql`
         SELECT 
@@ -3285,11 +3295,11 @@ Be decisive and actionable. Format with clear sections.`,
       });
     } catch (error: unknown) {
       const errMsg = error instanceof Error ? error.message : String(error);
-      res.status(500).json({ error: errMsg });
+      console.error(errMsg); res.status(500).json({ error: "Internal server error" });
     }
   });
 
-  app.post("/api/admin/boss-chat", requireAdmin, async (req, res) => {
+  app.post(`/api/${ADMIN_PATH}/boss-chat`, requireAdmin, async (req, res) => {
     try {
       const { message, conversationHistory } = req.body;
       if (!message) {
@@ -3593,11 +3603,11 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
     } catch (error: unknown) {
       const errMsg = error instanceof Error ? error.message : String(error);
       console.error("Boss chat error:", errMsg);
-      res.status(500).json({ error: errMsg });
+      console.error(errMsg); res.status(500).json({ error: "Internal server error" });
     }
   });
 
-  app.get("/api/admin/boss-conversations", requireAdmin, async (_req, res) => {
+  app.get(`/api/${ADMIN_PATH}/boss-conversations`, requireAdmin, async (_req, res) => {
     try {
       const conversations = await db
         .select()
@@ -3606,11 +3616,11 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
       res.json(conversations);
     } catch (error: unknown) {
       const errMsg = error instanceof Error ? error.message : String(error);
-      res.status(500).json({ error: errMsg });
+      console.error(errMsg); res.status(500).json({ error: "Internal server error" });
     }
   });
 
-  app.post("/api/admin/boss-conversations", requireAdmin, async (req, res) => {
+  app.post(`/api/${ADMIN_PATH}/boss-conversations`, requireAdmin, async (req, res) => {
     try {
       const { topic, messages: msgs, toolsUsed } = req.body;
       if (!topic || typeof topic !== "string") return res.status(400).json({ error: "Topic is required" });
@@ -3628,11 +3638,11 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
       res.json(conv);
     } catch (error: unknown) {
       const errMsg = error instanceof Error ? error.message : String(error);
-      res.status(500).json({ error: errMsg });
+      console.error(errMsg); res.status(500).json({ error: "Internal server error" });
     }
   });
 
-  app.patch("/api/admin/boss-conversations/:id", requireAdmin, async (req, res) => {
+  app.patch(`/api/${ADMIN_PATH}/boss-conversations/:id`, requireAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id as string);
       if (isNaN(id)) return res.status(400).json({ error: "Invalid ID" });
@@ -3661,11 +3671,11 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
       res.json(conv);
     } catch (error: unknown) {
       const errMsg = error instanceof Error ? error.message : String(error);
-      res.status(500).json({ error: errMsg });
+      console.error(errMsg); res.status(500).json({ error: "Internal server error" });
     }
   });
 
-  app.delete("/api/admin/boss-conversations/:id", requireAdmin, async (req, res) => {
+  app.delete(`/api/${ADMIN_PATH}/boss-conversations/:id`, requireAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id as string);
       const [conv] = await db
@@ -3676,7 +3686,7 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
       res.json({ success: true });
     } catch (error: unknown) {
       const errMsg = error instanceof Error ? error.message : String(error);
-      res.status(500).json({ error: errMsg });
+      console.error(errMsg); res.status(500).json({ error: "Internal server error" });
     }
   });
 

@@ -281,7 +281,7 @@ export default function Navbar() {
                   </Button>
                 </Link>
                 {user.email === "tanerkendir0@gmail.com" && (
-                  <Link href="/admin">
+                  <Link href={`/${import.meta.env.VITE_ADMIN_PATH}`}>
                     <Button
                       size="sm"
                       variant="ghost"
@@ -402,7 +402,7 @@ export default function Navbar() {
                           </Button>
                         </Link>
                         {user.email === "tanerkendir0@gmail.com" && (
-                          <Link href="/admin">
+                          <Link href={`/${import.meta.env.VITE_ADMIN_PATH}`}>
                             <Button
                               variant="outline"
                               className="w-full border-amber-500/30 text-amber-400 hover:bg-amber-500/10"

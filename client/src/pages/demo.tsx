@@ -1612,7 +1612,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
         </div>
 
         <div className="border-t border-border/50 bg-card/30 backdrop-blur-sm shrink-0">
-          <div className="max-w-3xl mx-auto w-full px-4 py-3">
+          <div className="max-w-3xl mx-auto w-full px-2 sm:px-4 py-2 sm:py-3">
             {uploadedImage && (
               <div className="flex items-center gap-2 mb-2 p-2 rounded-lg bg-blue-500/10 border border-blue-500/20" data-testid="upload-preview">
                 <img src={uploadedImage.url} alt="Uploaded" className="w-10 h-10 rounded-lg object-cover" />
@@ -1673,13 +1673,13 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                   onChange={(e) => setInput(e.target.value)}
                   placeholder={!user ? `Ask ${currentAgent.persona} what it can do...` : `Message ${currentAgent.persona}...`}
                   disabled={loading}
-                  className="w-full h-11 px-4 pr-12 rounded-xl bg-muted/50 border border-border/50 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 transition-all disabled:opacity-50"
+                  className="w-full h-11 sm:h-11 px-3 sm:px-4 pr-11 sm:pr-12 rounded-xl bg-muted/50 border border-border/50 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 transition-all disabled:opacity-50"
                   data-testid="input-chat"
                 />
                 <button
                   type="submit"
                   disabled={loading || !input.trim()}
-                  className="absolute right-1.5 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-gradient-to-r from-blue-500 to-violet-500 flex items-center justify-center text-white disabled:opacity-30 transition-opacity"
+                  className="absolute right-1.5 top-1/2 -translate-y-1/2 w-8 h-8 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 rounded-lg bg-gradient-to-r from-blue-500 to-violet-500 flex items-center justify-center text-white disabled:opacity-30 transition-opacity"
                   data-testid="button-send-chat"
                 >
                   <Send className="w-4 h-4" />
@@ -1691,11 +1691,17 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
        </div>
 
         {showTasksPanel && user && (
-          <TasksPanel
-            agentType={selectedAgent}
-            agentColor={currentAgent.color}
-            onClose={() => setShowTasksPanel(false)}
-          />
+          <>
+            <div
+              className="fixed inset-0 bg-black/40 z-50 lg:hidden"
+              onClick={() => setShowTasksPanel(false)}
+            />
+            <TasksPanel
+              agentType={selectedAgent}
+              agentColor={currentAgent.color}
+              onClose={() => setShowTasksPanel(false)}
+            />
+          </>
         )}
       </div>
     </div>

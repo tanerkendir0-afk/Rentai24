@@ -44,6 +44,7 @@ import {
   Copy,
   ExternalLink,
   Zap,
+  Share2,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
@@ -559,13 +560,34 @@ export default function Settings() {
     ? subscription.metadata.plan.charAt(0).toUpperCase() + subscription.metadata.plan.slice(1)
     : null;
 
+  const settingsSections = [
+    { id: "profile", label: "Profile", icon: User },
+    { id: "integrations", label: "Integrations", icon: Link2 },
+    { id: "personal-gmail", label: "Gmail", icon: Mail },
+    { id: "social-accounts", label: "Social Media", icon: Share2 },
+    { id: "team-members", label: "Team", icon: Users },
+    { id: "whatsapp-business", label: "WhatsApp", icon: Phone },
+    { id: "shipping-providers", label: "Shipping", icon: Package },
+    { id: "api-secrets", label: "API Keys", icon: KeyRound },
+    { id: "subscription", label: "Subscription", icon: CreditCard },
+    { id: "image-credits", label: "Image Credits", icon: Sparkles },
+    { id: "security", label: "Security", icon: Shield },
+  ];
+
+  const scrollToSection = (sectionId: string) => {
+    const element = document.querySelector(`[data-testid="card-${sectionId}"]`);
+    if (element) {
+      element.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
+
   return (
     <div className="pt-16 min-h-screen">
       <div className="bg-gradient-to-r from-blue-500/10 to-violet-500/10 border-b border-border/50">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
           <div className="flex items-center gap-3">
             <Link href="/dashboard">
-              <Button variant="ghost" size="icon" data-testid="button-back-dashboard">
+              <Button variant="ghost" size="icon" className="min-h-[44px] min-w-[44px]" data-testid="button-back-dashboard">
                 <ArrowLeft className="w-5 h-5" />
               </Button>
             </Link>
@@ -577,8 +599,50 @@ export default function Settings() {
         </div>
       </div>
 
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-        <Card className="p-6 bg-card border-border/50" data-testid="card-profile">
+      <div className="lg:hidden border-b border-border/50 bg-card/50 backdrop-blur-sm sticky top-16 z-20">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <div className="flex overflow-x-auto gap-1 py-2 scrollbar-hide" data-testid="settings-mobile-nav">
+            {settingsSections.map((section) => {
+              const SectionIcon = section.icon;
+              return (
+                <button
+                  key={section.id}
+                  onClick={() => scrollToSection(section.id)}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors whitespace-nowrap shrink-0 min-h-[44px]"
+                  data-testid={`nav-mobile-${section.id}`}
+                >
+                  <SectionIcon className="w-3.5 h-3.5" />
+                  {section.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
+        <div className="flex gap-8">
+          <aside className="hidden lg:block w-56 shrink-0">
+            <nav className="sticky top-24 space-y-1" data-testid="settings-desktop-nav">
+              {settingsSections.map((section) => {
+                const SectionIcon = section.icon;
+                return (
+                  <button
+                    key={section.id}
+                    onClick={() => scrollToSection(section.id)}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors text-left"
+                    data-testid={`nav-desktop-${section.id}`}
+                  >
+                    <SectionIcon className="w-4 h-4" />
+                    {section.label}
+                  </button>
+                );
+              })}
+            </nav>
+          </aside>
+
+          <div className="flex-1 min-w-0 space-y-6 sm:space-y-8">
+        <Card className="p-4 sm:p-6 bg-card border-border/50" data-testid="card-profile">
           <div className="flex items-center gap-2 mb-5">
             <User className="w-5 h-5 text-blue-400" />
             <h2 className="text-lg font-semibold text-foreground">Profile</h2>
@@ -632,7 +696,7 @@ export default function Settings() {
           </div>
         </Card>
 
-        <Card className="p-6 bg-card border-border/50" data-testid="card-integrations">
+        <Card className="p-4 sm:p-6 bg-card border-border/50" data-testid="card-integrations">
           <div className="flex items-center gap-2 mb-5">
             <Link2 className="w-5 h-5 text-violet-400" />
             <h2 className="text-lg font-semibold text-foreground">Integrations</h2>
@@ -758,7 +822,7 @@ export default function Settings() {
           </div>
         </Card>
 
-        <Card className="p-6 bg-card border-border/50" data-testid="card-personal-gmail">
+        <Card className="p-4 sm:p-6 bg-card border-border/50" data-testid="card-personal-gmail">
           <div className="flex items-center gap-2 mb-5">
             <Mail className="w-5 h-5 text-emerald-400" />
             <h2 className="text-lg font-semibold text-foreground">Gmail Account</h2>
@@ -928,7 +992,7 @@ export default function Settings() {
           )}
         </Card>
 
-        <Card className="p-6 bg-card border-border/50" data-testid="card-social-accounts">
+        <Card className="p-4 sm:p-6 bg-card border-border/50" data-testid="card-social-accounts">
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-2">
               <Sparkles className="w-5 h-5 text-pink-400" />
@@ -1165,7 +1229,7 @@ export default function Settings() {
           )}
         </Card>
 
-        <Card className="p-6 bg-card border-border/50" data-testid="card-team-members">
+        <Card className="p-4 sm:p-6 bg-card border-border/50" data-testid="card-team-members">
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-2">
               <Users className="w-5 h-5 text-violet-400" />
@@ -1349,7 +1413,7 @@ export default function Settings() {
           )}
         </Card>
 
-        <Card className="p-6 bg-card border-border/50" data-testid="card-whatsapp-business">
+        <Card className="p-4 sm:p-6 bg-card border-border/50" data-testid="card-whatsapp-business">
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-2">
               <Smartphone className="w-5 h-5 text-green-400" />
@@ -1581,7 +1645,7 @@ export default function Settings() {
           )}
         </Card>
 
-        <Card className="p-6 bg-card border-border/50" data-testid="card-shipping-providers">
+        <Card className="p-4 sm:p-6 bg-card border-border/50" data-testid="card-shipping-providers">
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-2">
               <Package className="w-5 h-5 text-orange-400" />
@@ -1734,7 +1798,7 @@ export default function Settings() {
         </Card>
 
         {shippingProvidersData && shippingProvidersData.length > 0 && (
-          <Card className="p-6 bg-card border-border/50" data-testid="card-api-secrets">
+          <Card className="p-4 sm:p-6 bg-card border-border/50" data-testid="card-api-secrets">
             <div className="flex items-center gap-2 mb-2">
               <KeyRound className="w-5 h-5 text-red-400" />
               <h2 className="text-lg font-semibold text-foreground">API Secrets</h2>
@@ -1873,7 +1937,7 @@ export default function Settings() {
           </Card>
         )}
 
-        <Card className="p-6 bg-card border-border/50" data-testid="card-subscription">
+        <Card className="p-4 sm:p-6 bg-card border-border/50" data-testid="card-subscription">
           <div className="flex items-center gap-2 mb-5">
             <CreditCard className="w-5 h-5 text-emerald-400" />
             <h2 className="text-lg font-semibold text-foreground">Subscription</h2>
@@ -1931,7 +1995,7 @@ export default function Settings() {
           </div>
         </Card>
 
-        <Card className="p-6 bg-card border-border/50" data-testid="card-image-credits">
+        <Card className="p-4 sm:p-6 bg-card border-border/50" data-testid="card-image-credits">
           <div className="flex items-center gap-2 mb-5">
             <Sparkles className="w-5 h-5 text-yellow-400" />
             <h2 className="text-lg font-semibold text-foreground">Image Credits</h2>
@@ -2040,7 +2104,7 @@ export default function Settings() {
           </div>
         </Card>
 
-        <Card className="p-6 bg-card border-border/50" data-testid="card-security">
+        <Card className="p-4 sm:p-6 bg-card border-border/50" data-testid="card-security">
           <div className="flex items-center gap-2 mb-5">
             <Shield className="w-5 h-5 text-orange-400" />
             <h2 className="text-lg font-semibold text-foreground">Security</h2>
@@ -2115,6 +2179,8 @@ export default function Settings() {
             </Button>
           </div>
         </Card>
+          </div>
+        </div>
       </div>
     </div>
   );

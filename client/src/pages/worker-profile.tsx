@@ -78,7 +78,7 @@ export default function WorkerProfile() {
 
   return (
     <div className="pt-16">
-      <section className="py-20 relative">
+      <section className="py-12 sm:py-20 relative">
         <div className="absolute inset-0 bg-gradient-to-b from-blue-950/20 to-transparent" />
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <motion.div
@@ -86,13 +86,13 @@ export default function WorkerProfile() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
           >
-            <div className="flex flex-col sm:flex-row items-start gap-6 mb-8">
-              <div className="w-20 h-20 rounded-md bg-gradient-to-br from-blue-500 to-violet-500 flex items-center justify-center shrink-0">
-                <Icon className="w-10 h-10 text-white" />
+            <div className="flex flex-col sm:flex-row items-start gap-4 sm:gap-6 mb-6 sm:mb-8">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-md bg-gradient-to-br from-blue-500 to-violet-500 flex items-center justify-center shrink-0">
+                <Icon className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
               </div>
               <div className="flex-1">
-                <div className="flex flex-wrap items-center gap-3 mb-2">
-                  <h1 className="text-3xl sm:text-4xl font-bold text-foreground" data-testid="text-worker-name">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
+                  <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground" data-testid="text-worker-name">
                     {agent.name}
                   </h1>
                   {agent.tag && (
@@ -103,12 +103,12 @@ export default function WorkerProfile() {
                     <span className="text-sm text-emerald-400 font-medium">Online 24/7</span>
                   </div>
                 </div>
-                <p className="text-lg text-muted-foreground mb-4">{agent.role}</p>
-                <p className="text-muted-foreground leading-relaxed">{agent.fullDescription}</p>
+                <p className="text-base sm:text-lg text-muted-foreground mb-3 sm:mb-4">{agent.role}</p>
+                <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">{agent.fullDescription}</p>
               </div>
             </div>
 
-            <div className="flex flex-wrap gap-3 mb-8">
+            <div className="flex flex-wrap gap-3 mb-6 sm:mb-8">
               {user ? (
                 <Button
                   size="lg"
@@ -143,36 +143,36 @@ export default function WorkerProfile() {
               </Link>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-12">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-8 sm:mb-12">
               {agent.metrics.map((m) => (
-                <Card key={m.label} className="p-4 bg-card border-border/50 text-center">
-                  <div className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent mb-1">{m.value}</div>
-                  <div className="text-xs text-muted-foreground">{m.label}</div>
+                <Card key={m.label} className="p-3 sm:p-4 bg-card border-border/50 text-center">
+                  <div className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent mb-1">{m.value}</div>
+                  <div className="text-[10px] sm:text-xs text-muted-foreground">{m.label}</div>
                 </Card>
               ))}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
-              <Card className="p-6 bg-card border-border/50">
-                <h3 className="font-semibold text-foreground mb-4 flex items-center gap-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-8 mb-8 sm:mb-12">
+              <Card className="p-4 sm:p-6 bg-card border-border/50">
+                <h3 className="font-semibold text-foreground mb-3 sm:mb-4 flex items-center gap-2">
                   <Zap className="w-4 h-4 text-blue-400" />
                   Skills & Capabilities
                 </h3>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-1.5 sm:gap-2">
                   {agent.skills.map((skill) => (
-                    <Badge key={skill} variant="secondary">{skill}</Badge>
+                    <Badge key={skill} variant="secondary" className="text-xs">{skill}</Badge>
                   ))}
                 </div>
               </Card>
 
-              <Card className="p-6 bg-card border-border/50">
-                <h3 className="font-semibold text-foreground mb-4 flex items-center gap-2">
+              <Card className="p-4 sm:p-6 bg-card border-border/50">
+                <h3 className="font-semibold text-foreground mb-3 sm:mb-4 flex items-center gap-2">
                   <Plug className="w-4 h-4 text-blue-400" />
                   Integrations
                 </h3>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-1.5 sm:gap-2">
                   {agent.integrations.map((integ) => (
-                    <span key={integ} className="flex items-center gap-1.5 text-sm text-muted-foreground bg-muted/50 rounded-md px-3 py-1.5">
+                    <span key={integ} className="flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground bg-muted/50 rounded-md px-2 sm:px-3 py-1 sm:py-1.5">
                       <Plug className="w-3 h-3" />
                       {integ}
                     </span>
@@ -181,36 +181,36 @@ export default function WorkerProfile() {
               </Card>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
-              <Card className="p-6 bg-card border-border/50">
-                <h3 className="font-semibold text-foreground mb-4 flex items-center gap-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-8 mb-8 sm:mb-12">
+              <Card className="p-4 sm:p-6 bg-card border-border/50">
+                <h3 className="font-semibold text-foreground mb-3 sm:mb-4 flex items-center gap-2">
                   <Globe className="w-4 h-4 text-blue-400" />
                   Languages
                 </h3>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-1.5 sm:gap-2">
                   {agent.languages.map((lang) => (
-                    <Badge key={lang} variant="secondary">{lang}</Badge>
+                    <Badge key={lang} variant="secondary" className="text-xs">{lang}</Badge>
                   ))}
                 </div>
               </Card>
 
-              <Card className="p-6 bg-card border-border/50">
-                <h3 className="font-semibold text-foreground mb-4">Pricing</h3>
-                <div className="mb-4">
-                  <span className="text-4xl font-bold bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent">${agent.price}</span>
+              <Card className="p-4 sm:p-6 bg-card border-border/50">
+                <h3 className="font-semibold text-foreground mb-3 sm:mb-4">Pricing</h3>
+                <div className="mb-3 sm:mb-4">
+                  <span className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent">${agent.price}</span>
                   <span className="text-muted-foreground">/month</span>
                 </div>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-xs sm:text-sm text-muted-foreground">
                   Includes all features, integrations, and 24/7 availability. 14-day free trial, no credit card required.
                 </p>
               </Card>
             </div>
 
-            <Card className="p-6 bg-card border-border/50 mb-12">
-              <h3 className="font-semibold text-foreground mb-4">Use Cases</h3>
-              <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Card className="p-4 sm:p-6 bg-card border-border/50 mb-8 sm:mb-12">
+              <h3 className="font-semibold text-foreground mb-3 sm:mb-4">Use Cases</h3>
+              <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
                 {agent.useCases.map((uc) => (
-                  <li key={uc} className="flex items-start gap-3 text-sm text-muted-foreground">
+                  <li key={uc} className="flex items-start gap-2 sm:gap-3 text-xs sm:text-sm text-muted-foreground">
                     <Check className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
                     {uc}
                   </li>
@@ -219,8 +219,8 @@ export default function WorkerProfile() {
             </Card>
 
             <div>
-              <h3 className="text-2xl font-bold text-foreground mb-6">Related Workers</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <h3 className="text-xl sm:text-2xl font-bold text-foreground mb-4 sm:mb-6">Related Workers</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
                 {related.map((r) => {
                   const RIcon = agentIcons[r.id] || Bot;
                   return (

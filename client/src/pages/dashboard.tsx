@@ -272,60 +272,60 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <Card className="p-5 bg-card border-border/50">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
-                <Bot className="w-5 h-5 text-blue-400" />
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
+          <Card className="p-3 sm:p-5 bg-card border-border/50">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-blue-500/10 flex items-center justify-center shrink-0">
+                <Bot className="w-4 h-4 sm:w-5 sm:h-5 text-blue-400" />
               </div>
-              <div>
-                <p className="text-2xl font-bold text-foreground" data-testid="text-active-workers">
+              <div className="min-w-0">
+                <p className="text-xl sm:text-2xl font-bold text-foreground" data-testid="text-active-workers">
                   {activeRentals.length}
                 </p>
-                <p className="text-xs text-muted-foreground">Active Workers</p>
+                <p className="text-[10px] sm:text-xs text-muted-foreground truncate">Active Workers</p>
               </div>
             </div>
           </Card>
 
-          <Card className="p-5 bg-card border-border/50">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-violet-500/10 flex items-center justify-center">
-                <MessageSquare className="w-5 h-5 text-violet-400" />
+          <Card className="p-3 sm:p-5 bg-card border-border/50">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-violet-500/10 flex items-center justify-center shrink-0">
+                <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5 text-violet-400" />
               </div>
-              <div>
-                <p className="text-2xl font-bold text-foreground" data-testid="text-messages-used">
+              <div className="min-w-0">
+                <p className="text-xl sm:text-2xl font-bold text-foreground" data-testid="text-messages-used">
                   {totalMessages}
                 </p>
-                <p className="text-xs text-muted-foreground">Messages Used</p>
+                <p className="text-[10px] sm:text-xs text-muted-foreground truncate">Messages Used</p>
               </div>
             </div>
           </Card>
 
-          <Card className="p-5 bg-card border-border/50">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center">
-                <Gauge className="w-5 h-5 text-emerald-400" />
+          <Card className="p-3 sm:p-5 bg-card border-border/50">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center shrink-0">
+                <Gauge className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400" />
               </div>
-              <div>
-                <p className="text-2xl font-bold text-foreground" data-testid="text-messages-remaining">
+              <div className="min-w-0">
+                <p className="text-xl sm:text-2xl font-bold text-foreground" data-testid="text-messages-remaining">
                   {totalLimit - totalMessages}
                 </p>
-                <p className="text-xs text-muted-foreground">Messages Remaining</p>
+                <p className="text-[10px] sm:text-xs text-muted-foreground truncate">Msgs Remaining</p>
               </div>
             </div>
           </Card>
 
-          <Card className="p-5 bg-card border-border/50">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-orange-500/10 flex items-center justify-center">
-                <Repeat className="w-5 h-5 text-orange-400" />
+          <Card className="p-3 sm:p-5 bg-card border-border/50">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-orange-500/10 flex items-center justify-center shrink-0">
+                <Repeat className="w-4 h-4 sm:w-5 sm:h-5 text-orange-400" />
               </div>
-              <div>
-                <p className="text-2xl font-bold text-foreground" data-testid="text-active-campaigns">
+              <div className="min-w-0">
+                <p className="text-xl sm:text-2xl font-bold text-foreground" data-testid="text-active-campaigns">
                   {activeCampaigns.length}
                 </p>
-                <p className="text-xs text-muted-foreground">Active Campaigns</p>
+                <p className="text-[10px] sm:text-xs text-muted-foreground truncate">Active Campaigns</p>
               </div>
             </div>
           </Card>
@@ -471,14 +471,15 @@ export default function Dashboard() {
           </div>
         )}
 
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
         {smartAlerts && smartAlerts.length > 0 && (
-          <div className="mt-8">
-            <div className="flex items-center gap-2 mb-4">
+          <div className="mt-6 sm:mt-8">
+            <div className="flex items-center gap-2 mb-3 sm:mb-4">
               <AlertTriangle className="w-5 h-5 text-yellow-400" />
-              <h2 className="text-lg font-semibold text-foreground" data-testid="text-alerts-title">Smart Alerts</h2>
+              <h2 className="text-base sm:text-lg font-semibold text-foreground" data-testid="text-alerts-title">Smart Alerts</h2>
               <Badge variant="secondary" className="text-xs">{smartAlerts.length}</Badge>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3" data-testid="smart-alerts-grid">
+            <div className="grid grid-cols-1 gap-3" data-testid="smart-alerts-grid">
               {smartAlerts.slice(0, 8).map((alert: any, i: number) => {
                 const severityConfig: Record<string, { icon: any; bg: string; text: string; border: string }> = {
                   urgent: { icon: AlertCircle, bg: "bg-red-500/10", text: "text-red-400", border: "border-red-500/30" },
@@ -524,10 +525,10 @@ export default function Dashboard() {
         )}
 
         {agentActions && agentActions.length > 0 && (
-          <div className="mt-8">
-            <div className="flex items-center gap-2 mb-4">
+          <div className="mt-6 sm:mt-8">
+            <div className="flex items-center gap-2 mb-3 sm:mb-4">
               <Activity className="w-5 h-5 text-blue-400" />
-              <h2 className="text-lg font-semibold text-foreground" data-testid="text-actions-title">Agent Activity Log</h2>
+              <h2 className="text-base sm:text-lg font-semibold text-foreground" data-testid="text-actions-title">Agent Activity Log</h2>
               <Badge variant="secondary" className="text-xs">{agentActions.length}</Badge>
             </div>
             <Card className="bg-card border-border/50 divide-y divide-border/50" data-testid="card-actions-log">
@@ -592,6 +593,7 @@ export default function Dashboard() {
             </Card>
           </div>
         )}
+        </div>
       </div>
     </div>
   );

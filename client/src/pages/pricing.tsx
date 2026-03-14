@@ -118,7 +118,7 @@ export default function Pricing() {
             </div>
           </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 sm:gap-6 lg:gap-8 max-w-5xl mx-auto items-stretch">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 max-w-5xl mx-auto items-stretch">
             {fallbackPlans.map((plan, i) => (
               <motion.div key={plan.name} {...stagger} transition={{ duration: 0.5, delay: i * 0.15 }} className="flex">
                 <Card
@@ -162,7 +162,7 @@ export default function Pricing() {
                       <Button
                         variant="outline"
                         size="lg"
-                        className="w-full"
+                        className="w-full min-h-[44px]"
                         data-testid={`button-plan-${plan.plan}`}
                       >
                         Contact Sales
@@ -171,7 +171,7 @@ export default function Pricing() {
                     </Link>
                   ) : (
                     <Button
-                      className={`w-full ${
+                      className={`w-full min-h-[44px] ${
                         plan.featured ? "bg-gradient-to-r from-blue-500 to-violet-500 text-white border-0" : ""
                       }`}
                       variant={plan.featured ? "default" : "outline"}
@@ -189,14 +189,14 @@ export default function Pricing() {
           </div>
 
           <motion.div
-            className="mt-20 max-w-5xl mx-auto"
+            className="mt-12 sm:mt-20 max-w-5xl mx-auto"
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5 }}
           >
-            <h2 className="text-2xl font-bold text-foreground mb-8 text-center" data-testid="text-addons-title">Add-ons</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-6 sm:mb-8 text-center" data-testid="text-addons-title">Add-ons</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
               {addons.map((addon) => (
                 <Card key={addon.name} className="p-5 bg-card border-border/50">
                   <div className="w-10 h-10 rounded-md bg-gradient-to-br from-blue-500/20 to-violet-500/20 flex items-center justify-center mb-3">

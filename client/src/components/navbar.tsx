@@ -337,12 +337,12 @@ export default function Navbar() {
                 </Button>
               </SheetTrigger>
               <SheetContent side="right" className="w-72 bg-background border-border">
-                <div className="flex flex-col gap-2 mt-8">
+                <div className="flex flex-col gap-1 mt-8">
                   {navLinks.map((link) => (
                     <Link key={link.href} href={link.href}>
                       <span
                         onClick={() => setOpen(false)}
-                        className={`block px-4 py-3 rounded-md text-sm font-medium transition-colors cursor-pointer ${
+                        className={`block px-4 py-3 min-h-[44px] flex items-center rounded-md text-sm font-medium transition-colors cursor-pointer ${
                           location === link.href
                             ? "text-blue-400 bg-blue-500/10"
                             : "text-muted-foreground"
@@ -371,7 +371,7 @@ export default function Navbar() {
                       <>
                         <Link href="/dashboard">
                           <Button
-                            className="w-full bg-gradient-to-r from-blue-500 to-violet-500 text-white border-0"
+                            className="w-full min-h-[44px] bg-gradient-to-r from-blue-500 to-violet-500 text-white border-0"
                             onClick={() => setOpen(false)}
                             data-testid="button-mobile-dashboard"
                           >
@@ -382,7 +382,7 @@ export default function Navbar() {
                         <Link href="/guide">
                           <Button
                             variant="outline"
-                            className="w-full"
+                            className="w-full min-h-[44px]"
                             onClick={() => setOpen(false)}
                             data-testid="button-mobile-guide"
                           >
@@ -393,7 +393,7 @@ export default function Navbar() {
                         <Link href="/settings">
                           <Button
                             variant="outline"
-                            className="w-full"
+                            className="w-full min-h-[44px]"
                             onClick={() => setOpen(false)}
                             data-testid="button-mobile-settings"
                           >
@@ -416,7 +416,7 @@ export default function Navbar() {
                         )}
                         <Button
                           variant="ghost"
-                          className="w-full text-muted-foreground hover:text-foreground"
+                          className="w-full min-h-[44px] text-muted-foreground hover:text-foreground"
                           onClick={() => { setOpen(false); handleLogout(); }}
                           data-testid="button-mobile-logout"
                         >
@@ -429,7 +429,7 @@ export default function Navbar() {
                         <Link href="/login">
                           <Button
                             variant="outline"
-                            className="w-full"
+                            className="w-full min-h-[44px]"
                             onClick={() => setOpen(false)}
                             data-testid="button-mobile-login"
                           >
@@ -438,7 +438,7 @@ export default function Navbar() {
                         </Link>
                         <Link href="/demo">
                           <Button
-                            className="w-full bg-gradient-to-r from-blue-500 to-violet-500 text-white border-0"
+                            className="w-full min-h-[44px] bg-gradient-to-r from-blue-500 to-violet-500 text-white border-0"
                             onClick={() => setOpen(false)}
                             data-testid="button-mobile-demo"
                           >

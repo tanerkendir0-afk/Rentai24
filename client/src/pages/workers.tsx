@@ -38,6 +38,7 @@ import {
   Zap,
   Check,
   MessageSquare,
+  SlidersHorizontal,
 } from "lucide-react";
 import { agents, categories } from "@/data/agents";
 import { useAuth } from "@/lib/auth";
@@ -68,6 +69,7 @@ export default function Workers() {
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("All");
   const [priceFilter, setPriceFilter] = useState("all");
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [checkingOut, setCheckingOut] = useState<string | null>(null);
   const [signupDialogOpen, setSignupDialogOpen] = useState(false);
   const [planDialogOpen, setPlanDialogOpen] = useState(false);
@@ -76,6 +78,7 @@ export default function Workers() {
   const [selectedPlan, setSelectedPlan] = useState("starter");
   const { user } = useAuth();
   const { toast } = useToast();
+  const hasActiveFilters = categoryFilter !== "All" || priceFilter !== "all";
 
   interface RentalInfo {
     id: number;
@@ -205,36 +208,77 @@ export default function Workers() {
           </motion.div>
 
           <motion.div
-            className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mb-10 max-w-3xl mx-auto"
+            className="sticky top-16 z-20 bg-background/80 backdrop-blur-md -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-3 mb-6 sm:mb-10 sm:static sm:bg-transparent sm:backdrop-blur-none sm:mx-0 sm:px-0 sm:py-0"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.2 }}
           >
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input placeholder="Search by name or skill..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" data-testid="input-search" />
+            <div className="flex items-center gap-2 max-w-3xl mx-auto">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input placeholder="Search by name or skill..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10 h-11" data-testid="input-search" />
+              </div>
+              <Button
+                variant="outline"
+                size="icon"
+                className="sm:hidden min-h-[44px] min-w-[44px] shrink-0 relative"
+                onClick={() => setFiltersOpen(!filtersOpen)}
+                data-testid="button-toggle-filters"
+              >
+                <SlidersHorizontal className="w-4 h-4" />
+                {hasActiveFilters && (
+                  <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-blue-500" />
+                )}
+              </Button>
+              <div className="hidden sm:flex items-center gap-3">
+                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                  <SelectTrigger className="w-48" data-testid="select-category">
+                    <SelectValue placeholder="Category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map((c) => (
+                      <SelectItem key={c} value={c}>{c}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={priceFilter} onValueChange={setPriceFilter}>
+                  <SelectTrigger className="w-48" data-testid="select-price">
+                    <SelectValue placeholder="Price" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Prices</SelectItem>
+                    <SelectItem value="low">$99 and under</SelectItem>
+                    <SelectItem value="mid">$100 - $139</SelectItem>
+                    <SelectItem value="high">$140+</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger className="w-full sm:w-48" data-testid="select-category">
-                <SelectValue placeholder="Category" />
-              </SelectTrigger>
-              <SelectContent>
-                {categories.map((c) => (
-                  <SelectItem key={c} value={c}>{c}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={priceFilter} onValueChange={setPriceFilter}>
-              <SelectTrigger className="w-full sm:w-48" data-testid="select-price">
-                <SelectValue placeholder="Price" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Prices</SelectItem>
-                <SelectItem value="low">$99 and under</SelectItem>
-                <SelectItem value="mid">$100 - $139</SelectItem>
-                <SelectItem value="high">$140+</SelectItem>
-              </SelectContent>
-            </Select>
+            {filtersOpen && (
+              <div className="sm:hidden mt-3 flex flex-col gap-2 max-w-3xl mx-auto" data-testid="mobile-filters-panel">
+                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                  <SelectTrigger className="w-full min-h-[44px]" data-testid="select-category-mobile">
+                    <SelectValue placeholder="Category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map((c) => (
+                      <SelectItem key={c} value={c}>{c}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={priceFilter} onValueChange={setPriceFilter}>
+                  <SelectTrigger className="w-full min-h-[44px]" data-testid="select-price-mobile">
+                    <SelectValue placeholder="Price" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Prices</SelectItem>
+                    <SelectItem value="low">$99 and under</SelectItem>
+                    <SelectItem value="mid">$100 - $139</SelectItem>
+                    <SelectItem value="high">$140+</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </motion.div>
 
           {user && hiredCount > 0 && (

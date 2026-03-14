@@ -178,16 +178,16 @@ function OverviewPanel({ token }: { token: string }) {
           <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
         </Button>
       </div>
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
         {cards.map((card) => (
           <Card key={card.label} className="bg-[#0A0E27] border-[#1E2448]">
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-[#111633] flex items-center justify-center shrink-0">
-                <card.icon className={`w-5 h-5 ${card.color}`} />
+            <CardContent className="p-3 sm:p-4 flex items-center gap-2 sm:gap-3">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-[#111633] flex items-center justify-center shrink-0">
+                <card.icon className={`w-4 h-4 sm:w-5 sm:h-5 ${card.color}`} />
               </div>
-              <div>
-                <p className="text-xs text-gray-400">{card.label}</p>
-                <p className={`text-xl font-bold ${card.color}`} data-testid={`text-overview-${card.label.toLowerCase().replace(/\s/g, "-")}`}>
+              <div className="min-w-0">
+                <p className="text-[10px] sm:text-xs text-gray-400 truncate">{card.label}</p>
+                <p className={`text-lg sm:text-xl font-bold ${card.color}`} data-testid={`text-overview-${card.label.toLowerCase().replace(/\s/g, "-")}`}>
                   {typeof card.value === "number" ? card.value.toLocaleString() : card.value}
                 </p>
               </div>
@@ -4278,26 +4278,26 @@ export default function AdminPage() {
 
   return (
     <div className="min-h-screen bg-[#0A0E27] pt-20">
-      <div className="max-w-6xl mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-violet-500 flex items-center justify-center">
-              <Lock className="w-5 h-5 text-white" />
+      <div className="max-w-6xl mx-auto px-3 sm:px-4 py-4 sm:py-8">
+        <div className="flex items-center justify-between mb-4 sm:mb-8 gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-gradient-to-br from-blue-500 to-violet-500 flex items-center justify-center shrink-0">
+              <Lock className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
             </div>
-            <div>
-              <h1 className="text-2xl font-bold text-white" data-testid="text-admin-title">RentAI 24 Admin</h1>
-              <p className="text-gray-400 text-sm">Platform management & monitoring</p>
+            <div className="min-w-0">
+              <h1 className="text-lg sm:text-2xl font-bold text-white truncate" data-testid="text-admin-title">RentAI 24 Admin</h1>
+              <p className="text-gray-400 text-xs sm:text-sm hidden sm:block">Platform management & monitoring</p>
             </div>
           </div>
           <Button
             variant="outline"
             size="sm"
             onClick={handleLogout}
-            className="border-[#1E2448] text-gray-400 hover:text-white hover:border-red-500/50"
+            className="border-[#1E2448] text-gray-400 hover:text-white hover:border-red-500/50 shrink-0 min-h-[44px] min-w-[44px]"
             data-testid="button-admin-logout"
           >
-            <LogOut className="w-4 h-4 mr-1" />
-            Logout
+            <LogOut className="w-4 h-4 sm:mr-1" />
+            <span className="hidden sm:inline">Logout</span>
           </Button>
         </div>
 
@@ -4336,8 +4336,8 @@ export default function AdminPage() {
           </div>
         )}
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="bg-[#111633] border border-[#1E2448] flex-wrap h-auto gap-1 p-1">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 sm:space-y-6">
+          <TabsList className="bg-[#111633] border border-[#1E2448] flex-wrap h-auto gap-0.5 sm:gap-1 p-1 overflow-x-auto max-w-full">
             <TabsTrigger value="boss-ai" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-amber-500 data-[state=active]:to-orange-600 data-[state=active]:text-white" data-testid="tab-boss-ai">
               <Crown className="w-3.5 h-3.5 mr-1" />
               Boss AI

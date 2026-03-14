@@ -88,6 +88,7 @@ export interface IStorage {
   clearUserGmailOAuth(userId: number): Promise<void>;
 
   createBossNotification(notification: InsertBossNotification): Promise<BossNotification>;
+  markBossNotificationNotified(id: number): Promise<void>;
   getBossNotifications(userId: number, limit?: number): Promise<BossNotification[]>;
 
   getSocialAccounts(userId: number): Promise<SocialAccount[]>;
@@ -689,6 +690,10 @@ export class DatabaseStorage implements IStorage {
   async createBossNotification(notification: InsertBossNotification): Promise<BossNotification> {
     const [created] = await db.insert(bossNotifications).values(notification).returning();
     return created;
+  }
+
+  async markBossNotificationNotified(id: number): Promise<void> {
+    await db.update(bossNotifications).set({ adminNotified: true }).where(eq(bossNotifications.id, id));
   }
 
   async getBossNotifications(userId: number, limit: number = 50): Promise<BossNotification[]> {

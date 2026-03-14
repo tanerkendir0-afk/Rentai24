@@ -75,6 +75,14 @@ export async function notifyBoss(params: {
     console.error("[BossAI] Email notification failed (notification still saved):", emailError);
   }
 
+  if (emailSent && created.id) {
+    try {
+      await storage.markBossNotificationNotified(created.id);
+    } catch (e) {
+      console.error("[BossAI] Failed to update adminNotified flag:", e);
+    }
+  }
+
   console.log(`[BossAI] Notification created for user ${params.userId}: ${params.type} - ${params.teamMemberName}${emailSent ? " (email sent)" : ""}`);
 }
 

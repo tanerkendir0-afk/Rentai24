@@ -1365,7 +1365,7 @@ export async function executeToolCall(
         notes: args.notes ? String(args.notes) : null,
       });
       const initialScore = computeLeadScore({ status: lead.status, updatedAt: lead.updatedAt });
-      await storage.updateLead(lead.id, userId, { score: initialScore });
+      await storage.updateLeadScore(lead.id, userId, initialScore);
       await storage.createAgentAction({
         userId,
         agentType,
@@ -1395,7 +1395,7 @@ export async function executeToolCall(
       }
       const newScore = computeLeadScore({ status: updated.status, updatedAt: updated.updatedAt });
       if (newScore !== updated.score) {
-        await storage.updateLead(leadId, userId, { score: newScore });
+        await storage.updateLeadScore(leadId, userId, newScore);
       }
       await storage.createAgentAction({
         userId,
@@ -1413,6 +1413,13 @@ export async function executeToolCall(
 
     case "list_leads": {
       const allLeads = await storage.getLeadsByUser(userId);
+      for (const lead of allLeads) {
+        if (!lead.score) {
+          const s = computeLeadScore(lead);
+          await storage.updateLeadScore(lead.id, userId, s);
+          lead.score = s;
+        }
+      }
       const statusFilter = args.status_filter ? String(args.status_filter) : null;
       const scoreFilter = args.score_filter ? String(args.score_filter) : null;
       let filtered = allLeads;
@@ -1669,7 +1676,7 @@ export async function executeToolCall(
         else if (scoreLabel === "warm") warm++;
         else cold++;
 
-        await storage.updateLead(lead.id, userId, { score: scoreLabel });
+        await storage.updateLeadScore(lead.id, userId, scoreLabel);
       }
 
       await storage.createAgentAction({

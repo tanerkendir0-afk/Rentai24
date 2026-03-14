@@ -37,6 +37,7 @@ export interface IStorage {
   getLeadsByUser(userId: number): Promise<Lead[]>;
   getLeadById(id: number, userId: number): Promise<Lead | undefined>;
   updateLead(id: number, userId: number, updates: Partial<Pick<Lead, "name" | "email" | "company" | "status" | "notes" | "score">>): Promise<Lead | undefined>;
+  updateLeadScore(id: number, userId: number, score: string): Promise<Lead | undefined>;
 
   createAgentAction(action: InsertAgentAction): Promise<AgentAction>;
   getActionsByUser(userId: number): Promise<AgentAction[]>;
@@ -299,6 +300,15 @@ export class DatabaseStorage implements IStorage {
     const [updated] = await db
       .update(leads)
       .set({ ...updates, updatedAt: new Date() })
+      .where(and(eq(leads.id, id), eq(leads.userId, userId)))
+      .returning();
+    return updated;
+  }
+
+  async updateLeadScore(id: number, userId: number, score: string): Promise<Lead | undefined> {
+    const [updated] = await db
+      .update(leads)
+      .set({ score })
       .where(and(eq(leads.id, id), eq(leads.userId, userId)))
       .returning();
     return updated;

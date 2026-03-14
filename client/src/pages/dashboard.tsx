@@ -494,7 +494,7 @@ export default function Dashboard() {
                       <div className="flex-1 min-w-0">
                         <p className={`text-sm ${config.text}`}>{alert.message}</p>
                         {actionLabel && alert.leadId && (
-                          <Link href="/agent/sales_sdr" data-testid={`alert-action-${i}`}>
+                          <Link href="/chat?agent=sales_sdr" data-testid={`alert-action-${i}`}>
                             <Button
                               variant="ghost"
                               size="sm"

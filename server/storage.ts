@@ -81,6 +81,9 @@ export interface IStorage {
   updateUserGmail(userId: number, gmailAddress: string, gmailAppPassword: string): Promise<User | undefined>;
   clearUserGmail(userId: number): Promise<User | undefined>;
   decryptGmailAppPassword(encryptedPassword: string): string;
+  updateUserGmailOAuth(userId: number, data: { gmailAddress: string; gmailRefreshToken: string; gmailAccessToken: string | null; gmailTokenExpiry: Date | null }): Promise<User | undefined>;
+  updateUserGmailTokens(userId: number, gmailAccessToken: string, gmailTokenExpiry: Date): Promise<void>;
+  clearUserGmailOAuth(userId: number): Promise<void>;
 
   createBossNotification(notification: InsertBossNotification): Promise<BossNotification>;
   getBossNotifications(userId: number, limit?: number): Promise<BossNotification[]>;
@@ -640,6 +643,38 @@ export class DatabaseStorage implements IStorage {
       .where(eq(users.id, userId))
       .returning();
     return updated;
+  }
+
+  async updateUserGmailOAuth(userId: number, data: { gmailAddress: string; gmailRefreshToken: string; gmailAccessToken: string | null; gmailTokenExpiry: Date | null }): Promise<User | undefined> {
+    const [updated] = await db.update(users)
+      .set({
+        gmailAddress: data.gmailAddress,
+        gmailRefreshToken: data.gmailRefreshToken,
+        gmailAccessToken: data.gmailAccessToken,
+        gmailTokenExpiry: data.gmailTokenExpiry,
+        gmailAppPassword: null,
+      })
+      .where(eq(users.id, userId))
+      .returning();
+    return updated;
+  }
+
+  async updateUserGmailTokens(userId: number, gmailAccessToken: string, gmailTokenExpiry: Date): Promise<void> {
+    await db.update(users)
+      .set({ gmailAccessToken, gmailTokenExpiry })
+      .where(eq(users.id, userId));
+  }
+
+  async clearUserGmailOAuth(userId: number): Promise<void> {
+    await db.update(users)
+      .set({
+        gmailAddress: null,
+        gmailAppPassword: null,
+        gmailRefreshToken: null,
+        gmailAccessToken: null,
+        gmailTokenExpiry: null,
+      })
+      .where(eq(users.id, userId));
   }
 
   async createBossNotification(notification: InsertBossNotification): Promise<BossNotification> {

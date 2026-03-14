@@ -692,24 +692,57 @@ export async function registerRoutes(
     if (!user) return res.status(404).json({ error: "User not found" });
     res.json({
       gmailAddress: user.gmailAddress || null,
+      hasOAuth: !!user.gmailRefreshToken,
       hasAppPassword: !!user.gmailAppPassword,
     });
   });
 
-  app.post("/api/settings/gmail", requireAuth, async (req, res) => {
-    const { gmailAddress, gmailAppPassword } = req.body;
-    if (!gmailAddress || !gmailAppPassword) {
-      return res.status(400).json({ error: "Gmail address and app password are required" });
+  app.get("/api/auth/google/url", requireAuth, async (req, res) => {
+    try {
+      const { generateGmailOAuthUrl } = await import("./googleOAuth");
+      const { url, state } = generateGmailOAuthUrl();
+      (req.session as any).gmailOAuthState = state;
+      req.session.save(() => {
+        res.json({ url });
+      });
+    } catch (err: any) {
+      console.error("Google OAuth URL error:", err);
+      res.status(500).json({ error: "Failed to generate Google auth URL" });
     }
-    const updated = await storage.updateUserGmail(req.session.userId!, gmailAddress, gmailAppPassword);
-    if (!updated) return res.status(404).json({ error: "User not found" });
-    res.json({ success: true, gmailAddress: updated.gmailAddress });
+  });
+
+  app.get("/api/integrations/gmail/oauth/callback", async (req, res) => {
+    const { code, state } = req.query;
+    if (!code || !state) {
+      return res.redirect("/?gmail_error=missing_params");
+    }
+    try {
+      const sessionState = (req.session as any).gmailOAuthState;
+      if (!sessionState || sessionState !== String(state)) {
+        return res.redirect("/?gmail_error=invalid_state");
+      }
+      const userId = req.session.userId;
+      if (!userId) {
+        return res.redirect("/?gmail_error=not_authenticated");
+      }
+      delete (req.session as any).gmailOAuthState;
+      const { handleGoogleCallback } = await import("./googleOAuth");
+      const result = await handleGoogleCallback(String(code), userId);
+      res.redirect(`/?gmail_connected=${encodeURIComponent(result.email)}`);
+    } catch (err: any) {
+      console.error("Google OAuth callback error:", err);
+      res.redirect(`/?gmail_error=${encodeURIComponent(err.message || "auth_failed")}`);
+    }
   });
 
   app.delete("/api/settings/gmail", requireAuth, async (req, res) => {
-    const cleared = await storage.clearUserGmail(req.session.userId!);
-    if (!cleared) return res.status(404).json({ error: "User not found" });
-    res.json({ success: true });
+    try {
+      const { disconnectUserGmail } = await import("./googleOAuth");
+      await disconnectUserGmail(req.session.userId!);
+      res.json({ success: true });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message || "Failed to disconnect Gmail" });
+    }
   });
 
   app.get("/api/social-accounts", requireAuth, async (req, res) => {
@@ -1245,15 +1278,6 @@ ${members.map(m => `- ${m.name} (${m.email})${m.position ? ` — ${m.position}` 
 - Do NOT have long conversations. After 2-3 exchanges, remind them to create an account to continue.`;
     }
 
-    let userGmailCreds: import("./gmailService").UserGmailCredentials | null = null;
-    if (req.session.userId) {
-      const userForGmail = await storage.getUserById(req.session.userId);
-      if (userForGmail?.gmailAddress && userForGmail?.gmailAppPassword) {
-        const decryptedPassword = storage.decryptGmailAppPassword(userForGmail.gmailAppPassword);
-        userGmailCreds = { gmailAddress: userForGmail.gmailAddress, gmailAppPassword: decryptedPassword };
-      }
-    }
-
     try {
       const ragChunks = await retrieveRelevantChunks(agentType, message, 3).catch(() => []);
       if (ragChunks.length > 0) {
@@ -1350,8 +1374,7 @@ ${members.map(m => `- ${m.name} (${m.email})${m.position ? ` — ${m.position}` 
             toolCall.function.name,
             args,
             req.session.userId,
-            agentType,
-            userGmailCreds
+            agentType
           );
 
           const toolMessage: OpenAI.ChatCompletionToolMessageParam = {

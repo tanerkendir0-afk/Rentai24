@@ -107,10 +107,6 @@ export default function Settings() {
   const [gmailDisconnecting, setGmailDisconnecting] = useState(false);
   const [gmailReconnecting, setGmailReconnecting] = useState(false);
 
-  const [userGmailAddress, setUserGmailAddress] = useState("");
-  const [userGmailAppPassword, setUserGmailAppPassword] = useState("");
-  const [showGmailPassword, setShowGmailPassword] = useState(false);
-  const [gmailSaving, setGmailSaving] = useState(false);
 
   const [showAddMember, setShowAddMember] = useState(false);
   const [editingMember, setEditingMember] = useState<TeamMember | null>(null);
@@ -166,7 +162,7 @@ export default function Settings() {
     enabled: !!user,
   });
 
-  const { data: gmailSettings } = useQuery<{ gmailAddress: string | null; hasAppPassword: boolean }>({
+  const { data: gmailSettings } = useQuery<{ gmailAddress: string | null; hasOAuth: boolean; hasAppPassword: boolean }>({
     queryKey: ["/api/settings/gmail"],
     enabled: !!user,
   });
@@ -243,39 +239,6 @@ export default function Settings() {
       toast({ title: "Error", description: err.message || "Failed to change password", variant: "destructive" });
     },
   });
-
-  const handleSaveGmailSettings = async () => {
-    if (!userGmailAddress.trim() || !userGmailAppPassword.trim()) {
-      toast({ title: "Error", description: "Both Gmail address and App Password are required", variant: "destructive" });
-      return;
-    }
-    setGmailSaving(true);
-    try {
-      await apiRequest("POST", "/api/settings/gmail", {
-        gmailAddress: userGmailAddress.trim(),
-        gmailAppPassword: userGmailAppPassword.trim(),
-      });
-      queryClient.invalidateQueries({ queryKey: ["/api/settings/gmail"] });
-      setUserGmailAppPassword("");
-      toast({ title: "Gmail saved", description: `Gmail configured as ${userGmailAddress.trim()}` });
-    } catch (err: any) {
-      toast({ title: "Error", description: err.message || "Failed to save Gmail settings", variant: "destructive" });
-    } finally {
-      setGmailSaving(false);
-    }
-  };
-
-  const handleClearGmail = async () => {
-    try {
-      await apiRequest("DELETE", "/api/settings/gmail");
-      queryClient.invalidateQueries({ queryKey: ["/api/settings/gmail"] });
-      setUserGmailAddress("");
-      setUserGmailAppPassword("");
-      toast({ title: "Gmail removed", description: "Your personal Gmail settings have been cleared." });
-    } catch (err: any) {
-      toast({ title: "Error", description: err.message || "Failed to clear Gmail", variant: "destructive" });
-    }
-  };
 
   const resetMemberForm = () => {
     setMemberForm({ name: "", email: "", position: "", department: "", skills: "", responsibilities: "", phone: "" });
@@ -599,16 +562,16 @@ export default function Settings() {
                   <p className="text-sm font-medium text-foreground">Gmail</p>
                   <p className="text-xs text-muted-foreground truncate">
                     {emailStatus?.provider === "gmail"
-                      ? (emailStatus.address && emailStatus.address !== "Connected" ? emailStatus.address : "Connected")
-                      : "Send and receive emails via Gmail"}
+                      ? (emailStatus.address && emailStatus.address !== "Connected" ? emailStatus.address : "Connected via Google")
+                      : "Connect your Google account for email"}
                   </p>
                   {emailStatus?.provider === "gmail" && (
                     <div className="flex gap-2 mt-1">
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded ${emailStatus.canSend ? "bg-emerald-500/10 text-emerald-400" : "bg-red-500/10 text-red-400"}`}>
-                        {emailStatus.canSend ? "✓ Send" : "✗ Send"}
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400">
+                        {"✓ Send"}
                       </span>
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded ${emailStatus.canRead ? "bg-emerald-500/10 text-emerald-400" : "bg-yellow-500/10 text-yellow-400"}`}>
-                        {emailStatus.canRead ? "✓ Read Inbox" : "⚠ Read Inbox (limited)"}
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400">
+                        {"✓ Read Inbox"}
                       </span>
                     </div>
                   )}
@@ -629,9 +592,10 @@ export default function Settings() {
                       onClick={async () => {
                         setGmailDisconnecting(true);
                         try {
-                          await apiRequest("POST", "/api/integrations/gmail/disconnect");
+                          await apiRequest("DELETE", "/api/settings/gmail");
                           queryClient.invalidateQueries({ queryKey: ["/api/email-status"] });
-                          toast({ title: "Gmail disconnected", description: "Gmail integration has been deactivated." });
+                          queryClient.invalidateQueries({ queryKey: ["/api/settings/gmail"] });
+                          toast({ title: "Gmail disconnected", description: "Your Google account has been disconnected." });
                         } catch {
                           toast({ title: "Error", description: "Failed to disconnect Gmail.", variant: "destructive" });
                         } finally {
@@ -652,24 +616,27 @@ export default function Settings() {
                     <Button
                       size="sm"
                       variant="outline"
-                      className="h-7 text-xs text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10 hover:text-emerald-300"
+                      className="h-7 text-xs text-blue-400 border-blue-500/30 hover:bg-blue-500/10 hover:text-blue-300"
                       disabled={gmailReconnecting}
                       onClick={async () => {
                         setGmailReconnecting(true);
                         try {
-                          const res = await apiRequest("POST", "/api/integrations/gmail/reconnect");
+                          const res = await apiRequest("GET", "/api/auth/google/url");
                           const data = await res.json();
-                          queryClient.invalidateQueries({ queryKey: ["/api/email-status"] });
-                          toast({ title: "Gmail reconnected", description: data.address ? `Connected as ${data.address}` : "Gmail integration has been reactivated." });
+                          if (data.url) {
+                            window.location.href = data.url;
+                          } else {
+                            toast({ title: "Error", description: "Could not generate Google auth URL", variant: "destructive" });
+                          }
                         } catch {
-                          toast({ title: "Connection Failed", description: "Gmail connection could not be verified. Please check your Gmail integration.", variant: "destructive" });
+                          toast({ title: "Error", description: "Failed to start Google authentication.", variant: "destructive" });
                         } finally {
                           setGmailReconnecting(false);
                         }
                       }}
-                      data-testid="button-reconnect-gmail"
+                      data-testid="button-connect-gmail"
                     >
-                      {gmailReconnecting ? <><Loader2 className="w-3 h-3 animate-spin mr-1" />Connecting...</> : "Reconnect"}
+                      {gmailReconnecting ? <><Loader2 className="w-3 h-3 animate-spin mr-1" />Connecting...</> : "Connect Gmail"}
                     </Button>
                   </>
                 )}
@@ -709,12 +676,12 @@ export default function Settings() {
         <Card className="p-6 bg-card border-border/50" data-testid="card-personal-gmail">
           <div className="flex items-center gap-2 mb-5">
             <Mail className="w-5 h-5 text-emerald-400" />
-            <h2 className="text-lg font-semibold text-foreground">Personal Gmail</h2>
+            <h2 className="text-lg font-semibold text-foreground">Gmail Account</h2>
           </div>
           <p className="text-xs text-muted-foreground mb-4">
-            Connect your own Gmail for AI agents to send/receive emails on your behalf. Requires a Gmail App Password.
+            Connect your Google account to let AI agents send and receive emails on your behalf.
           </p>
-          {gmailSettings?.gmailAddress ? (
+          {gmailSettings?.gmailAddress && gmailSettings?.hasOAuth ? (
             <div className="space-y-3">
               <div className="flex items-center justify-between p-3 rounded-lg bg-emerald-500/5 border border-emerald-500/20">
                 <div className="flex items-center gap-3">
@@ -723,67 +690,61 @@ export default function Settings() {
                   </div>
                   <div>
                     <p className="text-sm font-medium text-foreground" data-testid="text-user-gmail">{gmailSettings.gmailAddress}</p>
-                    <p className="text-xs text-emerald-400">Connected</p>
+                    <p className="text-xs text-emerald-400">Connected via Google OAuth</p>
                   </div>
                 </div>
                 <Button
                   size="sm"
                   variant="outline"
                   className="h-7 text-xs text-red-400 border-red-500/30 hover:bg-red-500/10"
-                  onClick={handleClearGmail}
+                  onClick={async () => {
+                    try {
+                      await apiRequest("DELETE", "/api/settings/gmail");
+                      queryClient.invalidateQueries({ queryKey: ["/api/settings/gmail"] });
+                      queryClient.invalidateQueries({ queryKey: ["/api/email-status"] });
+                      toast({ title: "Gmail disconnected", description: "Your Google account has been disconnected." });
+                    } catch {
+                      toast({ title: "Error", description: "Failed to disconnect Gmail.", variant: "destructive" });
+                    }
+                  }}
                   data-testid="button-remove-gmail"
                 >
-                  Remove
+                  Disconnect
                 </Button>
               </div>
             </div>
           ) : (
             <div className="space-y-3">
-              <div>
-                <Label className="text-sm text-muted-foreground">Gmail Address</Label>
-                <Input
-                  value={userGmailAddress}
-                  onChange={(e) => setUserGmailAddress(e.target.value)}
-                  placeholder="yourname@gmail.com"
-                  className="mt-1.5"
-                  data-testid="input-user-gmail-address"
-                />
-              </div>
-              <div>
-                <Label className="text-sm text-muted-foreground">App Password</Label>
-                <div className="relative mt-1.5">
-                  <Input
-                    type={showGmailPassword ? "text" : "password"}
-                    value={userGmailAppPassword}
-                    onChange={(e) => setUserGmailAppPassword(e.target.value)}
-                    placeholder="16-character app password"
-                    data-testid="input-user-gmail-password"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowGmailPassword(!showGmailPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                    data-testid="button-toggle-gmail-password"
-                  >
-                    {showGmailPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-                <p className="text-[10px] text-muted-foreground mt-1">
-                  Go to Google Account &gt; Security &gt; 2-Step Verification &gt; App passwords
-                </p>
-              </div>
               <Button
-                onClick={handleSaveGmailSettings}
-                disabled={gmailSaving || !userGmailAddress || !userGmailAppPassword}
-                className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white border-0"
-                data-testid="button-save-gmail"
+                onClick={async () => {
+                  setGmailReconnecting(true);
+                  try {
+                    const res = await apiRequest("GET", "/api/auth/google/url");
+                    const data = await res.json();
+                    if (data.url) {
+                      window.location.href = data.url;
+                    } else {
+                      toast({ title: "Error", description: "Could not start Google authentication", variant: "destructive" });
+                    }
+                  } catch {
+                    toast({ title: "Error", description: "Failed to start Google authentication.", variant: "destructive" });
+                  } finally {
+                    setGmailReconnecting(false);
+                  }
+                }}
+                disabled={gmailReconnecting}
+                className="bg-gradient-to-r from-blue-500 to-blue-600 text-white border-0"
+                data-testid="button-connect-gmail-oauth"
               >
-                {gmailSaving ? (
-                  <><Loader2 className="w-4 h-4 mr-1.5 animate-spin" />Saving...</>
+                {gmailReconnecting ? (
+                  <><Loader2 className="w-4 h-4 mr-1.5 animate-spin" />Connecting...</>
                 ) : (
-                  <><Save className="w-4 h-4 mr-1.5" />Connect Gmail</>
+                  <><Mail className="w-4 h-4 mr-1.5" />Connect with Google</>
                 )}
               </Button>
+              <p className="text-[10px] text-muted-foreground">
+                You will be redirected to Google to authorize access to your Gmail account.
+              </p>
             </div>
           )}
         </Card>

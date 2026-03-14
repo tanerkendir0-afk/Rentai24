@@ -25,7 +25,7 @@ The RentAI 24 platform uses a modern web stack. The frontend employs React, Type
 *   **Token Optimization System:** Implements smart model routing, conversation history summarization, compressed system prompts, RAG threshold adjustments, and conditional tool filtering to optimize token usage.
 *   **Server-Side Chat Persistence:** Stores chat conversations in PostgreSQL, making them persistent across user sessions and devices.
 *   **Team Members System:** Allows users to manage team members, whose context is injected into agent system prompts.
-*   **Per-User Gmail:** Enables users to connect their personal Gmail accounts for agents to send/receive emails.
+*   **Per-User Gmail (Google OAuth):** Users connect their Google accounts via OAuth 2.0 (using `googleapis`). Refresh/access tokens are AES-256-CBC encrypted and stored per-user. Gmail API is used for send, read, and reply operations. Falls back to Resend platform email if Gmail is not connected.
 *   **Social Media Accounts & Auto-Publishing:** Users can connect various social media accounts, allowing Maya AI to auto-publish or prepare posts for manual sharing based on account type.
 *   **Shipping/Cargo Providers:** Users can connect shipping provider APIs (e.g., Aras Kargo, UPS), which ShopBot AI can access.
 *   **Help & Support System:** Users can report issues and requests, view ticket history, and admins can manage tickets via a dedicated panel.

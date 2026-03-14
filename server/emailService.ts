@@ -1,7 +1,6 @@
 import { Resend } from "resend";
 import { storage } from "./storage";
-import { clearGmailConnectionCache } from "./gmailService";
-import * as nodemailer from "nodemailer";
+import { isUserGmailReady, sendViaGmail, getUserGmailStatus } from "./gmailService";
 
 let resendConnectionSettings: Record<string, string> | null = null;
 
@@ -10,9 +9,6 @@ const GMAIL_DISABLED_KEY = "gmail_disabled";
 export async function setGmailDisabled(disabled: boolean, userId?: number): Promise<void> {
   const key = userId ? `${GMAIL_DISABLED_KEY}_${userId}` : GMAIL_DISABLED_KEY;
   await storage.setSystemSetting(key, disabled ? "true" : "false");
-  if (disabled) {
-    clearGmailConnectionCache();
-  }
 }
 
 export async function isGmailDisabledByUser(userId?: number): Promise<boolean> {
@@ -87,44 +83,6 @@ async function sendViaResend(params: {
   };
 }
 
-async function sendViaUserSmtp(params: {
-  to: string;
-  subject: string;
-  body: string;
-  gmailAddress: string;
-  gmailAppPassword: string;
-}): Promise<{ success: boolean; message: string; fromAddress: string }> {
-  const transporter = nodemailer.createTransport({
-    host: "smtp.gmail.com",
-    port: 465,
-    secure: true,
-    auth: {
-      user: params.gmailAddress,
-      pass: params.gmailAppPassword,
-    },
-  });
-
-  await transporter.sendMail({
-    from: params.gmailAddress,
-    to: params.to,
-    subject: params.subject,
-    text: params.body,
-  });
-
-  return {
-    success: true,
-    message: `Email sent from your Gmail (${params.gmailAddress}) to ${params.to} with subject "${params.subject}"`,
-    fromAddress: params.gmailAddress,
-  };
-}
-
-async function getUserGmailCredentials(userId: number): Promise<{ gmailAddress: string; gmailAppPassword: string } | null> {
-  const user = await storage.getUserById(userId);
-  if (!user?.gmailAddress || !user?.gmailAppPassword) return null;
-  const decryptedPassword = storage.decryptGmailAppPassword(user.gmailAppPassword);
-  return { gmailAddress: user.gmailAddress, gmailAppPassword: decryptedPassword };
-}
-
 export async function sendEmail(params: {
   userId: number;
   to: string;
@@ -136,31 +94,26 @@ export async function sendEmail(params: {
     const disabled = await isGmailDisabledByUser(params.userId);
 
     if (!disabled) {
-      const userCreds = await getUserGmailCredentials(params.userId);
-      if (userCreds) {
-        try {
-          const smtpResult = await sendViaUserSmtp({
-            to: params.to,
-            subject: params.subject,
-            body: params.body,
-            gmailAddress: userCreds.gmailAddress,
-            gmailAppPassword: userCreds.gmailAppPassword,
-          });
+      const gmailReady = await isUserGmailReady(params.userId);
+      if (gmailReady) {
+        const gmailResult = await sendViaGmail(params.userId, {
+          to: params.to,
+          subject: params.subject,
+          body: params.body,
+        });
 
-          if (smtpResult.success) {
-            await storage.createAgentAction({
-              userId: params.userId,
-              agentType: params.agentType,
-              actionType: "email_sent",
-              description: `Email sent from user Gmail (${smtpResult.fromAddress}) to ${params.to}: "${params.subject}"`,
-              metadata: { to: params.to, subject: params.subject, body: params.body, provider: "gmail", fromAddress: smtpResult.fromAddress },
-            });
-            return { success: true, message: smtpResult.message, provider: "gmail" };
-          }
-        } catch (smtpErr: unknown) {
-          const smtpErrMsg = smtpErr instanceof Error ? smtpErr.message : String(smtpErr);
-          console.error(`User Gmail SMTP failed for userId ${params.userId}, falling back to platform email:`, smtpErrMsg);
+        if (gmailResult.success) {
+          await storage.createAgentAction({
+            userId: params.userId,
+            agentType: params.agentType,
+            actionType: "email_sent",
+            description: `Email sent from Gmail (${gmailResult.fromAddress}) to ${params.to}: "${params.subject}"`,
+            metadata: { to: params.to, subject: params.subject, body: params.body, provider: "gmail", gmailMessageId: gmailResult.messageId, fromAddress: gmailResult.fromAddress },
+          });
+          return { success: true, message: gmailResult.message, provider: "gmail" };
         }
+
+        console.error("Gmail OAuth send failed, falling back to platform email:", gmailResult.message);
       }
     }
 
@@ -204,11 +157,11 @@ export async function getEmailStatus(userId?: number): Promise<{ provider: strin
   }
 
   if (userId) {
-    const userCreds = await getUserGmailCredentials(userId);
-    if (userCreds) {
+    const gmailStatus = await getUserGmailStatus(userId);
+    if (gmailStatus.connected) {
       return {
         provider: "gmail",
-        address: userCreds.gmailAddress,
+        address: gmailStatus.email,
         connected: true,
         canRead: true,
         canSend: true,

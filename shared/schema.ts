@@ -28,6 +28,9 @@ export const users = pgTable("users", {
   imageCredits: integer("image_credits").notNull().default(0),
   gmailAddress: text("gmail_address"),
   gmailAppPassword: text("gmail_app_password"),
+  gmailRefreshToken: text("gmail_refresh_token"),
+  gmailAccessToken: text("gmail_access_token"),
+  gmailTokenExpiry: timestamp("gmail_token_expiry"),
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
 });
 

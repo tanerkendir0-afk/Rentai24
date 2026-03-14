@@ -1,8 +1,10 @@
+import { useEffect } from "react";
 import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { useToast } from "@/hooks/use-toast";
 import { AuthProvider } from "@/lib/auth";
 import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
@@ -48,8 +50,26 @@ function Router() {
 }
 
 function AppContent() {
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
   const hideFooter = location.startsWith("/chat") || location.startsWith("/demo");
+  const { toast } = useToast();
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const gmailConnected = params.get("gmail_connected");
+    const gmailError = params.get("gmail_error");
+    if (gmailConnected) {
+      toast({ title: "Gmail Connected", description: `Successfully connected ${gmailConnected}` });
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/gmail"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/email-status"] });
+      window.history.replaceState({}, "", "/settings");
+      setLocation("/settings");
+    } else if (gmailError) {
+      toast({ title: "Gmail Connection Failed", description: decodeURIComponent(gmailError), variant: "destructive" });
+      window.history.replaceState({}, "", "/settings");
+      setLocation("/settings");
+    }
+  }, []);
 
   return (
     <>

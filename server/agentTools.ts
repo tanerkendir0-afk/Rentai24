@@ -1065,7 +1065,7 @@ const TOOL_KEYWORD_MAP: Record<string, string[]> = {
   list_campaigns: ["campaign", "kampanya"],
   list_templates: ["template", "şablon"],
   score_leads: ["score", "hot", "warm", "cold", "puan", "sıcak", "soğuk"],
-  pipeline_report: ["pipeline", "report", "stats", "analiz", "istatistik", "performans"],
+  pipeline_report: ["pipeline", "report", "stats", "analiz", "istatistik", "performans", "how many leads", "leads this", "conversion", "rate", "summary", "funnel", "kpi", "monthly", "weekly", "analytics", "overview", "numbers", "metrics"],
   create_proposal: ["proposal", "teklif"],
   analyze_competitors: ["competitor", "rakip", "competitive"],
   create_ticket: ["ticket", "issue", "sorun", "problem", "create", "oluştur"],

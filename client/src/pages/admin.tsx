@@ -4343,9 +4343,9 @@ export default function AdminPage() {
             "boss-ai": "dashboard", "overview": "dashboard", "users": "dashboard",
             "rag": "ai-training", "training-data": "ai-training", "fine-tuning": "ai-training",
             "messages": "analytics", "spend-analysis": "analytics", "token-optimization": "analytics",
-            "costs": "analytics", "performance": "analytics", "conversation-review": "analytics", "collaboration": "analytics",
+            "costs": "analytics", "performance": "analytics", "conversation-review": "analytics",
             "limit-management": "limits", "packages": "limits",
-            "guardrails": "security", "support-tickets": "security", "security-report": "security",
+            "guardrails": "security", "support-tickets": "security", "security-report": "security", "collaboration": "security",
             "admin-guide": "help",
           };
           if (tabToCategory[val]) setActiveCategory(tabToCategory[val]);
@@ -4450,10 +4450,6 @@ export default function AdminPage() {
                     <MessageSquare className="w-3.5 h-3.5 mr-1" />
                     Conv. Review
                   </TabsTrigger>
-                  <TabsTrigger value="collaboration" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:to-purple-600 data-[state=active]:text-white" data-testid="tab-collaboration">
-                    <Brain className="w-3.5 h-3.5 mr-1" />
-                    Collaboration
-                  </TabsTrigger>
                 </>
               )}
               {activeCategory === "limits" && (
@@ -4481,6 +4477,10 @@ export default function AdminPage() {
                   <TabsTrigger value="security-report" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-600 data-[state=active]:to-orange-600 data-[state=active]:text-white" data-testid="tab-security-report">
                     <AlertTriangle className="w-3.5 h-3.5 mr-1" />
                     Security
+                  </TabsTrigger>
+                  <TabsTrigger value="collaboration" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:to-purple-600 data-[state=active]:text-white" data-testid="tab-collaboration">
+                    <Brain className="w-3.5 h-3.5 mr-1" />
+                    Collaboration
                   </TabsTrigger>
                 </>
               )}

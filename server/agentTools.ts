@@ -1789,10 +1789,10 @@ ${customNotes ? `- Special requirements: ${customNotes}` : ""}
 
 Structure the proposal with these sections using ─── headers:
 1. EXECUTIVE SUMMARY — tailored to the company/industry
-2. THE CHALLENGE — specific pain points for this type of business
-3. OUR SOLUTION — how RentAI 24's AI workers solve these challenges
-4. INVESTMENT — Starter ($49/mo, 1 worker), Professional ($39/mo/worker, up to 5), Enterprise (custom)
-5. IMPLEMENTATION TIMELINE — phased rollout plan
+2. PROBLEM STATEMENT — specific pain points for this type of business
+3. SOLUTION — how RentAI 24's AI workers solve these challenges
+4. PRICING — Starter ($49/mo, 1 worker), Professional ($39/mo/worker, up to 5), Enterprise (custom)
+5. TIMELINE — phased rollout plan
 6. NEXT STEPS — clear call to action
 
 Keep it professional, persuasive, and specific to their industry/company. About 400-500 words.`;

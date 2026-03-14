@@ -35,8 +35,6 @@ import {
   Package,
   Building2,
   Loader2,
-  UserPlus,
-  CreditCard,
   Zap,
   Check,
 } from "lucide-react";
@@ -45,6 +43,7 @@ import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import SectionCTA from "@/components/section-cta";
+import { SignupFlowDialog } from "@/components/signup-flow-dialog";
 
 const agentIcons: Record<string, any> = {
   "customer-support": Headphones,
@@ -355,60 +354,7 @@ export default function Workers() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={signupDialogOpen} onOpenChange={setSignupDialogOpen}>
-        <DialogContent className="sm:max-w-md bg-card border-border">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold text-foreground" data-testid="text-signup-dialog-title">
-              Ready to Hire {selectedAgentName}?
-            </DialogTitle>
-            <DialogDescription className="text-muted-foreground">
-              Here's how it works in 3 simple steps:
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="flex items-start gap-3">
-              <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0">
-                <UserPlus className="w-4 h-4 text-blue-400" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-foreground">1. Create your account</p>
-                <p className="text-xs text-muted-foreground">Quick signup — takes less than a minute.</p>
-              </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <div className="w-8 h-8 rounded-full bg-violet-500/10 flex items-center justify-center shrink-0">
-                <CreditCard className="w-4 h-4 text-violet-400" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-foreground">2. Choose a plan & pay</p>
-                <p className="text-xs text-muted-foreground">Secure checkout via Stripe. Cancel anytime.</p>
-              </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <div className="w-8 h-8 rounded-full bg-emerald-500/10 flex items-center justify-center shrink-0">
-                <Zap className="w-4 h-4 text-emerald-400" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-foreground">3. Agent activates instantly</p>
-                <p className="text-xs text-muted-foreground">Your AI worker goes live in your dashboard, ready to chat and work.</p>
-              </div>
-            </div>
-          </div>
-          <div className="flex gap-3">
-            <Link href="/register" className="flex-1">
-              <Button className="w-full bg-gradient-to-r from-blue-500 to-violet-500 text-white border-0" data-testid="button-signup-dialog">
-                Sign Up Now
-                <ArrowRight className="w-4 h-4 ml-1" />
-              </Button>
-            </Link>
-            <Link href="/login">
-              <Button variant="outline" data-testid="button-login-dialog">
-                Sign In
-              </Button>
-            </Link>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <SignupFlowDialog open={signupDialogOpen} onOpenChange={setSignupDialogOpen} agentName={selectedAgentName} />
     </div>
   );
 }

@@ -129,20 +129,20 @@ export function fillTemplate(template: EmailTemplate, params: { name?: string; c
 
 export const DRIP_SEQUENCES: Record<string, Array<{ delayDays: number; templateId: string; stepName: string }>> = {
   standard: [
-    { delayDays: 0, templateId: "cold_outreach", stepName: "Initial Outreach" },
+    { delayDays: 1, templateId: "cold_outreach", stepName: "Initial Outreach" },
     { delayDays: 3, templateId: "value_proposition", stepName: "Value Proposition" },
     { delayDays: 7, templateId: "meeting_request", stepName: "Meeting Request" },
   ],
   aggressive: [
-    { delayDays: 0, templateId: "cold_outreach", stepName: "Initial Outreach" },
-    { delayDays: 1, templateId: "follow_up", stepName: "Quick Follow-up" },
+    { delayDays: 1, templateId: "cold_outreach", stepName: "Initial Outreach" },
+    { delayDays: 2, templateId: "follow_up", stepName: "Quick Follow-up" },
     { delayDays: 3, templateId: "value_proposition", stepName: "Value Proposition" },
     { delayDays: 5, templateId: "meeting_request", stepName: "Meeting Request" },
     { delayDays: 7, templateId: "proposal", stepName: "Proposal" },
   ],
   gentle: [
-    { delayDays: 0, templateId: "cold_outreach", stepName: "Introduction" },
-    { delayDays: 5, templateId: "value_proposition", stepName: "Value Proposition" },
+    { delayDays: 1, templateId: "cold_outreach", stepName: "Introduction" },
+    { delayDays: 7, templateId: "value_proposition", stepName: "Value Proposition" },
     { delayDays: 14, templateId: "meeting_request", stepName: "Meeting Request" },
   ],
 };

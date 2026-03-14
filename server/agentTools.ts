@@ -183,14 +183,16 @@ export const salesSdrTools: OpenAI.ChatCompletionTool[] = [
     type: "function",
     function: {
       name: "use_template",
-      description: "Send an email using a pre-built template to a specific lead. Templates: cold_outreach, follow_up, value_proposition, meeting_request, proposal. Each is automatically personalized with the lead's name and company.",
+      description: "Send an email using a pre-built template to a specific lead. Templates: cold_outreach, follow_up, value_proposition, meeting_request, proposal. Each is automatically personalized with the lead's name and company. You can identify the lead by their ID, email address, or name.",
       parameters: {
         type: "object",
         properties: {
           template_id: { type: "string", enum: ["cold_outreach", "follow_up", "value_proposition", "meeting_request", "proposal"], description: "Template to use" },
-          lead_id: { type: "number", description: "Lead ID to send the template to" },
+          lead_id: { type: "number", description: "Lead ID to send the template to (use this or lead_email/lead_name)" },
+          lead_email: { type: "string", description: "Lead's email address to find and send template to (alternative to lead_id)" },
+          lead_name: { type: "string", description: "Lead's name to find and send template to (alternative to lead_id)" },
         },
-        required: ["template_id", "lead_id"],
+        required: ["template_id"],
       },
     },
   },
@@ -1499,18 +1501,31 @@ export async function executeToolCall(
 
     case "use_template": {
       const templateId = String(args.template_id);
-      const leadId = Number(args.lead_id);
       const template = getTemplate(templateId);
       if (!template) {
         return { result: `Template "${templateId}" not found. Available: cold_outreach, follow_up, value_proposition, meeting_request, proposal` };
       }
 
-      const lead = await storage.getLeadById(leadId, userId);
+      let lead = null;
+      if (args.lead_id) {
+        lead = await storage.getLeadById(Number(args.lead_id), userId);
+      } else if (args.lead_email || args.lead_name) {
+        const allLeads = await storage.getLeadsByUser(userId);
+        if (args.lead_email) {
+          lead = allLeads.find(l => l.email.toLowerCase() === String(args.lead_email).toLowerCase()) || null;
+        }
+        if (!lead && args.lead_name) {
+          lead = allLeads.find(l => l.name.toLowerCase() === String(args.lead_name).toLowerCase()) || null;
+          if (!lead) {
+            lead = allLeads.find(l => l.name.toLowerCase().includes(String(args.lead_name).toLowerCase())) || null;
+          }
+        }
+      }
       if (!lead) {
-        return { result: `Lead #${leadId} not found or you don't have access to it.` };
+        return { result: `Lead not found. Provide a valid lead_id, lead_email, or lead_name.` };
       }
       if (!lead.email) {
-        return { result: `Lead #${leadId} (${lead.name}) has no email address.` };
+        return { result: `Lead "${lead.name}" has no email address.` };
       }
 
       const filled = fillTemplate(template, { name: lead.name, company: lead.company || undefined });
@@ -1568,22 +1583,6 @@ export async function executeToolCall(
         status: "active",
       });
 
-      const firstStep = sequence[0];
-      if (firstStep.delayDays === 0) {
-        const template = getTemplate(firstStep.templateId);
-        if (template) {
-          const filled = fillTemplate(template, { name: lead.name, company: lead.company || undefined });
-          await sendEmail({
-            userId,
-            to: lead.email,
-            subject: filled.subject,
-            body: filled.body,
-            agentType,
-          });
-          await storage.updateCampaignStep(campaign.id, userId, 1, sequence.length <= 1 ? "completed" : "active");
-        }
-      }
-
       await storage.createAgentAction({
         userId,
         agentType,
@@ -1595,7 +1594,7 @@ export async function executeToolCall(
       const stepList = sequence.map((s, i) => `  ${i + 1}. Day ${s.delayDays}: ${s.stepName} (${s.templateId})`).join("\n");
 
       return {
-        result: `Drip campaign #${campaign.id} started for ${lead.name} (${lead.email})!\n\nType: ${campaignType}\nSteps:\n${stepList}\n\n${firstStep.delayDays === 0 ? "First email sent immediately. " : ""}Remaining emails will be sent automatically on schedule.`,
+        result: `Drip campaign #${campaign.id} started for ${lead.name} (${lead.email})!\n\nType: ${campaignType}\nSteps:\n${stepList}\n\nAll emails will be sent automatically on schedule by the campaign runner.`,
         actionType: "drip_campaign_started",
         actionDescription: `🔄 Drip campaign "${campaignType}" started for ${lead.name} — ${sequence.length} steps`,
       };

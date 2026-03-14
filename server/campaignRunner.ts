@@ -81,5 +81,17 @@ async function processOneCampaign(campaign: { id: number; userId: number; leadId
       description: `Drip campaign step ${currentStepIndex + 1}/${steps.length} sent to ${lead.name} (${lead.email}): "${step.stepName}"`,
       metadata: { campaignId: campaign.id, leadId: lead.id, step: step.stepName, templateId: step.templateId },
     });
+  } else {
+    await storage.updateCampaignStep(campaign.id, userId, currentStepIndex, "failed");
+
+    await storage.createAgentAction({
+      userId,
+      agentType: "sales-sdr",
+      actionType: "drip_email_failed",
+      description: `Drip campaign step ${currentStepIndex + 1}/${steps.length} failed for ${lead.name} (${lead.email}): ${result.message}`,
+      metadata: { campaignId: campaign.id, leadId: lead.id, step: step.stepName, error: result.message },
+    });
+
+    console.error(`[CampaignRunner] Campaign #${campaign.id} step ${currentStepIndex + 1} failed: ${result.message}`);
   }
 }

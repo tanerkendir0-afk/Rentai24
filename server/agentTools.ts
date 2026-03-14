@@ -1,4 +1,4 @@
-import type OpenAI from "openai";
+import OpenAI from "openai";
 import { storage } from "./storage";
 import { sendEmail } from "./emailService";
 import { scheduleFollowup } from "./followupScheduler";
@@ -8,6 +8,15 @@ import { generateAIImage, findStockImages } from "./imageService";
 import { isUserGmailReady, listInbox, readEmail, replyToEmail } from "./gmailService";
 import { isUserGmailOAuthConnected, getUserGmailAddress } from "./googleOAuth";
 import { computeLeadScore } from "./leadScoring";
+
+const aiClient = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+interface ProposalMetadata {
+  leadId: number;
+  leadName: string;
+  company: string;
+  proposalContent: string;
+}
 
 const gmailInboxTools: OpenAI.ChatCompletionTool[] = [
   {
@@ -263,14 +272,15 @@ export const salesSdrTools: OpenAI.ChatCompletionTool[] = [
     type: "function",
     function: {
       name: "create_proposal",
-      description: "Generate a professional sales proposal for a specific lead including executive summary, problem statement, solution, pricing, and next steps. Use when the user asks to create or draft a proposal.",
+      description: "Generate a professional AI-written sales proposal. Can target a specific lead by ID, or generate for a company/industry. Use when the user asks to create, draft, or write a proposal.",
       parameters: {
         type: "object",
         properties: {
-          lead_id: { type: "number", description: "Lead ID to create the proposal for" },
+          lead_id: { type: "number", description: "Lead ID to create the proposal for (use this or company_name/industry)" },
+          company_name: { type: "string", description: "Company name if no lead_id (e.g. 'Acme Corp')" },
+          industry: { type: "string", description: "Industry context for the proposal (e.g. 'SaaS', 'Healthcare')" },
           custom_notes: { type: "string", description: "Optional custom notes or requirements to include in the proposal" },
         },
-        required: ["lead_id"],
       },
     },
   },
@@ -1747,74 +1757,72 @@ export async function executeToolCall(
     }
 
     case "create_proposal": {
-      const leadId = Number(args.lead_id);
-      const lead = await storage.getLeadById(leadId, userId);
-      if (!lead) {
-        return { result: `Lead #${leadId} not found or you don't have access to it.` };
+      let leadName = "Prospective Client";
+      let leadEmail = "";
+      let companyName = "your organization";
+      let leadId: number | null = null;
+
+      if (args.lead_id) {
+        leadId = Number(args.lead_id);
+        const lead = await storage.getLeadById(leadId, userId);
+        if (!lead) {
+          return { result: `Lead #${leadId} not found or you don't have access to it.` };
+        }
+        leadName = lead.name;
+        leadEmail = lead.email;
+        companyName = lead.company || companyName;
+      } else if (args.company_name) {
+        companyName = String(args.company_name);
       }
 
+      const industryCtx = args.industry ? String(args.industry) : "";
       const customNotes = args.custom_notes ? String(args.custom_notes) : "";
-      const companyName = lead.company || "your organization";
 
-      const proposal = `
-═══════════════════════════════════════
-   SALES PROPOSAL — ${companyName.toUpperCase()}
-═══════════════════════════════════════
+      const aiPrompt = `Generate a professional sales proposal for RentAI 24 (an AI staffing agency that rents pre-trained AI workers to businesses).
 
-Prepared for: ${lead.name}
-Company: ${companyName}
-Date: ${new Date().toLocaleDateString()}
+Target:
+- Prepared for: ${leadName}
+- Company: ${companyName}
+- Date: ${new Date().toLocaleDateString()}
+${industryCtx ? `- Industry: ${industryCtx}` : ""}
+${customNotes ? `- Special requirements: ${customNotes}` : ""}
 
-─── EXECUTIVE SUMMARY ───
-We're excited to present a tailored AI workforce solution for ${companyName}. Our platform deploys pre-trained AI workers that integrate seamlessly with your existing workflows, delivering immediate productivity gains.
+Structure the proposal with these sections using ─── headers:
+1. EXECUTIVE SUMMARY — tailored to the company/industry
+2. THE CHALLENGE — specific pain points for this type of business
+3. OUR SOLUTION — how RentAI 24's AI workers solve these challenges
+4. INVESTMENT — Starter ($49/mo, 1 worker), Professional ($39/mo/worker, up to 5), Enterprise (custom)
+5. IMPLEMENTATION TIMELINE — phased rollout plan
+6. NEXT STEPS — clear call to action
 
-─── THE CHALLENGE ───
-Modern businesses face:
-• Rising operational costs and staffing challenges
-• Repetitive tasks consuming valuable team time
-• Difficulty scaling without proportional headcount growth
-• Inconsistent quality during peak demand periods
+Keep it professional, persuasive, and specific to their industry/company. About 400-500 words.`;
 
-─── OUR SOLUTION ───
-RentAI 24 provides ${companyName} with:
-✓ AI Workers trained for specific business functions
-✓ 24/7 availability with zero downtime
-✓ Instant deployment — no training period required
-✓ Seamless integration with your existing tools
-✓ Real-time performance monitoring and analytics
+      try {
+        const completion = await aiClient.chat.completions.create({
+          model: "gpt-4o-mini",
+          messages: [{ role: "user", content: aiPrompt }],
+          max_tokens: 1200,
+          temperature: 0.7,
+        });
+        const proposal = completion.choices[0]?.message?.content || "Proposal generation failed.";
 
-─── INVESTMENT ───
-• Starter Plan: $49/month — 1 AI Worker, 500 messages
-• Professional Plan: $39/month/worker — Up to 5 workers, 2,000 messages each
-• Enterprise: Custom pricing for unlimited scale
+        const metadata: ProposalMetadata = { leadId: leadId || 0, leadName, company: companyName, proposalContent: proposal };
+        await storage.createAgentAction({
+          userId, agentType,
+          actionType: "proposal_created",
+          description: `Sales proposal created for ${leadName} at ${companyName}`,
+          metadata,
+        });
 
-─── IMPLEMENTATION TIMELINE ───
-Day 1: Account setup and AI worker selection
-Day 2-3: Integration with your workflows
-Day 4-7: Optimization and fine-tuning
-Week 2+: Full autonomous operation
-
-─── NEXT STEPS ───
-1. Schedule a personalized demo
-2. Select the right AI workers for your needs
-3. Begin your 30-day trial with full support
-${customNotes ? `\n─── ADDITIONAL NOTES ───\n${customNotes}` : ""}
-
-We look forward to partnering with ${companyName} on this journey.
-═══════════════════════════════════════`;
-
-      await storage.createAgentAction({
-        userId, agentType,
-        actionType: "proposal_created",
-        description: `Sales proposal created for ${lead.name} at ${companyName}`,
-        metadata: { leadId, leadName: lead.name, company: companyName, proposalContent: proposal },
-      });
-
-      return {
-        result: `Proposal created for ${lead.name} at ${companyName}!\n\n${proposal}\n\nWould you like me to email this proposal to ${lead.name} at ${lead.email}? Use send_proposal to send it.`,
-        actionType: "proposal_created",
-        actionDescription: `📄 Proposal created for ${lead.name} at ${companyName}`,
-      };
+        const emailOffer = leadEmail ? `\n\nWould you like me to email this proposal to ${leadName} at ${leadEmail}? Use send_proposal to send it.` : "";
+        return {
+          result: `Proposal created for ${leadName} at ${companyName}!\n\n${proposal}${emailOffer}`,
+          actionType: "proposal_created",
+          actionDescription: `📄 Proposal created for ${leadName} at ${companyName}`,
+        };
+      } catch (err) {
+        return { result: `Failed to generate proposal: ${err instanceof Error ? err.message : "Unknown error"}` };
+      }
     }
 
     case "send_proposal": {
@@ -1828,14 +1836,17 @@ We look forward to partnering with ${companyName} on this journey.
       }
 
       const actions = await storage.getActionsByUser(userId);
-      const proposalAction = actions.find(
-        (a) => a.actionType === "proposal_created" && (a.metadata as any)?.leadId === leadId
-      );
-      if (!proposalAction || !(proposalAction.metadata as any)?.proposalContent) {
+      const proposalAction = actions.find((a) => {
+        if (a.actionType !== "proposal_created") return false;
+        const meta = a.metadata as Record<string, unknown> | null;
+        return meta && meta.leadId === leadId;
+      });
+      const proposalMeta = proposalAction?.metadata as Record<string, unknown> | null;
+      if (!proposalAction || !proposalMeta?.proposalContent) {
         return { result: `No proposal found for lead #${leadId} (${lead.name}). Create one first with create_proposal.` };
       }
 
-      const proposalContent = (proposalAction.metadata as any).proposalContent;
+      const proposalContent = String(proposalMeta.proposalContent);
       const companyName = lead.company || "your organization";
       const subject = `Sales Proposal for ${companyName} — RentAI 24`;
 
@@ -1871,66 +1882,43 @@ We look forward to partnering with ${companyName} on this journey.
       const industry = String(args.industry);
       const companyContext = args.company_context ? String(args.company_context) : "";
 
-      const analysis = `
-═══════════════════════════════════════
-   COMPETITIVE ANALYSIS: ${industry.toUpperCase()}
-═══════════════════════════════════════
-${companyContext ? `Context: ${companyContext}\n` : ""}
-─── MARKET LANDSCAPE ───
-The ${industry} market is experiencing rapid transformation driven by AI adoption, automation trends, and shifting business models. Key competitive forces include:
+      const aiPrompt = `Generate a competitive analysis for the ${industry} industry from the perspective of RentAI 24 (an AI staffing agency that rents pre-trained AI workers to businesses, starting at $39-49/month).
 
-• Market consolidation among established players
-• Rising demand for AI-powered solutions
-• Increasing customer expectations for 24/7 service
-• Cost pressure driving automation adoption
+${companyContext ? `Prospect context: ${companyContext}` : ""}
 
-─── COMPETITIVE POSITIONING ───
+Structure the analysis with these sections using ─── headers:
+1. MARKET LANDSCAPE — current state, trends, key forces in this industry
+2. COMPETITIVE POSITIONING — analyze Traditional Solutions, Freelance/Contractor Models, and AI-First Competitors with their strengths and weaknesses
+3. OUR DIFFERENTIATORS — what makes RentAI 24 unique (specialized AI workers, month-to-month, integrations, 24/7, cost savings)
+4. RECOMMENDATIONS — 5 specific sales strategy recommendations for this industry
+5. KEY TALKING POINTS — 3-4 compelling one-liners for sales conversations
 
-Traditional Solutions:
-⚠️ Strengths: Established brand, large teams, proven track record
-⚠️ Weaknesses: High cost, slow to adapt, rigid contracts, 9-5 availability
+Be specific to the ${industry} industry. About 400-500 words.`;
 
-Freelance/Contractor Models:
-⚠️ Strengths: Flexible, specialized skills, cost-effective short-term
-⚠️ Weaknesses: Inconsistent quality, availability gaps, management overhead
+      try {
+        const completion = await aiClient.chat.completions.create({
+          model: "gpt-4o-mini",
+          messages: [{ role: "user", content: aiPrompt }],
+          max_tokens: 1200,
+          temperature: 0.7,
+        });
+        const analysis = completion.choices[0]?.message?.content || "Analysis generation failed.";
 
-AI-First Competitors:
-⚠️ Strengths: 24/7 availability, scalable, consistent quality
-⚠️ Weaknesses: Limited customization, generic solutions, trust barriers
+        await storage.createAgentAction({
+          userId, agentType,
+          actionType: "competitor_analysis",
+          description: `Competitive analysis generated for ${industry}${companyContext ? ` (${companyContext})` : ""}`,
+          metadata: { industry, companyContext, analysisContent: analysis },
+        });
 
-─── OUR DIFFERENTIATORS ───
-✓ Pre-trained AI workers specialized by function (Sales, Support, HR, etc.)
-✓ Month-to-month flexibility — no long-term contracts
-✓ Starting at $39-49/month vs. $3,000-5,000+/month for human equivalents
-✓ 24/7 operation with zero sick days or turnover
-✓ Real integrations (email, calendar, CRM) — not just chat
-✓ ROI typically realized within the first week
-
-─── RECOMMENDATIONS ───
-1. Lead with cost savings: Show the 90%+ cost reduction vs. traditional staffing
-2. Emphasize 24/7 availability as a competitive advantage
-3. Offer a trial period to overcome trust barriers
-4. Focus on specific pain points in the ${industry} sector
-5. Position AI workers as augmenting (not replacing) the existing team
-
-─── KEY TALKING POINTS ───
-• "Would you rather pay $49/month or $5,000/month for the same output?"
-• "Our AI workers handle the repetitive work so your team can focus on strategy"
-• "Start with one AI worker, scale to a full team as you see results"
-═══════════════════════════════════════`;
-
-      await storage.createAgentAction({
-        userId, agentType,
-        actionType: "competitor_analysis",
-        description: `Competitive analysis generated for ${industry}${companyContext ? ` (${companyContext})` : ""}`,
-        metadata: { industry, companyContext },
-      });
-
-      return {
-        result: analysis,
-        actionType: "competitor_analysis",
-        actionDescription: `🔍 Competitive analysis: ${industry}`,
-      };
+        return {
+          result: analysis,
+          actionType: "competitor_analysis",
+          actionDescription: `🔍 Competitive analysis: ${industry}`,
+        };
+      } catch (err) {
+        return { result: `Failed to generate competitive analysis: ${err instanceof Error ? err.message : "Unknown error"}` };
+      }
     }
 
     case "create_ticket": {

@@ -9,7 +9,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Menu, Bot, User, LayoutDashboard, Download, Smartphone, Wifi, Bell, Settings, LogOut, BookOpen, Share, Plus, MoreHorizontal, Monitor, Globe, ExternalLink } from "lucide-react";
+import { Menu, Bot, User, LayoutDashboard, Download, Smartphone, Wifi, Bell, Settings, LogOut, BookOpen, Share, Plus, MoreHorizontal, Monitor, Globe, ExternalLink, Shield } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { usePwaInstall } from "@/hooks/use-pwa-install";
 import type { PwaPlatform } from "@/hooks/use-pwa-install";
@@ -280,6 +280,19 @@ export default function Navbar() {
                     Dashboard
                   </Button>
                 </Link>
+                {user.email === "tanerkendir0@gmail.com" && (
+                  <Link href="/admin">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="text-amber-400 hover:text-amber-300 hover:bg-amber-500/10"
+                      data-testid="button-admin"
+                    >
+                      <Shield className="w-4 h-4 mr-1" />
+                      Admin
+                    </Button>
+                  </Link>
+                )}
                 <Button
                   size="sm"
                   variant="ghost"
@@ -388,6 +401,19 @@ export default function Navbar() {
                             Settings
                           </Button>
                         </Link>
+                        {user.email === "tanerkendir0@gmail.com" && (
+                          <Link href="/admin">
+                            <Button
+                              variant="outline"
+                              className="w-full border-amber-500/30 text-amber-400 hover:bg-amber-500/10"
+                              onClick={() => setOpen(false)}
+                              data-testid="button-mobile-admin"
+                            >
+                              <Shield className="w-4 h-4 mr-1" />
+                              Admin
+                            </Button>
+                          </Link>
+                        )}
                         <Button
                           variant="ghost"
                           className="w-full text-muted-foreground hover:text-foreground"

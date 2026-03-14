@@ -594,11 +594,20 @@ export class DatabaseStorage implements IStorage {
     return !!deleted;
   }
 
+  private getEncryptionKey(): Buffer {
+    const secret = process.env.SESSION_SECRET || process.env.REPL_ID || "";
+    if (!secret) {
+      throw new Error("SESSION_SECRET environment variable is required for credential encryption");
+    }
+    const crypto = require("crypto");
+    return crypto.createHash("sha256").update(secret).digest();
+  }
+
   async updateUserGmail(userId: number, gmailAddress: string, gmailAppPassword: string): Promise<User | undefined> {
     const crypto = await import("crypto");
-    const encKey = process.env.SESSION_SECRET || "rentai24-default-enc-key";
+    const key = this.getEncryptionKey();
     const iv = crypto.randomBytes(16);
-    const cipher = crypto.createCipheriv("aes-256-cbc", crypto.createHash("sha256").update(encKey).digest(), iv);
+    const cipher = crypto.createCipheriv("aes-256-cbc", key, iv);
     let encrypted = cipher.update(gmailAppPassword, "utf8", "hex");
     encrypted += cipher.final("hex");
     const encryptedPassword = iv.toString("hex") + ":" + encrypted;
@@ -612,11 +621,11 @@ export class DatabaseStorage implements IStorage {
   decryptGmailAppPassword(encryptedPassword: string): string {
     try {
       const crypto = require("crypto");
-      const encKey = process.env.SESSION_SECRET || "rentai24-default-enc-key";
+      const key = this.getEncryptionKey();
       const [ivHex, encrypted] = encryptedPassword.split(":");
       if (!ivHex || !encrypted) return encryptedPassword;
       const iv = Buffer.from(ivHex, "hex");
-      const decipher = crypto.createDecipheriv("aes-256-cbc", crypto.createHash("sha256").update(encKey).digest(), iv);
+      const decipher = crypto.createDecipheriv("aes-256-cbc", key, iv);
       let decrypted = decipher.update(encrypted, "hex", "utf8");
       decrypted += decipher.final("utf8");
       return decrypted;

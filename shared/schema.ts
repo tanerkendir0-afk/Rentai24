@@ -10,8 +10,8 @@ const vector = customType<{ data: number[]; driverParam: string }>({
   toDriver(value: number[]): string {
     return `[${value.join(",")}]`;
   },
-  fromDriver(value: string): number[] {
-    return JSON.parse(value);
+  fromDriver(value: unknown): number[] {
+    return JSON.parse(String(value));
   },
 });
 

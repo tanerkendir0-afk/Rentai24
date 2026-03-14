@@ -133,8 +133,8 @@ function checkRateLimit(key: string): boolean {
 
   if (rateLimitMap.size > 10000) {
     const cutoff = now - windowMs * 5;
-    for (const [k, v] of rateLimitMap) {
-      if (v.every(t => t < cutoff)) rateLimitMap.delete(k);
+    for (const [k, v] of Array.from(rateLimitMap.entries())) {
+      if (v.every((t: number) => t < cutoff)) rateLimitMap.delete(k);
     }
   }
 

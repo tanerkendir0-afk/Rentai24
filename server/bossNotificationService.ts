@@ -149,3 +149,16 @@ export async function triggerTaskCompleteNotification(params: {
     },
   });
 }
+
+export async function createBossNotification(
+  userId: number,
+  summary: string,
+  type: string
+): Promise<void> {
+  await notifyBoss({
+    userId,
+    type,
+    teamMemberName: "System",
+    summary,
+  });
+}

@@ -13,7 +13,8 @@ export async function parseDocument(
       return fs.readFileSync(filePath, "utf-8");
 
     case ".pdf": {
-      const pdfParse = (await import("pdf-parse")).default;
+      const pdfParseModule = await import("pdf-parse");
+      const pdfParse = (pdfParseModule as unknown as { default: (buffer: Buffer) => Promise<{ text: string }> }).default;
       const buffer = fs.readFileSync(filePath);
       const data = await pdfParse(buffer);
       return data.text;
@@ -29,7 +30,7 @@ export async function parseDocument(
       const { parse } = await import("csv-parse/sync");
       const content = fs.readFileSync(filePath, "utf-8");
       const records = parse(content, { columns: true, skip_empty_lines: true });
-      return records
+      return (records as Record<string, string>[])
         .map((row: Record<string, string>) =>
           Object.entries(row)
             .map(([k, v]) => `${k}: ${v}`)

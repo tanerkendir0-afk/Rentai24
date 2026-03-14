@@ -62,7 +62,7 @@ export async function generateAIImage(
       quality: "standard",
     });
 
-    const imageUrl = response.data[0]?.url;
+    const imageUrl = response.data?.[0]?.url;
     if (!imageUrl) {
       return { success: false, error: "No image generated" };
     }
@@ -95,7 +95,7 @@ export async function findStockImages(
 
     const results: Array<{ url: string; alt: string }> = [];
 
-    for (const img of response.data) {
+    for (const img of (response.data || [])) {
       if (img.url) {
         const filename = `stock-${Date.now()}-${results.length}.png`;
         const filepath = path.join(imageDir, filename);

@@ -194,7 +194,7 @@ app.use((req, res, next) => {
       );
 
       console.log('Initializing Stripe schema...');
-      await runMigrations({ databaseUrl, schema: 'stripe' });
+      await runMigrations({ databaseUrl });
       console.log('Stripe schema ready');
 
       const stripeSync = await getStripeSync();

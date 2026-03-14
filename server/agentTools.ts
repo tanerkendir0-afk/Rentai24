@@ -1136,7 +1136,7 @@ export function getRelevantToolsForMessage(
   const msgLower = message.toLowerCase();
 
   const relevant = allTools.filter((tool) => {
-    const toolName = tool.function.name;
+    const toolName = (tool as OpenAI.ChatCompletionTool & { function: { name: string } }).function.name;
     const keywords = TOOL_KEYWORD_MAP[toolName];
     if (!keywords) return true;
     return keywords.some((kw) => msgLower.includes(kw));

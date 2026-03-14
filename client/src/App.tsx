@@ -33,8 +33,8 @@ function Router() {
       <Route path="/workers/:slug" component={WorkerProfile} />
       <Route path="/how-it-works" component={HowItWorks} />
       <Route path="/pricing" component={Pricing} />
-      <Route path="/demo" component={Demo} />
-      <Route path="/chat">{() => <Demo isWorkspace />}</Route>
+      <Route path="/demo">{() => <Demo />}</Route>
+      <Route path="/chat">{() => <Demo isWorkspace={true} />}</Route>
       <Route path="/about" component={About} />
       <Route path="/contact" component={Contact} />
       <Route path="/login" component={Login} />

@@ -6,7 +6,7 @@ export function getUncachableStripeClient(): Stripe {
   if (!secretKey) {
     throw new Error("STRIPE_SECRET_KEY not configured");
   }
-  return new Stripe(secretKey, { apiVersion: "2025-04-30.basil" });
+  return new Stripe(secretKey);
 }
 
 let stripeSyncInstance: StripeSync | null = null;
@@ -20,6 +20,7 @@ export async function getStripeSync(): Promise<StripeSync> {
   stripeSyncInstance = new StripeSync({
     stripeSecretKey: secretKey,
     databaseUrl: process.env.DATABASE_URL!,
+    poolConfig: {},
   });
   return stripeSyncInstance;
 }

@@ -628,7 +628,7 @@ export async function registerRoutes(
   });
 
   app.patch("/api/agent-tasks/:id", requireAuth, async (req, res) => {
-    const id = parseInt(req.params.id);
+    const id = parseInt(req.params.id as string);
     const updates: Partial<Pick<AgentTask, "title" | "description" | "status" | "priority" | "dueDate" | "project">> = {};
     if (req.body.title !== undefined) updates.title = req.body.title;
     if (req.body.description !== undefined) updates.description = req.body.description;
@@ -642,7 +642,7 @@ export async function registerRoutes(
   });
 
   app.delete("/api/agent-tasks/:id", requireAuth, async (req, res) => {
-    const id = parseInt(req.params.id);
+    const id = parseInt(req.params.id as string);
     const deleted = await storage.deleteAgentTask(id, req.session.userId!);
     if (!deleted) return res.status(404).json({ error: "Task not found" });
     res.json({ success: true });
@@ -668,7 +668,7 @@ export async function registerRoutes(
   });
 
   app.patch("/api/conversations/:id", requireAuth, async (req, res) => {
-    const id = parseInt(req.params.id);
+    const id = parseInt(req.params.id as string);
     const { title } = req.body;
     if (!title) return res.status(400).json({ error: "title is required" });
     const updated = await storage.updateConversationTitle(id, req.session.userId!, title);
@@ -677,7 +677,7 @@ export async function registerRoutes(
   });
 
   app.delete("/api/conversations/:id", requireAuth, async (req, res) => {
-    const id = parseInt(req.params.id);
+    const id = parseInt(req.params.id as string);
     const deleted = await storage.deleteConversation(id, req.session.userId!);
     if (!deleted) return res.status(404).json({ error: "Conversation not found" });
     res.json({ success: true });
@@ -685,7 +685,7 @@ export async function registerRoutes(
 
   app.get("/api/conversations/:visibleId/messages", requireAuth, async (req, res) => {
     const { visibleId } = req.params;
-    const messages = await storage.getConversationMessages(req.session.userId!, visibleId);
+    const messages = await storage.getConversationMessages(req.session.userId!, visibleId as string);
     res.json(messages);
   });
 
@@ -711,7 +711,7 @@ export async function registerRoutes(
   });
 
   app.patch("/api/team-members/:id", requireAuth, async (req, res) => {
-    const id = parseInt(req.params.id);
+    const id = parseInt(req.params.id as string);
     if (isNaN(id)) return res.status(400).json({ error: "Invalid member ID" });
     const { name, email, position, department, skills, responsibilities, phone } = req.body;
     const updates: any = {};
@@ -728,7 +728,7 @@ export async function registerRoutes(
   });
 
   app.delete("/api/team-members/:id", requireAuth, async (req, res) => {
-    const id = parseInt(req.params.id);
+    const id = parseInt(req.params.id as string);
     if (isNaN(id)) return res.status(400).json({ error: "Invalid member ID" });
     const deleted = await storage.deleteTeamMember(id, req.session.userId!);
     if (!deleted) return res.status(404).json({ error: "Team member not found" });
@@ -880,7 +880,7 @@ export async function registerRoutes(
   });
 
   app.patch("/api/social-accounts/:id", requireAuth, async (req, res) => {
-    const id = parseInt(req.params.id);
+    const id = parseInt(req.params.id as string);
     if (isNaN(id)) return res.status(400).json({ error: "Invalid account ID" });
     const { username, profileUrl, accessToken, status, accountType, apiKey, apiSecret, accessTokenSecret, pageId, businessAccountId } = req.body;
     const updates: any = {};
@@ -900,7 +900,7 @@ export async function registerRoutes(
   });
 
   app.delete("/api/social-accounts/:id", requireAuth, async (req, res) => {
-    const id = parseInt(req.params.id);
+    const id = parseInt(req.params.id as string);
     if (isNaN(id)) return res.status(400).json({ error: "Invalid account ID" });
     const deleted = await storage.deleteSocialAccount(id, req.session.userId!);
     if (!deleted) return res.status(404).json({ error: "Account not found" });
@@ -913,7 +913,7 @@ export async function registerRoutes(
   });
 
   app.post("/api/scheduled-posts/:id/cancel", requireAuth, async (req, res) => {
-    const id = parseInt(req.params.id);
+    const id = parseInt(req.params.id as string);
     if (isNaN(id)) return res.status(400).json({ error: "Invalid post ID" });
     const cancelled = await storage.cancelScheduledPost(id, req.session.userId!);
     if (!cancelled) return res.status(404).json({ error: "Post not found or already published/cancelled" });
@@ -958,7 +958,7 @@ export async function registerRoutes(
   });
 
   app.patch("/api/shipping-providers/:id", requireAuth, async (req, res) => {
-    const id = parseInt(req.params.id);
+    const id = parseInt(req.params.id as string);
     if (isNaN(id)) return res.status(400).json({ error: "Invalid provider ID" });
     const { apiKey, customerCode, username, password, accountNumber, siteId, status } = req.body;
     const updates: any = {};
@@ -975,7 +975,7 @@ export async function registerRoutes(
   });
 
   app.delete("/api/shipping-providers/:id", requireAuth, async (req, res) => {
-    const id = parseInt(req.params.id);
+    const id = parseInt(req.params.id as string);
     if (isNaN(id)) return res.status(400).json({ error: "Invalid provider ID" });
     const deleted = await storage.deleteShippingProvider(id, req.session.userId!);
     if (!deleted) return res.status(404).json({ error: "Provider not found" });
@@ -1016,7 +1016,7 @@ export async function registerRoutes(
   });
 
   app.patch("/api/admin/support-tickets/:id", requireAdmin, async (req, res) => {
-    const id = parseInt(req.params.id);
+    const id = parseInt(req.params.id as string);
     const { status, priority, resolution, adminReply } = req.body;
     const updated = await storage.adminUpdateTicket(id, { status, priority, resolution, adminReply });
     if (!updated) return res.status(404).json({ error: "Ticket not found" });
@@ -1109,7 +1109,7 @@ export async function registerRoutes(
       return res.status(403).json({ error: "Your subscription is not active. Please update your billing." });
     }
 
-    const planMeta = subscription.metadata?.plan || 'starter';
+    const planMeta = (subscription.metadata as Record<string, string> | null)?.plan || 'starter';
     const planLimits: Record<string, number> = { starter: 100, professional: 500, enterprise: 5000 };
 
     const expiresAt = new Date();
@@ -1523,24 +1523,25 @@ ${members.map(m => `- ${m.name} (${m.email})${m.position ? ` — ${m.position}` 
         const executedToolSignatures = new Set<string>();
 
         for (const toolCall of assistantMessage.tool_calls) {
-          const args = JSON.parse(toolCall.function.arguments);
+          const tcFn = (toolCall as unknown as { function: { name: string; arguments: string } }).function;
+          const args = JSON.parse(tcFn.arguments);
 
-          const toolSignature = `${toolCall.function.name}:${JSON.stringify(args, Object.keys(args).sort())}`;
+          const toolSignature = `${tcFn.name}:${JSON.stringify(args, Object.keys(args).sort())}`;
           if (executedToolSignatures.has(toolSignature)) {
             const toolMessage: OpenAI.ChatCompletionToolMessageParam = {
               role: "tool",
               tool_call_id: toolCall.id,
-              content: `[Skipped] This exact action (${toolCall.function.name}) was already executed with the same parameters in this request. See the previous result above.`,
+              content: `[Skipped] This exact action (${tcFn.name}) was already executed with the same parameters in this request. See the previous result above.`,
             };
             messages.push(toolMessage);
-            actions.push({ type: "tool_dedup", description: `⏭️ Skipped duplicate ${toolCall.function.name} call` });
+            actions.push({ type: "tool_dedup", description: `⏭️ Skipped duplicate ${tcFn.name} call` });
             if (req.session.userId) {
               await storage.createAgentAction({
                 userId: req.session.userId,
                 agentType,
                 actionType: "tool_dedup",
-                description: `Skipped duplicate ${toolCall.function.name} call`,
-                metadata: { toolName: toolCall.function.name, args },
+                description: `Skipped duplicate ${tcFn.name} call`,
+                metadata: { toolName: tcFn.name, args },
               });
             }
             continue;
@@ -1548,9 +1549,9 @@ ${members.map(m => `- ${m.name} (${m.email})${m.position ? ` — ${m.position}` 
           executedToolSignatures.add(toolSignature);
 
           const toolResult = await executeToolCall(
-            toolCall.function.name,
+            tcFn.name,
             args,
-            req.session.userId,
+            req.session.userId!,
             resolvedAgentType
           );
 
@@ -1810,13 +1811,13 @@ ${members.map(m => `- ${m.name} (${m.email})${m.position ? ` — ${m.position}` 
         return res.status(400).json({ error: "Invalid or inactive price" });
       }
 
-      const product = await storage.getProduct(price.product);
+      const product = await storage.getProduct(String(price.product));
       if (!product || !product.active) {
         return res.status(400).json({ error: "Invalid product" });
       }
 
       const allowedPlans = ["starter", "professional"];
-      const planMeta = product.metadata?.plan;
+      const planMeta = (product.metadata as Record<string, string> | null)?.plan;
       if (!planMeta || !allowedPlans.includes(planMeta)) {
         return res.status(400).json({ error: "Invalid plan. Enterprise plans require contacting sales." });
       }
@@ -1862,12 +1863,12 @@ ${members.map(m => `- ${m.name} (${m.email})${m.position ? ` — ${m.position}` 
         return res.status(400).json({ error: "Invalid or inactive price" });
       }
 
-      const product = await storage.getProduct(price.product);
-      if (!product || !product.active || product.metadata?.type !== "image_credits") {
+      const product = await storage.getProduct(String(price.product));
+      if (!product || !product.active || (product.metadata as Record<string, string> | null)?.type !== "image_credits") {
         return res.status(400).json({ error: "Invalid image credit product" });
       }
 
-      const credits = parseInt(price.metadata?.credits || "0");
+      const credits = parseInt((price.metadata as Record<string, string> | null)?.credits || "0");
       if (credits <= 0) {
         return res.status(400).json({ error: "Invalid credit amount" });
       }
@@ -2058,7 +2059,7 @@ ${members.map(m => `- ${m.name} (${m.email})${m.position ? ` — ${m.position}` 
 
   app.get("/api/admin/agents/:agentType/documents", requireAdmin, async (req, res) => {
     try {
-      const docs = await getDocumentsByAgent(req.params.agentType);
+      const docs = await getDocumentsByAgent(req.params.agentType as string);
       res.json(docs);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -2077,7 +2078,7 @@ ${members.map(m => `- ${m.name} (${m.email})${m.position ? ` — ${m.position}` 
         const doc = await processAndStoreDocument(
           req.file.path,
           req.file.originalname,
-          req.params.agentType,
+          req.params.agentType as string,
           req.file.mimetype,
           req.file.size
         );
@@ -2094,7 +2095,7 @@ ${members.map(m => `- ${m.name} (${m.email})${m.position ? ` — ${m.position}` 
       if (!url || typeof url !== "string") {
         return res.status(400).json({ error: "URL is required" });
       }
-      const doc = await processAndStoreUrl(url, req.params.agentType);
+      const doc = await processAndStoreUrl(url, req.params.agentType as string);
       res.json(doc);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -2103,7 +2104,7 @@ ${members.map(m => `- ${m.name} (${m.email})${m.position ? ` — ${m.position}` 
 
   app.delete("/api/admin/documents/:docId", requireAdmin, async (req, res) => {
     try {
-      await deleteDocument(parseInt(req.params.docId));
+      await deleteDocument(parseInt(req.params.docId as string));
       res.json({ success: true });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -2112,7 +2113,7 @@ ${members.map(m => `- ${m.name} (${m.email})${m.position ? ` — ${m.position}` 
 
   app.get("/api/admin/agents/:agentType/fine-tuning", requireAdmin, async (req, res) => {
     try {
-      const jobs = await getJobsByAgent(req.params.agentType);
+      const jobs = await getJobsByAgent(req.params.agentType as string);
       res.json(jobs);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -2129,7 +2130,7 @@ ${members.map(m => `- ${m.name} (${m.email})${m.position ? ` — ${m.position}` 
           return res.status(400).json({ error: "No file uploaded" });
         }
         const job = await createFineTuningJob(
-          req.params.agentType,
+          req.params.agentType as string,
           req.file.path,
           req.file.originalname
         );
@@ -2142,7 +2143,7 @@ ${members.map(m => `- ${m.name} (${m.email})${m.position ? ` — ${m.position}` 
 
   app.post("/api/admin/fine-tuning/:jobId/sync", requireAdmin, async (req, res) => {
     try {
-      const job = await syncJobStatus(parseInt(req.params.jobId));
+      const job = await syncJobStatus(parseInt(req.params.jobId as string));
       res.json(job);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -2155,7 +2156,7 @@ ${members.map(m => `- ${m.name} (${m.email})${m.position ? ` — ${m.position}` 
       if (!agentType) {
         return res.status(400).json({ error: "agentType is required" });
       }
-      const job = await toggleActiveModel(parseInt(req.params.jobId), agentType);
+      const job = await toggleActiveModel(parseInt(req.params.jobId as string), agentType);
       res.json(job);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -2164,7 +2165,7 @@ ${members.map(m => `- ${m.name} (${m.email})${m.position ? ` — ${m.position}` 
 
   app.post("/api/admin/agents/:agentType/fine-tuning/deactivate", requireAdmin, async (req, res) => {
     try {
-      await deactivateModel(req.params.agentType);
+      await deactivateModel(req.params.agentType as string);
       res.json({ success: true });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -2240,7 +2241,7 @@ ${members.map(m => `- ${m.name} (${m.email})${m.position ? ` — ${m.position}` 
 
   app.get("/api/admin/agents/:agentType/export-training-data", requireAdmin, async (req, res) => {
     try {
-      const { agentType } = req.params;
+      const agentType = req.params.agentType as string;
       const filters = parseTrainingDataFilters(req.query);
 
       const result = await generateTrainingDataFromChatLogs(agentType, filters);
@@ -2260,7 +2261,7 @@ ${members.map(m => `- ${m.name} (${m.email})${m.position ? ` — ${m.position}` 
 
   app.get("/api/admin/agents/:agentType/download-training-data", requireAdmin, async (req, res) => {
     try {
-      const { agentType } = req.params;
+      const agentType = req.params.agentType as string;
       const filters = parseTrainingDataFilters(req.query);
 
       const result = await generateTrainingDataFromChatLogs(agentType, filters);
@@ -2405,7 +2406,7 @@ ${members.map(m => `- ${m.name} (${m.email})${m.position ? ` — ${m.position}` 
       const { eq, asc } = await import("drizzle-orm");
 
       const messages = await db.select().from(chatMessages)
-        .where(eq(chatMessages.sessionId, req.params.visibleId))
+        .where(eq(chatMessages.sessionId, req.params.visibleId as string))
         .orderBy(asc(chatMessages.createdAt));
 
       res.json({ messages });
@@ -2547,12 +2548,12 @@ ${members.map(m => `- ${m.name} (${m.email})${m.position ? ` — ${m.position}` 
       ]);
 
       const totalReqs = (avgTokens.rows[0] as any)?.total_requests || 0;
-      const miniCount = modelDistribution.rows.find((r: any) => r.model === 'gpt-4o-mini');
+      const miniCount: any = modelDistribution.rows.find((r: any) => r.model === 'gpt-4o-mini');
       const miniPercent = totalReqs > 0 ? (((miniCount?.count || 0) / totalReqs) * 100).toFixed(1) : "0";
 
       let estimatedSavings = "0.0000";
       if (miniCount && miniCount.count > 0) {
-        const miniActualCost = parseFloat(miniCount.total_cost || "0");
+        const miniActualCost = parseFloat(String(miniCount.total_cost || "0"));
         const hypotheticalGpt4oCost =
           (miniCount.avg_prompt_tokens * miniCount.count / 1_000_000) * 2.50 +
           (miniCount.avg_completion_tokens * miniCount.count / 1_000_000) * 10.00;
@@ -2577,9 +2578,9 @@ ${members.map(m => `- ${m.name} (${m.email})${m.position ? ` — ${m.position}` 
 
   app.get("/api/admin/agents/:agentType/stats", requireAdmin, async (req, res) => {
     try {
-      const docCount = await getDocumentCount(req.params.agentType);
-      const ftJobs = await getJobsByAgent(req.params.agentType);
-      const activeModel = await getActiveModel(req.params.agentType);
+      const docCount = await getDocumentCount(req.params.agentType as string);
+      const ftJobs = await getJobsByAgent(req.params.agentType as string);
+      const activeModel = await getActiveModel(req.params.agentType as string);
       res.json({
         documentCount: docCount,
         fineTuningJobs: ftJobs.length,
@@ -2910,7 +2911,7 @@ Be decisive and actionable. Format with clear sections.`,
 
   app.delete("/api/admin/collaboration-sessions/:id", requireAdmin, async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = parseInt(req.params.id as string);
       if (isNaN(id)) return res.status(400).json({ error: "Invalid ID" });
       const [session] = await db
         .delete(collaborationSessions)
@@ -3177,11 +3178,12 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
         ];
 
         for (const toolCall of assistantMessage.tool_calls) {
+          const tcFn = (toolCall as unknown as { function: { name: string; arguments: string } }).function;
           let toolResult = "";
 
           try {
-            const args = JSON.parse(toolCall.function.arguments || "{}") as Record<string, unknown>;
-            switch (toolCall.function.name) {
+            const args = JSON.parse(tcFn.arguments || "{}") as Record<string, unknown>;
+            switch (tcFn.name) {
               case "query_platform_stats": {
                 const cat = args.category;
                 if (cat === "users" || cat === "all") {
@@ -3368,7 +3370,7 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
 
   app.patch("/api/admin/boss-conversations/:id", requireAdmin, async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = parseInt(req.params.id as string);
       if (isNaN(id)) return res.status(400).json({ error: "Invalid ID" });
       const { topic, messages: msgs, toolsUsed } = req.body;
       if (msgs !== undefined && !Array.isArray(msgs)) return res.status(400).json({ error: "Messages must be an array" });
@@ -3401,7 +3403,7 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
 
   app.delete("/api/admin/boss-conversations/:id", requireAdmin, async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = parseInt(req.params.id as string);
       const [conv] = await db
         .delete(bossConversations)
         .where(eq(bossConversations.id, id))

@@ -526,8 +526,8 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
             transition={{ duration: 0.2, ease: "easeOut" }}
             className="h-full w-[280px] border-r border-border/50 bg-card flex flex-col overflow-hidden shrink-0 fixed lg:relative z-50 lg:z-auto"
           >
-            <div className="p-4 border-b border-border/50">
-              <div className="flex items-center justify-between mb-3">
+            <div className="p-3 border-b border-border/50">
+              <div className="flex items-center justify-between mb-2">
                 <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground" data-testid="text-agent-select-title">
                   {isWorkspace ? "Your Workers" : "AI Workers"}
                 </h2>
@@ -557,7 +557,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
               )}
             </div>
 
-            <div className="flex-1 overflow-y-auto p-2 space-y-0.5">
+            <div className="flex-1 overflow-y-auto p-1.5 space-y-px">
               {agentOptions.map((agent) => {
                 const isLocked = user && rentalsReady && hasRentals && !rentedAgentIds.has(agent.id);
                 const isPending = user && !rentalsReady;
@@ -574,7 +574,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                       setTimeout(() => inputRef.current?.focus(), 100);
                     }}
                     disabled={!!isLocked || !!isPending}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-sm transition-all group ${
+                    className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-left text-sm transition-all group ${
                       isLocked
                         ? "text-muted-foreground/30 cursor-not-allowed"
                         : isPending
@@ -585,16 +585,16 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                     }`}
                     data-testid={`button-agent-${agent.id}`}
                   >
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
+                    <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${
                       isActive ? "bg-white/20" : agent.bg
                     }`}>
-                      <AgentIcon className={`w-4 h-4 ${isActive ? "text-white" : agent.accent}`} />
+                      <AgentIcon className={`w-3.5 h-3.5 ${isActive ? "text-white" : agent.accent}`} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5">
-                        <span className="font-medium truncate">{agent.persona}</span>
+                        <span className="font-medium truncate text-[13px]">{agent.persona}</span>
                       </div>
-                      <span className={`text-[11px] truncate block ${isActive ? "text-white/70" : "text-muted-foreground/60"}`}>
+                      <span className={`text-[10px] truncate block ${isActive ? "text-white/70" : "text-muted-foreground/60"}`}>
                         {agent.name}
                       </span>
                     </div>
@@ -602,6 +602,57 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                   </button>
                 );
               })}
+
+              {user && (
+                <div className="mt-2 pt-2 border-t border-border/30">
+                  <div className="flex items-center justify-between px-2 mb-1">
+                    <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/70" data-testid="text-chat-history-title">
+                      Chats
+                    </span>
+                    <button
+                      onClick={startNewConversation}
+                      className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+                      data-testid="button-sidebar-new-chat"
+                    >
+                      <MessageSquarePlus className="w-3 h-3" />
+                      <span>New</span>
+                    </button>
+                  </div>
+                  {conversations.length > 0 && (
+                    <div className="space-y-px">
+                      {conversations.map((convo) => (
+                        <div
+                          key={convo.id}
+                          className={`flex items-center gap-2 px-2.5 py-1.5 rounded-md text-left transition-all group cursor-pointer ${
+                            convo.id === currentConvoId
+                              ? "bg-muted/80 text-foreground"
+                              : "text-muted-foreground hover:bg-muted/40 hover:text-foreground"
+                          }`}
+                          onClick={() => setActiveConvoId(prev => ({ ...prev, [selectedAgent]: convo.id }))}
+                          data-testid={`sidebar-convo-${convo.id}`}
+                        >
+                          <MessageCircle className={`w-3 h-3 shrink-0 ${convo.id === currentConvoId ? "text-foreground" : "text-muted-foreground/50"}`} />
+                          <div className="flex-1 min-w-0">
+                            <span className="text-xs truncate block leading-tight">{convo.title || "New Chat"}</span>
+                            <span className="text-[9px] text-muted-foreground/50 leading-tight">
+                              {new Date(convo.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                            </span>
+                          </div>
+                          {conversations.length > 1 && (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); deleteConversation(convo.id); }}
+                              className="w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-red-500/20 hover:text-red-400 transition-all shrink-0"
+                              data-testid={`button-sidebar-delete-convo-${convo.id}`}
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {spendingData && (
@@ -914,17 +965,6 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                 )}
               </div>
             )}
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={startNewConversation}
-              className="h-8 text-xs gap-1 text-muted-foreground hover:text-foreground shrink-0"
-              title="New conversation"
-              data-testid="button-new-chat"
-            >
-              <MessageSquarePlus className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">New Chat</span>
-            </Button>
             {user && (
               <Button
                 size="sm"
@@ -1238,36 +1278,6 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
             )}
           </div>
         </div>
-
-        {conversations.length > 1 && (
-          <div className="border-b border-border/50 bg-card/20 shrink-0">
-            <div className="max-w-3xl mx-auto w-full flex items-center gap-1 px-4 py-1.5 overflow-x-auto scrollbar-hide">
-              {conversations.map((convo) => (
-                <div
-                  key={convo.id}
-                  className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs whitespace-nowrap transition-all shrink-0 group cursor-pointer ${
-                    convo.id === currentConvoId
-                      ? "bg-muted text-foreground font-medium"
-                      : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                  }`}
-                  onClick={() => setActiveConvoId(prev => ({ ...prev, [selectedAgent]: convo.id }))}
-                  data-testid={`tab-convo-${convo.id}`}
-                >
-                  <span>{convo.title || "New Chat"}</span>
-                  {conversations.length > 1 && (
-                    <button
-                      onClick={(e) => { e.stopPropagation(); deleteConversation(convo.id); }}
-                      className="w-4 h-4 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-red-500/20 hover:text-red-400 transition-all"
-                      data-testid={`button-delete-convo-${convo.id}`}
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
 
         <div
           className="flex-1 overflow-y-auto relative"

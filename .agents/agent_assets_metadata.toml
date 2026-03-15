@@ -6,3 +6,9 @@ id = "uYD672xsf3lo4y_SBlwoU"
 uri = "file://RentAI24-Admin-Kullanim-Kilavuzu.md"
 type = "text"
 title = "RentAI 24 — Admin Paneli & Boss AI Kullanma Kılavuzu"
+
+[[outputs]]
+id = "7r7jJjXYfxM5nC19SK8v-"
+uri = "file://screenshots/CLAUDE_SITE_REVIEW_BRIEF.md"
+type = "text"
+title = "Claude Site Review Brief - RentAI 24"

@@ -841,12 +841,12 @@ export const bookkeepingTools: OpenAI.ChatCompletionTool[] = [
         properties: {
           client_name: { type: "string", description: "Müşteri/firma adı" },
           client_email: { type: "string", description: "Müşteri e-posta adresi (fatura göndermek için)" },
-          items: { type: "string", description: "Kalemler: 'Açıklama|Adet|Birim Fiyat' noktalı virgülle ayrılır. Örn: 'Web Tasarım|1|5000;Hosting|12|50'" },
-          kdv_rate: { type: "number", enum: [0, 1, 10, 20], description: "KDV oranı: %0 (muaf), %1, %10, %20 (varsayılan: 20)" },
+          items: { type: "string", description: "Kalemler: 'Açıklama|Adet|Birim Fiyat|KDV%' noktalı virgülle ayrılır. KDV% opsiyonel (belirtilmezse kdv_rate kullanılır). Örn: 'Web Tasarım|1|5000|20;Kitap|5|100|1'" },
+          kdv_rate: { type: "number", enum: [0, 1, 10, 20], description: "Varsayılan KDV oranı (kalem bazında belirtilmezse uygulanır): %0 (muaf), %1, %10, %20 (varsayılan: 20)" },
           tevkifat_rate: { type: "string", enum: ["none", "2/10", "4/10", "5/10", "7/10", "8/10", "9/10", "10/10"], description: "KDV tevkifat oranı (varsayılan: none — tevkifatsız)" },
           due_days: { type: "number", description: "Vade süresi gün olarak (varsayılan: 30)" },
           notes: { type: "string", description: "Fatura notları" },
-          currency: { type: "string", enum: ["TRY", "USD", "EUR", "GBP"], description: "Para birimi (varsayılan: TRY)" },
+          currency: { type: "string", enum: ["TRY", "USD", "EUR", "GBP"], description: "Para birimi (varsayılan: TRY). Döviz seçilirse TCMB satış kuru ile TL karşılığı otomatik hesaplanır (VUK md. 280)." },
         },
         required: ["client_name", "items"],
       },
@@ -1025,7 +1025,7 @@ export const bookkeepingTools: OpenAI.ChatCompletionTool[] = [
     type: "function",
     function: {
       name: "calculate_payroll",
-      description: "Bordro hesaplama yapar. Brüt maaştan SGK, gelir vergisi, damga vergisi keserek net maaş hesaplar. 2026 güncel vergi dilimleri ve SGK oranları kullanılır.",
+      description: "Bordro hesaplama yapar. Brüt maaştan SGK, gelir vergisi, damga vergisi keserek net maaş hesaplar. 2025 ve 2026 vergi dilimleri ve SGK oranları desteklenir.",
       parameters: {
         type: "object",
         properties: {
@@ -1033,6 +1033,7 @@ export const bookkeepingTools: OpenAI.ChatCompletionTool[] = [
           cumulative_tax_base: { type: "number", description: "Yıl içi kümülatif gelir vergisi matrahı (₺, önceki ayların toplamı — ilk ay için 0)" },
           disability_degree: { type: "number", enum: [0, 1, 2, 3], description: "Engellilik derecesi (0: yok, 1: 1. derece, 2: 2. derece, 3: 3. derece — varsayılan: 0)" },
           is_minimum_wage: { type: "boolean", description: "Asgari ücretli mi? (true ise gelir vergisi ve damga vergisi istisna)" },
+          year: { type: "number", enum: [2025, 2026], description: "Hesaplama yılı (varsayılan: 2026). 2025 ve 2026 vergi dilimleri/asgari ücret desteklenir." },
         },
         required: ["gross_salary"],
       },
@@ -3294,23 +3295,44 @@ ${activeRentals.map(r => `  ${r.agentType}: ${r.messagesUsed}/${r.messagesLimit}
       const clientEmail = args.client_email ? String(args.client_email) : null;
       const dueDays = Number(args.due_days) || 30;
       const notes = args.notes ? String(args.notes) : null;
-      const kdvRate = args.kdv_rate !== undefined ? Number(args.kdv_rate) : 20;
+      const defaultKdvRate = args.kdv_rate !== undefined ? Number(args.kdv_rate) : 20;
       const tevkifatRate = args.tevkifat_rate ? String(args.tevkifat_rate) : "none";
-      const currency = args.currency ? String(args.currency) : "TRY";
-      const currencySymbol = currency === "TRY" ? "₺" : currency;
+      const currency = args.currency ? String(args.currency).toUpperCase() : "TRY";
 
       const itemsRaw = String(args.items);
       const parsedItems = itemsRaw.split(";").map(item => {
         const parts = item.trim().split("|");
+        const itemKdv = parts[3] !== undefined ? Number(parts[3].trim()) : defaultKdvRate;
         return {
           description: parts[0]?.trim() || "Kalem",
           quantity: Number(parts[1]?.trim()) || 1,
           price: Number(parts[2]?.trim()) || 0,
+          kdvRate: itemKdv,
         };
       });
 
-      const subtotal = parsedItems.reduce((sum, item) => sum + (item.quantity * item.price), 0);
-      const kdvAmount = subtotal * (kdvRate / 100);
+      let tcmbRate: number | null = null;
+      if (currency !== "TRY") {
+        try {
+          const tcmbResp = await fetch("https://www.tcmb.gov.tr/kurlar/today.xml");
+          const tcmbXml = await tcmbResp.text();
+          const rateMatch = new RegExp(`CurrencyCode="${currency}"[\\s\\S]*?<ForexSelling>([^<]*)<\\/ForexSelling>`).exec(tcmbXml);
+          if (rateMatch) {
+            tcmbRate = parseFloat(rateMatch[1].replace(",", "."));
+          }
+        } catch {
+          console.error("[Invoice] TCMB rate fetch failed for", currency);
+        }
+      }
+
+      const itemsWithKdv = parsedItems.map(item => {
+        const lineSubtotal = item.quantity * item.price;
+        const lineKdv = lineSubtotal * (item.kdvRate / 100);
+        return { ...item, lineSubtotal, lineKdv };
+      });
+
+      const subtotal = itemsWithKdv.reduce((sum, item) => sum + item.lineSubtotal, 0);
+      const kdvAmount = itemsWithKdv.reduce((sum, item) => sum + item.lineKdv, 0);
       let tevkifatAmount = 0;
       if (tevkifatRate !== "none") {
         const [num, den] = tevkifatRate.split("/").map(Number);
@@ -3320,16 +3342,24 @@ ${activeRentals.map(r => `  ${r.agentType}: ${r.messagesUsed}/${r.messagesLimit}
       const invoiceNumber = `FTR-${Date.now().toString(36).toUpperCase()}`;
 
       const formatNum = (n: number) => n.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      const currencySymbol = currency === "TRY" ? "₺" : currency;
 
-      const itemLines = parsedItems.map(item =>
-        `  ${item.description} × ${item.quantity} = ${currencySymbol}${formatNum(item.quantity * item.price)}`
+      const grandTotalTL = tcmbRate ? grandTotal * tcmbRate : grandTotal;
+      const subtotalTL = tcmbRate ? subtotal * tcmbRate : subtotal;
+
+      const itemLines = itemsWithKdv.map(item =>
+        `  ${item.description} × ${item.quantity} = ${currencySymbol}${formatNum(item.lineSubtotal)} (KDV %${item.kdvRate}: ${currencySymbol}${formatNum(item.lineKdv)})`
       ).join("\n");
+
+      const fxNote = tcmbRate
+        ? `\n\n💱 Döviz Kuru (TCMB Satış): 1 ${currency} = ₺${tcmbRate.toLocaleString("tr-TR", { minimumFractionDigits: 4 })}\nTL Karşılığı: ₺${formatNum(grandTotalTL)} (VUK md. 280)`
+        : "";
 
       await storage.createAgentAction({
         userId, agentType,
         actionType: "invoice_created",
-        description: `🧾 Fatura ${invoiceNumber} — ${clientName} — ${currencySymbol}${formatNum(grandTotal)} (KDV %${kdvRate}${tevkifatRate !== "none" ? `, Tevkifat ${tevkifatRate}` : ""})`,
-        metadata: { invoiceNumber, clientName, clientEmail, subtotal, kdvRate, kdvAmount, tevkifatRate, tevkifatAmount, grandTotal, items: parsedItems, dueDays, notes, currency },
+        description: `🧾 Fatura ${invoiceNumber} — ${clientName} — ${currencySymbol}${formatNum(grandTotal)}${tcmbRate ? ` (₺${formatNum(grandTotalTL)})` : ""} (KDV${tevkifatRate !== "none" ? `, Tevkifat ${tevkifatRate}` : ""})`,
+        metadata: { invoiceNumber, clientName, clientEmail, subtotal, subtotalTL, kdvAmount, tevkifatRate, tevkifatAmount, grandTotal, grandTotalTL, items: itemsWithKdv, dueDays, notes, currency, tcmbRate, amount: grandTotalTL },
       });
 
       if (clientEmail) {
@@ -3337,15 +3367,15 @@ ${activeRentals.map(r => `  ${r.agentType}: ${r.messagesUsed}/${r.messagesLimit}
           userId,
           to: clientEmail,
           subject: `Fatura ${invoiceNumber}`,
-          body: `Sayın ${clientName},\n\nFaturanız aşağıdadır:\n\nFatura No: ${invoiceNumber}\nKalemler:\n${itemLines}\n\nAra Toplam: ${currencySymbol}${formatNum(subtotal)}\nKDV (%${kdvRate}): ${currencySymbol}${formatNum(kdvAmount)}${tevkifatRate !== "none" ? `\nTevkifat (${tevkifatRate}): -${currencySymbol}${formatNum(tevkifatAmount)}` : ""}\nGenel Toplam: ${currencySymbol}${formatNum(grandTotal)}\nVade: ${dueDays} gün\n\n${notes ? `Notlar: ${notes}\n\n` : ""}Teşekkür ederiz.`,
+          body: `Sayın ${clientName},\n\nFaturanız aşağıdadır:\n\nFatura No: ${invoiceNumber}\nKalemler:\n${itemLines}\n\nAra Toplam: ${currencySymbol}${formatNum(subtotal)}\nKDV: ${currencySymbol}${formatNum(kdvAmount)}${tevkifatRate !== "none" ? `\nTevkifat (${tevkifatRate}): -${currencySymbol}${formatNum(tevkifatAmount)}` : ""}\nGenel Toplam: ${currencySymbol}${formatNum(grandTotal)}\nVade: ${dueDays} gün${fxNote}\n\n${notes ? `Notlar: ${notes}\n\n` : ""}Teşekkür ederiz.`,
           agentType,
         });
       }
 
       return {
-        result: `Fatura ${invoiceNumber} oluşturuldu!\n\nMüşteri: ${clientName}${clientEmail ? `\nE-posta: ${clientEmail} (fatura gönderildi)` : ""}\n\nKalemler:\n${itemLines}\n\nAra Toplam: ${currencySymbol}${formatNum(subtotal)}\nKDV (%${kdvRate}): ${currencySymbol}${formatNum(kdvAmount)}${tevkifatRate !== "none" ? `\nTevkifat (${tevkifatRate}): -${currencySymbol}${formatNum(tevkifatAmount)}` : ""}\nGenel Toplam: ${currencySymbol}${formatNum(grandTotal)}\nVade: ${dueDays} gün${notes ? `\nNotlar: ${notes}` : ""}`,
+        result: `Fatura ${invoiceNumber} oluşturuldu!\n\nMüşteri: ${clientName}${clientEmail ? `\nE-posta: ${clientEmail} (fatura gönderildi)` : ""}\n\nKalemler:\n${itemLines}\n\nAra Toplam: ${currencySymbol}${formatNum(subtotal)}\nKDV: ${currencySymbol}${formatNum(kdvAmount)}${tevkifatRate !== "none" ? `\nTevkifat (${tevkifatRate}): -${currencySymbol}${formatNum(tevkifatAmount)}` : ""}\nGenel Toplam: ${currencySymbol}${formatNum(grandTotal)}\nVade: ${dueDays} gün${fxNote}${notes ? `\nNotlar: ${notes}` : ""}`,
         actionType: "invoice_created",
-        actionDescription: `🧾 Fatura ${invoiceNumber}: ${currencySymbol}${formatNum(grandTotal)} — ${clientName}`,
+        actionDescription: `🧾 Fatura ${invoiceNumber}: ${currencySymbol}${formatNum(grandTotal)}${tcmbRate ? ` (₺${formatNum(grandTotalTL)})` : ""} — ${clientName}`,
       };
     }
 
@@ -3500,8 +3530,8 @@ ${activeRentals.map(r => `  ${r.agentType}: ${r.messagesUsed}/${r.messagesLimit}
         while ((match = currencyRegex.exec(xmlText)) !== null) {
           const code = match[1];
           const name = match[2];
-          const buying = parseFloat(match[3]);
-          const selling = parseFloat(match[4]);
+          const buying = parseFloat(match[3].replace(",", "."));
+          const selling = parseFloat(match[4].replace(",", "."));
           if (!isNaN(buying) && !isNaN(selling)) {
             rates[code] = { buying, selling, name };
           }
@@ -3626,12 +3656,14 @@ ${activeRentals.map(r => `  ${r.agentType}: ${r.messagesUsed}/${r.messagesLimit}
       let overdueReceivable = 0;
       let overduePayable = 0;
 
+      const getMeta = (a: typeof allActions[0]) => (a.metadata || {}) as Record<string, unknown>;
+
       if (filterType === "all" || filterType === "receivable" || filterType === "overdue") {
         const filtered = filterType === "overdue"
-          ? receivables.filter(a => String((a.metadata as any)?.dueDate || "") < today)
+          ? receivables.filter(a => String(getMeta(a).dueDate || "") < today)
           : receivables;
-        totalReceivable = receivables.reduce((s, a) => s + Number((a.metadata as any)?.amount || 0), 0);
-        overdueReceivable = receivables.filter(a => String((a.metadata as any)?.dueDate || "") < today).reduce((s, a) => s + Number((a.metadata as any)?.amount || 0), 0);
+        totalReceivable = receivables.reduce((s, a) => s + Number(getMeta(a).amount || 0), 0);
+        overdueReceivable = receivables.filter(a => String(getMeta(a).dueDate || "") < today).reduce((s, a) => s + Number(getMeta(a).amount || 0), 0);
         if (filtered.length > 0) {
           resultParts.push(`📥 ALACAKLAR (Toplam: ₺${formatNum(totalReceivable)}${overdueReceivable > 0 ? ` — ⚠️ Gecikmiş: ₺${formatNum(overdueReceivable)}` : ""})\n${filtered.map(a => formatDebt(a, "receivable")).join("\n")}`);
         } else {
@@ -3641,10 +3673,10 @@ ${activeRentals.map(r => `  ${r.agentType}: ${r.messagesUsed}/${r.messagesLimit}
 
       if (filterType === "all" || filterType === "payable" || filterType === "overdue") {
         const filtered = filterType === "overdue"
-          ? payables.filter(a => String((a.metadata as any)?.dueDate || "") < today)
+          ? payables.filter(a => String(getMeta(a).dueDate || "") < today)
           : payables;
-        totalPayable = payables.reduce((s, a) => s + Number((a.metadata as any)?.amount || 0), 0);
-        overduePayable = payables.filter(a => String((a.metadata as any)?.dueDate || "") < today).reduce((s, a) => s + Number((a.metadata as any)?.amount || 0), 0);
+        totalPayable = payables.reduce((s, a) => s + Number(getMeta(a).amount || 0), 0);
+        overduePayable = payables.filter(a => String(getMeta(a).dueDate || "") < today).reduce((s, a) => s + Number(getMeta(a).amount || 0), 0);
         if (filtered.length > 0) {
           resultParts.push(`📤 BORÇLAR (Toplam: ₺${formatNum(totalPayable)}${overduePayable > 0 ? ` — ⚠️ Gecikmiş: ₺${formatNum(overduePayable)}` : ""})\n${filtered.map(a => formatDebt(a, "payable")).join("\n")}`);
         } else {
@@ -3686,22 +3718,24 @@ ${activeRentals.map(r => `  ${r.agentType}: ${r.messagesUsed}/${r.messagesLimit}
         return s + (Number(meta?.amount) || 0);
       }, 0);
 
+      const getM = (a: typeof allActions[0]) => (a.metadata || {}) as Record<string, unknown>;
+
       const upcomingReceivables = allActions
         .filter(a => a.actionType === "receivable_added")
         .filter(a => {
-          const due = String((a.metadata as any)?.dueDate || "");
+          const due = String(getM(a).dueDate || "");
           return due >= today && due <= futureDate;
         });
 
       const upcomingPayables = allActions
         .filter(a => a.actionType === "payable_added")
         .filter(a => {
-          const due = String((a.metadata as any)?.dueDate || "");
+          const due = String(getM(a).dueDate || "");
           return due >= today && due <= futureDate;
         });
 
-      const expectedReceivable = upcomingReceivables.reduce((s, a) => s + Number((a.metadata as any)?.amount || 0), 0);
-      const expectedPayable = upcomingPayables.reduce((s, a) => s + Number((a.metadata as any)?.amount || 0), 0);
+      const expectedReceivable = upcomingReceivables.reduce((s, a) => s + Number(getM(a).amount || 0), 0);
+      const expectedPayable = upcomingPayables.reduce((s, a) => s + Number(getM(a).amount || 0), 0);
 
       const projectedIncome = (monthlyIncome / 30) * forecastDays + expectedReceivable;
       const projectedExpense = (monthlyExpense / 30) * forecastDays + expectedPayable;
@@ -3734,17 +3768,19 @@ ${activeRentals.map(r => `  ${r.agentType}: ${r.messagesUsed}/${r.messagesLimit}
           return s + (Number(meta?.amount) || Number(meta?.grandTotal) || Number(meta?.subtotal) || 0);
         }, 0);
 
+      const bsMeta = (a: typeof allActions[0]) => (a.metadata || {}) as Record<string, unknown>;
+
       const totalExpenses = allActions
         .filter(a => a.actionType === "expense_logged")
-        .reduce((s, a) => s + Number((a.metadata as any)?.amount || 0), 0);
+        .reduce((s, a) => s + Number(bsMeta(a).amount || 0), 0);
 
       const totalReceivables = allActions
         .filter(a => a.actionType === "receivable_added")
-        .reduce((s, a) => s + Number((a.metadata as any)?.amount || 0), 0);
+        .reduce((s, a) => s + Number(bsMeta(a).amount || 0), 0);
 
       const totalPayables = allActions
         .filter(a => a.actionType === "payable_added")
-        .reduce((s, a) => s + Number((a.metadata as any)?.amount || 0), 0);
+        .reduce((s, a) => s + Number(bsMeta(a).amount || 0), 0);
 
       const estimatedCash = totalIncome - totalExpenses - totalReceivables + totalPayables;
       const totalAssets = (estimatedCash > 0 ? estimatedCash : 0) + totalReceivables;
@@ -3785,7 +3821,10 @@ ${activeRentals.map(r => `  ${r.agentType}: ${r.messagesUsed}/${r.messagesLimit}
 
       const otherIncome = periodActions
         .filter(a => a.actionType === "income_logged")
-        .reduce((s, a) => s + Number((a.metadata as any)?.amount || 0), 0);
+        .reduce((s, a) => {
+          const meta = a.metadata as Record<string, unknown>;
+          return s + Number(meta?.amount || 0);
+        }, 0);
 
       const totalRevenue = invoiceRevenue + otherIncome;
 
@@ -3824,6 +3863,7 @@ ${activeRentals.map(r => `  ${r.agentType}: ${r.messagesUsed}/${r.messagesLimit}
       const cumulativeTaxBase = args.cumulative_tax_base ? Number(args.cumulative_tax_base) : 0;
       const disabilityDegree = args.disability_degree ? Number(args.disability_degree) : 0;
       const isMinimumWage = args.is_minimum_wage === true;
+      const year = args.year ? Number(args.year) : 2026;
       const formatNum = (n: number) => n.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
       const SGK_WORKER_RATE = 0.14;
@@ -3831,8 +3871,36 @@ ${activeRentals.map(r => `  ${r.agentType}: ${r.messagesUsed}/${r.messagesLimit}
       const SGK_EMPLOYER_RATE = 0.2175;
       const SGK_UNEMPLOYMENT_EMPLOYER = 0.02;
       const STAMP_TAX_RATE = 0.00759;
-      const MIN_WAGE_2026 = 33030;
-      const SGK_CEILING = 297270;
+
+      const yearParams: Record<number, { minWage: number; ceiling: number; brackets: { limit: number; rate: number }[] }> = {
+        2025: {
+          minWage: 22104.67,
+          ceiling: 198942,
+          brackets: [
+            { limit: 158000, rate: 0.15 },
+            { limit: 330000, rate: 0.20 },
+            { limit: 1250000, rate: 0.27 },
+            { limit: 4700000, rate: 0.35 },
+            { limit: Infinity, rate: 0.40 },
+          ],
+        },
+        2026: {
+          minWage: 33030,
+          ceiling: 297270,
+          brackets: [
+            { limit: 190000, rate: 0.15 },
+            { limit: 400000, rate: 0.20 },
+            { limit: 1500000, rate: 0.27 },
+            { limit: 5300000, rate: 0.35 },
+            { limit: Infinity, rate: 0.40 },
+          ],
+        },
+      };
+
+      const params = yearParams[year] || yearParams[2026];
+      const MIN_WAGE = params.minWage;
+      const SGK_CEILING = params.ceiling;
+      const taxBrackets = params.brackets;
 
       const sgkBase = Math.min(grossSalary, SGK_CEILING);
       const sgkWorker = sgkBase * SGK_WORKER_RATE;
@@ -3850,19 +3918,11 @@ ${activeRentals.map(r => `  ${r.agentType}: ${r.messagesUsed}/${r.messagesLimit}
         taxableIncome = Math.max(0, taxableIncome - disabilityExemptions[disabilityDegree]);
       }
 
-      const taxBrackets2026 = [
-        { limit: 190000, rate: 0.15 },
-        { limit: 400000, rate: 0.20 },
-        { limit: 1500000, rate: 0.27 },
-        { limit: 5300000, rate: 0.35 },
-        { limit: Infinity, rate: 0.40 },
-      ];
-
       const calcTax = (base: number, cumulative: number): number => {
         let tax = 0;
         let remaining = base;
         let processed = cumulative;
-        for (const bracket of taxBrackets2026) {
+        for (const bracket of taxBrackets) {
           if (processed >= bracket.limit) continue;
           const availableInBracket = bracket.limit - processed;
           const taxableInBracket = Math.min(remaining, availableInBracket);
@@ -3882,9 +3942,9 @@ ${activeRentals.map(r => `  ${r.agentType}: ${r.messagesUsed}/${r.messagesLimit}
       let minWageExemptionTax = 0;
       let minWageExemptionStamp = 0;
       if (!isMinimumWage) {
-        const minWageTaxable = MIN_WAGE_2026 - (MIN_WAGE_2026 * (SGK_WORKER_RATE + SGK_UNEMPLOYMENT_WORKER));
+        const minWageTaxable = MIN_WAGE - (MIN_WAGE * (SGK_WORKER_RATE + SGK_UNEMPLOYMENT_WORKER));
         minWageExemptionTax = calcTax(minWageTaxable, 0);
-        minWageExemptionStamp = MIN_WAGE_2026 * STAMP_TAX_RATE;
+        minWageExemptionStamp = MIN_WAGE * STAMP_TAX_RATE;
         incomeTax = Math.max(0, incomeTax - minWageExemptionTax);
         stampTax = Math.max(0, stampTax - minWageExemptionStamp);
       }
@@ -3900,14 +3960,14 @@ ${activeRentals.map(r => `  ${r.agentType}: ${r.messagesUsed}/${r.messagesLimit}
       await storage.createAgentAction({
         userId, agentType,
         actionType: "payroll_calculated",
-        description: `💰 Bordro hesaplama: Brüt ₺${formatNum(grossSalary)} → Net ₺${formatNum(netSalary)}`,
-        metadata: { grossSalary, netSalary, sgkWorker, unemploymentWorker, incomeTax, stampTax, sgkEmployer, unemploymentEmployer, totalEmployerCost, cumulativeTaxBase, newCumulativeTaxBase: cumulativeTaxBase + taxableIncome },
+        description: `💰 Bordro hesaplama (${year}): Brüt ₺${formatNum(grossSalary)} → Net ₺${formatNum(netSalary)}`,
+        metadata: { year, grossSalary, netSalary, sgkWorker, unemploymentWorker, incomeTax, stampTax, sgkEmployer, unemploymentEmployer, totalEmployerCost, cumulativeTaxBase, newCumulativeTaxBase: cumulativeTaxBase + taxableIncome },
       });
 
       return {
-        result: `💰 BORDRO HESAPLAMA (2026)\n══════════════════════════════════\n\nBrüt Maaş: ₺${formatNum(grossSalary)}\n\n── İŞÇİ KESİNTİLERİ ──\n  SGK İşçi Payı (%14): ₺${formatNum(sgkWorker)}\n  İşsizlik Sigortası (%1): ₺${formatNum(unemploymentWorker)}\n  Gelir Vergisi Matrahı: ₺${formatNum(taxableIncome)}\n  Gelir Vergisi: ₺${formatNum(incomeTax)}${!isMinimumWage && minWageExemptionTax > 0 ? ` (AGİ istisna: ₺${formatNum(minWageExemptionTax)} düşüldü)` : ""}${isMinimumWage ? " (Asgari ücret istisnası)" : ""}\n  Damga Vergisi (‰7,59): ₺${formatNum(stampTax)}${isMinimumWage ? " (Asgari ücret istisnası)" : ""}\n  TOPLAM KESİNTİ: ₺${formatNum(totalDeductions)}\n\n══════════════════════════════════\n  NET MAAŞ: ₺${formatNum(netSalary)}\n══════════════════════════════════\n\n── İŞVEREN MALİYETİ ──\n  SGK İşveren Payı (%21,75): ₺${formatNum(sgkEmployer)}\n  İşsizlik İşveren (%2): ₺${formatNum(unemploymentEmployer)}\n  TOPLAM İŞVEREN MALİYETİ: ₺${formatNum(totalEmployerCost)}\n\nKümülatif Matrah (bu ay dahil): ₺${formatNum(cumulativeTaxBase + taxableIncome)}`,
+        result: `💰 BORDRO HESAPLAMA (${year})\n══════════════════════════════════\n\nBrüt Maaş: ₺${formatNum(grossSalary)}\nAsgari Ücret (${year}): ₺${formatNum(MIN_WAGE)}\nSGK Tavan: ₺${formatNum(SGK_CEILING)}\n\n── İŞÇİ KESİNTİLERİ ──\n  SGK İşçi Payı (%14): ₺${formatNum(sgkWorker)}\n  İşsizlik Sigortası (%1): ₺${formatNum(unemploymentWorker)}\n  Gelir Vergisi Matrahı: ₺${formatNum(taxableIncome)}\n  Gelir Vergisi: ₺${formatNum(incomeTax)}${!isMinimumWage && minWageExemptionTax > 0 ? ` (AGİ istisna: ₺${formatNum(minWageExemptionTax)} düşüldü)` : ""}${isMinimumWage ? " (Asgari ücret istisnası)" : ""}\n  Damga Vergisi (‰7,59): ₺${formatNum(stampTax)}${isMinimumWage ? " (Asgari ücret istisnası)" : ""}\n  TOPLAM KESİNTİ: ₺${formatNum(totalDeductions)}\n\n══════════════════════════════════\n  NET MAAŞ: ₺${formatNum(netSalary)}\n══════════════════════════════════\n\n── İŞVEREN MALİYETİ ──\n  SGK İşveren Payı (%21,75): ₺${formatNum(sgkEmployer)}\n  İşsizlik İşveren (%2): ₺${formatNum(unemploymentEmployer)}\n  TOPLAM İŞVEREN MALİYETİ: ₺${formatNum(totalEmployerCost)}\n\nKümülatif Matrah (bu ay dahil): ₺${formatNum(cumulativeTaxBase + taxableIncome)}`,
         actionType: "payroll_calculated",
-        actionDescription: `💰 Bordro: Brüt ₺${formatNum(grossSalary)} → Net ₺${formatNum(netSalary)}`,
+        actionDescription: `💰 Bordro (${year}): Brüt ₺${formatNum(grossSalary)} → Net ₺${formatNum(netSalary)}`,
       };
     }
 

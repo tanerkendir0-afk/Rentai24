@@ -6,16 +6,42 @@ function encodeSubject(subject: string): string {
   return `=?UTF-8?B?${Buffer.from(subject, "utf-8").toString("base64")}?=`;
 }
 
+function simpleMarkdownToHtml(text: string): string {
+  let html = text
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  html = html.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+  html = html.replace(/\*(.+?)\*/g, "<em>$1</em>");
+  html = html.replace(/^\d+\.\s+(.+)$/gm, "<li>$1</li>");
+  html = html.replace(/^[-•]\s+(.+)$/gm, "<li>$1</li>");
+  html = html.replace(/(https?:\/\/[^\s&<]+)/g, (match) => `<a href="${match.replace(/"/g, "&quot;")}">${match}</a>`);
+  html = html.replace(/\n{2,}/g, "</p><p>");
+  html = html.replace(/\n/g, "<br>");
+  return `<div style="font-family:sans-serif;font-size:15px;line-height:1.7;color:#333;"><p>${html}</p></div>`;
+}
+
 function buildRawEmail(from: string, to: string, subject: string, body: string): string {
+  const boundary = "boundary_" + Date.now().toString(36);
+  const htmlBody = simpleMarkdownToHtml(body);
   const lines = [
     `From: ${from}`,
     `To: ${to}`,
     `Subject: ${encodeSubject(subject)}`,
     `MIME-Version: 1.0`,
+    `Content-Type: multipart/alternative; boundary="${boundary}"`,
+    ``,
+    `--${boundary}`,
     `Content-Type: text/plain; charset="UTF-8"`,
     `Content-Transfer-Encoding: base64`,
     ``,
     Buffer.from(body, "utf-8").toString("base64"),
+    ``,
+    `--${boundary}`,
+    `Content-Type: text/html; charset="UTF-8"`,
+    `Content-Transfer-Encoding: base64`,
+    ``,
+    Buffer.from(htmlBody, "utf-8").toString("base64"),
+    ``,
+    `--${boundary}--`,
   ];
   const raw = lines.join("\r\n");
   return Buffer.from(raw).toString("base64url");
@@ -256,6 +282,8 @@ export async function replyToEmail(userId: number, messageId: string, body: stri
       ? `${existingReferences} ${originalMessageId}`
       : originalMessageId;
 
+    const replyBoundary = "reply_" + Date.now().toString(36);
+    const replyHtml = simpleMarkdownToHtml(body);
     const rawLines = [
       `From: ${myAddress}`,
       `To: ${replyTo}`,
@@ -263,10 +291,21 @@ export async function replyToEmail(userId: number, messageId: string, body: stri
       `In-Reply-To: ${originalMessageId}`,
       `References: ${references}`,
       `MIME-Version: 1.0`,
+      `Content-Type: multipart/alternative; boundary="${replyBoundary}"`,
+      ``,
+      `--${replyBoundary}`,
       `Content-Type: text/plain; charset="UTF-8"`,
       `Content-Transfer-Encoding: base64`,
       ``,
       Buffer.from(body, "utf-8").toString("base64"),
+      ``,
+      `--${replyBoundary}`,
+      `Content-Type: text/html; charset="UTF-8"`,
+      `Content-Transfer-Encoding: base64`,
+      ``,
+      Buffer.from(replyHtml, "utf-8").toString("base64"),
+      ``,
+      `--${replyBoundary}--`,
     ];
     const raw = Buffer.from(rawLines.join("\r\n")).toString("base64url");
 

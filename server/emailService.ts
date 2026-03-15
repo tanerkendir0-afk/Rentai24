@@ -58,10 +58,79 @@ async function getResendClient(): Promise<{ client: Resend; fromEmail: string }>
   return { client: new Resend(apiKey), fromEmail };
 }
 
+function sanitizeUrl(url: string): string {
+  return url.replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+}
+
+function markdownToHtml(text: string): string {
+  let html = text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+  html = html.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+  html = html.replace(/\*(.+?)\*/g, "<em>$1</em>");
+  html = html.replace(/`(.+?)`/g, '<code style="background:#f0f0f0;padding:2px 6px;border-radius:3px;font-size:13px;">$1</code>');
+  html = html.replace(/^### (.+)$/gm, '<h3 style="color:#1a1a2e;margin:16px 0 8px;font-size:16px;">$1</h3>');
+  html = html.replace(/^## (.+)$/gm, '<h2 style="color:#1a1a2e;margin:20px 0 10px;font-size:18px;">$1</h2>');
+  html = html.replace(/^# (.+)$/gm, '<h1 style="color:#1a1a2e;margin:24px 0 12px;font-size:22px;">$1</h1>');
+  html = html.replace(/^\d+\.\s+(.+)$/gm, '<li style="margin:4px 0;">$1</li>');
+  html = html.replace(/^[-•]\s+(.+)$/gm, '<li style="margin:4px 0;">$1</li>');
+  html = html.replace(/(https?:\/\/[^\s&<]+)/g, (match) => `<a href="${sanitizeUrl(match)}" style="color:#3b82f6;text-decoration:underline;">${match}</a>`);
+  html = html.replace(/\n{2,}/g, "</p><p>");
+  html = html.replace(/\n/g, "<br>");
+  html = `<p>${html}</p>`;
+  html = html.replace(/<p><\/p>/g, "");
+  return html;
+}
+
+function buildEmailHtml(body: string, agentType?: string): string {
+  const agentColors: Record<string, { primary: string; name: string }> = {
+    "customer-support": { primary: "#6366f1", name: "Ava — Customer Support" },
+    "sales-sdr": { primary: "#3b82f6", name: "Rex — Sales SDR" },
+    "social-media": { primary: "#ec4899", name: "Maya — Social Media" },
+    "bookkeeping": { primary: "#f59e0b", name: "Finn — Bookkeeping" },
+    "scheduling": { primary: "#14b8a6", name: "Cal — Scheduling" },
+    "hr-recruiting": { primary: "#8b5cf6", name: "Harper — HR & Recruiting" },
+    "data-analyst": { primary: "#06b6d4", name: "DataBot — Data Analyst" },
+    "ecommerce-ops": { primary: "#f97316", name: "ShopBot — E-Commerce" },
+    "real-estate": { primary: "#22c55e", name: "Reno — Real Estate" },
+  };
+
+  const agent = agentColors[agentType || ""] || { primary: "#3b82f6", name: "RentAI 24" };
+  const htmlBody = markdownToHtml(body);
+
+  return `<!DOCTYPE html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background:#f4f4f8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f8;padding:24px 0;">
+<tr><td align="center">
+<table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);max-width:100%;">
+<tr><td style="background:${agent.primary};padding:20px 32px;">
+<table width="100%" cellpadding="0" cellspacing="0">
+<tr><td style="color:#ffffff;font-size:20px;font-weight:700;">RentAI 24</td>
+<td align="right" style="color:rgba(255,255,255,0.85);font-size:13px;">${agent.name}</td></tr>
+</table>
+</td></tr>
+<tr><td style="padding:32px;color:#333;font-size:15px;line-height:1.7;">${htmlBody}</td></tr>
+<tr><td style="padding:0 32px 24px;">
+<hr style="border:none;border-top:1px solid #e5e7eb;margin:0 0 16px;">
+<p style="color:#9ca3af;font-size:12px;margin:0;text-align:center;">
+Bu e-posta <strong>RentAI 24</strong> AI platformu aracılığıyla gönderilmiştir.<br>
+<a href="https://rentai24.com" style="color:${agent.primary};text-decoration:none;">rentai24.com</a>
+</p>
+</td></tr>
+</table>
+</td></tr>
+</table>
+</body></html>`;
+}
+
 async function sendViaResend(params: {
   to: string;
   subject: string;
   body: string;
+  agentType?: string;
 }): Promise<{ success: boolean; message: string; resendId?: string }> {
   const { client, fromEmail } = await getResendClient();
 
@@ -69,6 +138,7 @@ async function sendViaResend(params: {
     from: fromEmail,
     to: [params.to],
     subject: params.subject,
+    html: buildEmailHtml(params.body, params.agentType),
     text: params.body,
   });
 
@@ -121,6 +191,7 @@ export async function sendEmail(params: {
       to: params.to,
       subject: params.subject,
       body: params.body,
+      agentType: params.agentType,
     });
 
     if (!resendResult.success) {

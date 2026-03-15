@@ -3300,16 +3300,26 @@ ${activeRentals.map(r => `  ${r.agentType}: ${r.messagesUsed}/${r.messagesLimit}
       const currency = args.currency ? String(args.currency).toUpperCase() : "TRY";
 
       const itemsRaw = String(args.items);
-      const parsedItems = itemsRaw.split(";").map(item => {
+      const parsedItems = itemsRaw.split(";").filter(s => s.trim()).map(item => {
         const parts = item.trim().split("|");
+        const price = Number(parts[2]?.trim());
+        const quantity = Number(parts[1]?.trim());
         const itemKdv = parts[3] !== undefined ? Number(parts[3].trim()) : defaultKdvRate;
         return {
           description: parts[0]?.trim() || "Kalem",
-          quantity: Number(parts[1]?.trim()) || 1,
-          price: Number(parts[2]?.trim()) || 0,
-          kdvRate: itemKdv,
+          quantity: isNaN(quantity) || quantity <= 0 ? 1 : quantity,
+          price: isNaN(price) ? 0 : price,
+          kdvRate: isNaN(itemKdv) || itemKdv < 0 || itemKdv > 100 ? defaultKdvRate : itemKdv,
         };
       });
+
+      if (parsedItems.length === 0 || parsedItems.every(i => i.price === 0)) {
+        return {
+          result: "⚠️ Geçerli fatura kalemi bulunamadı. Lütfen kalemleri 'Açıklama|Adet|Fiyat' formatında girin.",
+          actionType: "invoice_error",
+          actionDescription: "⚠️ Fatura hatası: geçersiz kalemler",
+        };
+      }
 
       let tcmbRate: number | null = null;
       if (currency !== "TRY") {
@@ -3322,6 +3332,13 @@ ${activeRentals.map(r => `  ${r.agentType}: ${r.messagesUsed}/${r.messagesLimit}
           }
         } catch {
           console.error("[Invoice] TCMB rate fetch failed for", currency);
+        }
+        if (!tcmbRate) {
+          return {
+            result: `⚠️ ${currency} için TCMB döviz kuru alınamadı. Fatura oluşturulamadı.\n\nLütfen:\n1. Daha sonra tekrar deneyin\n2. Veya tutarı ₺ (TRY) cinsinden girin`,
+            actionType: "invoice_error",
+            actionDescription: `⚠️ Fatura hatası: ${currency} kuru alınamadı`,
+          };
         }
       }
 

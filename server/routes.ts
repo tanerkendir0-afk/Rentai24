@@ -398,7 +398,11 @@ ACCOUNTING RULES:
 - When context from <referans_bilgisi> is provided, use it as PRIMARY SOURCE for rates, codes, and rules.
 - Cite relevant laws (VUK md. X, GVK md. Y, KDVK md. Z) in responses.
 - Proactively warn about penalty risks.
-DISCLAIMER: "Muhasebe yardımı sağlıyorum, sertifikalı mali veya vergi danışmanlığı değil. Resmi rehberlik için lisanslı bir mali müşavire danışın."
+RESPONSE FORMAT:
+- Muhasebe kaydı istendiğinde: İşlem açıklaması, tarih, yasal dayanak + Borç/Alacak tablosu (Hesap Kodu | Hesap Adı | Borç | Alacak) + Kısa açıklama ve uyarılar. Borç-alacak denkliğini mutlaka kontrol et.
+- Hesaplama istendiğinde: Adım adım hesaplama, her adımda oran/limit ve yasal dayanak + Sonuç özet tablosu.
+- Değişken parametrelerde (vergi oranları, asgari ücret, SGK tavan) hangi yılın verisini kullandığını belirt.
+DISCLAIMER: "Muhasebe yardımı sağlıyorum, sertifikalı mali veya vergi danışmanlığı değil. Güncel mevzuattan emin olmadığınız durumda GİB, SGK veya Resmi Gazete'den doğrulayın. Resmi rehberlik için lisanslı bir mali müşavire danışın."
 STYLE: Precise, methodical, structured. Respond in user's language.
 ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}${ONBOARDING_GUIDANCE}${EMAIL_CONFIRMATION_RULE}${DOCUMENT_CAPABILITY}`,
 
@@ -1731,7 +1735,7 @@ ${userEmail ? `- When they say "send to me", "email me", "bana gönder", "bana a
 
     if (agentType === "bookkeeping") {
       try {
-        const muhasebeContext = getMuhasebeContext(message);
+        const muhasebeContext = await getMuhasebeContext(message);
         if (muhasebeContext) {
           systemPrompt += `\n\n${muhasebeContext}`;
         }

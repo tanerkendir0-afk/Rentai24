@@ -1362,16 +1362,35 @@ export const realEstateTools: OpenAI.ChatCompletionTool[] = [
   ...gmailInboxTools,
 ];
 
+const createTaskTool: OpenAI.ChatCompletionTool = {
+  type: "function",
+  function: {
+    name: "create_task",
+    description: "Create a new task/to-do item for the user. Use this ONLY when the user explicitly asks to create a task, save something as a task, or says phrases like 'bunu göreve al', 'bunu kaydet', 'şu tarihte yap', 'hatırlat', 'görev oluştur'. IMPORTANT: Before calling this tool, you MUST first show the user the task details (title, description, due date, priority) and ask for confirmation. Only call this tool AFTER the user confirms.",
+    parameters: {
+      type: "object",
+      properties: {
+        title: { type: "string", description: "Task title - concise summary of what needs to be done" },
+        description: { type: "string", description: "Detailed description of the task" },
+        priority: { type: "string", enum: ["low", "medium", "high", "urgent"], description: "Task priority level (default: medium)" },
+        dueDate: { type: "string", description: "Due date in YYYY-MM-DD format (optional)" },
+        project: { type: "string", description: "Project name to group the task under (optional)" },
+      },
+      required: ["title"],
+    },
+  },
+};
+
 export const agentToolRegistry: Record<string, OpenAI.ChatCompletionTool[]> = {
-  "sales-sdr": salesSdrTools,
-  "customer-support": customerSupportTools,
-  "scheduling": schedulingTools,
-  "data-analyst": dataAnalystTools,
-  "social-media": socialMediaTools,
-  "bookkeeping": bookkeepingTools,
-  "hr-recruiting": hrRecruitingTools,
-  "ecommerce-ops": ecommerceOpsTools,
-  "real-estate": realEstateTools,
+  "sales-sdr": [...salesSdrTools, createTaskTool],
+  "customer-support": [...customerSupportTools, createTaskTool],
+  "scheduling": [...schedulingTools, createTaskTool],
+  "data-analyst": [...dataAnalystTools, createTaskTool],
+  "social-media": [...socialMediaTools, createTaskTool],
+  "bookkeeping": [...bookkeepingTools, createTaskTool],
+  "hr-recruiting": [...hrRecruitingTools, createTaskTool],
+  "ecommerce-ops": [...ecommerceOpsTools, createTaskTool],
+  "real-estate": [...realEstateTools, createTaskTool],
 };
 
 export function getToolsForAgent(agentType: string): OpenAI.ChatCompletionTool[] | undefined {
@@ -1457,6 +1476,7 @@ const TOOL_KEYWORD_MAP: Record<string, string[]> = {
   lease_review: ["lease", "kira sözleşme", "contract", "sözleşme"],
   market_report: ["market", "piyasa", "trend", "fiyat"],
   calculate_costs: ["cost", "calculate", "maliyet", "hesapla", "expense"],
+  create_task: ["task", "görev", "göreve al", "kaydet", "hatırlat", "remind", "to-do", "todo", "yapılacak", "tarihte yap", "not al", "planla"],
 };
 
 export function getRelevantToolsForMessage(
@@ -4393,6 +4413,35 @@ ${activeRentals.map(r => `  ${r.agentType}: ${r.messagesUsed}/${r.messagesLimit}
         actionType: "costs_calculated",
         actionDescription: `💰 Costs: $${totalMonthly}/mo total (${city})`,
       };
+    }
+
+    case "create_task": {
+      const title = args.title as string;
+      const description = (args.description as string) || "";
+      const priority = (args.priority as string) || "medium";
+      const dueDate = args.dueDate ? new Date(args.dueDate as string) : null;
+      const project = (args.project as string) || "";
+
+      try {
+        const task = await storage.createAgentTask({
+          userId,
+          agentType,
+          title,
+          description: description || null,
+          priority,
+          dueDate,
+          project: project || null,
+          status: "todo",
+        });
+        const dueDateStr = dueDate ? dueDate.toLocaleDateString("tr-TR") : "Belirtilmedi";
+        return {
+          result: `✅ Görev başarıyla oluşturuldu!\n\n📋 **Başlık:** ${title}\n📝 **Açıklama:** ${description || "—"}\n📅 **Tarih:** ${dueDateStr}\n🔴 **Öncelik:** ${priority}\n🆔 **Görev ID:** ${task.id}`,
+          actionType: "create_task",
+          actionDescription: `Created task: "${title}" (priority: ${priority})`,
+        };
+      } catch (err: any) {
+        return { result: `❌ Görev oluşturulamadı: ${err.message || "Bilinmeyen hata"}` };
+      }
     }
 
     default:

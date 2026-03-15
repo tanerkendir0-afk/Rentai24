@@ -273,6 +273,11 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
   const [creditPurchasing, setCreditPurchasing] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth >= 1024);
   const [showTasksPanel, setShowTasksPanel] = useState(false);
+  const [showQuickTaskForm, setShowQuickTaskForm] = useState(false);
+  const [quickTaskTitle, setQuickTaskTitle] = useState("");
+  const [quickTaskDescription, setQuickTaskDescription] = useState("");
+  const [quickTaskPriority, setQuickTaskPriority] = useState("medium");
+  const [quickTaskDueDate, setQuickTaskDueDate] = useState("");
   const [showSocialPanel, setShowSocialPanel] = useState(false);
   const [socialAddMode, setSocialAddMode] = useState(false);
   const [socialPlatform, setSocialPlatform] = useState("");
@@ -417,6 +422,69 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
       toast({ title: "Disconnected", description: "Account removed" });
     } catch {
       toast({ title: "Error", description: "Failed to remove account", variant: "destructive" });
+    }
+  };
+
+  const extractTaskContextFromChat = () => {
+    const recentMessages = messages.slice(-6);
+    if (recentMessages.length === 0) return;
+
+    const userMessages = recentMessages.filter(m => m.role === "user").map(m => m.content);
+    const lastUserMsg = userMessages[userMessages.length - 1] || "";
+    const assistantMessages = recentMessages.filter(m => m.role === "assistant").map(m => m.content);
+    const lastAssistantMsg = assistantMessages[assistantMessages.length - 1] || "";
+
+    const titleCandidate = lastUserMsg.length > 80 ? lastUserMsg.substring(0, 80) + "..." : lastUserMsg;
+    if (titleCandidate) setQuickTaskTitle(titleCandidate);
+
+    const descParts: string[] = [];
+    if (lastUserMsg) descParts.push(lastUserMsg);
+    if (lastAssistantMsg) {
+      const shortAssistant = lastAssistantMsg.length > 200 ? lastAssistantMsg.substring(0, 200) + "..." : lastAssistantMsg;
+      descParts.push(`Ajan yanıtı: ${shortAssistant}`);
+    }
+    if (descParts.length > 0) setQuickTaskDescription(descParts.join("\n\n"));
+
+    const dateMatch = lastUserMsg.match(/(\d{4}[-/.]\d{1,2}[-/.]\d{1,2})/);
+    if (dateMatch) {
+      const normalized = dateMatch[1].replace(/[/.]/g, "-");
+      setQuickTaskDueDate(normalized);
+    }
+
+    const urgentWords = ["acil", "urgent", "hemen", "immediately", "asap"];
+    const highWords = ["önemli", "important", "kritik", "critical"];
+    const msgLower = lastUserMsg.toLowerCase();
+    if (urgentWords.some(w => msgLower.includes(w))) {
+      setQuickTaskPriority("urgent");
+    } else if (highWords.some(w => msgLower.includes(w))) {
+      setQuickTaskPriority("high");
+    }
+  };
+
+  const [quickTaskSaving, setQuickTaskSaving] = useState(false);
+  const handleQuickTaskCreate = async () => {
+    if (!quickTaskTitle.trim()) return;
+    setQuickTaskSaving(true);
+    try {
+      await apiRequest("POST", "/api/agent-tasks", {
+        title: quickTaskTitle.trim(),
+        description: quickTaskDescription.trim() || null,
+        agentType: selectedAgent,
+        priority: quickTaskPriority,
+        dueDate: quickTaskDueDate || null,
+        project: "",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/agent-tasks", selectedAgent] });
+      setQuickTaskTitle("");
+      setQuickTaskDescription("");
+      setQuickTaskPriority("medium");
+      setQuickTaskDueDate("");
+      setShowQuickTaskForm(false);
+      toast({ title: "Görev Oluşturuldu", description: `"${quickTaskTitle.trim()}" başarıyla eklendi` });
+    } catch {
+      toast({ title: "Hata", description: "Görev oluşturulamadı", variant: "destructive" });
+    } finally {
+      setQuickTaskSaving(false);
     }
   };
 
@@ -1775,6 +1843,84 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                 </Link>
               </div>
             )}
+            {showQuickTaskForm && user && (
+              <div className="mb-2 p-3 rounded-xl bg-muted/30 border border-border/50 space-y-2" data-testid="quick-task-form">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                    <ListTodo className="w-3.5 h-3.5 text-blue-400" />
+                    Yeni Görev Oluştur
+                  </h4>
+                  <button
+                    onClick={() => setShowQuickTaskForm(false)}
+                    className="text-muted-foreground hover:text-foreground transition-colors"
+                    data-testid="button-close-quick-task"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+                <Input
+                  placeholder="Görev başlığı"
+                  value={quickTaskTitle}
+                  onChange={e => setQuickTaskTitle(e.target.value)}
+                  className="h-8 text-xs"
+                  data-testid="input-quick-task-title"
+                />
+                <Input
+                  placeholder="Açıklama (opsiyonel)"
+                  value={quickTaskDescription}
+                  onChange={e => setQuickTaskDescription(e.target.value)}
+                  className="h-8 text-xs"
+                  data-testid="input-quick-task-description"
+                />
+                <div className="flex items-center gap-2">
+                  <div className="flex-1">
+                    <input
+                      type="date"
+                      value={quickTaskDueDate}
+                      onChange={e => setQuickTaskDueDate(e.target.value)}
+                      className="w-full h-8 px-2 text-xs rounded-md bg-background border border-border/50 text-foreground"
+                      data-testid="input-quick-task-date"
+                    />
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {["low", "medium", "high", "urgent"].map(p => (
+                      <button
+                        key={p}
+                        onClick={() => setQuickTaskPriority(p)}
+                        className={`text-[10px] px-1.5 py-0.5 rounded-full border transition-all ${
+                          quickTaskPriority === p
+                            ? "border-blue-500/50 bg-blue-500/10 text-foreground"
+                            : "border-border/50 text-muted-foreground hover:text-foreground"
+                        }`}
+                        data-testid={`quick-task-priority-${p}`}
+                      >
+                        {p === "low" ? "Düşük" : p === "medium" ? "Orta" : p === "high" ? "Yüksek" : "Acil"}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="flex gap-1.5">
+                  <Button
+                    size="sm"
+                    className="flex-1 h-7 text-xs bg-gradient-to-r from-blue-500 to-violet-500 text-white"
+                    disabled={!quickTaskTitle.trim() || quickTaskSaving}
+                    onClick={handleQuickTaskCreate}
+                    data-testid="button-save-quick-task"
+                  >
+                    {quickTaskSaving ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Check className="w-3 h-3 mr-1" />}
+                    {quickTaskSaving ? "Kaydediliyor..." : "Görevi Kaydet"}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 text-xs"
+                    onClick={() => setShowQuickTaskForm(false)}
+                  >
+                    İptal
+                  </Button>
+                </div>
+              </div>
+            )}
             <form
               onSubmit={(e) => {
                 e.preventDefault();
@@ -1791,6 +1937,33 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                 onChange={handleFileInputChange}
                 data-testid="input-file-upload"
               />
+              {user && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const willOpen = !showQuickTaskForm;
+                    setShowQuickTaskForm(willOpen);
+                    if (willOpen) {
+                      setQuickTaskTitle("");
+                      setQuickTaskDescription("");
+                      setQuickTaskPriority("medium");
+                      setQuickTaskDueDate("");
+                      extractTaskContextFromChat();
+                    }
+                  }}
+                  disabled={loading}
+                  className={`min-h-[44px] min-w-[44px] h-11 w-11 rounded-full border flex items-center justify-center shrink-0 transition-all touch-manipulation ${
+                    showQuickTaskForm
+                      ? "bg-blue-500/20 border-blue-500/50 text-blue-400"
+                      : "bg-muted/50 border-border/50 text-muted-foreground hover:text-foreground hover:bg-muted"
+                  }`}
+                  title="Görev Oluştur"
+                  data-testid="button-quick-task"
+                >
+                  <ListTodo className="w-4 h-4" />
+                  <span className="hidden sm:inline text-[10px]">Görev</span>
+                </button>
+              )}
               {user && (
                 <button
                   type="button"

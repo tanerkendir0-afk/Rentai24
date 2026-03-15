@@ -1788,7 +1788,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                 type="file"
                 ref={fileInputRef}
                 className="hidden"
-                accept="image/*,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv,text/plain,text/markdown,.pdf,.docx,.xlsx,.xls,.csv,.txt,.md,.numbers,.pages,*/*"
+                accept=".jpg,.jpeg,.png,.gif,.webp,.svg,.pdf,.docx,.xlsx,.xls,.csv,.txt,.md,.numbers,.pages"
                 onChange={handleFileInputChange}
                 data-testid="input-file-upload"
               />

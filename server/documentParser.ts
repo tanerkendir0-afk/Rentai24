@@ -1,6 +1,12 @@
 import fs from "fs";
 import path from "path";
 
+interface PdfParserInstance {
+  getText: () => Promise<{ text: string }>;
+  destroy: () => Promise<void>;
+}
+type PdfParserConstructor = new (opts: { data: Uint8Array; verbosity: number }) => PdfParserInstance;
+
 export const SUPPORTED_DOCUMENT_EXTENSIONS = [
   ".txt", ".md", ".pdf", ".docx", ".csv",
   ".xlsx", ".xls", ".numbers", ".pages",
@@ -28,11 +34,16 @@ export async function parseDocument(
       return fs.readFileSync(filePath, "utf-8");
 
     case ".pdf": {
-      const pdfParseModule = await import("pdf-parse");
-      const pdfParse = (pdfParseModule as unknown as { default: (buffer: Buffer) => Promise<{ text: string }> }).default;
+      const { PDFParse } = await import("pdf-parse");
+      const Parser = PDFParse as unknown as PdfParserConstructor;
       const buffer = fs.readFileSync(filePath);
-      const data = await pdfParse(buffer);
-      return data.text;
+      const parser = new Parser({ data: new Uint8Array(buffer), verbosity: 0 });
+      try {
+        const result = await parser.getText();
+        return result.text;
+      } finally {
+        await parser.destroy();
+      }
     }
 
     case ".docx": {
@@ -84,10 +95,15 @@ export async function parseDocument(
         const previewFile = zip.file("preview.pdf");
         if (previewFile) {
           const pdfBuffer = await previewFile.async("nodebuffer");
-          const pdfParseModule = await import("pdf-parse");
-          const pdfParse = (pdfParseModule as unknown as { default: (buffer: Buffer) => Promise<{ text: string }> }).default;
-          const data = await pdfParse(pdfBuffer);
-          if (data.text.trim()) return data.text;
+          const { PDFParse } = await import("pdf-parse");
+          const Parser = PDFParse as unknown as PdfParserConstructor;
+          const pdfParser = new Parser({ data: new Uint8Array(pdfBuffer), verbosity: 0 });
+          try {
+            const pdfResult = await pdfParser.getText();
+            if (pdfResult.text.trim()) return pdfResult.text;
+          } finally {
+            await pdfParser.destroy();
+          }
         }
         const textParts: string[] = [];
         for (const [filename] of Object.entries(zip.files)) {

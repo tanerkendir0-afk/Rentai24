@@ -310,11 +310,19 @@ function LanguagePreferenceCard() {
   const { toast } = useToast();
 
   const handleLanguageChange = async (lng: string) => {
-    await changeLanguage(lng);
-    toast({
-      title: t("language.saved"),
-      description: t("language.savedDesc"),
-    });
+    try {
+      await changeLanguage(lng);
+      toast({
+        title: t("language.saved"),
+        description: t("language.savedDesc"),
+      });
+    } catch {
+      toast({
+        title: t("footer.errorToast"),
+        description: t("language.savedDesc"),
+        variant: "destructive",
+      });
+    }
   };
 
   return (

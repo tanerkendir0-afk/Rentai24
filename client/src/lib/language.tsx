@@ -35,10 +35,8 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem("i18nextLng", normalized);
 
     if (user) {
-      try {
-        await apiRequest("PATCH", "/api/auth/language", { language: normalized });
-        queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
-      } catch {}
+      await apiRequest("PATCH", "/api/auth/language", { language: normalized });
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
     }
   }, [i18n, user]);
 

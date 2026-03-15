@@ -51,6 +51,9 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
+import { useLanguage } from "@/lib/language";
+import { useTranslation } from "react-i18next";
+import { Languages } from "lucide-react";
 
 interface Rental {
   id: number;
@@ -296,6 +299,48 @@ function CrmDocumentsSection() {
             ))}
           </div>
         )}
+      </div>
+    </Card>
+  );
+}
+
+function LanguagePreferenceCard() {
+  const { language, changeLanguage } = useLanguage();
+  const { t } = useTranslation("common");
+  const { toast } = useToast();
+
+  const handleLanguageChange = async (lng: string) => {
+    await changeLanguage(lng);
+    toast({
+      title: t("language.saved"),
+      description: t("language.savedDesc"),
+    });
+  };
+
+  return (
+    <Card className="p-4 sm:p-6 bg-card border-border/50" data-testid="card-language">
+      <div className="flex items-center gap-2 mb-5">
+        <Languages className="w-5 h-5 text-blue-400" />
+        <h2 className="text-lg font-semibold text-foreground">{t("language.preference")}</h2>
+      </div>
+      <p className="text-sm text-muted-foreground mb-4">{t("language.preferenceDesc")}</p>
+      <div className="flex gap-3">
+        <Button
+          variant={language === "en" ? "default" : "outline"}
+          className={language === "en" ? "bg-gradient-to-r from-blue-500 to-violet-500 text-white border-0" : ""}
+          onClick={() => handleLanguageChange("en")}
+          data-testid="button-language-en"
+        >
+          {t("language.english")}
+        </Button>
+        <Button
+          variant={language === "tr" ? "default" : "outline"}
+          className={language === "tr" ? "bg-gradient-to-r from-blue-500 to-violet-500 text-white border-0" : ""}
+          onClick={() => handleLanguageChange("tr")}
+          data-testid="button-language-tr"
+        >
+          {t("language.turkish")}
+        </Button>
       </div>
     </Card>
   );
@@ -766,6 +811,7 @@ export default function Settings() {
 
   const settingsSections = [
     { id: "profile", label: "Profile", icon: User },
+    { id: "language", label: "Language", icon: Languages },
     { id: "integrations", label: "Integrations", icon: Link2 },
     { id: "personal-gmail", label: "Gmail", icon: Mail },
     { id: "social-accounts", label: "Social Media", icon: Share2 },
@@ -903,6 +949,8 @@ export default function Settings() {
             </Button>
           </div>
         </Card>
+
+        <LanguagePreferenceCard />
 
         <Card className="p-4 sm:p-6 bg-card border-border/50" data-testid="card-integrations">
           <div className="flex items-center gap-2 mb-5">

@@ -21,6 +21,10 @@ const allowedDocTypes = [
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   "text/csv",
   "text/markdown",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/vnd.ms-excel",
+  "application/vnd.apple.numbers",
+  "application/vnd.apple.pages",
 ];
 
 const allowedTrainingTypes = ["application/json", "application/jsonl", "application/x-ndjson"];
@@ -32,11 +36,11 @@ export const uploadDocument = multer({
     const ext = path.extname(file.originalname).toLowerCase();
     if (
       allowedDocTypes.includes(file.mimetype) ||
-      [".txt", ".pdf", ".docx", ".csv", ".md"].includes(ext)
+      [".txt", ".pdf", ".docx", ".csv", ".md", ".xlsx", ".xls", ".numbers", ".pages"].includes(ext)
     ) {
       cb(null, true);
     } else {
-      cb(new Error("Unsupported file type. Allowed: TXT, PDF, DOCX, CSV, MD"));
+      cb(new Error("Unsupported file type. Allowed: TXT, PDF, DOCX, CSV, MD, XLSX, XLS, Numbers, Pages"));
     }
   },
 });

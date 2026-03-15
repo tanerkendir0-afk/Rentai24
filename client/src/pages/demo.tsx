@@ -49,6 +49,8 @@ import {
   Settings2,
   BrainCircuit,
   Shield,
+  FileText,
+  Paperclip,
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
@@ -263,7 +265,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [initialAgentSet, setInitialAgentSet] = useState(false);
-  const [uploadedImage, setUploadedImage] = useState<{ url: string; name: string } | null>(null);
+  const [uploadedFile, setUploadedFile] = useState<{ url: string; name: string; type: "image" | "document"; size?: number; documentContent?: string } | null>(null);
   const [uploading, setUploading] = useState(false);
   const [showCreditsPanel, setShowCreditsPanel] = useState(false);
   const [selectedCreditPkg, setSelectedCreditPkg] = useState<string | null>(null);
@@ -444,26 +446,39 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
 
   const openTicketCount = supportTickets.filter(t => t.status === "open" || t.status === "in_progress").length;
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handleFileUpload = async (file: File) => {
+    const maxSize = 10 * 1024 * 1024;
+    if (file.size > maxSize) {
+      toast({ title: "Dosya çok büyük", description: "Maksimum dosya boyutu 10MB", variant: "destructive" });
+      return;
+    }
     setUploading(true);
     try {
       const formData = new FormData();
-      formData.append("image", file);
+      formData.append("file", file);
       const res = await fetch("/api/chat/upload", { method: "POST", body: formData });
       const data = await res.json();
       if (data.success) {
-        setUploadedImage({ url: data.imageUrl, name: data.filename });
+        if (data.fileType === "image") {
+          setUploadedFile({ url: data.imageUrl, name: data.filename, type: "image" });
+        } else {
+          setUploadedFile({ url: data.fileUrl, name: data.filename, type: "document", size: data.fileSize, documentContent: data.documentContent });
+        }
       } else {
-        toast({ title: "Yükleme başarısız", description: data.error || "Görsel yüklenirken bir hata oluştu", variant: "destructive" });
+        toast({ title: "Yükleme başarısız", description: data.error || "Dosya yüklenirken bir hata oluştu", variant: "destructive" });
       }
     } catch {
-      toast({ title: "Yükleme başarısız", description: "Görsel yüklenirken bir hata oluştu", variant: "destructive" });
+      toast({ title: "Yükleme başarısız", description: "Dosya yüklenirken bir hata oluştu", variant: "destructive" });
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
+  };
+
+  const handleFileInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    await handleFileUpload(file);
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -497,43 +512,38 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
 
     const file = e.dataTransfer.files?.[0];
     if (!file) return;
-    if (!file.type.startsWith("image/")) {
-      toast({ title: "Desteklenmeyen dosya", description: "Sadece görsel dosyaları yüklenebilir (JPG, PNG, GIF, WebP, SVG)", variant: "destructive" });
+
+    const allowedExtensions = [".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg", ".pdf", ".docx", ".xlsx", ".xls", ".csv", ".txt", ".md", ".numbers", ".pages"];
+    const ext = "." + file.name.split(".").pop()?.toLowerCase();
+    if (!allowedExtensions.includes(ext)) {
+      toast({ title: "Desteklenmeyen dosya", description: "Desteklenen türler: JPG, PNG, GIF, WebP, SVG, PDF, DOCX, XLSX, XLS, CSV, TXT, MD, Numbers, Pages", variant: "destructive" });
       return;
     }
 
-    setUploading(true);
-    try {
-      const formData = new FormData();
-      formData.append("image", file);
-      const res = await fetch("/api/chat/upload", { method: "POST", body: formData });
-      const data = await res.json();
-      if (data.success) {
-        setUploadedImage({ url: data.imageUrl, name: data.filename });
-      } else {
-        toast({ title: "Yükleme başarısız", description: data.error || "Görsel yüklenirken bir hata oluştu", variant: "destructive" });
-      }
-    } catch {
-      toast({ title: "Yükleme başarısız", description: "Görsel yüklenirken bir hata oluştu", variant: "destructive" });
-    } finally {
-      setUploading(false);
-    }
+    await handleFileUpload(file);
   };
 
   const sendMessage = async (text?: string) => {
     const userMessage = (text || input).trim();
     if (!userMessage || loading) return;
 
-    const imageAttachment = uploadedImage;
+    const fileAttachment = uploadedFile;
     setInput("");
-    setUploadedImage(null);
+    setUploadedFile(null);
 
-    const displayContent = imageAttachment
-      ? `${userMessage}\n\n![Uploaded](${imageAttachment.url})`
-      : userMessage;
-    const messageToSend = imageAttachment
-      ? `${userMessage}\n\n[User attached an image: ${imageAttachment.name}]`
-      : userMessage;
+    let displayContent = userMessage;
+    let messageToSend = userMessage;
+
+    if (fileAttachment) {
+      if (fileAttachment.type === "image") {
+        displayContent = `${userMessage}\n\n![Uploaded](${fileAttachment.url})`;
+        messageToSend = `${userMessage}\n\n[User attached an image: ${fileAttachment.name}]`;
+      } else {
+        const sizeStr = fileAttachment.size ? `${(fileAttachment.size / 1024).toFixed(1)} KB` : "";
+        displayContent = `${userMessage}\n\n📎 **${fileAttachment.name}**${sizeStr ? ` (${sizeStr})` : ""}`;
+        messageToSend = `${userMessage}\n\n[User attached a document: ${fileAttachment.name}]\n\nContent:\n${fileAttachment.documentContent || "(Could not extract content)"}`;
+      }
+    }
 
     setMessages((prev) => [...prev, { role: "user", content: displayContent }]);
     setLoading(true);
@@ -1521,8 +1531,9 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
           {isDragging && (
             <div className="absolute inset-0 z-10 flex items-center justify-center bg-blue-500/10 border-2 border-dashed border-blue-500/50 rounded-lg m-2 backdrop-blur-sm" data-testid="drag-overlay">
               <div className="text-center">
-                <Plus className="w-10 h-10 text-blue-400 mx-auto mb-2" />
-                <p className="text-sm font-medium text-blue-400">Görseli buraya bırakın</p>
+                <Paperclip className="w-10 h-10 text-blue-400 mx-auto mb-2" />
+                <p className="text-sm font-medium text-blue-400">Dosyayı buraya bırakın</p>
+                <p className="text-xs text-blue-400/60 mt-1">Görsel, PDF, Excel, DOCX, CSV, TXT</p>
               </div>
             </div>
           )}
@@ -1728,15 +1739,26 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
 
         <div className="border-t border-border/50 bg-card/30 backdrop-blur-sm shrink-0">
           <div className="max-w-3xl mx-auto w-full px-2 sm:px-4 py-2 sm:py-3">
-            {uploadedImage && (
+            {uploadedFile && (
               <div className="flex items-center gap-2 mb-2 p-2 rounded-lg bg-blue-500/10 border border-blue-500/20" data-testid="upload-preview">
-                <img src={uploadedImage.url} alt="Uploaded" className="w-10 h-10 rounded-lg object-cover" />
-                <span className="text-xs text-muted-foreground flex-1 truncate">{uploadedImage.name}</span>
+                {uploadedFile.type === "image" ? (
+                  <img src={uploadedFile.url} alt="Uploaded" className="w-10 h-10 rounded-lg object-cover" />
+                ) : (
+                  <div className="w-10 h-10 rounded-lg bg-blue-500/20 border border-blue-500/30 flex items-center justify-center shrink-0">
+                    <FileText className="w-5 h-5 text-blue-400" />
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <span className="text-xs text-foreground truncate block">{uploadedFile.name}</span>
+                  {uploadedFile.type === "document" && uploadedFile.size && (
+                    <span className="text-[10px] text-muted-foreground">{(uploadedFile.size / 1024).toFixed(1)} KB</span>
+                  )}
+                </div>
                 <Button
                   size="sm"
                   variant="ghost"
                   className="h-6 w-6 p-0 text-muted-foreground hover:text-red-400"
-                  onClick={() => setUploadedImage(null)}
+                  onClick={() => setUploadedFile(null)}
                   data-testid="button-remove-upload"
                 >
                   <X className="w-3 h-3" />
@@ -1765,9 +1787,9 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                 type="file"
                 ref={fileInputRef}
                 className="hidden"
-                accept="image/*"
-                onChange={handleImageUpload}
-                data-testid="input-image-upload"
+                accept="image/*,.pdf,.docx,.xlsx,.xls,.csv,.txt,.md,.numbers,.pages"
+                onChange={handleFileInputChange}
+                data-testid="input-file-upload"
               />
               {user && (
                 <button
@@ -1775,10 +1797,10 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                   onClick={() => fileInputRef.current?.click()}
                   disabled={loading || uploading}
                   className="h-9 w-9 rounded-full bg-muted/50 border border-border/50 flex items-center justify-center shrink-0 text-muted-foreground hover:text-foreground hover:bg-muted transition-all disabled:opacity-40"
-                  title="Attach image"
-                  data-testid="button-upload-image"
+                  title="Dosya ekle"
+                  data-testid="button-upload-file"
                 >
-                  {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-5 h-5" />}
+                  {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Paperclip className="w-4 h-4" />}
                 </button>
               )}
               <div className="flex-1 relative">

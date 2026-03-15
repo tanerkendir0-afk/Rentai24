@@ -1371,32 +1371,85 @@ export async function registerRoutes(
     },
   });
 
+  const imageExtensions = [".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg"];
+  const documentExtensions = [".txt", ".md", ".pdf", ".docx", ".csv", ".xlsx", ".xls", ".numbers", ".pages"];
+  const allAllowedExtensions = [...imageExtensions, ...documentExtensions];
+
   const chatUpload = multer({
     storage: chatUploadStorage,
     limits: { fileSize: 10 * 1024 * 1024 },
     fileFilter: (_req, file, cb) => {
-      const allowed = [".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg"];
       const ext = path.extname(file.originalname).toLowerCase();
-      if (allowed.includes(ext)) {
+      if (allAllowedExtensions.includes(ext)) {
         cb(null, true);
       } else {
-        cb(new Error("Only image files are allowed (JPG, PNG, GIF, WebP, SVG)"));
+        cb(new Error("Desteklenmeyen dosya türü. İzin verilen: JPG, PNG, GIF, WebP, SVG, PDF, DOCX, XLSX, XLS, CSV, TXT, MD, Numbers, Pages"));
       }
     },
   });
 
-  app.post("/api/chat/upload", requireAuth, chatUpload.single("image"), (req: any, res) => {
+  app.post("/api/chat/upload", requireAuth, (req: any, res, next) => {
+    chatUpload.single("file")(req, res, (err: any) => {
+      if (err) {
+        if (err.code === "LIMIT_FILE_SIZE") {
+          return res.status(400).json({ error: "Dosya çok büyük. Maksimum dosya boyutu 10MB." });
+        }
+        return res.status(400).json({ error: err.message || "Dosya yüklenirken bir hata oluştu." });
+      }
+      next();
+    });
+  }, async (req: any, res) => {
     if (!req.file) {
-      return res.status(400).json({ error: "No image file provided" });
+      return res.status(400).json({ error: "No file provided" });
     }
-    const imageUrl = `/api/chat/uploads/${req.file.filename}`;
-    res.json({ success: true, imageUrl, filename: req.file.originalname });
+    const ext = path.extname(req.file.originalname).toLowerCase();
+    const isImage = imageExtensions.includes(ext);
+    const fileUrl = `/api/chat/uploads/${req.file.filename}`;
+
+    if (isImage) {
+      res.json({ success: true, imageUrl: fileUrl, filename: req.file.originalname, fileType: "image" });
+    } else {
+      try {
+        const { parseDocument } = await import("./documentParser");
+        const content = await parseDocument(req.file.path, req.file.originalname);
+        const truncated = content.length > 15000 ? content.substring(0, 15000) + "\n\n[Content truncated — file too large to show in full]" : content;
+        res.json({
+          success: true,
+          fileUrl,
+          filename: req.file.originalname,
+          fileType: "document",
+          fileSize: req.file.size,
+          documentContent: truncated,
+        });
+      } catch (err: any) {
+        res.status(400).json({ error: `Dosya işlenemedi: ${err.message}` });
+      }
+    }
   });
 
-  app.get("/api/chat/uploads/:filename", (req, res) => {
-    const filepath = path.join(chatImageDir, req.params.filename);
+  app.get("/api/chat/uploads/:filename", requireAuth, (req: any, res) => {
+    const filename = path.basename(req.params.filename);
+    const filepath = path.join(chatImageDir, filename);
     if (!fs.existsSync(filepath)) {
-      return res.status(404).json({ error: "Image not found" });
+      return res.status(404).json({ error: "File not found" });
+    }
+    const ext = path.extname(filename).toLowerCase();
+    const safeMimeTypes: Record<string, string> = {
+      ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png",
+      ".gif": "image/gif", ".webp": "image/webp", ".svg": "image/svg+xml",
+      ".pdf": "application/pdf", ".txt": "text/plain", ".csv": "text/csv",
+      ".md": "text/plain",
+      ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      ".xls": "application/vnd.ms-excel",
+      ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      ".numbers": "application/octet-stream",
+      ".pages": "application/octet-stream",
+    };
+    const contentType = safeMimeTypes[ext] || "application/octet-stream";
+    res.setHeader("Content-Type", contentType);
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    if (ext === ".svg" || documentExtensions.includes(ext)) {
+      res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
     }
     res.sendFile(filepath);
   });

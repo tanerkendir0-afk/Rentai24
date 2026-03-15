@@ -1,6 +1,21 @@
 import fs from "fs";
 import path from "path";
 
+export const SUPPORTED_DOCUMENT_EXTENSIONS = [
+  ".txt", ".md", ".pdf", ".docx", ".csv",
+  ".xlsx", ".xls", ".numbers", ".pages",
+];
+
+export function isDocumentFile(filename: string): boolean {
+  const ext = path.extname(filename).toLowerCase();
+  return SUPPORTED_DOCUMENT_EXTENSIONS.includes(ext);
+}
+
+export function isImageFile(filename: string): boolean {
+  const ext = path.extname(filename).toLowerCase();
+  return [".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg"].includes(ext);
+}
+
 export async function parseDocument(
   filePath: string,
   originalName: string
@@ -37,6 +52,58 @@ export async function parseDocument(
             .join(", ")
         )
         .join("\n");
+    }
+
+    case ".xlsx":
+    case ".xls":
+    case ".numbers": {
+      const XLSX = await import("xlsx");
+      const workbook = XLSX.read(fs.readFileSync(filePath), { type: "buffer" });
+      const results: string[] = [];
+      for (const sheetName of workbook.SheetNames) {
+        const sheet = workbook.Sheets[sheetName];
+        const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: "" });
+        if (rows.length === 0) continue;
+        results.push(`--- Sheet: ${sheetName} ---`);
+        for (const row of rows) {
+          results.push(
+            Object.entries(row)
+              .map(([k, v]) => `${k}: ${v}`)
+              .join(", ")
+          );
+        }
+      }
+      return results.join("\n");
+    }
+
+    case ".pages": {
+      try {
+        const JSZip = (await import("jszip")).default;
+        const zipData = fs.readFileSync(filePath);
+        const zip = await JSZip.loadAsync(zipData);
+        const previewFile = zip.file("preview.pdf");
+        if (previewFile) {
+          const pdfBuffer = await previewFile.async("nodebuffer");
+          const pdfParseModule = await import("pdf-parse");
+          const pdfParse = (pdfParseModule as unknown as { default: (buffer: Buffer) => Promise<{ text: string }> }).default;
+          const data = await pdfParse(pdfBuffer);
+          if (data.text.trim()) return data.text;
+        }
+        const textParts: string[] = [];
+        for (const [filename] of Object.entries(zip.files)) {
+          if (filename.endsWith(".txt") || filename.endsWith(".xml")) {
+            const zipFile = zip.file(filename);
+            if (!zipFile) continue;
+            const content = await zipFile.async("text");
+            const cleaned = content.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+            if (cleaned.length > 10) textParts.push(cleaned);
+          }
+        }
+        if (textParts.length > 0) return textParts.join("\n");
+        throw new Error("Could not extract text from Pages file");
+      } catch (e: any) {
+        throw new Error(`Failed to parse Pages file: ${e.message}`);
+      }
     }
 
     default:

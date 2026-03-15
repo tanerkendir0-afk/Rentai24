@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { Components } from "react-markdown";
-import { Download, X, ImageOff, Loader2 } from "lucide-react";
+import { Download, X, ImageOff, Loader2, FileText, FileSpreadsheet, File } from "lucide-react";
 
 function getDownloadUrl(src: string): string {
   const match = src?.match(/\/api\/images\/([^/]+)$/);
@@ -105,6 +105,40 @@ function ChatImage({ src, alt, isUser }: { src?: string; alt?: string; isUser: b
   );
 }
 
+function getFileIcon(filename: string) {
+  const ext = filename.split(".").pop()?.toLowerCase() || "";
+  if (["xlsx", "xls", "csv", "numbers"].includes(ext)) return FileSpreadsheet;
+  if (["pdf", "docx", "pages", "txt", "md"].includes(ext)) return FileText;
+  return File;
+}
+
+function DocumentCard({ filename, sizeInfo, isUser }: { filename: string; sizeInfo?: string; isUser: boolean }) {
+  const Icon = getFileIcon(filename);
+  const ext = filename.split(".").pop()?.toUpperCase() || "FILE";
+  return (
+    <div
+      className={`my-2 inline-flex items-center gap-3 px-3 py-2.5 rounded-lg border ${
+        isUser
+          ? "bg-white/10 border-white/15"
+          : "bg-muted/40 border-border/30"
+      }`}
+      data-testid="document-card"
+    >
+      <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
+        isUser ? "bg-white/10" : "bg-blue-500/10"
+      }`}>
+        <Icon className={`w-4 h-4 ${isUser ? "text-blue-200" : "text-blue-400"}`} />
+      </div>
+      <div className="min-w-0">
+        <p className="text-xs font-medium truncate max-w-[200px]">{filename}</p>
+        <p className={`text-[10px] ${isUser ? "text-blue-200/60" : "text-muted-foreground"}`}>
+          {ext} dosyası{sizeInfo ? ` · ${sizeInfo}` : ""}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 const createComponents = (isUser: boolean): Components => ({
   p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
   strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
@@ -175,14 +209,18 @@ interface ChatMessageContentProps {
 }
 
 export default function ChatMessageContent({ content, isUser }: ChatMessageContentProps) {
+  const docMatch = content.match(/📎 \*\*(.+?)\*\*(?:\s*\((.+?)\))?$/m);
+  const textWithoutDoc = docMatch ? content.replace(/\n*📎 \*\*.+$/m, "").trim() : content;
+
   return (
     <div className="prose-chat text-sm leading-relaxed [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={createComponents(isUser)}
       >
-        {content}
+        {textWithoutDoc}
       </ReactMarkdown>
+      {docMatch && <DocumentCard filename={docMatch[1]} sizeInfo={docMatch[2]} isUser={isUser} />}
     </div>
   );
 }

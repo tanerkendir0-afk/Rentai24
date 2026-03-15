@@ -526,9 +526,8 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
 
   const sendMessage = async (text?: string) => {
     const userMessage = (text || input).trim();
-    if (!userMessage || loading) return;
-
     const fileAttachment = uploadedFile;
+    if ((!userMessage && !fileAttachment) || loading) return;
     setInput("");
     setUploadedFile(null);
 
@@ -1816,7 +1815,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                 />
                 <button
                   type="submit"
-                  disabled={loading || !input.trim()}
+                  disabled={loading || (!input.trim() && !uploadedFile)}
                   className="absolute right-1.5 top-1/2 -translate-y-1/2 w-8 h-8 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 rounded-lg bg-gradient-to-r from-blue-500 to-violet-500 flex items-center justify-center text-white disabled:opacity-30 transition-opacity"
                   data-testid="button-send-chat"
                 >

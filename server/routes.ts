@@ -1403,21 +1403,22 @@ export async function registerRoutes(
     if (!req.file) {
       return res.status(400).json({ error: "No file provided" });
     }
-    const ext = path.extname(req.file.originalname).toLowerCase();
+    const originalName = Buffer.from(req.file.originalname, 'latin1').toString('utf8');
+    const ext = path.extname(originalName).toLowerCase();
     const isImage = imageExtensions.includes(ext);
     const fileUrl = `/api/chat/uploads/${req.file.filename}`;
 
     if (isImage) {
-      res.json({ success: true, imageUrl: fileUrl, filename: req.file.originalname, fileType: "image" });
+      res.json({ success: true, imageUrl: fileUrl, filename: originalName, fileType: "image" });
     } else {
       try {
         const { parseDocument } = await import("./documentParser");
-        const content = await parseDocument(req.file.path, req.file.originalname);
+        const content = await parseDocument(req.file.path, originalName);
         const truncated = content.length > 15000 ? content.substring(0, 15000) + "\n\n[Content truncated — file too large to show in full]" : content;
         res.json({
           success: true,
           fileUrl,
-          filename: req.file.originalname,
+          filename: originalName,
           fileType: "document",
           fileSize: req.file.size,
           documentContent: truncated,
@@ -1450,7 +1451,9 @@ export async function registerRoutes(
     res.setHeader("Content-Type", contentType);
     res.setHeader("X-Content-Type-Options", "nosniff");
     if (ext === ".svg" || documentExtensions.includes(ext)) {
-      res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+      const asciiFilename = filename.replace(/[^\x20-\x7E]/g, '_');
+      const encodedFilename = encodeURIComponent(filename);
+      res.setHeader("Content-Disposition", `attachment; filename="${asciiFilename}"; filename*=UTF-8''${encodedFilename}`);
     }
     res.sendFile(filepath);
   });
@@ -2529,9 +2532,10 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
         if (!req.file) {
           return res.status(400).json({ error: "No file uploaded" });
         }
+        const decodedOriginalName = Buffer.from(req.file.originalname, 'latin1').toString('utf8');
         const doc = await processAndStoreDocument(
           req.file.path,
-          req.file.originalname,
+          decodedOriginalName,
           req.params.agentType as string,
           req.file.mimetype,
           req.file.size
@@ -2583,10 +2587,11 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
         if (!req.file) {
           return res.status(400).json({ error: "No file uploaded" });
         }
+        const decodedOriginalName = Buffer.from(req.file.originalname, 'latin1').toString('utf8');
         const job = await createFineTuningJob(
           req.params.agentType as string,
           req.file.path,
-          req.file.originalname
+          decodedOriginalName
         );
         res.json(job);
       } catch (error: any) {

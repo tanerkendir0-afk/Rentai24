@@ -601,6 +601,22 @@ export const dataAnalystTools: OpenAI.ChatCompletionTool[] = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "send_report_email",
+      description: "Send a data analysis report, insights summary, or business intelligence findings via email. Use when the user asks to share or email a report.",
+      parameters: {
+        type: "object",
+        properties: {
+          to: { type: "string", description: "Recipient email address" },
+          subject: { type: "string", description: "Email subject line" },
+          body: { type: "string", description: "Email body content (professional analytical tone)" },
+        },
+        required: ["to", "subject", "body"],
+      },
+    },
+  },
 ];
 
 export const socialMediaTools: OpenAI.ChatCompletionTool[] = [
@@ -793,6 +809,22 @@ export const socialMediaTools: OpenAI.ChatCompletionTool[] = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "send_campaign_email",
+      description: "Send a marketing or campaign-related email — content calendars, performance reports, campaign briefs, or collaboration requests. Use when the user asks to email campaign details or social media reports.",
+      parameters: {
+        type: "object",
+        properties: {
+          to: { type: "string", description: "Recipient email address" },
+          subject: { type: "string", description: "Email subject line" },
+          body: { type: "string", description: "Email body content (professional marketing tone)" },
+        },
+        required: ["to", "subject", "body"],
+      },
+    },
+  },
 ];
 
 export const bookkeepingTools: OpenAI.ChatCompletionTool[] = [
@@ -844,6 +876,22 @@ export const bookkeepingTools: OpenAI.ChatCompletionTool[] = [
         properties: {
           period: { type: "string", enum: ["week", "month", "quarter", "year"], description: "Time period for the summary (default: month)" },
         },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "send_invoice_email",
+      description: "Send a financial email — payment reminders, invoice summaries, expense reports, or financial notifications. Use when the user asks to email invoices, reminders, or financial documents.",
+      parameters: {
+        type: "object",
+        properties: {
+          to: { type: "string", description: "Recipient email address" },
+          subject: { type: "string", description: "Email subject line" },
+          body: { type: "string", description: "Email body content (professional financial tone)" },
+        },
+        required: ["to", "subject", "body"],
       },
     },
   },
@@ -988,6 +1036,22 @@ export const ecommerceOpsTools: OpenAI.ChatCompletionTool[] = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "send_order_email",
+      description: "Send an e-commerce related email — order confirmations, shipping updates, stock alerts, price change notifications, or customer communications. Use when the user asks to email order details or notifications.",
+      parameters: {
+        type: "object",
+        properties: {
+          to: { type: "string", description: "Recipient email address" },
+          subject: { type: "string", description: "Email subject line" },
+          body: { type: "string", description: "Email body content (professional e-commerce tone)" },
+        },
+        required: ["to", "subject", "body"],
+      },
+    },
+  },
 ];
 
 export const realEstateTools: OpenAI.ChatCompletionTool[] = [
@@ -1116,6 +1180,22 @@ export const realEstateTools: OpenAI.ChatCompletionTool[] = [
           pet_deposit: { type: "number", description: "Pet deposit if applicable" },
         },
         required: ["monthly_rent"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "send_property_email",
+      description: "Send a real estate related email — property listings, valuation reports, offer documents, market analysis, or viewing invitations. Use when the user asks to email property details or real estate communications.",
+      parameters: {
+        type: "object",
+        properties: {
+          to: { type: "string", description: "Recipient email address" },
+          subject: { type: "string", description: "Email subject line" },
+          body: { type: "string", description: "Email body content (professional real estate tone)" },
+        },
+        required: ["to", "subject", "body"],
       },
     },
   },
@@ -3245,6 +3325,57 @@ ${activeRentals.map(r => `  ${r.agentType}: ${r.messagesUsed}/${r.messagesLimit}
         actionType: emailResult.success ? "candidate_email_sent" : "email_failed",
         actionDescription: emailResult.success
           ? `📧 Candidate email sent to ${args.to}`
+          : `❌ Email failed to ${args.to}`,
+      };
+    }
+
+    case "send_invoice_email":
+    case "send_report_email":
+    case "send_campaign_email":
+    case "send_order_email":
+    case "send_property_email": {
+      const emailResult = await sendEmail({
+        userId,
+        to: String(args.to),
+        subject: String(args.subject),
+        body: String(args.body),
+        agentType,
+      });
+
+      const toolLabel: Record<string, string> = {
+        send_invoice_email: "Financial email",
+        send_report_email: "Report email",
+        send_campaign_email: "Campaign email",
+        send_order_email: "Order email",
+        send_property_email: "Property email",
+      };
+      const label = toolLabel[toolName] || "Email";
+
+      if (emailResult.success) {
+        await storage.createAgentAction({
+          userId, agentType,
+          actionType: "email_sent",
+          description: `📧 ${label} sent to ${args.to}: "${args.subject}"`,
+          metadata: { to: args.to, subject: args.subject, toolName },
+        });
+        try {
+          const { triggerEmailSentNotification } = await import("./bossNotificationService");
+          await triggerEmailSentNotification({
+            userId, agentType, teamMemberName: displayName,
+            recipientEmail: String(args.to),
+            subject: String(args.subject),
+            bodySnippet: String(args.body),
+          });
+        } catch (e) { console.error("[BossAI] email notification error:", e); }
+      }
+
+      return {
+        result: emailResult.success
+          ? `${label} sent to ${args.to}: "${args.subject}"`
+          : `Failed to send email: ${emailResult.message}`,
+        actionType: emailResult.success ? "email_sent" : "email_failed",
+        actionDescription: emailResult.success
+          ? `📧 ${label} sent to ${args.to}`
           : `❌ Email failed to ${args.to}`,
       };
     }

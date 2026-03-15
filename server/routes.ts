@@ -4274,32 +4274,51 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
 
   app.post("/api/crm-documents", requireAuth, async (req, res) => {
     try {
-      const { fileName, originalName, fileType, fileSize, content } = req.body;
-      if (!fileName || !originalName || !fileType || !fileSize) {
+      const { fileName, originalName, fileType, fileSize, content, encoding } = req.body;
+      if (!fileName || !originalName || !fileSize) {
         return res.status(400).json({ error: "Missing required fields" });
       }
-      const allowedTypes = [
+      const allowedMimeTypes = [
         "application/pdf", "text/plain", "text/csv",
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         "application/vnd.ms-excel",
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         "application/msword",
       ];
-      if (!allowedTypes.includes(fileType)) {
+      const allowedExtensions = ["pdf", "txt", "csv", "xlsx", "xls", "doc", "docx"];
+      const ext = String(originalName).toLowerCase().split(".").pop() || "";
+      const isValidExt = allowedExtensions.includes(ext);
+      if (!isValidExt) {
         return res.status(400).json({ error: "Unsupported file type" });
       }
+      const resolvedType = fileType && fileType !== "application/octet-stream" ? fileType : null;
+      if (resolvedType && !allowedMimeTypes.includes(resolvedType)) {
+        return res.status(400).json({ error: "Unsupported file type" });
+      }
+      const effectiveType = resolvedType || (() => {
+        const extMimeMap: Record<string, string> = {
+          pdf: "application/pdf", txt: "text/plain", csv: "text/csv",
+          xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          xls: "application/vnd.ms-excel",
+          docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+          doc: "application/msword",
+        };
+        return extMimeMap[ext] || "application/octet-stream";
+      })();
       const maxSize = 5 * 1024 * 1024;
       if (typeof fileSize !== "number" || fileSize > maxSize || fileSize <= 0) {
         return res.status(400).json({ error: "File size must be between 1 byte and 5MB" });
       }
-      if (content && typeof content === "string" && content.length > maxSize) {
+      const isBase64 = encoding === "base64";
+      const maxContentSize = isBase64 ? Math.ceil(maxSize * 1.37) : maxSize;
+      if (content && typeof content === "string" && content.length > maxContentSize) {
         return res.status(400).json({ error: "Content too large" });
       }
       const doc = await storage.createCrmDocument({
         userId: req.session.userId!,
         fileName: String(fileName),
         originalName: String(originalName),
-        fileType: String(fileType),
+        fileType: String(effectiveType),
         fileSize: Number(fileSize),
         content: content ? String(content) : null,
       });

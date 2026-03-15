@@ -108,6 +108,47 @@ function CrmDocumentsSection() {
     queryKey: ["/api/crm-documents"],
   });
 
+  const getFileExtension = (fileName: string): string => {
+    const parts = fileName.toLowerCase().split(".");
+    return parts.length > 1 ? parts[parts.length - 1] : "";
+  };
+
+  const isAllowedFile = (file: File): boolean => {
+    const allowedMimeTypes = [
+      "application/pdf", "text/plain", "text/csv",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "application/vnd.ms-excel",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "application/msword",
+    ];
+    if (file.type && allowedMimeTypes.includes(file.type)) return true;
+
+    const allowedExtensions = ["pdf", "txt", "csv", "xlsx", "xls", "doc", "docx"];
+    const ext = getFileExtension(file.name);
+    return allowedExtensions.includes(ext);
+  };
+
+  const isTextFile = (file: File): boolean => {
+    const textMimeTypes = ["text/plain", "text/csv"];
+    if (file.type && textMimeTypes.includes(file.type)) return true;
+    const textExtensions = ["txt", "csv"];
+    return textExtensions.includes(getFileExtension(file.name));
+  };
+
+  const resolveFileType = (file: File): string => {
+    if (file.type) return file.type;
+    const extMap: Record<string, string> = {
+      pdf: "application/pdf",
+      txt: "text/plain",
+      csv: "text/csv",
+      xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      xls: "application/vnd.ms-excel",
+      docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      doc: "application/msword",
+    };
+    return extMap[getFileExtension(file.name)] || "application/octet-stream";
+  };
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -115,45 +156,63 @@ function CrmDocumentsSection() {
     const maxSize = 5 * 1024 * 1024;
     if (file.size > maxSize) {
       toast({ title: "Dosya Boyutu Aşıldı", description: "Maksimum 5MB yükleyebilirsiniz.", variant: "destructive" });
+      e.target.value = "";
       return;
     }
 
-    const allowedTypes = [
-      "application/pdf", "text/plain", "text/csv",
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      "application/vnd.ms-excel",
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-      "application/msword",
-    ];
-    if (!allowedTypes.includes(file.type)) {
-      toast({ title: "Desteklenmeyen Format", description: "PDF, TXT, CSV, Excel veya Word dosyası yükleyin.", variant: "destructive" });
+    if (!isAllowedFile(file)) {
+      const ext = getFileExtension(file.name);
+      toast({
+        title: "Desteklenmeyen Format",
+        description: `"${ext || "bilinmeyen"}" formatı desteklenmiyor. PDF, TXT, CSV, Excel (.xlsx/.xls) veya Word (.doc/.docx) dosyası yükleyin.`,
+        variant: "destructive",
+      });
+      e.target.value = "";
       return;
     }
 
     setUploading(true);
     try {
       const reader = new FileReader();
+      reader.onerror = () => {
+        toast({ title: "Hata", description: "Dosya okunamadı. Lütfen tekrar deneyin.", variant: "destructive" });
+        setUploading(false);
+        e.target.value = "";
+      };
       reader.onload = async () => {
-        const content = reader.result as string;
-        const res = await apiRequest("POST", "/api/crm-documents", {
-          fileName: `${Date.now()}_${file.name}`,
-          originalName: file.name,
-          fileType: file.type,
-          fileSize: file.size,
-          content: content,
-        });
-        if (res.ok) {
-          toast({ title: "Yüklendi", description: `${file.name} başarıyla yüklendi.` });
-          queryClient.invalidateQueries({ queryKey: ["/api/crm-documents"] });
+        try {
+          const content = reader.result as string;
+          const fileType = resolveFileType(file);
+          const res = await apiRequest("POST", "/api/crm-documents", {
+            fileName: `${Date.now()}_${file.name}`,
+            originalName: file.name,
+            fileType,
+            fileSize: file.size,
+            content,
+            encoding: isTextFile(file) ? "text" : "base64",
+          });
+          if (res.ok) {
+            toast({ title: "Yüklendi", description: `${file.name} başarıyla yüklendi.` });
+            queryClient.invalidateQueries({ queryKey: ["/api/crm-documents"] });
+          } else {
+            toast({ title: "Hata", description: "Dosya yüklenirken sunucu hatası oluştu.", variant: "destructive" });
+          }
+        } catch (err) {
+          toast({ title: "Hata", description: "Dosya yüklenirken bir hata oluştu.", variant: "destructive" });
         }
         setUploading(false);
+        e.target.value = "";
       };
-      reader.readAsText(file);
+      if (isTextFile(file)) {
+        reader.readAsText(file);
+      } else {
+        reader.readAsDataURL(file);
+      }
     } catch (err) {
       toast({ title: "Hata", description: "Dosya yüklenirken bir hata oluştu.", variant: "destructive" });
       setUploading(false);
+      e.target.value = "";
     }
-    e.target.value = "";
   };
 
   const handleDelete = async (id: number, name: string) => {
@@ -190,7 +249,7 @@ function CrmDocumentsSection() {
             <input
               type="file"
               className="hidden"
-              accept=".pdf,.txt,.csv,.xlsx,.xls,.doc,.docx"
+              accept=".pdf,.txt,.csv,.xlsx,.xls,.doc,.docx,application/pdf,text/plain,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/msword,*/*"
               onChange={handleFileUpload}
               disabled={uploading}
             />

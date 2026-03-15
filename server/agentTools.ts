@@ -3461,7 +3461,7 @@ ${activeRentals.map(r => `  ${r.agentType}: ${r.messagesUsed}/${r.messagesLimit}
 
       const totalInvoiced = invoices.reduce((sum, a) => {
         const meta = a.metadata as Record<string, unknown>;
-        return sum + (Number(meta?.grandTotal) || Number(meta?.subtotal) || 0);
+        return sum + (Number(meta?.grandTotalTL) || Number(meta?.grandTotal) || Number(meta?.subtotal) || 0);
       }, 0);
 
       const totalIncome = incomes.reduce((sum, a) => {
@@ -3710,7 +3710,7 @@ ${activeRentals.map(r => `  ${r.agentType}: ${r.messagesUsed}/${r.messagesLimit}
 
       const monthlyIncome = recentIncomes.reduce((s, a) => {
         const meta = a.metadata as Record<string, unknown>;
-        return s + (Number(meta?.amount) || Number(meta?.grandTotal) || Number(meta?.subtotal) || 0);
+        return s + (Number(meta?.grandTotalTL) || Number(meta?.amount) || Number(meta?.grandTotal) || Number(meta?.subtotal) || 0);
       }, 0);
 
       const monthlyExpense = recentExpenses.reduce((s, a) => {
@@ -3765,7 +3765,7 @@ ${activeRentals.map(r => `  ${r.agentType}: ${r.messagesUsed}/${r.messagesLimit}
         .filter(a => a.actionType === "income_logged" || a.actionType === "invoice_created")
         .reduce((s, a) => {
           const meta = a.metadata as Record<string, unknown>;
-          return s + (Number(meta?.amount) || Number(meta?.grandTotal) || Number(meta?.subtotal) || 0);
+          return s + (Number(meta?.grandTotalTL) || Number(meta?.amount) || Number(meta?.grandTotal) || Number(meta?.subtotal) || 0);
         }, 0);
 
       const bsMeta = (a: typeof allActions[0]) => (a.metadata || {}) as Record<string, unknown>;
@@ -3816,7 +3816,7 @@ ${activeRentals.map(r => `  ${r.agentType}: ${r.messagesUsed}/${r.messagesLimit}
         .filter(a => a.actionType === "invoice_created")
         .reduce((s, a) => {
           const meta = a.metadata as Record<string, unknown>;
-          return s + (Number(meta?.subtotal) || 0);
+          return s + (Number(meta?.subtotalTL) || Number(meta?.subtotal) || 0);
         }, 0);
 
       const otherIncome = periodActions

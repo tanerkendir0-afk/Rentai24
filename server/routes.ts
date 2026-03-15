@@ -1,6 +1,7 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import OpenAI from "openai";
+import Anthropic from "@anthropic-ai/sdk";
 import bcrypt from "bcrypt";
 import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
@@ -31,11 +32,18 @@ const openai = new OpenAI({
   baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
 });
 
+const anthropicClient = process.env.ANTHROPIC_API_KEY
+  ? new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+  : null;
+
 const MODEL_PRICING: Record<string, { input: number; output: number }> = {
   "gpt-4o": { input: 2.50, output: 10.00 },
   "gpt-4o-mini": { input: 0.15, output: 0.60 },
   "gpt-4": { input: 30.00, output: 60.00 },
   "gpt-3.5-turbo": { input: 0.50, output: 1.50 },
+  "claude-sonnet-4-20250514": { input: 3.00, output: 15.00 },
+  "claude-3-5-sonnet-20241022": { input: 3.00, output: 15.00 },
+  "claude-3-haiku-20240307": { input: 0.25, output: 1.25 },
 };
 
 function calculateTokenCost(model: string, promptTokens: number, completionTokens: number): number {
@@ -43,6 +51,88 @@ function calculateTokenCost(model: string, promptTokens: number, completionToken
   const inputCost = (promptTokens / 1_000_000) * pricing.input;
   const outputCost = (completionTokens / 1_000_000) * pricing.output;
   return inputCost + outputCost;
+}
+
+async function resolveAiProvider(agentType: string): Promise<"openai" | "anthropic"> {
+  try {
+    const agentOverride = await storage.getSystemSetting(`ai_provider_${agentType}`);
+    if (agentOverride && (agentOverride === "openai" || agentOverride === "anthropic")) {
+      return agentOverride;
+    }
+    const defaultProvider = await storage.getSystemSetting("default_ai_provider");
+    if (defaultProvider === "anthropic") {
+      return "anthropic";
+    }
+  } catch {
+  }
+  return "openai";
+}
+
+function convertToolsToAnthropic(tools: OpenAI.ChatCompletionTool[]): Anthropic.Tool[] {
+  return tools.map(tool => ({
+    name: tool.function.name,
+    description: tool.function.description || "",
+    input_schema: (tool.function.parameters || { type: "object", properties: {} }) as Anthropic.Tool.InputSchema,
+  }));
+}
+
+function convertMessagesToAnthropic(messages: OpenAI.ChatCompletionMessageParam[]): {
+  system: string;
+  messages: Anthropic.MessageParam[];
+} {
+  let system = "";
+  const anthropicMessages: Anthropic.MessageParam[] = [];
+
+  for (const msg of messages) {
+    if (msg.role === "system") {
+      system += (system ? "\n\n" : "") + (msg.content as string);
+    } else if (msg.role === "user") {
+      anthropicMessages.push({ role: "user", content: msg.content as string });
+    } else if (msg.role === "assistant") {
+      const assistantMsg = msg as OpenAI.ChatCompletionAssistantMessageParam;
+      if (assistantMsg.tool_calls && assistantMsg.tool_calls.length > 0) {
+        const contentBlocks: Anthropic.ContentBlockParam[] = [];
+        if (assistantMsg.content) {
+          contentBlocks.push({ type: "text", text: assistantMsg.content as string });
+        }
+        for (const tc of assistantMsg.tool_calls) {
+          const fn = tc.function;
+          let parsedInput: Record<string, unknown> = {};
+          try { parsedInput = JSON.parse(fn.arguments); } catch { }
+          contentBlocks.push({
+            type: "tool_use",
+            id: tc.id,
+            name: fn.name,
+            input: parsedInput,
+          });
+        }
+        anthropicMessages.push({ role: "assistant", content: contentBlocks });
+      } else {
+        anthropicMessages.push({ role: "assistant", content: (assistantMsg.content as string) || "" });
+      }
+    } else if (msg.role === "tool") {
+      const toolMsg = msg as OpenAI.ChatCompletionToolMessageParam;
+      const lastMsg = anthropicMessages[anthropicMessages.length - 1];
+      if (lastMsg && lastMsg.role === "user" && Array.isArray(lastMsg.content)) {
+        (lastMsg.content as Anthropic.ToolResultBlockParam[]).push({
+          type: "tool_result",
+          tool_use_id: toolMsg.tool_call_id,
+          content: toolMsg.content as string,
+        });
+      } else {
+        anthropicMessages.push({
+          role: "user",
+          content: [{
+            type: "tool_result",
+            tool_use_id: toolMsg.tool_call_id,
+            content: toolMsg.content as string,
+          }],
+        });
+      }
+    }
+  }
+
+  return { system, messages: anthropicMessages };
 }
 
 const BRAND_CONFIDENTIALITY = `
@@ -1849,8 +1939,15 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
       const agentTools = hasActiveRental ? getRelevantToolsForMessage(resolvedAgentType, message) : undefined;
       const isAgenticAgent = !!agentTools;
 
+      const aiProvider = fineTunedModel ? "openai" : await resolveAiProvider(resolvedAgentType);
+      const useAnthropic = aiProvider === "anthropic" && anthropicClient && !fineTunedModel;
+
       if (!fineTunedModel) {
-        modelToUse = routeModel(message, !!agentTools);
+        if (useAnthropic) {
+          modelToUse = "claude-sonnet-4-20250514";
+        } else {
+          modelToUse = routeModel(message, !!agentTools);
+        }
       }
 
       const chatSessionId = clientSessionId || `session-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
@@ -1872,82 +1969,230 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
 
       messages.push({ role: "user", content: message });
 
-      const response = await chatClient.chat.completions.create({
-        model: modelToUse,
-        messages,
-        max_tokens: 800,
-        temperature: 0.7,
-        ...(agentTools ? { tools: agentTools } : {}),
-      });
-
-      let totalPromptTokens = response.usage?.prompt_tokens || 0;
-      let totalCompletionTokens = response.usage?.completion_tokens || 0;
+      let totalPromptTokens = 0;
+      let totalCompletionTokens = 0;
       let operationType = "chat";
-
-      let assistantMessage = response.choices[0]?.message;
+      let assistantMessageContent: string | null = null;
       const actions: Array<{ type: string; description: string }> = [];
 
-      if (assistantMessage?.tool_calls && assistantMessage.tool_calls.length > 0 && hasActiveRental) {
-        operationType = "tool_call";
-        messages.push(assistantMessage);
+      if (useAnthropic && anthropicClient) {
+        const { system: anthropicSystem, messages: anthropicMessages } = convertMessagesToAnthropic(messages);
+        const anthropicTools = agentTools ? convertToolsToAnthropic(agentTools) : undefined;
 
-        const executedToolSignatures = new Set<string>();
+        const anthropicResponse = await anthropicClient.messages.create({
+          model: modelToUse,
+          system: anthropicSystem,
+          messages: anthropicMessages,
+          max_tokens: 800,
+          temperature: 0.7,
+          ...(anthropicTools && anthropicTools.length > 0 ? { tools: anthropicTools } : {}),
+        });
 
-        for (const toolCall of assistantMessage.tool_calls) {
-          const tcFn = (toolCall as unknown as { function: { name: string; arguments: string } }).function;
-          const args = JSON.parse(tcFn.arguments);
+        totalPromptTokens = anthropicResponse.usage?.input_tokens || 0;
+        totalCompletionTokens = anthropicResponse.usage?.output_tokens || 0;
 
-          const toolSignature = `${tcFn.name}:${JSON.stringify(args, Object.keys(args).sort())}`;
-          if (executedToolSignatures.has(toolSignature)) {
-            const toolMessage: OpenAI.ChatCompletionToolMessageParam = {
-              role: "tool",
-              tool_call_id: toolCall.id,
-              content: `[Skipped] This exact action (${tcFn.name}) was already executed with the same parameters in this request. See the previous result above.`,
-            };
-            messages.push(toolMessage);
-            actions.push({ type: "tool_dedup", description: `⏭️ Skipped duplicate ${tcFn.name} call` });
-            if (req.session.userId) {
-              await storage.createAgentAction({
-                userId: req.session.userId,
-                agentType,
-                actionType: "tool_dedup",
-                description: `Skipped duplicate ${tcFn.name} call`,
-                metadata: { toolName: tcFn.name, args },
-              });
+        const toolUseBlocks = anthropicResponse.content.filter(
+          (b): b is Anthropic.ToolUseBlock => b.type === "tool_use"
+        );
+        const textBlocks = anthropicResponse.content.filter(
+          (b): b is Anthropic.TextBlock => b.type === "text"
+        );
+
+        if (toolUseBlocks.length > 0 && hasActiveRental) {
+          operationType = "tool_call";
+          const executedToolSignatures = new Set<string>();
+          let currentResponse = anthropicResponse;
+          let runningMessages = [...anthropicMessages];
+          const MAX_TOOL_ITERATIONS = 5;
+
+          for (let iteration = 0; iteration < MAX_TOOL_ITERATIONS; iteration++) {
+            const currentToolUses = currentResponse.content.filter(
+              (b): b is Anthropic.ToolUseBlock => b.type === "tool_use"
+            );
+            if (currentToolUses.length === 0) break;
+
+            const assistantContent: Anthropic.ContentBlockParam[] = [];
+            for (const b of currentResponse.content) {
+              if (b.type === "text") {
+                assistantContent.push({ type: "text", text: b.text });
+              } else if (b.type === "tool_use") {
+                assistantContent.push({ type: "tool_use", id: b.id, name: b.name, input: b.input as Record<string, unknown> });
+              }
             }
-            continue;
+
+            const toolResultsContent: Anthropic.ToolResultBlockParam[] = [];
+
+            for (const toolUse of currentToolUses) {
+              const args = toolUse.input as Record<string, unknown>;
+              const toolSignature = `${toolUse.name}:${JSON.stringify(args, Object.keys(args).sort())}`;
+
+              if (executedToolSignatures.has(toolSignature)) {
+                toolResultsContent.push({
+                  type: "tool_result",
+                  tool_use_id: toolUse.id,
+                  content: `[Skipped] This exact action (${toolUse.name}) was already executed with the same parameters in this request.`,
+                });
+                actions.push({ type: "tool_dedup", description: `⏭️ Skipped duplicate ${toolUse.name} call` });
+                if (req.session.userId) {
+                  await storage.createAgentAction({
+                    userId: req.session.userId,
+                    agentType,
+                    actionType: "tool_dedup",
+                    description: `Skipped duplicate ${toolUse.name} call`,
+                    metadata: { toolName: toolUse.name, args },
+                  });
+                }
+                continue;
+              }
+              executedToolSignatures.add(toolSignature);
+
+              const toolResult = await executeToolCall(
+                toolUse.name,
+                args,
+                req.session.userId!,
+                resolvedAgentType
+              );
+
+              toolResultsContent.push({
+                type: "tool_result",
+                tool_use_id: toolUse.id,
+                content: toolResult.result,
+              });
+
+              if (toolResult.actionType && toolResult.actionDescription) {
+                actions.push({ type: toolResult.actionType, description: toolResult.actionDescription });
+              }
+            }
+
+            runningMessages = [
+              ...runningMessages,
+              { role: "assistant" as const, content: assistantContent },
+              { role: "user" as const, content: toolResultsContent },
+            ];
+
+            const followUp = await anthropicClient.messages.create({
+              model: modelToUse,
+              system: anthropicSystem,
+              messages: runningMessages,
+              max_tokens: 800,
+              temperature: 0.7,
+              ...(anthropicTools && anthropicTools.length > 0 ? { tools: anthropicTools } : {}),
+            });
+
+            totalPromptTokens += followUp.usage?.input_tokens || 0;
+            totalCompletionTokens += followUp.usage?.output_tokens || 0;
+
+            const hasMoreTools = followUp.content.some(b => b.type === "tool_use");
+            if (!hasMoreTools) {
+              const followUpText = followUp.content
+                .filter((b): b is Anthropic.TextBlock => b.type === "text")
+                .map(b => b.text)
+                .join("\n");
+              assistantMessageContent = followUpText || null;
+              break;
+            }
+            currentResponse = followUp;
           }
-          executedToolSignatures.add(toolSignature);
 
-          const toolResult = await executeToolCall(
-            tcFn.name,
-            args,
-            req.session.userId!,
-            resolvedAgentType
-          );
-
-          const toolMessage: OpenAI.ChatCompletionToolMessageParam = {
-            role: "tool",
-            tool_call_id: toolCall.id,
-            content: toolResult.result,
-          };
-          messages.push(toolMessage);
-
-          if (toolResult.actionType && toolResult.actionDescription) {
-            actions.push({ type: toolResult.actionType, description: toolResult.actionDescription });
+          if (assistantMessageContent === null) {
+            const lastText = currentResponse.content
+              .filter((b): b is Anthropic.TextBlock => b.type === "text")
+              .map(b => b.text)
+              .join("\n");
+            assistantMessageContent = lastText || null;
           }
+        } else {
+          assistantMessageContent = textBlocks.map(b => b.text).join("\n") || null;
         }
-
-        const followUp = await chatClient.chat.completions.create({
+      } else {
+        const response = await chatClient.chat.completions.create({
           model: modelToUse,
           messages,
           max_tokens: 800,
           temperature: 0.7,
+          ...(agentTools ? { tools: agentTools } : {}),
         });
 
-        totalPromptTokens += followUp.usage?.prompt_tokens || 0;
-        totalCompletionTokens += followUp.usage?.completion_tokens || 0;
-        assistantMessage = followUp.choices[0]?.message;
+        totalPromptTokens = response.usage?.prompt_tokens || 0;
+        totalCompletionTokens = response.usage?.completion_tokens || 0;
+
+        let assistantMessage = response.choices[0]?.message;
+
+        if (assistantMessage?.tool_calls && assistantMessage.tool_calls.length > 0 && hasActiveRental) {
+          operationType = "tool_call";
+          messages.push(assistantMessage);
+
+          const executedToolSignatures = new Set<string>();
+
+          for (const toolCall of assistantMessage.tool_calls) {
+            const tcFn = (toolCall as unknown as { function: { name: string; arguments: string } }).function;
+            let args: Record<string, unknown>;
+            try {
+              args = JSON.parse(tcFn.arguments);
+            } catch {
+              const toolMessage: OpenAI.ChatCompletionToolMessageParam = {
+                role: "tool",
+                tool_call_id: toolCall.id,
+                content: `[Error] Failed to parse arguments for ${tcFn.name}. Invalid JSON received.`,
+              };
+              messages.push(toolMessage);
+              continue;
+            }
+
+            const toolSignature = `${tcFn.name}:${JSON.stringify(args, Object.keys(args).sort())}`;
+            if (executedToolSignatures.has(toolSignature)) {
+              const toolMessage: OpenAI.ChatCompletionToolMessageParam = {
+                role: "tool",
+                tool_call_id: toolCall.id,
+                content: `[Skipped] This exact action (${tcFn.name}) was already executed with the same parameters in this request. See the previous result above.`,
+              };
+              messages.push(toolMessage);
+              actions.push({ type: "tool_dedup", description: `⏭️ Skipped duplicate ${tcFn.name} call` });
+              if (req.session.userId) {
+                await storage.createAgentAction({
+                  userId: req.session.userId,
+                  agentType,
+                  actionType: "tool_dedup",
+                  description: `Skipped duplicate ${tcFn.name} call`,
+                  metadata: { toolName: tcFn.name, args },
+                });
+              }
+              continue;
+            }
+            executedToolSignatures.add(toolSignature);
+
+            const toolResult = await executeToolCall(
+              tcFn.name,
+              args,
+              req.session.userId!,
+              resolvedAgentType
+            );
+
+            const toolMessage: OpenAI.ChatCompletionToolMessageParam = {
+              role: "tool",
+              tool_call_id: toolCall.id,
+              content: toolResult.result,
+            };
+            messages.push(toolMessage);
+
+            if (toolResult.actionType && toolResult.actionDescription) {
+              actions.push({ type: toolResult.actionType, description: toolResult.actionDescription });
+            }
+          }
+
+          const followUp = await chatClient.chat.completions.create({
+            model: modelToUse,
+            messages,
+            max_tokens: 800,
+            temperature: 0.7,
+          });
+
+          totalPromptTokens += followUp.usage?.prompt_tokens || 0;
+          totalCompletionTokens += followUp.usage?.completion_tokens || 0;
+          assistantMessage = followUp.choices[0]?.message;
+        }
+
+        assistantMessageContent = assistantMessage?.content ?? null;
       }
 
       const totalTokens = totalPromptTokens + totalCompletionTokens;
@@ -1966,9 +2211,10 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
         totalTokens,
         costUsd: costUsd.toFixed(6),
         operationType,
+        aiProvider: useAnthropic ? "anthropic" : "openai",
       }).catch(err => console.error("Token usage log error:", err.message));
 
-      const rawReply = assistantMessage?.content ?? "Sorry, I couldn't generate a response. Please try again.";
+      const rawReply = assistantMessageContent ?? "Sorry, I couldn't generate a response. Please try again.";
       const sanitized = sanitizeOutput(rawReply, resolvedAgentType);
       let reply = addWatermark(sanitized, req.session.userId || null, clientIp);
 
@@ -3382,13 +3628,17 @@ ${SYSTEM_SECRECY}`;
 
   app.post(`/api/${ADMIN_PATH}/agent-collaboration`, requireAdmin, async (req, res) => {
     try {
-      const { topic, selectedAgents } = req.body;
+      const { topic, selectedAgents, provider: requestedProvider } = req.body;
       if (!topic || typeof topic !== "string") {
         return res.status(400).json({ error: "Topic is required" });
       }
       if (topic.length > 500) {
         return res.status(400).json({ error: "Topic must be under 500 characters" });
       }
+
+      const collabProvider: "openai" | "anthropic" = (requestedProvider === "anthropic" && anthropicClient) ? "anthropic" : "openai";
+      const agentModel = collabProvider === "anthropic" ? "claude-3-haiku-20240307" : "gpt-4o-mini";
+      const synthesisModel = collabProvider === "anthropic" ? "claude-sonnet-4-20250514" : "gpt-4o";
 
       const agentsToUse = selectedAgents && Array.isArray(selectedAgents) && selectedAgents.length > 0
         ? collaborationAgents.filter(a => selectedAgents.includes(a.slug))
@@ -3411,38 +3661,58 @@ RULES:
 - Format with bullet points for clarity`;
 
         try {
-          const response = await openai.chat.completions.create({
-            model: "gpt-4o-mini",
-            messages: [
-              { role: "system", content: systemPrompt },
-              { role: "user", content: `Team brainstorming topic: "${topic}"\n\nProvide your expert perspective and recommendations.` },
-            ],
-            temperature: 0.8,
-            max_tokens: 500,
-          });
+          let responseText = "";
+          let promptTokens = 0;
+          let completionTokens = 0;
+          let totalTokensUsed = 0;
 
-          const usage = response.usage;
-          let costUsd = 0;
-          if (usage) {
-            costUsd = calculateTokenCost("gpt-4o-mini", usage.prompt_tokens, usage.completion_tokens);
-            await storage.logTokenUsage({
-              userId: null,
-              agentType: agent.slug,
-              model: "gpt-4o-mini",
-              promptTokens: usage.prompt_tokens,
-              completionTokens: usage.completion_tokens,
-              totalTokens: usage.total_tokens,
-              costUsd: costUsd.toFixed(6),
-              operationType: "collaboration",
+          if (collabProvider === "anthropic" && anthropicClient) {
+            const anthropicRes = await anthropicClient.messages.create({
+              model: agentModel,
+              max_tokens: 500,
+              system: systemPrompt,
+              messages: [{ role: "user", content: `Team brainstorming topic: "${topic}"\n\nProvide your expert perspective and recommendations.` }],
+              temperature: 0.8,
             });
+            responseText = anthropicRes.content.filter(b => b.type === "text").map(b => b.text).join("\n") || "";
+            promptTokens = anthropicRes.usage?.input_tokens || 0;
+            completionTokens = anthropicRes.usage?.output_tokens || 0;
+            totalTokensUsed = promptTokens + completionTokens;
+          } else {
+            const response = await openai.chat.completions.create({
+              model: agentModel,
+              messages: [
+                { role: "system", content: systemPrompt },
+                { role: "user", content: `Team brainstorming topic: "${topic}"\n\nProvide your expert perspective and recommendations.` },
+              ],
+              temperature: 0.8,
+              max_tokens: 500,
+            });
+            responseText = response.choices[0]?.message?.content || "";
+            promptTokens = response.usage?.prompt_tokens || 0;
+            completionTokens = response.usage?.completion_tokens || 0;
+            totalTokensUsed = response.usage?.total_tokens || 0;
           }
+
+          const costUsd = calculateTokenCost(agentModel, promptTokens, completionTokens);
+          await storage.logTokenUsage({
+            userId: null,
+            agentType: agent.slug,
+            model: agentModel,
+            promptTokens,
+            completionTokens,
+            totalTokens: totalTokensUsed,
+            costUsd: costUsd.toFixed(6),
+            operationType: "collaboration",
+            aiProvider: collabProvider,
+          });
 
           return {
             slug: agent.slug,
             name: agent.name,
             perspective: agent.perspective,
-            response: response.choices[0]?.message?.content || "",
-            tokens: usage?.total_tokens || 0,
+            response: responseText,
+            tokens: totalTokensUsed,
             cost: costUsd,
           };
         } catch (err: unknown) {
@@ -3471,45 +3741,60 @@ RULES:
           .map(r => `**${r.name}** (${r.perspective}):\n${r.response}`)
           .join("\n\n---\n\n");
 
-        const synthesisResponse = await openai.chat.completions.create({
-          model: "gpt-4o",
-          messages: [
-            {
-              role: "system",
-              content: `You are the Boss AI moderator of a brainstorming session. ${successfulResponses.length} specialist agents have provided their perspectives on a topic. Your job is to:
+        const synthSystemPrompt = `You are the Boss AI moderator of a brainstorming session. ${successfulResponses.length} specialist agents have provided their perspectives on a topic. Your job is to:
 1. Synthesize all perspectives into a unified strategic recommendation
 2. Highlight the strongest ideas and common themes
 3. Identify potential conflicts or trade-offs between perspectives
 4. Provide a prioritized action plan (top 3-5 steps)
 5. Respond in the same language as the original topic
 
-Be decisive and actionable. Format with clear sections.`,
-            },
-            {
-              role: "user",
-              content: `Topic: "${topic}"\n\nAgent Perspectives:\n\n${perspectivesSummary}\n\nProvide a unified synthesis and action plan.`,
-            },
-          ],
-          temperature: 0.7,
-          max_tokens: 1000,
-        });
+Be decisive and actionable. Format with clear sections.`;
+        const synthUserMsg = `Topic: "${topic}"\n\nAgent Perspectives:\n\n${perspectivesSummary}\n\nProvide a unified synthesis and action plan.`;
 
-        synthesis = synthesisResponse.choices[0]?.message?.content || "";
-        const synthUsage = synthesisResponse.usage;
-        if (synthUsage) {
-          synthesisCost = calculateTokenCost("gpt-4o", synthUsage.prompt_tokens, synthUsage.completion_tokens);
-          synthesisTokens = synthUsage.total_tokens;
-          await storage.logTokenUsage({
-            userId: null,
-            agentType: "boss-collaboration",
-            model: "gpt-4o",
-            promptTokens: synthUsage.prompt_tokens,
-            completionTokens: synthUsage.completion_tokens,
-            totalTokens: synthUsage.total_tokens,
-            costUsd: synthesisCost.toFixed(6),
-            operationType: "collaboration",
+        let synthPromptTokens = 0;
+        let synthCompletionTokens = 0;
+
+        if (collabProvider === "anthropic" && anthropicClient) {
+          const synthRes = await anthropicClient.messages.create({
+            model: synthesisModel,
+            max_tokens: 1000,
+            system: synthSystemPrompt,
+            messages: [{ role: "user", content: synthUserMsg }],
+            temperature: 0.7,
           });
+          synthesis = synthRes.content.filter(b => b.type === "text").map(b => b.text).join("\n") || "";
+          synthPromptTokens = synthRes.usage?.input_tokens || 0;
+          synthCompletionTokens = synthRes.usage?.output_tokens || 0;
+          synthesisTokens = synthPromptTokens + synthCompletionTokens;
+        } else {
+          const synthesisResponse = await openai.chat.completions.create({
+            model: synthesisModel,
+            messages: [
+              { role: "system", content: synthSystemPrompt },
+              { role: "user", content: synthUserMsg },
+            ],
+            temperature: 0.7,
+            max_tokens: 1000,
+          });
+          synthesis = synthesisResponse.choices[0]?.message?.content || "";
+          const synthUsage = synthesisResponse.usage;
+          synthPromptTokens = synthUsage?.prompt_tokens || 0;
+          synthCompletionTokens = synthUsage?.completion_tokens || 0;
+          synthesisTokens = synthUsage?.total_tokens || 0;
         }
+
+        synthesisCost = calculateTokenCost(synthesisModel, synthPromptTokens, synthCompletionTokens);
+        await storage.logTokenUsage({
+          userId: null,
+          agentType: "boss-collaboration",
+          model: synthesisModel,
+          promptTokens: synthPromptTokens,
+          completionTokens: synthCompletionTokens,
+          totalTokens: synthesisTokens,
+          costUsd: synthesisCost.toFixed(6),
+          operationType: "collaboration",
+          aiProvider: collabProvider,
+        });
       }
 
       const totalCost = agentResponses.reduce((sum, r) => sum + r.cost, 0) + synthesisCost;
@@ -3660,6 +3945,46 @@ Be decisive and actionable. Format with clear sections.`,
         WHERE operation_type = 'collaboration'
       `);
 
+      const byProviderResult = await db.execute(sql`
+        SELECT 
+          ai_provider,
+          COUNT(*)::int as total_requests,
+          COALESCE(SUM(CAST(cost_usd AS DECIMAL(10,6))),0)::text as total_cost,
+          COALESCE(SUM(total_tokens),0)::bigint as total_tokens,
+          COALESCE(SUM(prompt_tokens),0)::bigint as prompt_tokens,
+          COALESCE(SUM(completion_tokens),0)::bigint as completion_tokens,
+          COUNT(DISTINCT user_id)::int as unique_users,
+          COALESCE(AVG(CAST(cost_usd AS DECIMAL(10,6))),0)::text as avg_cost_per_request
+        FROM token_usage
+        GROUP BY ai_provider
+        ORDER BY total_cost DESC
+      `);
+
+      const providerByAgentResult = await db.execute(sql`
+        SELECT 
+          ai_provider,
+          agent_type,
+          COUNT(*)::int as total_requests,
+          COALESCE(SUM(CAST(cost_usd AS DECIMAL(10,6))),0)::text as total_cost,
+          COALESCE(SUM(total_tokens),0)::bigint as total_tokens,
+          COALESCE(AVG(CAST(cost_usd AS DECIMAL(10,6))),0)::text as avg_cost_per_request
+        FROM token_usage
+        GROUP BY ai_provider, agent_type
+        ORDER BY ai_provider, total_cost DESC
+      `);
+
+      const providerDailyResult = await db.execute(sql`
+        SELECT 
+          ai_provider,
+          DATE(created_at)::text as day,
+          COUNT(*)::int as requests,
+          COALESCE(SUM(CAST(cost_usd AS DECIMAL(10,6))),0)::text as cost
+        FROM token_usage
+        WHERE created_at > NOW() - INTERVAL '30 days'
+        GROUP BY ai_provider, DATE(created_at)
+        ORDER BY day DESC, ai_provider
+      `);
+
       res.json({
         overall: overallResult.rows[0] || {},
         perAgent: perAgentResult.rows,
@@ -3668,6 +3993,9 @@ Be decisive and actionable. Format with clear sections.`,
         dailyTrend: dailyTrendResult.rows,
         perAgentDaily: perAgentDailyResult.rows,
         collaboration: collaborationResult.rows[0] || {},
+        byProvider: byProviderResult.rows,
+        providerByAgent: providerByAgentResult.rows,
+        providerDaily: providerDailyResult.rows,
       });
     } catch (error: unknown) {
       const errMsg = error instanceof Error ? error.message : String(error);
@@ -3675,12 +4003,240 @@ Be decisive and actionable. Format with clear sections.`,
     }
   });
 
+  app.post(`/api/${ADMIN_PATH}/ab-test`, requireAdmin, async (req, res) => {
+    try {
+      const { prompt, agentType, systemPrompt } = req.body;
+      if (!prompt || typeof prompt !== "string") {
+        return res.status(400).json({ error: "Prompt is required" });
+      }
+      if (prompt.length > 1000) {
+        return res.status(400).json({ error: "Prompt must be under 1000 characters" });
+      }
+
+      const sysPrompt = systemPrompt || `You are a helpful AI assistant${agentType ? ` specializing in ${agentType}` : ""}. Be concise, clear, and actionable. Respond in the same language as the user.`;
+
+      const results: { provider: string; model: string; response: string; tokens: number; cost: number; latencyMs: number; error?: string }[] = [];
+
+      const openaiStart = Date.now();
+      try {
+        const openaiRes = await openai.chat.completions.create({
+          model: "gpt-4o",
+          messages: [
+            { role: "system", content: sysPrompt },
+            { role: "user", content: prompt },
+          ],
+          temperature: 0.7,
+          max_tokens: 1000,
+        });
+        const openaiLatency = Date.now() - openaiStart;
+        const usage = openaiRes.usage;
+        const cost = usage ? calculateTokenCost("gpt-4o", usage.prompt_tokens, usage.completion_tokens) : 0;
+        if (usage) {
+          await storage.logTokenUsage({
+            userId: null,
+            agentType: agentType || "ab-test",
+            model: "gpt-4o",
+            promptTokens: usage.prompt_tokens,
+            completionTokens: usage.completion_tokens,
+            totalTokens: usage.total_tokens,
+            costUsd: cost.toFixed(6),
+            operationType: "ab-test",
+            aiProvider: "openai",
+          });
+        }
+        results.push({
+          provider: "openai",
+          model: "gpt-4o",
+          response: openaiRes.choices[0]?.message?.content || "",
+          tokens: usage?.total_tokens || 0,
+          cost,
+          latencyMs: openaiLatency,
+        });
+      } catch (err: unknown) {
+        results.push({
+          provider: "openai",
+          model: "gpt-4o",
+          response: "",
+          tokens: 0,
+          cost: 0,
+          latencyMs: Date.now() - openaiStart,
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
+
+      if (anthropicClient) {
+        const anthropicStart = Date.now();
+        try {
+          const anthropicRes = await anthropicClient.messages.create({
+            model: "claude-sonnet-4-20250514",
+            max_tokens: 1000,
+            system: sysPrompt,
+            messages: [{ role: "user", content: prompt }],
+            temperature: 0.7,
+          });
+          const anthropicLatency = Date.now() - anthropicStart;
+          const promptTkns = anthropicRes.usage?.input_tokens || 0;
+          const completionTkns = anthropicRes.usage?.output_tokens || 0;
+          const totalTkns = promptTkns + completionTkns;
+          const cost = calculateTokenCost("claude-sonnet-4-20250514", promptTkns, completionTkns);
+          await storage.logTokenUsage({
+            userId: null,
+            agentType: agentType || "ab-test",
+            model: "claude-sonnet-4-20250514",
+            promptTokens: promptTkns,
+            completionTokens: completionTkns,
+            totalTokens: totalTkns,
+            costUsd: cost.toFixed(6),
+            operationType: "ab-test",
+            aiProvider: "anthropic",
+          });
+          results.push({
+            provider: "anthropic",
+            model: "claude-sonnet-4-20250514",
+            response: anthropicRes.content.filter(b => b.type === "text").map(b => b.text).join("\n") || "",
+            tokens: totalTkns,
+            cost,
+            latencyMs: anthropicLatency,
+          });
+        } catch (err: unknown) {
+          results.push({
+            provider: "anthropic",
+            model: "claude-sonnet-4-20250514",
+            response: "",
+            tokens: 0,
+            cost: 0,
+            latencyMs: Date.now() - anthropicStart,
+            error: err instanceof Error ? err.message : String(err),
+          });
+        }
+      } else {
+        results.push({
+          provider: "anthropic",
+          model: "claude-sonnet-4-20250514",
+          response: "",
+          tokens: 0,
+          cost: 0,
+          latencyMs: 0,
+          error: "Anthropic API key not configured",
+        });
+      }
+
+      res.json({ prompt, results });
+    } catch (error: unknown) {
+      const errMsg = error instanceof Error ? error.message : String(error);
+      console.error("AB test error:", errMsg);
+      console.error(errMsg); res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  async function executeBossTool(toolName: string, args: Record<string, unknown>): Promise<string> {
+    let toolResult = "";
+    switch (toolName) {
+      case "query_platform_stats": {
+        const cat = args.category;
+        if (cat === "users" || cat === "all") {
+          const r = await db.execute(sql`SELECT COUNT(*)::int as total, COUNT(CASE WHEN created_at > NOW() - INTERVAL '7 days' THEN 1 END)::int as new_this_week, COUNT(CASE WHEN created_at > NOW() - INTERVAL '30 days' THEN 1 END)::int as new_this_month FROM users`);
+          toolResult += `Users: ${JSON.stringify(r.rows[0])}\n`;
+        }
+        if (cat === "rentals" || cat === "all") {
+          const r = await db.execute(sql`SELECT status, COUNT(*)::int as count, array_agg(DISTINCT agent_type) as agents FROM rentals GROUP BY status`);
+          toolResult += `Rentals: ${JSON.stringify(r.rows)}\n`;
+        }
+        if (cat === "costs" || cat === "all") {
+          const r = await db.execute(sql`SELECT model, COUNT(*)::int as requests, COALESCE(SUM(CAST(cost_usd AS DECIMAL(10,6))),0)::text as total_cost, COALESCE(SUM(total_tokens),0)::bigint as tokens FROM token_usage GROUP BY model ORDER BY total_cost DESC`);
+          toolResult += `Costs by model: ${JSON.stringify(r.rows)}\n`;
+        }
+        break;
+      }
+      case "query_agent_performance": {
+        const at = args.agentType;
+        if (at === "all") {
+          const r = await db.execute(sql`SELECT r.agent_type, COUNT(r.id)::int as rentals, SUM(r.messages_used)::int as messages, COUNT(DISTINCT r.user_id)::int as unique_users FROM rentals r WHERE r.status = 'active' GROUP BY r.agent_type ORDER BY rentals DESC`);
+          toolResult = JSON.stringify(r.rows);
+        } else {
+          const r = await db.execute(sql`SELECT r.agent_type, COUNT(r.id)::int as rentals, SUM(r.messages_used)::int as messages, COUNT(DISTINCT r.user_id)::int as unique_users, AVG(r.messages_used)::int as avg_messages FROM rentals r WHERE r.agent_type = ${at} AND r.status = 'active' GROUP BY r.agent_type`);
+          const actions = await db.execute(sql`SELECT action_type, COUNT(*)::int as count FROM agent_actions WHERE agent_type = ${at} GROUP BY action_type ORDER BY count DESC LIMIT 10`);
+          toolResult = JSON.stringify({ performance: r.rows[0] || {}, topActions: actions.rows });
+        }
+        break;
+      }
+      case "query_agent_usage": {
+        const agentSlug = args.agentType;
+        if (agentSlug === "all") {
+          const r = await db.execute(sql`
+            SELECT r.agent_type, COUNT(r.id)::int as total_rentals, COUNT(CASE WHEN r.status='active' THEN 1 END)::int as active_rentals,
+                   SUM(r.messages_used)::int as total_messages, SUM(r.messages_limit)::int as total_limit,
+                   COUNT(DISTINCT r.user_id)::int as unique_users, ROUND(AVG(r.messages_used)::numeric, 1)::text as avg_messages_per_rental
+            FROM rentals r GROUP BY r.agent_type ORDER BY active_rentals DESC`);
+          toolResult = JSON.stringify(r.rows);
+        } else {
+          const r = await db.execute(sql`
+            SELECT r.agent_type, COUNT(r.id)::int as total_rentals, COUNT(CASE WHEN r.status='active' THEN 1 END)::int as active_rentals,
+                   SUM(r.messages_used)::int as total_messages, SUM(r.messages_limit)::int as total_limit,
+                   COUNT(DISTINCT r.user_id)::int as unique_users, ROUND(AVG(r.messages_used)::numeric, 1)::text as avg_messages_per_rental
+            FROM rentals r WHERE r.agent_type = ${agentSlug} GROUP BY r.agent_type`);
+          const costR = await db.execute(sql`
+            SELECT COALESCE(SUM(CAST(cost_usd AS DECIMAL(10,6))),0)::text as total_cost, COUNT(*)::int as api_calls 
+            FROM token_usage WHERE agent_type = ${agentSlug}`);
+          toolResult = JSON.stringify({ usage: r.rows[0] || {}, costs: costR.rows[0] || {} });
+        }
+        break;
+      }
+      case "query_recent_activity": {
+        const limit = args.limit || 10;
+        const recentUsers = await db.execute(sql`SELECT email, full_name, created_at FROM users ORDER BY created_at DESC LIMIT ${limit}`);
+        const recentActions = await db.execute(sql`SELECT agent_type, action_type, created_at FROM agent_actions ORDER BY created_at DESC LIMIT ${limit}`);
+        let recentMsgs: { rows: Record<string, unknown>[] } = { rows: [] };
+        try { recentMsgs = await db.execute(sql`SELECT agent_type, role, content, created_at FROM chat_messages ORDER BY created_at DESC LIMIT ${limit}`); } catch {}
+        toolResult = JSON.stringify({ recentUsers: recentUsers.rows, recentActions: recentActions.rows, recentMessages: recentMsgs.rows });
+        break;
+      }
+      case "query_cost_breakdown": {
+        const groupBy = args.groupBy;
+        if (groupBy === "model") {
+          const r = await db.execute(sql`SELECT model, COUNT(*)::int as requests, COALESCE(SUM(CAST(cost_usd AS DECIMAL(10,6))),0)::text as cost, COALESCE(SUM(total_tokens),0)::bigint as tokens FROM token_usage GROUP BY model`);
+          toolResult = JSON.stringify(r.rows);
+        } else if (groupBy === "agent") {
+          const r = await db.execute(sql`SELECT agent_type, COUNT(*)::int as requests, COALESCE(SUM(CAST(cost_usd AS DECIMAL(10,6))),0)::text as cost FROM token_usage GROUP BY agent_type ORDER BY cost DESC`);
+          toolResult = JSON.stringify(r.rows);
+        } else {
+          const r = await db.execute(sql`SELECT DATE(created_at)::text as day, COUNT(*)::int as requests, COALESCE(SUM(CAST(cost_usd AS DECIMAL(10,6))),0)::text as cost FROM token_usage GROUP BY DATE(created_at) ORDER BY day DESC LIMIT 30`);
+          toolResult = JSON.stringify(r.rows);
+        }
+        break;
+      }
+      case "get_system_health": {
+        const dbCheck = await db.execute(sql`SELECT 1 as ok`);
+        const dbConnected = dbCheck.rows.length > 0;
+        const tableCountsR = await db.execute(sql`
+          SELECT (SELECT COUNT(*)::int FROM users) as users_count, (SELECT COUNT(*)::int FROM rentals) as rentals_count,
+                 (SELECT COUNT(*)::int FROM agent_actions) as actions_count, (SELECT COUNT(*)::int FROM token_usage) as token_usage_count,
+                 (SELECT COUNT(*)::int FROM information_schema.tables WHERE table_name='chat_messages' AND table_schema='public') as chat_messages_exists,
+                 (SELECT COUNT(*)::int FROM boss_conversations) as boss_conversations_count,
+                 (SELECT COUNT(*)::int FROM support_tickets WHERE status IN ('open','in_progress')) as open_tickets`);
+        const recentErrorsR = await db.execute(sql`SELECT agent_type, model, created_at FROM token_usage WHERE total_tokens = 0 ORDER BY created_at DESC LIMIT 5`);
+        const uptimeSeconds = process.uptime();
+        toolResult = JSON.stringify({
+          database: dbConnected ? "connected" : "disconnected",
+          uptime: `${Math.floor(uptimeSeconds / 3600)}h ${Math.floor((uptimeSeconds % 3600) / 60)}m`,
+          tableCounts: tableCountsR.rows[0] || {},
+          recentZeroTokenRequests: recentErrorsR.rows,
+          memoryUsage: `${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)}MB`,
+          nodeVersion: process.version,
+        });
+        break;
+      }
+    }
+    return toolResult;
+  }
+
   app.post(`/api/${ADMIN_PATH}/boss-chat`, requireAdmin, async (req, res) => {
     try {
-      const { message, conversationHistory } = req.body;
+      const { message, conversationHistory, provider: requestedProvider } = req.body;
       if (!message) {
         return res.status(400).json({ error: "Message is required" });
       }
+      const bossProvider: "openai" | "anthropic" = (requestedProvider === "anthropic" && anthropicClient) ? "anthropic" : "openai";
 
       const [usersResult, rentalsResult, costResult, ticketsResult, leadsResult, campaignsResult] = await Promise.all([
         db.execute(sql`SELECT COUNT(*)::int as total FROM users`),
@@ -3810,8 +4366,80 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
         { role: "user", content: message },
       ];
 
+      const bossModel = bossProvider === "anthropic" ? "claude-sonnet-4-20250514" : "gpt-4o";
+
+      if (bossProvider === "anthropic" && anthropicClient) {
+        const anthropicBossTools = convertToolsToAnthropic(bossTools);
+        const { system: anthropicSystem, messages: anthropicMessages } = convertMessagesToAnthropic(messages);
+        const conversationMessages: Anthropic.MessageParam[] = [...anthropicMessages];
+
+        let anthropicRes = await anthropicClient.messages.create({
+          model: bossModel,
+          max_tokens: 2000,
+          system: anthropicSystem,
+          messages: conversationMessages,
+          tools: anthropicBossTools,
+          temperature: 0.7,
+        });
+
+        let reply = anthropicRes.content.filter(b => b.type === "text").map(b => b.text).join("\n") || "";
+        let toolsUsed = false;
+        let totalInputTokens = anthropicRes.usage?.input_tokens || 0;
+        let totalOutputTokens = anthropicRes.usage?.output_tokens || 0;
+
+        for (let iter = 0; iter < 5 && anthropicRes.stop_reason === "tool_use"; iter++) {
+          toolsUsed = true;
+          const toolUseBlocks = anthropicRes.content.filter(b => b.type === "tool_use");
+          const toolResultBlocks: Anthropic.ToolResultBlockParam[] = [];
+
+          for (const toolUse of toolUseBlocks) {
+            if (toolUse.type !== "tool_use") continue;
+            let toolResult = "";
+            try {
+              const args = toolUse.input as Record<string, unknown>;
+              toolResult = await executeBossTool(toolUse.name, args);
+            } catch (err: unknown) {
+              toolResult = `Error: ${err instanceof Error ? err.message : String(err)}`;
+            }
+            toolResultBlocks.push({ type: "tool_result", tool_use_id: toolUse.id, content: toolResult });
+          }
+
+          conversationMessages.push({ role: "assistant", content: anthropicRes.content });
+          conversationMessages.push({ role: "user", content: toolResultBlocks });
+
+          anthropicRes = await anthropicClient.messages.create({
+            model: bossModel,
+            max_tokens: 2000,
+            system: anthropicSystem,
+            messages: conversationMessages,
+            tools: anthropicBossTools,
+            temperature: 0.7,
+          });
+
+          totalInputTokens += anthropicRes.usage?.input_tokens || 0;
+          totalOutputTokens += anthropicRes.usage?.output_tokens || 0;
+          reply = anthropicRes.content.filter(b => b.type === "text").map(b => b.text).join("\n") || reply;
+        }
+
+        const bossTotalTokens = totalInputTokens + totalOutputTokens;
+        const bossCost = calculateTokenCost(bossModel, totalInputTokens, totalOutputTokens);
+        storage.logTokenUsage({
+          userId: null,
+          agentType: "boss-ai",
+          model: bossModel,
+          promptTokens: totalInputTokens,
+          completionTokens: totalOutputTokens,
+          totalTokens: bossTotalTokens,
+          costUsd: bossCost.toFixed(6),
+          operationType: "boss-chat",
+          aiProvider: "anthropic",
+        }).catch(err => console.error("Boss AI token log error:", err.message));
+
+        return res.json({ reply: reply || "Veri alındı ancak yanıt oluşturulamadı.", toolsUsed, provider: "anthropic" });
+      }
+
       const response = await openai.chat.completions.create({
-        model: "gpt-4o",
+        model: bossModel,
         messages,
         tools: bossTools,
         tool_choice: "auto",
@@ -3830,134 +4458,12 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
         for (const toolCall of assistantMessage.tool_calls) {
           const tcFn = (toolCall as unknown as { function: { name: string; arguments: string } }).function;
           let toolResult = "";
-
           try {
             const args = JSON.parse(tcFn.arguments || "{}") as Record<string, unknown>;
-            switch (tcFn.name) {
-              case "query_platform_stats": {
-                const cat = args.category;
-                if (cat === "users" || cat === "all") {
-                  const r = await db.execute(sql`SELECT COUNT(*)::int as total, COUNT(CASE WHEN created_at > NOW() - INTERVAL '7 days' THEN 1 END)::int as new_this_week, COUNT(CASE WHEN created_at > NOW() - INTERVAL '30 days' THEN 1 END)::int as new_this_month FROM users`);
-                  toolResult += `Users: ${JSON.stringify(r.rows[0])}\n`;
-                }
-                if (cat === "rentals" || cat === "all") {
-                  const r = await db.execute(sql`SELECT status, COUNT(*)::int as count, array_agg(DISTINCT agent_type) as agents FROM rentals GROUP BY status`);
-                  toolResult += `Rentals: ${JSON.stringify(r.rows)}\n`;
-                }
-                if (cat === "costs" || cat === "all") {
-                  const r = await db.execute(sql`SELECT model, COUNT(*)::int as requests, COALESCE(SUM(CAST(cost_usd AS DECIMAL(10,6))),0)::text as total_cost, COALESCE(SUM(total_tokens),0)::bigint as tokens FROM token_usage GROUP BY model ORDER BY total_cost DESC`);
-                  toolResult += `Costs by model: ${JSON.stringify(r.rows)}\n`;
-                }
-                break;
-              }
-              case "query_agent_performance": {
-                const at = args.agentType;
-                if (at === "all") {
-                  const r = await db.execute(sql`SELECT r.agent_type, COUNT(r.id)::int as rentals, SUM(r.messages_used)::int as messages, COUNT(DISTINCT r.user_id)::int as unique_users FROM rentals r WHERE r.status = 'active' GROUP BY r.agent_type ORDER BY rentals DESC`);
-                  toolResult = JSON.stringify(r.rows);
-                } else {
-                  const r = await db.execute(sql`SELECT r.agent_type, COUNT(r.id)::int as rentals, SUM(r.messages_used)::int as messages, COUNT(DISTINCT r.user_id)::int as unique_users, AVG(r.messages_used)::int as avg_messages FROM rentals r WHERE r.agent_type = ${at} AND r.status = 'active' GROUP BY r.agent_type`);
-                  const actions = await db.execute(sql`SELECT action_type, COUNT(*)::int as count FROM agent_actions WHERE agent_type = ${at} GROUP BY action_type ORDER BY count DESC LIMIT 10`);
-                  toolResult = JSON.stringify({ performance: r.rows[0] || {}, topActions: actions.rows });
-                }
-                break;
-              }
-              case "query_agent_usage": {
-                const agentSlug = args.agentType;
-                if (agentSlug === "all") {
-                  const r = await db.execute(sql`
-                    SELECT r.agent_type, 
-                           COUNT(r.id)::int as total_rentals, 
-                           COUNT(CASE WHEN r.status='active' THEN 1 END)::int as active_rentals,
-                           SUM(r.messages_used)::int as total_messages, 
-                           SUM(r.messages_limit)::int as total_limit,
-                           COUNT(DISTINCT r.user_id)::int as unique_users,
-                           ROUND(AVG(r.messages_used)::numeric, 1)::text as avg_messages_per_rental
-                    FROM rentals r
-                    GROUP BY r.agent_type ORDER BY active_rentals DESC`);
-                  toolResult = JSON.stringify(r.rows);
-                } else {
-                  const r = await db.execute(sql`
-                    SELECT r.agent_type, 
-                           COUNT(r.id)::int as total_rentals, 
-                           COUNT(CASE WHEN r.status='active' THEN 1 END)::int as active_rentals,
-                           SUM(r.messages_used)::int as total_messages, 
-                           SUM(r.messages_limit)::int as total_limit,
-                           COUNT(DISTINCT r.user_id)::int as unique_users,
-                           ROUND(AVG(r.messages_used)::numeric, 1)::text as avg_messages_per_rental
-                    FROM rentals r WHERE r.agent_type = ${agentSlug}
-                    GROUP BY r.agent_type`);
-                  const costR = await db.execute(sql`
-                    SELECT COALESCE(SUM(CAST(cost_usd AS DECIMAL(10,6))),0)::text as total_cost, 
-                           COUNT(*)::int as api_calls 
-                    FROM token_usage WHERE agent_type = ${agentSlug}`);
-                  toolResult = JSON.stringify({ usage: r.rows[0] || {}, costs: costR.rows[0] || {} });
-                }
-                break;
-              }
-              case "query_recent_activity": {
-                const limit = args.limit || 10;
-                const recentUsers = await db.execute(sql`SELECT email, full_name, created_at FROM users ORDER BY created_at DESC LIMIT ${limit}`);
-                const recentActions = await db.execute(sql`SELECT agent_type, action_type, created_at FROM agent_actions ORDER BY created_at DESC LIMIT ${limit}`);
-                let recentMsgs: { rows: Record<string, unknown>[] } = { rows: [] };
-                try {
-                  recentMsgs = await db.execute(sql`SELECT agent_type, role, content, created_at FROM chat_messages ORDER BY created_at DESC LIMIT ${limit}`);
-                } catch {}
-                toolResult = JSON.stringify({ recentUsers: recentUsers.rows, recentActions: recentActions.rows, recentMessages: recentMsgs.rows });
-                break;
-              }
-              case "query_cost_breakdown": {
-                const groupBy = args.groupBy;
-                if (groupBy === "model") {
-                  const r = await db.execute(sql`SELECT model, COUNT(*)::int as requests, COALESCE(SUM(CAST(cost_usd AS DECIMAL(10,6))),0)::text as cost, COALESCE(SUM(total_tokens),0)::bigint as tokens FROM token_usage GROUP BY model`);
-                  toolResult = JSON.stringify(r.rows);
-                } else if (groupBy === "agent") {
-                  const r = await db.execute(sql`SELECT agent_type, COUNT(*)::int as requests, COALESCE(SUM(CAST(cost_usd AS DECIMAL(10,6))),0)::text as cost FROM token_usage GROUP BY agent_type ORDER BY cost DESC`);
-                  toolResult = JSON.stringify(r.rows);
-                } else {
-                  const r = await db.execute(sql`SELECT DATE(created_at)::text as day, COUNT(*)::int as requests, COALESCE(SUM(CAST(cost_usd AS DECIMAL(10,6))),0)::text as cost FROM token_usage GROUP BY DATE(created_at) ORDER BY day DESC LIMIT 30`);
-                  toolResult = JSON.stringify(r.rows);
-                }
-                break;
-              }
-              case "get_system_health": {
-                const dbCheck = await db.execute(sql`SELECT 1 as ok`);
-                const dbConnected = dbCheck.rows.length > 0;
-                const tableCountsR = await db.execute(sql`
-                  SELECT 
-                    (SELECT COUNT(*)::int FROM users) as users_count,
-                    (SELECT COUNT(*)::int FROM rentals) as rentals_count,
-                    (SELECT COUNT(*)::int FROM agent_actions) as actions_count,
-                    (SELECT COUNT(*)::int FROM token_usage) as token_usage_count,
-                    (SELECT COUNT(*)::int FROM information_schema.tables WHERE table_name='chat_messages' AND table_schema='public') as chat_messages_exists,
-                    (SELECT COUNT(*)::int FROM boss_conversations) as boss_conversations_count,
-                    (SELECT COUNT(*)::int FROM support_tickets WHERE status IN ('open','in_progress')) as open_tickets
-                `);
-                const recentErrorsR = await db.execute(sql`
-                  SELECT agent_type, model, created_at 
-                  FROM token_usage 
-                  WHERE total_tokens = 0 
-                  ORDER BY created_at DESC LIMIT 5
-                `);
-                const uptimeSeconds = process.uptime();
-                const uptimeHours = Math.floor(uptimeSeconds / 3600);
-                const uptimeMinutes = Math.floor((uptimeSeconds % 3600) / 60);
-                toolResult = JSON.stringify({
-                  database: dbConnected ? "connected" : "disconnected",
-                  uptime: `${uptimeHours}h ${uptimeMinutes}m`,
-                  tableCounts: tableCountsR.rows[0] || {},
-                  recentZeroTokenRequests: recentErrorsR.rows,
-                  memoryUsage: `${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)}MB`,
-                  nodeVersion: process.version,
-                });
-                break;
-              }
-            }
+            toolResult = await executeBossTool(tcFn.name, args);
           } catch (err: unknown) {
-            const errMsg = err instanceof Error ? err.message : String(err);
-            toolResult = `Error: ${errMsg}`;
+            toolResult = `Error: ${err instanceof Error ? err.message : String(err)}`;
           }
-
           toolResults.push({
             role: "tool" as const,
             tool_call_id: toolCall.id,
@@ -3975,7 +4481,7 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
         reply = followUp.choices[0]?.message?.content || "Veri alındı ancak yanıt oluşturulamadı.";
       }
 
-      res.json({ reply, toolsUsed: !!(assistantMessage?.tool_calls?.length) });
+      res.json({ reply, toolsUsed: !!(assistantMessage?.tool_calls?.length), provider: "openai" });
     } catch (error: unknown) {
       const errMsg = error instanceof Error ? error.message : String(error);
       console.error("Boss chat error:", errMsg);
@@ -4273,6 +4779,61 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
       res.json(result);
     } catch (error: unknown) {
       console.error("Update global instructions error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.get(`/api/${ADMIN_PATH}/ai-provider`, requireAdmin, async (_req, res) => {
+    try {
+      const defaultProvider = await storage.getSystemSetting("default_ai_provider") || "openai";
+      const agentProviders: Record<string, string> = {};
+      const agentSlugs = [
+        "customer-support", "sales-sdr", "social-media", "bookkeeping",
+        "scheduling", "hr-recruiting", "data-analyst", "ecommerce-ops",
+        "real-estate", "manager"
+      ];
+      for (const slug of agentSlugs) {
+        const val = await storage.getSystemSetting(`ai_provider_${slug}`);
+        if (val) agentProviders[slug] = val;
+      }
+      res.json({
+        defaultProvider,
+        agentProviders,
+        anthropicConfigured: !!process.env.ANTHROPIC_API_KEY,
+      });
+    } catch (error: unknown) {
+      console.error("Get AI provider error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.put(`/api/${ADMIN_PATH}/ai-provider`, requireAdmin, async (req, res) => {
+    try {
+      const validProviders = ["openai", "anthropic"];
+      const validAgentSlugs = new Set([
+        "customer-support", "sales-sdr", "social-media", "bookkeeping",
+        "scheduling", "hr-recruiting", "data-analyst", "ecommerce-ops",
+        "real-estate", "manager"
+      ]);
+      const { defaultProvider, agentProviders } = req.body;
+      if (defaultProvider && validProviders.includes(defaultProvider)) {
+        await storage.setSystemSetting("default_ai_provider", defaultProvider);
+      }
+      if (agentProviders && typeof agentProviders === "object") {
+        for (const [agentSlug, provider] of Object.entries(agentProviders)) {
+          if (!validAgentSlugs.has(agentSlug)) continue;
+          const prov = provider as string;
+          if (prov === "openai" || prov === "anthropic" || prov === "default") {
+            await storage.setSystemSetting(
+              `ai_provider_${agentSlug}`,
+              prov === "default" ? "" : prov
+            );
+          }
+        }
+      }
+      res.json({ success: true });
+    } catch (error: unknown) {
+      console.error("Update AI provider error:", error);
       res.status(500).json({ error: "Internal server error" });
     }
   });

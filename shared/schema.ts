@@ -94,6 +94,7 @@ export const tokenUsage = pgTable("token_usage", {
   totalTokens: integer("total_tokens").notNull().default(0),
   costUsd: text("cost_usd").notNull().default("0"),
   operationType: text("operation_type").notNull().default("chat"),
+  aiProvider: text("ai_provider").notNull().default("openai"),
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
 });
 

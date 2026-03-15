@@ -55,8 +55,13 @@ The RentAI 24 platform uses a modern web stack. The frontend employs React, Type
 *   **CRM Document Manager:** Settings page has a "CRM Dokuman Yonetimi" section for uploading/managing customer documents (PDF, TXT, CSV, Excel, Word up to 5MB). Files stored as text content in `crm_documents` table with user ownership. Ownership-checked CRUD endpoints.
 *   **Agent Document Handling:** All 9 agents can read and analyze documents uploaded by users in chat. Document content is extracted server-side (`documentParser.ts`) and injected into the user message as `[User attached a document:]` blocks. Agents are instructed via `DOCUMENT_CAPABILITY` shared prompt constant to analyze, summarize, and correct uploaded documents. DataBot has enhanced `FILE ANALYSIS` instructions for CSV/Excel/PDF data analysis (metrics, trends, correlations, statistics). Agents present corrections as markdown tables or code blocks.
 
+*   **Multi-AI Provider Support (Anthropic/Claude):** Alternative AI provider selectable per-agent from admin panel. Anthropic Claude (Sonnet 4, Haiku) supported alongside OpenAI GPT-4o. Provider stored in `system_settings` table (`default_ai_provider`, `ai_provider_{agentSlug}`). `token_usage` table has `ai_provider` column for tracking. Fine-tuned models always use OpenAI. Embeddings remain OpenAI `text-embedding-3-small`. Brainstorming/Boss AI also support Anthropic provider selection. `@anthropic-ai/sdk` package used with conditional initialization via `ANTHROPIC_API_KEY` env var.
+*   **A/B Test Panel:** Admin panel "AI Training" category has an "A/B Test" tab. Sends same prompt to both OpenAI (GPT-4o) and Anthropic (Claude Sonnet 4) simultaneously. Displays side-by-side comparison of responses, latency, token usage, and cost. Optional agent context selection. Endpoint: `POST /api/${ADMIN_PATH}/ab-test`.
+*   **Provider Spend Comparison:** Spend Analysis panel includes "Provider Karsilastirmasi" section showing OpenAI vs Anthropic cost, request, token, and per-agent breakdowns. Data sourced from `ai_provider` column in `token_usage` table.
+
 ## External Dependencies
 *   **OpenAI:** GPT-4o, `text-embedding-3-small` (via Replit AI Integrations)
+*   **Anthropic:** Claude Sonnet 4, Claude 3 Haiku (`@anthropic-ai/sdk`, requires `ANTHROPIC_API_KEY`)
 *   **PostgreSQL (Neon serverless):** Primary database
 *   **Stripe:** Payment processing and billing
 *   **Drizzle ORM:** ORM for PostgreSQL

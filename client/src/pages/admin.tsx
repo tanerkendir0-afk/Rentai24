@@ -11,7 +11,7 @@ import {
   Lock, Brain, Database, Zap, MessageSquare, Mail, DollarSign, AlertTriangle, HelpCircle,
   Users, BarChart3, CreditCard, LogOut, Activity, ShoppingCart, UserCheck,
   Download, FileDown, CheckCircle, XCircle, Filter, Send, Crown, Bot, Loader2,
-  Plus, Clock, ChevronLeft, MoreVertical, History
+  Plus, Clock, ChevronLeft, MoreVertical, History, FlaskConical, ArrowLeftRight
 } from "lucide-react";
 
 const ADMIN_API = `/api/${import.meta.env.VITE_ADMIN_PATH}`;
@@ -1881,6 +1881,7 @@ function CollaborationPanel({ token }: { token: string }) {
   const [progress, setProgress] = useState(0);
   const [sessions, setSessions] = useState<SavedCollabSession[]>([]);
   const [showHistory, setShowHistory] = useState(false);
+  const [collabProvider, setCollabProvider] = useState<string>("openai");
   const { toast } = useToast();
 
   const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
@@ -1947,7 +1948,7 @@ function CollaborationPanel({ token }: { token: string }) {
       const res = await fetch(`${ADMIN_API}/agent-collaboration`, {
         method: "POST",
         headers: { ...headers, "Content-Type": "application/json" },
-        body: JSON.stringify({ topic: topic.trim(), selectedAgents }),
+        body: JSON.stringify({ topic: topic.trim(), selectedAgents, provider: collabProvider }),
       });
       if (!res.ok) {
         const err = await res.json();
@@ -2056,6 +2057,21 @@ function CollaborationPanel({ token }: { token: string }) {
                 {selectedAgents.length === AGENTS.length ? "Deselect All" : "Select All"}
               </button>
             </div>
+          </div>
+          <div className="flex items-center gap-2 mb-2">
+            <label className="text-sm text-gray-400">AI Provider:</label>
+            <Select value={collabProvider} onValueChange={setCollabProvider}>
+              <SelectTrigger className="w-[200px] bg-[#0A0E27] border-[#1E2448] text-white text-xs h-8" data-testid="select-collab-provider">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="openai">OpenAI (GPT-4o)</SelectItem>
+                <SelectItem value="anthropic">Anthropic (Claude)</SelectItem>
+              </SelectContent>
+            </Select>
+            <Badge className={`text-xs ${collabProvider === "anthropic" ? "bg-violet-900/30 text-violet-400 border-violet-800" : "bg-green-900/30 text-green-400 border-green-800"}`}>
+              {collabProvider === "anthropic" ? "Claude Haiku + Sonnet" : "GPT-4o-mini + GPT-4o"}
+            </Badge>
           </div>
           <div className="flex gap-2">
             <Input
@@ -2256,6 +2272,26 @@ interface SpendDaily {
   tokens: string;
 }
 
+interface SpendByProvider {
+  ai_provider: string;
+  total_requests: number;
+  total_cost: string;
+  total_tokens: string;
+  prompt_tokens: string;
+  completion_tokens: string;
+  unique_users: number;
+  avg_cost_per_request: string;
+}
+
+interface SpendProviderByAgent {
+  ai_provider: string;
+  agent_type: string;
+  total_requests: number;
+  total_cost: string;
+  total_tokens: string;
+  avg_cost_per_request: string;
+}
+
 interface SpendData {
   overall: SpendOverall;
   perAgent: SpendPerAgent[];
@@ -2264,6 +2300,9 @@ interface SpendData {
   dailyTrend: SpendDaily[];
   perAgentDaily: { agent_type: string; day: string; requests: number; cost: string }[];
   collaboration: { total_requests: number; total_cost: string; total_tokens: string };
+  byProvider: SpendByProvider[];
+  providerByAgent: SpendProviderByAgent[];
+  providerDaily: { ai_provider: string; day: string; requests: number; cost: string }[];
 }
 
 function SpendAnalysisPanel({ token }: { token: string }) {
@@ -2465,6 +2504,104 @@ function SpendAnalysisPanel({ token }: { token: string }) {
           )}
         </CardContent>
       </Card>
+
+      {data.byProvider && data.byProvider.length > 0 && (
+        <Card className="bg-gradient-to-r from-violet-900/20 to-blue-900/20 border-violet-500/30">
+          <CardHeader>
+            <CardTitle className="text-lg text-white flex items-center gap-2">
+              <ArrowLeftRight className="w-5 h-5 text-violet-400" />
+              Provider Karsilastirmasi (OpenAI vs Anthropic)
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {data.byProvider.map((p) => {
+                const provCost = parseFloat(p.total_cost);
+                const provPct = totalCost > 0 ? ((provCost / totalCost) * 100).toFixed(1) : "0";
+                const isAnthropic = p.ai_provider === "anthropic";
+                return (
+                  <div key={p.ai_provider} className={`p-4 rounded-lg border ${isAnthropic ? "bg-violet-900/20 border-violet-700/50" : "bg-green-900/20 border-green-700/50"}`} data-testid={`provider-card-${p.ai_provider}`}>
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <Badge className={`text-xs ${isAnthropic ? "bg-violet-900/50 text-violet-300 border-violet-700" : "bg-green-900/50 text-green-300 border-green-700"}`}>
+                          {isAnthropic ? "Anthropic" : "OpenAI"}
+                        </Badge>
+                        <span className="text-xs text-gray-400">{provPct}% of total</span>
+                      </div>
+                      <span className={`text-lg font-bold ${isAnthropic ? "text-violet-400" : "text-green-400"}`}>${provCost.toFixed(4)}</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div className="bg-black/20 rounded p-2">
+                        <p className="text-gray-500">Requests</p>
+                        <p className="text-white font-semibold">{p.total_requests.toLocaleString()}</p>
+                      </div>
+                      <div className="bg-black/20 rounded p-2">
+                        <p className="text-gray-500">Tokens</p>
+                        <p className="text-white font-semibold">{parseInt(p.total_tokens).toLocaleString()}</p>
+                      </div>
+                      <div className="bg-black/20 rounded p-2">
+                        <p className="text-gray-500">Avg/Request</p>
+                        <p className="text-white font-semibold">${parseFloat(p.avg_cost_per_request).toFixed(4)}</p>
+                      </div>
+                      <div className="bg-black/20 rounded p-2">
+                        <p className="text-gray-500">Users</p>
+                        <p className="text-white font-semibold">{p.unique_users}</p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {data.providerByAgent && data.providerByAgent.length > 0 && (
+              <div className="mt-4">
+                <h4 className="text-sm font-medium text-gray-300 mb-3">Provider x Agent Detay</h4>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="border-b border-[#1E2448]">
+                        <th className="text-left text-gray-400 pb-2 pr-4">Agent</th>
+                        <th className="text-center text-green-400 pb-2 px-2">OpenAI Cost</th>
+                        <th className="text-center text-green-400 pb-2 px-2">OpenAI Reqs</th>
+                        <th className="text-center text-violet-400 pb-2 px-2">Anthropic Cost</th>
+                        <th className="text-center text-violet-400 pb-2 px-2">Anthropic Reqs</th>
+                        <th className="text-center text-yellow-400 pb-2 px-2">Fark</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(() => {
+                        const agentMap: Record<string, { openai: SpendProviderByAgent | null; anthropic: SpendProviderByAgent | null }> = {};
+                        data.providerByAgent.forEach((r) => {
+                          if (!agentMap[r.agent_type]) agentMap[r.agent_type] = { openai: null, anthropic: null };
+                          agentMap[r.agent_type][r.ai_provider as "openai" | "anthropic"] = r;
+                        });
+                        return Object.entries(agentMap).map(([agentType, providers]) => {
+                          const oaiCost = providers.openai ? parseFloat(providers.openai.total_cost) : 0;
+                          const antCost = providers.anthropic ? parseFloat(providers.anthropic.total_cost) : 0;
+                          const diff = antCost - oaiCost;
+                          const diffPct = oaiCost > 0 ? ((diff / oaiCost) * 100).toFixed(0) : "N/A";
+                          return (
+                            <tr key={agentType} className="border-b border-[#1E2448]/50" data-testid={`provider-agent-row-${agentType}`}>
+                              <td className="py-2 pr-4 text-white font-medium">{agentLabel(agentType)}</td>
+                              <td className="py-2 px-2 text-center text-green-300">${oaiCost.toFixed(4)}</td>
+                              <td className="py-2 px-2 text-center text-gray-400">{providers.openai?.total_requests || 0}</td>
+                              <td className="py-2 px-2 text-center text-violet-300">${antCost.toFixed(4)}</td>
+                              <td className="py-2 px-2 text-center text-gray-400">{providers.anthropic?.total_requests || 0}</td>
+                              <td className={`py-2 px-2 text-center font-semibold ${diff > 0 ? "text-red-400" : diff < 0 ? "text-green-400" : "text-gray-400"}`}>
+                                {diff !== 0 ? `${diff > 0 ? "+" : ""}${diffPct}%` : "-"}
+                              </td>
+                            </tr>
+                          );
+                        });
+                      })()}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
@@ -2479,6 +2616,7 @@ function BossAIPanel({ token }: { token: string }) {
   const [editingTopic, setEditingTopic] = useState<number | null>(null);
   const [editTopicValue, setEditTopicValue] = useState("");
   const [savingConv, setSavingConv] = useState(false);
+  const [bossProvider, setBossProvider] = useState<string>("openai");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -2555,6 +2693,7 @@ function BossAIPanel({ token }: { token: string }) {
         body: JSON.stringify({
           message: trimmed,
           conversationHistory: messages,
+          provider: bossProvider,
         }),
       });
 
@@ -2863,7 +3002,22 @@ function BossAIPanel({ token }: { token: string }) {
               <div ref={messagesEndRef} />
             </div>
 
-            <div className="border-t border-[#1E2448] px-4 py-3">
+            <div className="border-t border-[#1E2448] px-4 py-3 space-y-2">
+              <div className="flex items-center gap-2">
+                <label className="text-xs text-gray-500">Provider:</label>
+                <Select value={bossProvider} onValueChange={setBossProvider}>
+                  <SelectTrigger className="w-[160px] bg-[#0A0E27] border-[#1E2448] text-white text-xs h-7" data-testid="select-boss-provider">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="openai">OpenAI (GPT-4o)</SelectItem>
+                    <SelectItem value="anthropic">Anthropic (Claude)</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Badge className={`text-[10px] ${bossProvider === "anthropic" ? "bg-violet-900/30 text-violet-400" : "bg-green-900/30 text-green-400"}`}>
+                  {bossProvider === "anthropic" ? "Claude Sonnet 4" : "GPT-4o"}
+                </Badge>
+              </div>
               <div className="flex gap-2">
                 <Input
                   value={input}
@@ -4647,6 +4801,389 @@ function EscalationsPanel({ token, autoOpenId }: { token: string; autoOpenId?: n
   );
 }
 
+interface ABTestResult {
+  provider: string;
+  model: string;
+  response: string;
+  tokens: number;
+  cost: number;
+  latencyMs: number;
+  error?: string;
+}
+
+function ABTestPanel({ token }: { token: string }) {
+  const [prompt, setPrompt] = useState("");
+  const [agentType, setAgentType] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [results, setResults] = useState<ABTestResult[]>([]);
+  const [testedPrompt, setTestedPrompt] = useState("");
+  const { toast } = useToast();
+
+  const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
+
+  const runTest = async () => {
+    if (!prompt.trim()) return;
+    setLoading(true);
+    setResults([]);
+    setTestedPrompt(prompt.trim());
+    try {
+      const res = await fetch(`${ADMIN_API}/ab-test`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ prompt: prompt.trim(), agentType: agentType || undefined }),
+      });
+      if (!res.ok) throw new Error("A/B test failed");
+      const data = await res.json();
+      setResults(data.results || []);
+    } catch (err: any) {
+      toast({ title: "A/B Test Error", description: err.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatResponse = (text: string) => {
+    return text.split("\n").map((line, i) => {
+      if (line.startsWith("# ")) return <h2 key={i} className="text-lg font-bold text-white mt-3 mb-1">{line.slice(2)}</h2>;
+      if (line.startsWith("## ")) return <h3 key={i} className="text-md font-semibold text-white mt-2 mb-1">{line.slice(3)}</h3>;
+      if (line.startsWith("- ") || line.startsWith("* ")) return <li key={i} className="text-gray-300 ml-4 list-disc text-sm">{line.slice(2)}</li>;
+      if (line.match(/^\d+\.\s/)) return <li key={i} className="text-gray-300 ml-4 list-decimal text-sm">{line.replace(/^\d+\.\s/, "")}</li>;
+      if (line.trim() === "") return <br key={i} />;
+      const parts = line.split(/\*\*(.*?)\*\*/g);
+      return (
+        <p key={i} className="text-gray-300 text-sm">
+          {parts.map((part, j) => j % 2 === 1 ? <strong key={j} className="text-white">{part}</strong> : part)}
+        </p>
+      );
+    });
+  };
+
+  const openaiResult = results.find(r => r.provider === "openai");
+  const anthropicResult = results.find(r => r.provider === "anthropic");
+
+  return (
+    <div className="space-y-6">
+      <Card className="bg-gradient-to-r from-orange-900/30 to-violet-900/30 border-orange-500/30">
+        <CardHeader>
+          <CardTitle className="text-xl text-white flex items-center gap-2">
+            <FlaskConical className="w-6 h-6 text-orange-400" />
+            A/B Test — OpenAI vs Anthropic
+          </CardTitle>
+          <CardDescription className="text-gray-300">
+            Ayni promptu hem OpenAI (GPT-4o) hem Anthropic (Claude Sonnet 4) ile test edin. Cevap kalitesi, hiz ve maliyet farklarini karsilastirin.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <label className="text-sm text-gray-400 mb-2 block">Ajan Konteksti (opsiyonel)</label>
+            <Select value={agentType} onValueChange={setAgentType}>
+              <SelectTrigger className="w-full max-w-xs bg-[#0A0E27] border-[#1E2448] text-white" data-testid="select-ab-agent">
+                <SelectValue placeholder="Genel (ajan yok)" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="general">Genel (ajan yok)</SelectItem>
+                {AGENTS.map(a => <SelectItem key={a.slug} value={a.slug}>{a.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex gap-2">
+            <Input
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              placeholder="Test edilecek promptu girin..."
+              className="bg-[#0A0E27] border-[#1E2448] text-white flex-1"
+              onKeyDown={(e) => e.key === "Enter" && !loading && runTest()}
+              disabled={loading}
+              data-testid="input-ab-prompt"
+            />
+            <Button
+              onClick={runTest}
+              disabled={loading || !prompt.trim()}
+              className="bg-gradient-to-r from-orange-500 to-violet-600 hover:from-orange-600 hover:to-violet-700 text-white px-6"
+              data-testid="button-run-ab-test"
+            >
+              {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <FlaskConical className="w-4 h-4 mr-2" />}
+              {loading ? "Test ediliyor..." : "A/B Test Baslat"}
+            </Button>
+          </div>
+
+          {loading && (
+            <div className="flex items-center gap-2 text-sm text-orange-300">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Her iki provider'a da ayni prompt gonderiliyor...
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {results.length > 0 && (
+        <>
+          <div className="p-3 bg-[#111633] rounded-lg border border-[#1E2448]">
+            <p className="text-xs text-gray-500">Test Prompt:</p>
+            <p className="text-sm text-white font-medium">"{testedPrompt}"</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {[
+              {
+                label: "Hiz (Latency)",
+                openai: openaiResult ? `${(openaiResult.latencyMs / 1000).toFixed(2)}s` : "-",
+                anthropic: anthropicResult ? `${(anthropicResult.latencyMs / 1000).toFixed(2)}s` : "-",
+                winner: openaiResult && anthropicResult && !openaiResult.error && !anthropicResult.error
+                  ? (openaiResult.latencyMs < anthropicResult.latencyMs ? "openai" : "anthropic") : null,
+              },
+              {
+                label: "Maliyet (Cost)",
+                openai: openaiResult ? `$${openaiResult.cost.toFixed(4)}` : "-",
+                anthropic: anthropicResult ? `$${anthropicResult.cost.toFixed(4)}` : "-",
+                winner: openaiResult && anthropicResult && !openaiResult.error && !anthropicResult.error
+                  ? (openaiResult.cost < anthropicResult.cost ? "openai" : "anthropic") : null,
+              },
+              {
+                label: "Token Kullanimi",
+                openai: openaiResult ? openaiResult.tokens.toLocaleString() : "-",
+                anthropic: anthropicResult ? anthropicResult.tokens.toLocaleString() : "-",
+                winner: openaiResult && anthropicResult && !openaiResult.error && !anthropicResult.error
+                  ? (openaiResult.tokens < anthropicResult.tokens ? "openai" : "anthropic") : null,
+              },
+            ].map((metric) => (
+              <Card key={metric.label} className="bg-[#0A0E27] border-[#1E2448]">
+                <CardContent className="p-4 text-center">
+                  <p className="text-xs text-gray-400 mb-2">{metric.label}</p>
+                  <div className="flex items-center justify-center gap-4">
+                    <div className={`${metric.winner === "openai" ? "ring-2 ring-green-500 rounded-lg" : ""} p-2`}>
+                      <p className="text-xs text-green-400">OpenAI</p>
+                      <p className="text-lg font-bold text-white">{metric.openai}</p>
+                    </div>
+                    <span className="text-gray-600">vs</span>
+                    <div className={`${metric.winner === "anthropic" ? "ring-2 ring-violet-500 rounded-lg" : ""} p-2`}>
+                      <p className="text-xs text-violet-400">Anthropic</p>
+                      <p className="text-lg font-bold text-white">{metric.anthropic}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Card className="bg-green-900/10 border-green-700/30">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm text-white flex items-center gap-2">
+                  <Badge className="bg-green-900/50 text-green-300 border-green-700 text-xs">OpenAI</Badge>
+                  <span className="font-mono text-xs text-gray-400">{openaiResult?.model || "gpt-4o"}</span>
+                  {openaiResult && !openaiResult.error && (
+                    <span className="text-xs text-gray-500 ml-auto">{(openaiResult.latencyMs / 1000).toFixed(2)}s | ${openaiResult.cost.toFixed(4)}</span>
+                  )}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="max-h-96 overflow-y-auto" data-testid="ab-result-openai">
+                  {openaiResult?.error ? (
+                    <p className="text-red-400 text-sm">{openaiResult.error}</p>
+                  ) : openaiResult ? (
+                    formatResponse(openaiResult.response)
+                  ) : (
+                    <p className="text-gray-500 text-sm">No result</p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-violet-900/10 border-violet-700/30">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm text-white flex items-center gap-2">
+                  <Badge className="bg-violet-900/50 text-violet-300 border-violet-700 text-xs">Anthropic</Badge>
+                  <span className="font-mono text-xs text-gray-400">{anthropicResult?.model || "claude-sonnet-4-20250514"}</span>
+                  {anthropicResult && !anthropicResult.error && (
+                    <span className="text-xs text-gray-500 ml-auto">{(anthropicResult.latencyMs / 1000).toFixed(2)}s | ${anthropicResult.cost.toFixed(4)}</span>
+                  )}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="max-h-96 overflow-y-auto" data-testid="ab-result-anthropic">
+                  {anthropicResult?.error ? (
+                    <p className="text-red-400 text-sm">{anthropicResult.error}</p>
+                  ) : anthropicResult ? (
+                    formatResponse(anthropicResult.response)
+                  ) : (
+                    <p className="text-gray-500 text-sm">No result</p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function AIProviderPanel({ token }: { token: string }) {
+  const [defaultProvider, setDefaultProvider] = useState("openai");
+  const [agentProviders, setAgentProviders] = useState<Record<string, string>>({});
+  const [anthropicConfigured, setAnthropicConfigured] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const { toast } = useToast();
+
+  const headers = { Authorization: `Bearer ${token}` };
+
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${ADMIN_API}/ai-provider`, { headers });
+      const data = await res.json();
+      setDefaultProvider(data.defaultProvider || "openai");
+      setAgentProviders(data.agentProviders || {});
+      setAnthropicConfigured(data.anthropicConfigured || false);
+    } catch {
+    } finally {
+      setLoading(false);
+    }
+  }, [token]);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const res = await fetch(`${ADMIN_API}/ai-provider`, {
+        method: "PUT",
+        headers: { ...headers, "Content-Type": "application/json" },
+        body: JSON.stringify({ defaultProvider, agentProviders }),
+      });
+      if (!res.ok) throw new Error("Save failed");
+      toast({ title: "AI Provider ayarları kaydedildi" });
+    } catch (err: any) {
+      toast({ title: "Kaydetme başarısız", description: err.message, variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleAgentProviderChange = (agentSlug: string, value: string) => {
+    setAgentProviders(prev => {
+      const updated = { ...prev };
+      if (value === "default") {
+        delete updated[agentSlug];
+      } else {
+        updated[agentSlug] = value;
+      }
+      return updated;
+    });
+  };
+
+  return (
+    <div className="space-y-6">
+      <Card className="bg-[#0A0E27] border-[#1E2448]">
+        <CardHeader>
+          <CardTitle className="text-lg text-white flex items-center gap-2">
+            <Bot className="w-5 h-5 text-violet-400" />
+            AI Provider Ayarları
+          </CardTitle>
+          <CardDescription className="text-gray-400">
+            Ajanların hangi AI sağlayıcısını kullanacağını seçin. Varsayılan sağlayıcı veya ajan bazında override yapabilirsiniz.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {!anthropicConfigured && (
+            <div className="p-3 bg-yellow-900/20 border border-yellow-800/50 rounded-lg flex items-start gap-2">
+              <AlertTriangle className="w-5 h-5 text-yellow-400 mt-0.5 shrink-0" />
+              <p className="text-yellow-300 text-sm">
+                Anthropic API anahtarı yapılandırılmamış. Anthropic kullanabilmek için <code className="bg-yellow-900/50 px-1 rounded">ANTHROPIC_API_KEY</code> environment variable'ı ekleyin.
+              </p>
+            </div>
+          )}
+
+          <div className="p-4 bg-[#111633] rounded-lg border border-[#1E2448]">
+            <h4 className="text-white font-medium mb-3 flex items-center gap-2">
+              <Zap className="w-4 h-4 text-blue-400" />
+              Varsayılan AI Sağlayıcı
+            </h4>
+            <p className="text-gray-400 text-sm mb-3">
+              Tüm ajanlar için varsayılan sağlayıcı. Ajan bazında override yapılmadıkça bu sağlayıcı kullanılır.
+            </p>
+            <Select value={defaultProvider} onValueChange={setDefaultProvider}>
+              <SelectTrigger className="w-full max-w-xs bg-[#0A0E27] border-[#1E2448] text-white" data-testid="select-default-provider">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="openai">OpenAI (GPT-4o / GPT-4o-mini)</SelectItem>
+                <SelectItem value="anthropic">Anthropic (Claude Sonnet 4)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="p-4 bg-[#111633] rounded-lg border border-[#1E2448]">
+            <h4 className="text-white font-medium mb-3 flex items-center gap-2">
+              <Brain className="w-4 h-4 text-violet-400" />
+              Ajan Bazında Override
+            </h4>
+            <p className="text-gray-400 text-sm mb-4">
+              Belirli ajanlar için farklı sağlayıcı seçebilirsiniz. "Varsayılan" seçeneği genel ayarı kullanır.
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {AGENTS.map(agent => (
+                <div key={agent.slug} className="flex items-center justify-between p-3 bg-[#0A0E27] rounded-lg border border-[#1E2448]" data-testid={`agent-provider-${agent.slug}`}>
+                  <span className="text-white text-sm font-medium">{agent.name}</span>
+                  <Select
+                    value={agentProviders[agent.slug] || "default"}
+                    onValueChange={(val) => handleAgentProviderChange(agent.slug, val)}
+                  >
+                    <SelectTrigger className="w-[180px] bg-[#111633] border-[#1E2448] text-white text-xs h-8" data-testid={`select-provider-${agent.slug}`}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="default">Varsayılan ({defaultProvider === "openai" ? "OpenAI" : "Anthropic"})</SelectItem>
+                      <SelectItem value="openai">OpenAI</SelectItem>
+                      <SelectItem value="anthropic">Anthropic</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="p-4 bg-[#111633] rounded-lg border border-[#1E2448]">
+            <h4 className="text-white font-medium mb-3">Model Bilgileri & Fiyatlandırma</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="p-3 bg-[#0A0E27] rounded-lg border border-[#1E2448]">
+                <div className="flex items-center gap-2 mb-2">
+                  <Badge className="bg-green-900/30 text-green-400 border-green-800 text-xs">OpenAI</Badge>
+                </div>
+                <ul className="space-y-1 text-xs text-gray-400">
+                  <li><span className="text-white">GPT-4o:</span> $2.50/1M input, $10.00/1M output</li>
+                  <li><span className="text-white">GPT-4o-mini:</span> $0.15/1M input, $0.60/1M output</li>
+                </ul>
+              </div>
+              <div className="p-3 bg-[#0A0E27] rounded-lg border border-[#1E2448]">
+                <div className="flex items-center gap-2 mb-2">
+                  <Badge className="bg-violet-900/30 text-violet-400 border-violet-800 text-xs">Anthropic</Badge>
+                </div>
+                <ul className="space-y-1 text-xs text-gray-400">
+                  <li><span className="text-white">Claude Sonnet 4:</span> $3.00/1M input, $15.00/1M output</li>
+                  <li><span className="text-white">Claude 3 Haiku:</span> $0.25/1M input, $1.25/1M output</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <Button
+            onClick={handleSave}
+            disabled={saving || loading}
+            className="bg-gradient-to-r from-violet-500 to-blue-500 hover:from-violet-600 hover:to-blue-600"
+            data-testid="button-save-ai-provider"
+          >
+            {saving ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Kaydediliyor...</> : "Ayarları Kaydet"}
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 function AdminGuidePanel() {
   const AGENT_DETAILS = [
     { slug: "customer-support", name: "Ava", role: "Müşteri Destek", desc: "Müşteri sorularını yanıtlar, şikayet yönetir, ticket oluşturur.", icon: "🎧", color: "from-blue-500 to-blue-600" },
@@ -4903,7 +5440,7 @@ export default function AdminPage() {
           setActiveTab(val);
           const tabToCategory: Record<string, string> = {
             "boss-ai": "dashboard", "overview": "dashboard", "users": "dashboard",
-            "rag": "ai-training", "training-data": "ai-training", "fine-tuning": "ai-training", "agent-instructions": "ai-training",
+            "rag": "ai-training", "training-data": "ai-training", "fine-tuning": "ai-training", "agent-instructions": "ai-training", "ai-provider": "ai-training",
             "messages": "analytics", "spend-analysis": "analytics", "token-optimization": "analytics",
             "costs": "analytics", "performance": "analytics", "conversation-review": "analytics",
             "limit-management": "limits", "packages": "limits",
@@ -4989,6 +5526,14 @@ export default function AdminPage() {
                   <TabsTrigger value="agent-instructions" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:to-blue-600 data-[state=active]:text-white" data-testid="tab-agent-instructions">
                     <FileText className="w-3.5 h-3.5 mr-1" />
                     Özel Talimatlar
+                  </TabsTrigger>
+                  <TabsTrigger value="ab-test" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-violet-600 data-[state=active]:text-white" data-testid="tab-ab-test">
+                    <FlaskConical className="w-3.5 h-3.5 mr-1" />
+                    A/B Test
+                  </TabsTrigger>
+                  <TabsTrigger value="ai-provider" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-violet-500 data-[state=active]:to-blue-600 data-[state=active]:text-white" data-testid="tab-ai-provider">
+                    <Bot className="w-3.5 h-3.5 mr-1" />
+                    AI Provider
                   </TabsTrigger>
                 </>
               )}
@@ -5145,6 +5690,14 @@ export default function AdminPage() {
 
           <TabsContent value="agent-instructions">
             <AgentInstructionsPanel token={token} />
+          </TabsContent>
+
+          <TabsContent value="ab-test">
+            <ABTestPanel token={token} />
+          </TabsContent>
+
+          <TabsContent value="ai-provider">
+            <AIProviderPanel token={token} />
           </TabsContent>
 
           <TabsContent value="admin-guide">

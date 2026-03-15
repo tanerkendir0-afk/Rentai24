@@ -10,6 +10,7 @@ interface AuthUser {
   company: string | null;
   role: "user" | "agent_manager" | "admin";
   hasSubscription: boolean;
+  language: string;
 }
 
 interface AuthContextType {

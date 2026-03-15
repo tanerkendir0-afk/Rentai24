@@ -6,9 +6,11 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/lib/auth";
+import { useTranslation } from "react-i18next";
 
 export default function Footer() {
   const { user } = useAuth();
+  const { t } = useTranslation("common");
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [subscribed, setSubscribed] = useState(false);
@@ -22,9 +24,9 @@ export default function Footer() {
       const res = await apiRequest("POST", "/api/newsletter", { email });
       const data = await res.json();
       setSubscribed(true);
-      toast({ title: "Subscribed!", description: data.message });
+      toast({ title: t("footer.subscribedToast"), description: data.message });
     } catch {
-      toast({ title: "Error", description: "Failed to subscribe. Please try again.", variant: "destructive" });
+      toast({ title: t("footer.errorToast"), description: t("footer.errorDesc"), variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -44,19 +46,19 @@ export default function Footer() {
               </span>
             </div>
             <p className="text-sm text-muted-foreground leading-relaxed mb-4">
-              Rent AI, 24/7. Pre-trained AI agents ready to join your team today.
+              {t("footer.tagline")}
             </p>
           </div>
 
           <div>
-            <h4 className="font-semibold text-foreground mb-3 sm:mb-4 text-sm sm:text-base">Quick Links</h4>
+            <h4 className="font-semibold text-foreground mb-3 sm:mb-4 text-sm sm:text-base">{t("footer.quickLinks")}</h4>
             <ul className="space-y-2 sm:space-y-3">
               {[
-                { href: "/workers", label: "AI Workers" },
-                { href: "/pricing", label: "Pricing" },
-                { href: "/about", label: "About" },
-                { href: "/contact", label: "Contact" },
-                { href: "/demo", label: "Live Demo" },
+                { href: "/workers", label: t("nav.aiWorkers") },
+                { href: "/pricing", label: t("nav.pricing") },
+                { href: "/about", label: t("nav.about") },
+                { href: "/contact", label: t("nav.contact") },
+                { href: "/demo", label: t("footer.liveDemo") },
               ].map((link) => (
                 <li key={link.href}>
                   <Link href={link.href}>
@@ -71,7 +73,7 @@ export default function Footer() {
                   <Link href={`/${import.meta.env.VITE_ADMIN_PATH}`}>
                     <span className="text-sm text-amber-400 cursor-pointer hover:text-amber-300 transition-colors flex items-center gap-1 min-h-[44px] sm:min-h-0" data-testid="footer-link-admin">
                       <Shield className="w-3 h-3" />
-                      Admin Panel
+                      {t("footer.adminPanel")}
                     </span>
                   </Link>
                 </li>
@@ -80,19 +82,19 @@ export default function Footer() {
           </div>
 
           <div>
-            <h4 className="font-semibold text-foreground mb-3 sm:mb-4 text-sm sm:text-base">Legal</h4>
+            <h4 className="font-semibold text-foreground mb-3 sm:mb-4 text-sm sm:text-base">{t("footer.legal")}</h4>
             <ul className="space-y-2 sm:space-y-3">
               <li>
                 <Link href="/privacy">
                   <span className="text-xs sm:text-sm text-muted-foreground cursor-pointer hover:text-foreground transition-colors inline-block py-0.5 min-h-[44px] sm:min-h-0 flex items-center" data-testid="footer-link-privacy">
-                    Privacy Policy
+                    {t("footer.privacyPolicy")}
                   </span>
                 </Link>
               </li>
               <li>
                 <Link href="/terms">
                   <span className="text-xs sm:text-sm text-muted-foreground cursor-pointer hover:text-foreground transition-colors inline-block py-0.5 min-h-[44px] sm:min-h-0 flex items-center" data-testid="footer-link-terms">
-                    Terms of Service
+                    {t("footer.termsOfService")}
                   </span>
                 </Link>
               </li>
@@ -100,14 +102,14 @@ export default function Footer() {
           </div>
 
           <div className="sm:col-span-2 lg:col-span-1">
-            <h4 className="font-semibold text-foreground mb-3 sm:mb-4 text-sm sm:text-base">Newsletter</h4>
+            <h4 className="font-semibold text-foreground mb-3 sm:mb-4 text-sm sm:text-base">{t("footer.newsletter")}</h4>
             <p className="text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-4">
-              Get the latest on AI workforce trends and product updates.
+              {t("footer.newsletterDesc")}
             </p>
             {subscribed ? (
               <div className="flex items-center gap-2 text-sm text-emerald-400">
                 <CheckCircle2 className="w-4 h-4" />
-                <span>You're subscribed!</span>
+                <span>{t("footer.subscribed")}</span>
               </div>
             ) : (
               <form onSubmit={handleNewsletter} className="flex gap-2">
@@ -136,7 +138,7 @@ export default function Footer() {
 
         <div className="border-t border-border/50 mt-8 sm:mt-12 pt-6 sm:pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-sm text-muted-foreground" data-testid="text-copyright">
-            &copy; {new Date().getFullYear()} RentAI 24. All rights reserved.
+            {t("footer.copyright", { year: new Date().getFullYear() })}
           </p>
           <div className="flex items-center gap-1 text-sm text-muted-foreground">
             <Mail className="w-3.5 h-3.5 mr-1" />

@@ -31,6 +31,7 @@ export const users = pgTable("users", {
   gmailRefreshToken: text("gmail_refresh_token"),
   gmailAccessToken: text("gmail_access_token"),
   gmailTokenExpiry: timestamp("gmail_token_expiry"),
+  language: text("language").notNull().default("en"),
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
 });
 

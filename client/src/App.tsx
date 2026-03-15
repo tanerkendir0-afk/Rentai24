@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 import { AuthProvider } from "@/lib/auth";
+import { LanguageProvider } from "@/lib/language";
 import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
 import Home from "@/pages/home";
@@ -93,9 +94,11 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <TooltipProvider>
-          <AppContent />
-        </TooltipProvider>
+        <LanguageProvider>
+          <TooltipProvider>
+            <AppContent />
+          </TooltipProvider>
+        </LanguageProvider>
       </AuthProvider>
     </QueryClientProvider>
   );

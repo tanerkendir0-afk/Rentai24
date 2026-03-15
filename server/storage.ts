@@ -12,6 +12,7 @@ export interface IStorage {
   getUserByStripeCustomerId(customerId: string): Promise<User | undefined>;
   updateUserStripeInfo(userId: number, info: { stripeCustomerId?: string; stripeSubscriptionId?: string | null }): Promise<User | undefined>;
   updateUserProfile(userId: number, updates: { fullName?: string; company?: string | null }): Promise<User | undefined>;
+  updateUserLanguage(userId: number, language: string): Promise<User | undefined>;
   updateUserPassword(userId: number, hashedPassword: string): Promise<User | undefined>;
   addImageCredits(userId: number, credits: number): Promise<User | undefined>;
   useImageCredit(userId: number): Promise<boolean>;
@@ -221,6 +222,11 @@ export class DatabaseStorage implements IStorage {
 
   async updateUserProfile(userId: number, updates: { fullName?: string; company?: string | null }): Promise<User | undefined> {
     const [updated] = await db.update(users).set(updates).where(eq(users.id, userId)).returning();
+    return updated;
+  }
+
+  async updateUserLanguage(userId: number, language: string): Promise<User | undefined> {
+    const [updated] = await db.update(users).set({ language }).where(eq(users.id, userId)).returning();
     return updated;
   }
 

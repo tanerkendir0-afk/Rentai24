@@ -1,0 +1,83 @@
+{
+  "nav": {
+    "aiWorkers": "AI Çalışanlar",
+    "howItWorks": "Nasıl Çalışır",
+    "pricing": "Fiyatlandırma",
+    "about": "Hakkımızda",
+    "contact": "İletişim",
+    "installApp": "Uygulamayı Yükle",
+    "guide": "Rehber",
+    "settings": "Ayarlar",
+    "dashboard": "Panel",
+    "admin": "Yönetici",
+    "signOut": "Çıkış Yap",
+    "signIn": "Giriş Yap",
+    "tryLiveDemo": "Canlı Demo Dene"
+  },
+  "install": {
+    "title": "RentAI 24'ü Yükle",
+    "description": "Cihazınızda tam uygulama deneyimi yaşayın:",
+    "nativeApp": "Yerel uygulama gibi çalışır",
+    "nativeAppDesc": "Kendi penceresinde açılır — tarayıcı sekmelerine gerek yok.",
+    "fast": "Hızlı ve her zaman erişilebilir",
+    "fastDesc": "Ana ekranınızdan veya masaüstünüzden anında başlatın.",
+    "upToDate": "Güncel kalın",
+    "upToDateDesc": "AI iş gücünüze her an hızlı erişim sağlayın.",
+    "installNow": "Şimdi Yükle",
+    "notNow": "Şimdi Değil",
+    "iosSafari": {
+      "description": "RentAI 24'ü ana ekranınıza eklemek için bu adımları izleyin:",
+      "step1": "Araç çubuğundaki <strong>Paylaş</strong> düğmesine dokunun",
+      "step2": "Aşağı kaydırın ve <strong>\"Ana Ekrana Ekle\"</strong> seçeneğine dokunun",
+      "step3": "Sağ üst köşedeki <strong>\"Ekle\"</strong> düğmesine dokunun"
+    },
+    "macosSafari": {
+      "description": "RentAI 24'ü Dock'unuza eklemek için bu adımları izleyin:",
+      "step1": "Safari menü çubuğunda <strong>Dosya</strong>'yı tıklayın",
+      "step2": "<strong>\"Dock'a Ekle\"</strong> seçeneğini seçin",
+      "step3": "Onaylamak için <strong>\"Ekle\"</strong>'yi tıklayın"
+    },
+    "firefox": {
+      "description": "Firefox'un PWA desteği sınırlıdır. Şunları deneyebilirsiniz:",
+      "step1": "Adres çubuğundaki <strong>menü düğmesine</strong> (üç nokta) dokunun",
+      "step2": "<strong>\"Yükle\"</strong> veya <strong>\"Ana Ekrana Ekle\"</strong> seçeneğini arayın",
+      "tip": "<strong>İpucu:</strong> En iyi deneyim için bu siteyi Chrome, Edge veya Safari'de açarak uygulamayı yerel olarak yükleyin."
+    },
+    "other": {
+      "description": "Bu uygulamayı yüklemek için aşağıdakileri deneyin:",
+      "lookForInstall": "Tarayıcınızın adres çubuğunda veya menüsünde bir <strong>yükleme simgesi</strong> arayın",
+      "openInBrowser": "Veya en iyi yükleme deneyimi için bu siteyi <strong>Chrome</strong>, <strong>Edge</strong> veya <strong>Safari</strong>'de açın"
+    },
+    "addToHomeScreen": "Ana Ekrana Ekle",
+    "addToDock": "Dock'a Ekle",
+    "installRentAI": "RentAI 24'ü Yükle",
+    "guideDescription": "Tarayıcınız otomatik yüklemeyi desteklemiyor. Aşağıdaki adımları izleyin:",
+    "gotIt": "Anladım"
+  },
+  "footer": {
+    "tagline": "AI'yı kiralayın, 7/24. Önceden eğitilmiş AI ajanları bugün ekibinize katılmaya hazır.",
+    "quickLinks": "Hızlı Bağlantılar",
+    "liveDemo": "Canlı Demo",
+    "legal": "Yasal",
+    "privacyPolicy": "Gizlilik Politikası",
+    "termsOfService": "Kullanım Koşulları",
+    "newsletter": "Bülten",
+    "newsletterDesc": "AI iş gücü trendleri ve ürün güncellemeleri hakkında en son bilgileri alın.",
+    "subscribed": "Abone oldunuz!",
+    "subscribedToast": "Abone olundu!",
+    "errorToast": "Hata",
+    "errorDesc": "Abone olunamadı. Lütfen tekrar deneyin.",
+    "copyright": "© {{year}} RentAI 24. Tüm hakları saklıdır.",
+    "adminPanel": "Yönetici Paneli"
+  },
+  "language": {
+    "label": "Dil",
+    "english": "English",
+    "turkish": "Türkçe",
+    "switchTo": "{{lang}} diline geç",
+    "preference": "Dil Tercihi",
+    "preferenceDesc": "Arayüz için tercih ettiğiniz dili seçin.",
+    "saved": "Dil tercihi kaydedildi",
+    "savedDesc": "Arayüz dili güncellendi."
+  }
+}

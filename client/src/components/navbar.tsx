@@ -9,31 +9,38 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Menu, Bot, User, LayoutDashboard, Download, Smartphone, Wifi, Bell, Settings, LogOut, BookOpen, Share, Plus, MoreHorizontal, Monitor, Globe, ExternalLink, Shield } from "lucide-react";
+import { Menu, Bot, User, LayoutDashboard, Download, Smartphone, Wifi, Bell, Settings, LogOut, BookOpen, Share, Plus, MoreHorizontal, Monitor, Globe, ExternalLink, Shield, Languages } from "lucide-react";
 import { useAuth } from "@/lib/auth";
+import { useLanguage } from "@/lib/language";
+import { useTranslation } from "react-i18next";
 import { usePwaInstall } from "@/hooks/use-pwa-install";
 import type { PwaPlatform } from "@/hooks/use-pwa-install";
 
-const navLinks = [
-  { href: "/workers", label: "AI Workers" },
-  { href: "/how-it-works", label: "How It Works" },
-  { href: "/pricing", label: "Pricing" },
-  { href: "/about", label: "About" },
-  { href: "/contact", label: "Contact" },
-];
+function useNavLinks() {
+  const { t } = useTranslation("common");
+  return [
+    { href: "/workers", label: t("nav.aiWorkers") },
+    { href: "/how-it-works", label: t("nav.howItWorks") },
+    { href: "/pricing", label: t("nav.pricing") },
+    { href: "/about", label: t("nav.about") },
+    { href: "/contact", label: t("nav.contact") },
+  ];
+}
 
 function ManualInstallGuide({ platform }: { platform: PwaPlatform }) {
+  const { t } = useTranslation("common");
+
   if (platform === "ios-safari") {
     return (
       <div className="space-y-4 py-4" data-testid="guide-ios-safari">
-        <p className="text-sm text-muted-foreground">Follow these steps to add RentAI 24 to your home screen:</p>
+        <p className="text-sm text-muted-foreground">{t("install.iosSafari.description")}</p>
         <div className="space-y-3">
           <div className="flex items-start gap-3">
             <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0">
               <span className="text-sm font-bold text-blue-400">1</span>
             </div>
             <div className="flex items-center gap-2">
-              <p className="text-sm text-foreground">Tap the <strong>Share</strong> button in the toolbar</p>
+              <p className="text-sm text-foreground" dangerouslySetInnerHTML={{ __html: t("install.iosSafari.step1") }} />
               <Share className="w-5 h-5 text-blue-400 shrink-0" />
             </div>
           </div>
@@ -42,7 +49,7 @@ function ManualInstallGuide({ platform }: { platform: PwaPlatform }) {
               <span className="text-sm font-bold text-blue-400">2</span>
             </div>
             <div className="flex items-center gap-2">
-              <p className="text-sm text-foreground">Scroll down and tap <strong>"Add to Home Screen"</strong></p>
+              <p className="text-sm text-foreground" dangerouslySetInnerHTML={{ __html: t("install.iosSafari.step2") }} />
               <Plus className="w-5 h-5 text-blue-400 shrink-0" />
             </div>
           </div>
@@ -51,7 +58,7 @@ function ManualInstallGuide({ platform }: { platform: PwaPlatform }) {
               <span className="text-sm font-bold text-blue-400">3</span>
             </div>
             <div>
-              <p className="text-sm text-foreground">Tap <strong>"Add"</strong> in the top-right corner</p>
+              <p className="text-sm text-foreground" dangerouslySetInnerHTML={{ __html: t("install.iosSafari.step3") }} />
             </div>
           </div>
         </div>
@@ -62,14 +69,14 @@ function ManualInstallGuide({ platform }: { platform: PwaPlatform }) {
   if (platform === "macos-safari") {
     return (
       <div className="space-y-4 py-4" data-testid="guide-macos-safari">
-        <p className="text-sm text-muted-foreground">Follow these steps to add RentAI 24 to your Dock:</p>
+        <p className="text-sm text-muted-foreground">{t("install.macosSafari.description")}</p>
         <div className="space-y-3">
           <div className="flex items-start gap-3">
             <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0">
               <span className="text-sm font-bold text-blue-400">1</span>
             </div>
             <div className="flex items-center gap-2">
-              <p className="text-sm text-foreground">Click <strong>File</strong> in the Safari menu bar</p>
+              <p className="text-sm text-foreground" dangerouslySetInnerHTML={{ __html: t("install.macosSafari.step1") }} />
               <Monitor className="w-5 h-5 text-blue-400 shrink-0" />
             </div>
           </div>
@@ -78,7 +85,7 @@ function ManualInstallGuide({ platform }: { platform: PwaPlatform }) {
               <span className="text-sm font-bold text-blue-400">2</span>
             </div>
             <div>
-              <p className="text-sm text-foreground">Select <strong>"Add to Dock"</strong></p>
+              <p className="text-sm text-foreground" dangerouslySetInnerHTML={{ __html: t("install.macosSafari.step2") }} />
             </div>
           </div>
           <div className="flex items-start gap-3">
@@ -86,7 +93,7 @@ function ManualInstallGuide({ platform }: { platform: PwaPlatform }) {
               <span className="text-sm font-bold text-blue-400">3</span>
             </div>
             <div>
-              <p className="text-sm text-foreground">Click <strong>"Add"</strong> to confirm</p>
+              <p className="text-sm text-foreground" dangerouslySetInnerHTML={{ __html: t("install.macosSafari.step3") }} />
             </div>
           </div>
         </div>
@@ -97,14 +104,14 @@ function ManualInstallGuide({ platform }: { platform: PwaPlatform }) {
   if (platform === "firefox") {
     return (
       <div className="space-y-4 py-4" data-testid="guide-firefox">
-        <p className="text-sm text-muted-foreground">Firefox has limited PWA support. You can try:</p>
+        <p className="text-sm text-muted-foreground">{t("install.firefox.description")}</p>
         <div className="space-y-3">
           <div className="flex items-start gap-3">
             <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0">
               <span className="text-sm font-bold text-blue-400">1</span>
             </div>
             <div className="flex items-center gap-2">
-              <p className="text-sm text-foreground">Tap the <strong>menu button</strong> (three dots) in the address bar</p>
+              <p className="text-sm text-foreground" dangerouslySetInnerHTML={{ __html: t("install.firefox.step1") }} />
               <MoreHorizontal className="w-5 h-5 text-blue-400 shrink-0" />
             </div>
           </div>
@@ -113,14 +120,12 @@ function ManualInstallGuide({ platform }: { platform: PwaPlatform }) {
               <span className="text-sm font-bold text-blue-400">2</span>
             </div>
             <div>
-              <p className="text-sm text-foreground">Look for <strong>"Install"</strong> or <strong>"Add to Home Screen"</strong></p>
+              <p className="text-sm text-foreground" dangerouslySetInnerHTML={{ __html: t("install.firefox.step2") }} />
             </div>
           </div>
         </div>
         <div className="mt-2 p-3 bg-muted/50 rounded-lg">
-          <p className="text-xs text-muted-foreground">
-            <strong>Tip:</strong> For the best experience, open this site in Chrome, Edge, or Safari to install the app natively.
-          </p>
+          <p className="text-xs text-muted-foreground" dangerouslySetInnerHTML={{ __html: t("install.firefox.tip") }} />
         </div>
       </div>
     );
@@ -128,14 +133,14 @@ function ManualInstallGuide({ platform }: { platform: PwaPlatform }) {
 
   return (
     <div className="space-y-4 py-4" data-testid="guide-other">
-      <p className="text-sm text-muted-foreground">To install this app, try one of the following:</p>
+      <p className="text-sm text-muted-foreground">{t("install.other.description")}</p>
       <div className="space-y-3">
         <div className="flex items-start gap-3">
           <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0">
             <Globe className="w-4 h-4 text-blue-400" />
           </div>
           <div>
-            <p className="text-sm text-foreground">Look for an <strong>install icon</strong> in your browser's address bar or menu</p>
+            <p className="text-sm text-foreground" dangerouslySetInnerHTML={{ __html: t("install.other.lookForInstall") }} />
           </div>
         </div>
         <div className="flex items-start gap-3">
@@ -143,7 +148,7 @@ function ManualInstallGuide({ platform }: { platform: PwaPlatform }) {
             <ExternalLink className="w-4 h-4 text-blue-400" />
           </div>
           <div>
-            <p className="text-sm text-foreground">Or open this site in <strong>Chrome</strong>, <strong>Edge</strong>, or <strong>Safari</strong> for the best install experience</p>
+            <p className="text-sm text-foreground" dangerouslySetInnerHTML={{ __html: t("install.other.openInBrowser") }} />
           </div>
         </div>
       </div>
@@ -151,13 +156,16 @@ function ManualInstallGuide({ platform }: { platform: PwaPlatform }) {
   );
 }
 
-function getGuideDialogTitle(platform: PwaPlatform): string {
-  switch (platform) {
-    case "ios-safari": return "Add to Home Screen";
-    case "macos-safari": return "Add to Dock";
-    case "firefox": return "Install RentAI 24";
-    default: return "Install RentAI 24";
-  }
+function useGuideDialogTitle() {
+  const { t } = useTranslation("common");
+  return (platform: PwaPlatform): string => {
+    switch (platform) {
+      case "ios-safari": return t("install.addToHomeScreen");
+      case "macos-safari": return t("install.addToDock");
+      case "firefox": return t("install.installRentAI");
+      default: return t("install.installRentAI");
+    }
+  };
 }
 
 export default function Navbar() {
@@ -167,6 +175,10 @@ export default function Navbar() {
   const [guideDialogOpen, setGuideDialogOpen] = useState(false);
   const [location, setLoc] = useLocation();
   const { user, isLoading, logout } = useAuth();
+  const { language, changeLanguage } = useLanguage();
+  const { t } = useTranslation("common");
+  const navLinks = useNavLinks();
+  const getGuideDialogTitle = useGuideDialogTitle();
   const { canInstall, install, showManualGuide, platform } = usePwaInstall();
 
   const handleInstallClick = () => {
@@ -236,6 +248,17 @@ export default function Navbar() {
           </nav>
 
           <div className="flex items-center gap-3">
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => changeLanguage(language === "en" ? "tr" : "en")}
+              className="text-muted-foreground hover:text-foreground"
+              data-testid="button-language-switch"
+              title={t("language.switchTo", { lang: language === "en" ? t("language.turkish") : t("language.english") })}
+            >
+              <Languages className="w-4 h-4 mr-1" />
+              {language === "en" ? "TR" : "EN"}
+            </Button>
             {showInstallButton && (
               <Button
                 size="sm"
@@ -245,7 +268,7 @@ export default function Navbar() {
                 data-testid="button-install-pwa"
               >
                 <Download className="w-4 h-4 mr-1" />
-                Install App
+                {t("nav.installApp")}
               </Button>
             )}
             {!isLoading && user ? (
@@ -257,7 +280,7 @@ export default function Navbar() {
                     data-testid="button-guide"
                   >
                     <BookOpen className="w-4 h-4 mr-1" />
-                    Guide
+                    {t("nav.guide")}
                   </Button>
                 </Link>
                 <Link href="/settings">
@@ -267,7 +290,7 @@ export default function Navbar() {
                     data-testid="button-settings"
                   >
                     <Settings className="w-4 h-4 mr-1" />
-                    Settings
+                    {t("nav.settings")}
                   </Button>
                 </Link>
                 <Link href="/dashboard">
@@ -277,7 +300,7 @@ export default function Navbar() {
                     data-testid="button-dashboard"
                   >
                     <LayoutDashboard className="w-4 h-4 mr-1" />
-                    Dashboard
+                    {t("nav.dashboard")}
                   </Button>
                 </Link>
                 {user.email === "tanerkendir0@gmail.com" && (
@@ -289,7 +312,7 @@ export default function Navbar() {
                       data-testid="button-admin"
                     >
                       <Shield className="w-4 h-4 mr-1" />
-                      Admin
+                      {t("nav.admin")}
                     </Button>
                   </Link>
                 )}
@@ -301,7 +324,7 @@ export default function Navbar() {
                   data-testid="button-logout"
                 >
                   <LogOut className="w-4 h-4 mr-1" />
-                  Sign Out
+                  {t("nav.signOut")}
                 </Button>
               </div>
             ) : !isLoading ? (
@@ -309,7 +332,7 @@ export default function Navbar() {
                 <Link href="/login">
                   <Button size="sm" variant="ghost" data-testid="button-login">
                     <User className="w-4 h-4 mr-1" />
-                    Sign In
+                    {t("nav.signIn")}
                   </Button>
                 </Link>
                 <Link href="/demo">
@@ -318,7 +341,7 @@ export default function Navbar() {
                     className="bg-gradient-to-r from-blue-500 to-violet-500 text-white border-0"
                     data-testid="button-demo-cta"
                   >
-                    Try Live Demo
+                    {t("nav.tryLiveDemo")}
                   </Button>
                 </Link>
               </div>
@@ -362,7 +385,7 @@ export default function Navbar() {
                         data-testid="button-mobile-install-pwa"
                       >
                         <Download className="w-4 h-4 mr-1" />
-                        Install App
+                        {t("nav.installApp")}
                       </Button>
                     </div>
                   )}
@@ -376,7 +399,7 @@ export default function Navbar() {
                             data-testid="button-mobile-dashboard"
                           >
                             <LayoutDashboard className="w-4 h-4 mr-1" />
-                            Dashboard
+                            {t("nav.dashboard")}
                           </Button>
                         </Link>
                         <Link href="/guide">
@@ -387,7 +410,7 @@ export default function Navbar() {
                             data-testid="button-mobile-guide"
                           >
                             <BookOpen className="w-4 h-4 mr-1" />
-                            Guide
+                            {t("nav.guide")}
                           </Button>
                         </Link>
                         <Link href="/settings">
@@ -398,7 +421,7 @@ export default function Navbar() {
                             data-testid="button-mobile-settings"
                           >
                             <Settings className="w-4 h-4 mr-1" />
-                            Settings
+                            {t("nav.settings")}
                           </Button>
                         </Link>
                         {user.email === "tanerkendir0@gmail.com" && (
@@ -410,7 +433,7 @@ export default function Navbar() {
                               data-testid="button-mobile-admin"
                             >
                               <Shield className="w-4 h-4 mr-1" />
-                              Admin
+                              {t("nav.admin")}
                             </Button>
                           </Link>
                         )}
@@ -421,7 +444,7 @@ export default function Navbar() {
                           data-testid="button-mobile-logout"
                         >
                           <LogOut className="w-4 h-4 mr-1" />
-                          Sign Out
+                          {t("nav.signOut")}
                         </Button>
                       </>
                     ) : (
@@ -433,7 +456,7 @@ export default function Navbar() {
                             onClick={() => setOpen(false)}
                             data-testid="button-mobile-login"
                           >
-                            Sign In
+                            {t("nav.signIn")}
                           </Button>
                         </Link>
                         <Link href="/demo">
@@ -442,7 +465,7 @@ export default function Navbar() {
                             onClick={() => setOpen(false)}
                             data-testid="button-mobile-demo"
                           >
-                            Try Live Demo
+                            {t("nav.tryLiveDemo")}
                           </Button>
                         </Link>
                       </>
@@ -458,10 +481,10 @@ export default function Navbar() {
         <DialogContent className="sm:max-w-md bg-card border-border">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold text-foreground" data-testid="text-install-dialog-title">
-              Install RentAI 24
+              {t("install.title")}
             </DialogTitle>
             <DialogDescription className="text-muted-foreground">
-              Get the full app experience on your device:
+              {t("install.description")}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -470,8 +493,8 @@ export default function Navbar() {
                 <Smartphone className="w-4 h-4 text-blue-400" />
               </div>
               <div>
-                <p className="text-sm font-medium text-foreground">Works like a native app</p>
-                <p className="text-xs text-muted-foreground">Opens in its own window — no browser tabs needed.</p>
+                <p className="text-sm font-medium text-foreground">{t("install.nativeApp")}</p>
+                <p className="text-xs text-muted-foreground">{t("install.nativeAppDesc")}</p>
               </div>
             </div>
             <div className="flex items-start gap-3">
@@ -479,8 +502,8 @@ export default function Navbar() {
                 <Wifi className="w-4 h-4 text-violet-400" />
               </div>
               <div>
-                <p className="text-sm font-medium text-foreground">Fast & always accessible</p>
-                <p className="text-xs text-muted-foreground">Launch instantly from your home screen or desktop.</p>
+                <p className="text-sm font-medium text-foreground">{t("install.fast")}</p>
+                <p className="text-xs text-muted-foreground">{t("install.fastDesc")}</p>
               </div>
             </div>
             <div className="flex items-start gap-3">
@@ -488,8 +511,8 @@ export default function Navbar() {
                 <Bell className="w-4 h-4 text-emerald-400" />
               </div>
               <div>
-                <p className="text-sm font-medium text-foreground">Stay up to date</p>
-                <p className="text-xs text-muted-foreground">Get quick access to your AI workforce anytime.</p>
+                <p className="text-sm font-medium text-foreground">{t("install.upToDate")}</p>
+                <p className="text-xs text-muted-foreground">{t("install.upToDateDesc")}</p>
               </div>
             </div>
           </div>
@@ -500,10 +523,10 @@ export default function Navbar() {
               data-testid="button-confirm-install-pwa"
             >
               <Download className="w-4 h-4 mr-1" />
-              Install Now
+              {t("install.installNow")}
             </Button>
             <Button variant="outline" onClick={() => setInstallDialogOpen(false)} data-testid="button-cancel-install">
-              Not Now
+              {t("install.notNow")}
             </Button>
           </div>
         </DialogContent>
@@ -515,13 +538,13 @@ export default function Navbar() {
               {getGuideDialogTitle(platform)}
             </DialogTitle>
             <DialogDescription className="text-muted-foreground">
-              Your browser doesn't support automatic installation. Follow the steps below:
+              {t("install.guideDescription")}
             </DialogDescription>
           </DialogHeader>
           <ManualInstallGuide platform={platform} />
           <div className="flex justify-end">
             <Button variant="outline" onClick={() => setGuideDialogOpen(false)} data-testid="button-close-guide">
-              Got it
+              {t("install.gotIt")}
             </Button>
           </div>
         </DialogContent>

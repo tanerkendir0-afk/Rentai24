@@ -639,7 +639,7 @@ export async function registerRoutes(
     req.session.userId = user.id;
     req.session.save(() => {
       res.json({
-        user: { id: user.id, username: user.username, email: user.email, fullName: user.fullName, company: user.company, role: user.role },
+        user: { id: user.id, username: user.username, email: user.email, fullName: user.fullName, company: user.company, role: user.role, language: user.language },
       });
     });
   });
@@ -673,7 +673,7 @@ export async function registerRoutes(
       req.session.userId = user.id;
       req.session.save(() => {
         res.json({
-          user: { id: user.id, username: user.username, email: user.email, fullName: user.fullName, company: user.company, role: user.role },
+          user: { id: user.id, username: user.username, email: user.email, fullName: user.fullName, company: user.company, role: user.role, language: user.language },
         });
       });
     });
@@ -704,6 +704,7 @@ export async function registerRoutes(
         fullName: user.fullName,
         company: user.company,
         role: user.role,
+        language: user.language,
         hasSubscription: !!user.stripeSubscriptionId,
       },
     });
@@ -773,6 +774,18 @@ export async function registerRoutes(
     company: z.string().optional().transform(s => s?.trim() || null),
   });
 
+  app.patch("/api/auth/language", requireAuth, async (req, res) => {
+    const { language } = req.body;
+    if (!language || !["en", "tr"].includes(language)) {
+      return res.status(400).json({ error: "Invalid language. Must be 'en' or 'tr'." });
+    }
+    const updated = await storage.updateUserLanguage(req.session.userId!, language);
+    if (!updated) {
+      return res.status(404).json({ error: "User not found" });
+    }
+    res.json({ language: updated.language });
+  });
+
   app.patch("/api/auth/profile", requireAuth, async (req, res) => {
     const parsed = profileUpdateSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -791,6 +804,7 @@ export async function registerRoutes(
         fullName: updated.fullName,
         company: updated.company,
         role: updated.role,
+        language: updated.language,
         hasSubscription: !!updated.stripeSubscriptionId,
       },
     });

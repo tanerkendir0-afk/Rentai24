@@ -1,0 +1,83 @@
+{
+  "nav": {
+    "aiWorkers": "AI Workers",
+    "howItWorks": "How It Works",
+    "pricing": "Pricing",
+    "about": "About",
+    "contact": "Contact",
+    "installApp": "Install App",
+    "guide": "Guide",
+    "settings": "Settings",
+    "dashboard": "Dashboard",
+    "admin": "Admin",
+    "signOut": "Sign Out",
+    "signIn": "Sign In",
+    "tryLiveDemo": "Try Live Demo"
+  },
+  "install": {
+    "title": "Install RentAI 24",
+    "description": "Get the full app experience on your device:",
+    "nativeApp": "Works like a native app",
+    "nativeAppDesc": "Opens in its own window — no browser tabs needed.",
+    "fast": "Fast & always accessible",
+    "fastDesc": "Launch instantly from your home screen or desktop.",
+    "upToDate": "Stay up to date",
+    "upToDateDesc": "Get quick access to your AI workforce anytime.",
+    "installNow": "Install Now",
+    "notNow": "Not Now",
+    "iosSafari": {
+      "description": "Follow these steps to add RentAI 24 to your home screen:",
+      "step1": "Tap the <strong>Share</strong> button in the toolbar",
+      "step2": "Scroll down and tap <strong>\"Add to Home Screen\"</strong>",
+      "step3": "Tap <strong>\"Add\"</strong> in the top-right corner"
+    },
+    "macosSafari": {
+      "description": "Follow these steps to add RentAI 24 to your Dock:",
+      "step1": "Click <strong>File</strong> in the Safari menu bar",
+      "step2": "Select <strong>\"Add to Dock\"</strong>",
+      "step3": "Click <strong>\"Add\"</strong> to confirm"
+    },
+    "firefox": {
+      "description": "Firefox has limited PWA support. You can try:",
+      "step1": "Tap the <strong>menu button</strong> (three dots) in the address bar",
+      "step2": "Look for <strong>\"Install\"</strong> or <strong>\"Add to Home Screen\"</strong>",
+      "tip": "<strong>Tip:</strong> For the best experience, open this site in Chrome, Edge, or Safari to install the app natively."
+    },
+    "other": {
+      "description": "To install this app, try one of the following:",
+      "lookForInstall": "Look for an <strong>install icon</strong> in your browser's address bar or menu",
+      "openInBrowser": "Or open this site in <strong>Chrome</strong>, <strong>Edge</strong>, or <strong>Safari</strong> for the best install experience"
+    },
+    "addToHomeScreen": "Add to Home Screen",
+    "addToDock": "Add to Dock",
+    "installRentAI": "Install RentAI 24",
+    "guideDescription": "Your browser doesn't support automatic installation. Follow the steps below:",
+    "gotIt": "Got it"
+  },
+  "footer": {
+    "tagline": "Rent AI, 24/7. Pre-trained AI agents ready to join your team today.",
+    "quickLinks": "Quick Links",
+    "liveDemo": "Live Demo",
+    "legal": "Legal",
+    "privacyPolicy": "Privacy Policy",
+    "termsOfService": "Terms of Service",
+    "newsletter": "Newsletter",
+    "newsletterDesc": "Get the latest on AI workforce trends and product updates.",
+    "subscribed": "You're subscribed!",
+    "subscribedToast": "Subscribed!",
+    "errorToast": "Error",
+    "errorDesc": "Failed to subscribe. Please try again.",
+    "copyright": "© {{year}} RentAI 24. All rights reserved.",
+    "adminPanel": "Admin Panel"
+  },
+  "language": {
+    "label": "Language",
+    "english": "English",
+    "turkish": "Türkçe",
+    "switchTo": "Switch to {{lang}}",
+    "preference": "Language Preference",
+    "preferenceDesc": "Choose your preferred language for the interface.",
+    "saved": "Language preference saved",
+    "savedDesc": "The interface language has been updated."
+  }
+}

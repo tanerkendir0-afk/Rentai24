@@ -1380,6 +1380,7 @@ export async function registerRoutes(
     limits: { fileSize: 10 * 1024 * 1024 },
     fileFilter: (_req, file, cb) => {
       const ext = path.extname(file.originalname).toLowerCase();
+
       if (allAllowedExtensions.includes(ext)) {
         cb(null, true);
       } else {

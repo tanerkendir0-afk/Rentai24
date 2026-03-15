@@ -452,6 +452,14 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
       toast({ title: "Dosya çok büyük", description: "Maksimum dosya boyutu 10MB", variant: "destructive" });
       return;
     }
+
+    const allowedExtensions = [".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg", ".pdf", ".docx", ".xlsx", ".xls", ".csv", ".txt", ".md", ".numbers", ".pages"];
+    const ext = "." + file.name.split(".").pop()?.toLowerCase();
+    if (!allowedExtensions.includes(ext)) {
+      toast({ title: "Desteklenmeyen dosya", description: "Desteklenen türler: JPG, PNG, GIF, WebP, SVG, PDF, DOCX, XLSX, XLS, CSV, TXT, MD, Numbers, Pages", variant: "destructive" });
+      return;
+    }
+
     setUploading(true);
     try {
       const formData = new FormData();
@@ -512,13 +520,6 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
 
     const file = e.dataTransfer.files?.[0];
     if (!file) return;
-
-    const allowedExtensions = [".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg", ".pdf", ".docx", ".xlsx", ".xls", ".csv", ".txt", ".md", ".numbers", ".pages"];
-    const ext = "." + file.name.split(".").pop()?.toLowerCase();
-    if (!allowedExtensions.includes(ext)) {
-      toast({ title: "Desteklenmeyen dosya", description: "Desteklenen türler: JPG, PNG, GIF, WebP, SVG, PDF, DOCX, XLSX, XLS, CSV, TXT, MD, Numbers, Pages", variant: "destructive" });
-      return;
-    }
 
     await handleFileUpload(file);
   };
@@ -1787,7 +1788,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                 type="file"
                 ref={fileInputRef}
                 className="hidden"
-                accept="image/*,.pdf,.docx,.xlsx,.xls,.csv,.txt,.md,.numbers,.pages"
+                accept="image/*,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv,text/plain,text/markdown,.pdf,.docx,.xlsx,.xls,.csv,.txt,.md,.numbers,.pages,*/*"
                 onChange={handleFileInputChange}
                 data-testid="input-file-upload"
               />
@@ -1796,7 +1797,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={loading || uploading}
-                  className="h-9 w-9 rounded-full bg-muted/50 border border-border/50 flex items-center justify-center shrink-0 text-muted-foreground hover:text-foreground hover:bg-muted transition-all disabled:opacity-40"
+                  className="min-h-[44px] min-w-[44px] h-11 w-11 rounded-full bg-muted/50 border border-border/50 flex items-center justify-center shrink-0 text-muted-foreground hover:text-foreground hover:bg-muted transition-all disabled:opacity-40 touch-manipulation"
                   title="Dosya ekle"
                   data-testid="button-upload-file"
                 >

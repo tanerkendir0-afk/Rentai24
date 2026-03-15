@@ -136,7 +136,6 @@ function CrmDocumentsSection() {
   };
 
   const resolveFileType = (file: File): string => {
-    if (file.type) return file.type;
     const extMap: Record<string, string> = {
       pdf: "application/pdf",
       txt: "text/plain",
@@ -146,7 +145,8 @@ function CrmDocumentsSection() {
       docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
       doc: "application/msword",
     };
-    return extMap[getFileExtension(file.name)] || "application/octet-stream";
+    const ext = getFileExtension(file.name);
+    return extMap[ext] || file.type || "application/octet-stream";
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {

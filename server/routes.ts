@@ -4278,33 +4278,19 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
       if (!fileName || !originalName || !fileSize) {
         return res.status(400).json({ error: "Missing required fields" });
       }
-      const allowedMimeTypes = [
-        "application/pdf", "text/plain", "text/csv",
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        "application/vnd.ms-excel",
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        "application/msword",
-      ];
-      const allowedExtensions = ["pdf", "txt", "csv", "xlsx", "xls", "doc", "docx"];
+      const extMimeMap: Record<string, string> = {
+        pdf: "application/pdf", txt: "text/plain", csv: "text/csv",
+        xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        xls: "application/vnd.ms-excel",
+        docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        doc: "application/msword",
+      };
+      const allowedExtensions = Object.keys(extMimeMap);
       const ext = String(originalName).toLowerCase().split(".").pop() || "";
-      const isValidExt = allowedExtensions.includes(ext);
-      if (!isValidExt) {
+      if (!allowedExtensions.includes(ext)) {
         return res.status(400).json({ error: "Unsupported file type" });
       }
-      const resolvedType = fileType && fileType !== "application/octet-stream" ? fileType : null;
-      if (resolvedType && !allowedMimeTypes.includes(resolvedType)) {
-        return res.status(400).json({ error: "Unsupported file type" });
-      }
-      const effectiveType = resolvedType || (() => {
-        const extMimeMap: Record<string, string> = {
-          pdf: "application/pdf", txt: "text/plain", csv: "text/csv",
-          xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-          xls: "application/vnd.ms-excel",
-          docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-          doc: "application/msword",
-        };
-        return extMimeMap[ext] || "application/octet-stream";
-      })();
+      const effectiveType = extMimeMap[ext];
       const maxSize = 5 * 1024 * 1024;
       if (typeof fileSize !== "number" || fileSize > maxSize || fileSize <= 0) {
         return res.status(400).json({ error: "File size must be between 1 byte and 5MB" });

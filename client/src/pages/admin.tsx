@@ -564,7 +564,8 @@ function PerformancePanel({ token }: { token: string }) {
           {loading ? (
             <div className="flex items-center gap-2 text-gray-400"><RefreshCw className="w-4 h-4 animate-spin" /> Loading...</div>
           ) : (
-            <div className="overflow-x-auto">
+            <>
+            <div className="hidden sm:block overflow-x-auto">
               <table className="w-full text-sm" data-testid="table-agent-performance">
                 <thead>
                   <tr className="border-b border-[#1E2448]">
@@ -572,9 +573,9 @@ function PerformancePanel({ token }: { token: string }) {
                     <th className="text-center p-2 text-gray-400">Sessions</th>
                     <th className="text-center p-2 text-gray-400">Messages</th>
                     <th className="text-center p-2 text-gray-400">Actions</th>
-                    <th className="text-center p-2 text-gray-400">Avg Tools/Session</th>
-                    <th className="text-center p-2 text-gray-400">Error Rate</th>
-                    <th className="text-center p-2 text-gray-400">Dup Rate</th>
+                    <th className="text-center p-2 text-gray-400">Avg Tools</th>
+                    <th className="text-center p-2 text-gray-400">Error</th>
+                    <th className="text-center p-2 text-gray-400">Dup</th>
                     <th className="text-center p-2 text-gray-400">Health</th>
                   </tr>
                 </thead>
@@ -608,10 +609,34 @@ function PerformancePanel({ token }: { token: string }) {
                   })}
                 </tbody>
               </table>
+            </div>
+            <div className="sm:hidden space-y-2" data-testid="cards-agent-performance">
+              {stats.map(s => {
+                const health = s.errorRate > 20 ? "critical" : s.errorRate > 10 ? "warning" : s.dupRate > 10 ? "warning" : "good";
+                return (
+                  <div key={s.agentType} className="bg-[#0A0E27] rounded-lg p-3 border border-[#1E2448]" data-testid={`card-agent-${s.agentType}`}>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-white font-medium text-sm">{agentNameMap[s.agentType] || s.agentType}</span>
+                      {health === "good" && <Badge className="bg-green-900/30 text-green-400 border-green-800 text-[10px]">Good</Badge>}
+                      {health === "warning" && <Badge className="bg-yellow-900/30 text-yellow-400 border-yellow-800 text-[10px]">Warning</Badge>}
+                      {health === "critical" && <Badge className="bg-red-900/30 text-red-400 border-red-800 text-[10px]">Critical</Badge>}
+                    </div>
+                    <div className="grid grid-cols-3 gap-2 text-xs">
+                      <div><span className="text-gray-500">Sessions</span><p className="text-gray-300">{s.totalSessions}</p></div>
+                      <div><span className="text-gray-500">Messages</span><p className="text-gray-300">{s.totalMessages}</p></div>
+                      <div><span className="text-gray-500">Actions</span><p className="text-gray-300">{s.totalActions}</p></div>
+                      <div><span className="text-gray-500">Avg Tools</span><p className="text-cyan-400">{s.avgToolsPerSession}</p></div>
+                      <div><span className="text-gray-500">Error</span><p className={s.errorRate > 20 ? "text-red-400" : s.errorRate > 10 ? "text-yellow-400" : "text-green-400"}>{s.errorRate}%</p></div>
+                      <div><span className="text-gray-500">Dup</span><p className={s.dupRate > 10 ? "text-orange-400" : "text-green-400"}>{s.dupRate}%</p></div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
               {stats.length === 0 && (
                 <p className="text-gray-500 text-center py-8">No agent performance data yet. Start chatting with agents to collect data.</p>
               )}
-            </div>
+            </>
           )}
         </CardContent>
       </Card>
@@ -630,12 +655,12 @@ function PerformancePanel({ token }: { token: string }) {
           <CardContent>
             <div className="space-y-2">
               {problematic.map((s: ProblematicSession, i: number) => (
-                <div key={i} className="flex items-center justify-between bg-[#0A0E27] rounded-lg p-3 border border-[#1E2448]" data-testid={`row-problematic-${i}`}>
-                  <div className="flex items-center gap-3">
-                    <Badge variant="outline" className="border-[#1E2448] text-gray-300">{agentNameMap[s.agent_type] || s.agent_type}</Badge>
-                    <span className="text-xs text-gray-400">Session: {String(s.session_id).slice(0, 12)}...</span>
+                <div key={i} className="flex flex-col sm:flex-row sm:items-center sm:justify-between bg-[#0A0E27] rounded-lg p-3 border border-[#1E2448] gap-2" data-testid={`row-problematic-${i}`}>
+                  <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                    <Badge variant="outline" className="border-[#1E2448] text-gray-300 text-[10px] sm:text-xs shrink-0">{(agentNameMap[s.agent_type] || s.agent_type).split(" — ")[0]}</Badge>
+                    <span className="text-[10px] sm:text-xs text-gray-400 truncate">Session: {String(s.session_id).slice(0, 8)}...</span>
                   </div>
-                  <div className="flex gap-3 text-xs">
+                  <div className="flex flex-wrap gap-2 sm:gap-3 text-[10px] sm:text-xs">
                     <span className="text-gray-400">{s.msg_count} msgs</span>
                     <span className={Number(s.tool_count) > 5 ? "text-orange-400" : "text-gray-400"}>{s.tool_count} tools</span>
                     {Number(s.auth_error_count) > 0 && <span className="text-red-400">{s.auth_error_count} auth errs</span>}
@@ -4888,47 +4913,49 @@ export default function AdminPage() {
           if (tabToCategory[val]) setActiveCategory(tabToCategory[val]);
         }} className="space-y-4 sm:space-y-6">
           <div className="space-y-2">
-            <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
-              {[
-                { id: "dashboard", label: "Dashboard", icon: Crown, gradient: "from-amber-500 to-orange-600" },
-                { id: "ai-training", label: "AI Training", icon: Database, gradient: "from-violet-500 to-purple-600" },
-                { id: "analytics", label: "Analytics", icon: BarChart3, gradient: "from-emerald-500 to-teal-600" },
-                { id: "limits", label: "Limits & Paketler", icon: Zap, gradient: "from-yellow-500 to-amber-600" },
-                { id: "security", label: "Security & Support", icon: Shield, gradient: "from-red-500 to-rose-600" },
-                { id: "help", label: "Rehber", icon: HelpCircle, gradient: "from-cyan-500 to-blue-600" },
-              ].map(cat => {
-                const Icon = cat.icon;
-                return (
-                  <button
-                    key={cat.id}
-                    onClick={() => {
-                      setActiveCategory(cat.id);
-                      const firstTab: Record<string, string> = {
-                        "dashboard": "boss-ai",
-                        "ai-training": "rag",
-                        "analytics": "messages",
-                        "limits": "limit-management",
-                        "security": "guardrails",
-                        "help": "admin-guide",
-                      };
-                      setActiveTab(firstTab[cat.id] || "overview");
-                    }}
-                    className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition-all shrink-0 ${
-                      activeCategory === cat.id
-                        ? `bg-gradient-to-r ${cat.gradient} text-white shadow-lg`
-                        : "bg-[#111633] text-gray-400 hover:text-white hover:bg-[#1a1f4a] border border-[#1E2448]"
-                    }`}
-                    data-testid={`category-${cat.id}`}
-                  >
-                    <Icon className="w-3.5 h-3.5" />
-                    <span className="hidden sm:inline">{cat.label}</span>
-                    <span className="sm:hidden">{cat.label.split(" ")[0]}</span>
-                  </button>
-                );
-              })}
+            <div className="relative">
+              <div className="flex gap-1 sm:gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
+                {[
+                  { id: "dashboard", label: "Dashboard", icon: Crown, gradient: "from-amber-500 to-orange-600" },
+                  { id: "ai-training", label: "AI Training", icon: Database, gradient: "from-violet-500 to-purple-600" },
+                  { id: "analytics", label: "Analytics", icon: BarChart3, gradient: "from-emerald-500 to-teal-600" },
+                  { id: "limits", label: "Limits", icon: Zap, gradient: "from-yellow-500 to-amber-600" },
+                  { id: "security", label: "Security", icon: Shield, gradient: "from-red-500 to-rose-600" },
+                  { id: "help", label: "Rehber", icon: HelpCircle, gradient: "from-cyan-500 to-blue-600" },
+                ].map(cat => {
+                  const Icon = cat.icon;
+                  return (
+                    <button
+                      key={cat.id}
+                      onClick={() => {
+                        setActiveCategory(cat.id);
+                        const firstTab: Record<string, string> = {
+                          "dashboard": "boss-ai",
+                          "ai-training": "rag",
+                          "analytics": "messages",
+                          "limits": "limit-management",
+                          "security": "guardrails",
+                          "help": "admin-guide",
+                        };
+                        setActiveTab(firstTab[cat.id] || "overview");
+                      }}
+                      className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-2 rounded-lg text-[11px] sm:text-xs font-medium whitespace-nowrap transition-all shrink-0 min-h-[44px] ${
+                        activeCategory === cat.id
+                          ? `bg-gradient-to-r ${cat.gradient} text-white shadow-lg`
+                          : "bg-[#111633] text-gray-400 hover:text-white hover:bg-[#1a1f4a] border border-[#1E2448]"
+                      }`}
+                      data-testid={`category-${cat.id}`}
+                    >
+                      <Icon className="w-3.5 h-3.5" />
+                      {cat.label}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
-            <TabsList className="bg-[#111633] border border-[#1E2448] h-auto gap-0.5 sm:gap-1 p-1 overflow-x-auto max-w-full flex">
+            <div className="relative">
+            <TabsList className="bg-[#111633] border border-[#1E2448] h-auto gap-0.5 sm:gap-1 p-1 overflow-x-auto max-w-full flex [&>button]:min-h-[44px] [&>button]:text-[11px] [&>button]:sm:text-xs">
               {activeCategory === "dashboard" && (
                 <>
                   <TabsTrigger value="boss-ai" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-amber-500 data-[state=active]:to-orange-600 data-[state=active]:text-white" data-testid="tab-boss-ai">
@@ -5036,6 +5063,8 @@ export default function AdminPage() {
                 </TabsTrigger>
               )}
             </TabsList>
+            <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-[#0A0E27]/90 to-transparent sm:hidden" />
+            </div>
           </div>
 
           <TabsContent value="boss-ai">

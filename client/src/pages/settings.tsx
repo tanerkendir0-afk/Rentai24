@@ -747,21 +747,24 @@ export default function Settings() {
 
       <div className="lg:hidden border-b border-border/50 bg-card/50 backdrop-blur-sm sticky top-16 z-20">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
-          <div className="flex overflow-x-auto gap-1 py-2 scrollbar-hide" data-testid="settings-mobile-nav">
-            {settingsSections.map((section) => {
-              const SectionIcon = section.icon;
-              return (
-                <button
-                  key={section.id}
-                  onClick={() => scrollToSection(section.id)}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors whitespace-nowrap shrink-0 min-h-[44px]"
-                  data-testid={`nav-mobile-${section.id}`}
-                >
-                  <SectionIcon className="w-3.5 h-3.5" />
-                  {section.label}
-                </button>
-              );
-            })}
+          <div className="relative">
+            <div className="flex overflow-x-auto gap-1 py-2 scrollbar-hide" data-testid="settings-mobile-nav">
+              {settingsSections.map((section) => {
+                const SectionIcon = section.icon;
+                return (
+                  <button
+                    key={section.id}
+                    onClick={() => scrollToSection(section.id)}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors whitespace-nowrap shrink-0 min-h-[44px]"
+                    data-testid={`nav-mobile-${section.id}`}
+                  >
+                    <SectionIcon className="w-3.5 h-3.5" />
+                    {section.label}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-card/90 to-transparent" />
           </div>
         </div>
       </div>

@@ -830,19 +830,23 @@ export const socialMediaTools: OpenAI.ChatCompletionTool[] = [
 export const bookkeepingTools: OpenAI.ChatCompletionTool[] = [
   webSearchTool,
   ...whatsappTools,
+  ...gmailInboxTools,
   {
     type: "function",
     function: {
       name: "create_invoice",
-      description: "Generate a professional invoice with line items, totals, and payment terms.",
+      description: "Profesyonel fatura oluşturur. KDV ve tevkifat hesaplaması yapar. Tüm tutarlar ₺ (TL) bazındadır.",
       parameters: {
         type: "object",
         properties: {
-          client_name: { type: "string", description: "Client/company name" },
-          client_email: { type: "string", description: "Client email for sending the invoice" },
-          items: { type: "string", description: "Line items in format: 'Description|Qty|Price' separated by semicolons. e.g. 'Web Design|1|5000;Hosting|12|50'" },
-          due_days: { type: "number", description: "Payment due in N days (default: 30)" },
-          notes: { type: "string", description: "Additional notes on the invoice" },
+          client_name: { type: "string", description: "Müşteri/firma adı" },
+          client_email: { type: "string", description: "Müşteri e-posta adresi (fatura göndermek için)" },
+          items: { type: "string", description: "Kalemler: 'Açıklama|Adet|Birim Fiyat' noktalı virgülle ayrılır. Örn: 'Web Tasarım|1|5000;Hosting|12|50'" },
+          kdv_rate: { type: "number", enum: [0, 1, 10, 20], description: "KDV oranı: %0 (muaf), %1, %10, %20 (varsayılan: 20)" },
+          tevkifat_rate: { type: "string", enum: ["none", "2/10", "4/10", "5/10", "7/10", "8/10", "9/10", "10/10"], description: "KDV tevkifat oranı (varsayılan: none — tevkifatsız)" },
+          due_days: { type: "number", description: "Vade süresi gün olarak (varsayılan: 30)" },
+          notes: { type: "string", description: "Fatura notları" },
+          currency: { type: "string", enum: ["TRY", "USD", "EUR", "GBP"], description: "Para birimi (varsayılan: TRY)" },
         },
         required: ["client_name", "items"],
       },
@@ -852,15 +856,35 @@ export const bookkeepingTools: OpenAI.ChatCompletionTool[] = [
     type: "function",
     function: {
       name: "log_expense",
-      description: "Log a business expense for tracking and categorization.",
+      description: "İşletme gideri kaydeder. Tutar ₺ (TL) cinsindendir.",
       parameters: {
         type: "object",
         properties: {
-          description: { type: "string", description: "What the expense is for" },
-          amount: { type: "number", description: "Expense amount" },
-          category: { type: "string", enum: ["office", "software", "travel", "marketing", "payroll", "utilities", "equipment", "professional_services", "other"], description: "Expense category" },
-          date: { type: "string", description: "Expense date (YYYY-MM-DD, default: today)" },
-          vendor: { type: "string", description: "Vendor/supplier name" },
+          description: { type: "string", description: "Gider açıklaması" },
+          amount: { type: "number", description: "Gider tutarı (₺)" },
+          category: { type: "string", enum: ["ofis", "yazilim", "seyahat", "pazarlama", "maas", "faturalar", "ekipman", "profesyonel_hizmet", "vergi", "kira", "sigorta", "diger"], description: "Gider kategorisi" },
+          date: { type: "string", description: "Gider tarihi (YYYY-MM-DD, varsayılan: bugün)" },
+          vendor: { type: "string", description: "Tedarikçi/satıcı adı" },
+          kdv_amount: { type: "number", description: "KDV tutarı (varsa, ₺)" },
+        },
+        required: ["description", "amount", "category"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "log_income",
+      description: "Gelir kaydeder (satış, hizmet, kira vb.). Tutar ₺ (TL) cinsindendir.",
+      parameters: {
+        type: "object",
+        properties: {
+          description: { type: "string", description: "Gelir açıklaması" },
+          amount: { type: "number", description: "Gelir tutarı (₺)" },
+          category: { type: "string", enum: ["satis", "hizmet", "kira", "faiz", "komisyon", "diger"], description: "Gelir kategorisi" },
+          date: { type: "string", description: "Gelir tarihi (YYYY-MM-DD, varsayılan: bugün)" },
+          client_name: { type: "string", description: "Müşteri/firma adı" },
+          kdv_amount: { type: "number", description: "KDV tutarı (varsa, ₺)" },
         },
         required: ["description", "amount", "category"],
       },
@@ -870,11 +894,11 @@ export const bookkeepingTools: OpenAI.ChatCompletionTool[] = [
     type: "function",
     function: {
       name: "financial_summary",
-      description: "Generate a financial summary showing logged expenses, invoices, and cash flow overview.",
+      description: "Finansal özet rapor oluşturur — gelirler, giderler, faturalar ve nakit akışı. Tüm tutarlar ₺ cinsindendir.",
       parameters: {
         type: "object",
         properties: {
-          period: { type: "string", enum: ["week", "month", "quarter", "year"], description: "Time period for the summary (default: month)" },
+          period: { type: "string", enum: ["week", "month", "quarter", "year"], description: "Dönem (varsayılan: month)" },
         },
       },
     },
@@ -883,15 +907,150 @@ export const bookkeepingTools: OpenAI.ChatCompletionTool[] = [
     type: "function",
     function: {
       name: "send_invoice_email",
-      description: "Send a financial email — payment reminders, invoice summaries, expense reports, or financial notifications. Use when the user asks to email invoices, reminders, or financial documents.",
+      description: "Finansal e-posta gönderir — ödeme hatırlatmaları, fatura özetleri, gider raporları. Fatura veya mali belge e-postası istendiğinde kullan.",
       parameters: {
         type: "object",
         properties: {
-          to: { type: "string", description: "Recipient email address" },
-          subject: { type: "string", description: "Email subject line" },
-          body: { type: "string", description: "Email body content (professional financial tone)" },
+          to: { type: "string", description: "Alıcı e-posta adresi" },
+          subject: { type: "string", description: "E-posta konusu" },
+          body: { type: "string", description: "E-posta içeriği (profesyonel mali üslup)" },
         },
         required: ["to", "subject", "body"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_exchange_rate",
+      description: "TCMB (Merkez Bankası) günlük döviz kurlarını getirir. Döviz çevirme hesaplaması yapar. Her zaman TCMB kuru kullanılır (VUK md. 280).",
+      parameters: {
+        type: "object",
+        properties: {
+          currency: { type: "string", description: "Döviz kodu (USD, EUR, GBP vb.). Belirtilmezse tüm kurlar gösterilir." },
+          amount: { type: "number", description: "Çevrilecek tutar (opsiyonel — belirtilirse TL karşılığı hesaplanır)" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "add_receivable",
+      description: "Alacak kaydı ekler (müşteriden alınacak tutar). Vadesi takip edilir.",
+      parameters: {
+        type: "object",
+        properties: {
+          entity_name: { type: "string", description: "Borçlu kişi/firma adı" },
+          amount: { type: "number", description: "Alacak tutarı (₺)" },
+          due_date: { type: "string", description: "Vade tarihi (YYYY-MM-DD)" },
+          description: { type: "string", description: "Alacak açıklaması" },
+          invoice_no: { type: "string", description: "İlgili fatura numarası (opsiyonel)" },
+        },
+        required: ["entity_name", "amount", "due_date"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "add_payable",
+      description: "Borç kaydı ekler (tedarikçiye ödenecek tutar). Vadesi takip edilir.",
+      parameters: {
+        type: "object",
+        properties: {
+          entity_name: { type: "string", description: "Alacaklı kişi/firma adı" },
+          amount: { type: "number", description: "Borç tutarı (₺)" },
+          due_date: { type: "string", description: "Vade tarihi (YYYY-MM-DD)" },
+          description: { type: "string", description: "Borç açıklaması" },
+          invoice_no: { type: "string", description: "İlgili fatura numarası (opsiyonel)" },
+        },
+        required: ["entity_name", "amount", "due_date"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "list_debts",
+      description: "Tüm borç ve alacakları listeler. Vadesi geçenleri vurgular.",
+      parameters: {
+        type: "object",
+        properties: {
+          type: { type: "string", enum: ["all", "receivable", "payable", "overdue"], description: "Filtre: tümü, alacaklar, borçlar veya vadesi geçenler (varsayılan: all)" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "cash_flow_forecast",
+      description: "Nakit akış tahmini oluşturur. Gelir/gider trendleri ve borç/alacak vadelerine göre gelecek projeksiyonu yapar.",
+      parameters: {
+        type: "object",
+        properties: {
+          days: { type: "number", enum: [30, 60, 90], description: "Projeksiyon süresi gün olarak (varsayılan: 30)" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "generate_balance_sheet",
+      description: "Tekdüzen Hesap Planına uygun basit bilanço oluşturur. Kayıtlı varlık, borç ve özkaynak verilerini kullanır.",
+      parameters: {
+        type: "object",
+        properties: {
+          date: { type: "string", description: "Bilanço tarihi (YYYY-MM-DD, varsayılan: bugün)" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "generate_income_statement",
+      description: "Gelir tablosu oluşturur — satışlar, SMM, brüt kâr, faaliyet giderleri, net kâr. Tekdüzen Hesap Planı formatında.",
+      parameters: {
+        type: "object",
+        properties: {
+          period: { type: "string", enum: ["month", "quarter", "year"], description: "Dönem (varsayılan: month)" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "calculate_payroll",
+      description: "Bordro hesaplama yapar. Brüt maaştan SGK, gelir vergisi, damga vergisi keserek net maaş hesaplar. 2026 güncel vergi dilimleri ve SGK oranları kullanılır.",
+      parameters: {
+        type: "object",
+        properties: {
+          gross_salary: { type: "number", description: "Brüt maaş (₺)" },
+          cumulative_tax_base: { type: "number", description: "Yıl içi kümülatif gelir vergisi matrahı (₺, önceki ayların toplamı — ilk ay için 0)" },
+          disability_degree: { type: "number", enum: [0, 1, 2, 3], description: "Engellilik derecesi (0: yok, 1: 1. derece, 2: 2. derece, 3: 3. derece — varsayılan: 0)" },
+          is_minimum_wage: { type: "boolean", description: "Asgari ücretli mi? (true ise gelir vergisi ve damga vergisi istisna)" },
+        },
+        required: ["gross_salary"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "calculate_withholding",
+      description: "Stopaj hesaplama yapar. Serbest meslek, kira, telif hakkı vb. ödemeler için stopaj tutarını hesaplar.",
+      parameters: {
+        type: "object",
+        properties: {
+          amount: { type: "number", description: "Ödeme tutarı (₺)" },
+          type: { type: "string", enum: ["serbest_meslek", "kira_gercek", "kira_tuzel", "telif", "insaat_hakedis", "temettü", "faiz"], description: "Stopaj türü" },
+          is_gross: { type: "boolean", description: "Tutar brüt mü? (true: brütten stopaj düş, false: netten brüte çıkar — varsayılan: true)" },
+        },
+        required: ["amount", "type"],
       },
     },
   },
@@ -1265,9 +1424,19 @@ const TOOL_KEYWORD_MAP: Record<string, string[]> = {
   schedule_post: ["schedule", "zamanla", "later", "sonra", "yarın", "tomorrow", "time", "saat"],
   list_scheduled_posts: ["scheduled", "zamanlı", "pending", "bekleyen", "list"],
   cancel_scheduled_post: ["cancel", "iptal", "remove", "kaldır"],
-  create_invoice: ["invoice", "fatura"],
+  create_invoice: ["invoice", "fatura", "KDV", "tevkifat"],
   log_expense: ["expense", "gider", "harcama", "masraf"],
+  log_income: ["income", "gelir", "satış", "tahsilat", "hasılat"],
   financial_summary: ["financial", "summary", "report", "mali", "özet", "rapor", "gelir", "gider"],
+  get_exchange_rate: ["exchange", "kur", "döviz", "TCMB", "USD", "EUR", "GBP", "dolar", "euro"],
+  add_receivable: ["receivable", "alacak", "tahsilat", "müşteri borcu"],
+  add_payable: ["payable", "borç", "tedarikçi", "ödeme"],
+  list_debts: ["debts", "borç", "alacak", "vade", "bakiye"],
+  cash_flow_forecast: ["cash flow", "nakit akış", "projeksiyon", "tahmin", "forecast"],
+  generate_balance_sheet: ["balance", "bilanço", "varlık", "kaynak"],
+  generate_income_statement: ["income statement", "gelir tablosu", "kâr zarar"],
+  calculate_payroll: ["payroll", "bordro", "maaş", "brüt", "net", "SGK"],
+  calculate_withholding: ["withholding", "stopaj", "tevkifat", "kesinti"],
   create_job_posting: ["job", "posting", "iş ilanı", "ilan", "pozisyon"],
   screen_resume: ["resume", "cv", "candidate", "aday", "screen", "değerlendir"],
   create_interview_kit: ["interview", "mülakat", "soru"],
@@ -3125,45 +3294,58 @@ ${activeRentals.map(r => `  ${r.agentType}: ${r.messagesUsed}/${r.messagesLimit}
       const clientEmail = args.client_email ? String(args.client_email) : null;
       const dueDays = Number(args.due_days) || 30;
       const notes = args.notes ? String(args.notes) : null;
+      const kdvRate = args.kdv_rate !== undefined ? Number(args.kdv_rate) : 20;
+      const tevkifatRate = args.tevkifat_rate ? String(args.tevkifat_rate) : "none";
+      const currency = args.currency ? String(args.currency) : "TRY";
+      const currencySymbol = currency === "TRY" ? "₺" : currency;
 
       const itemsRaw = String(args.items);
       const parsedItems = itemsRaw.split(";").map(item => {
         const parts = item.trim().split("|");
         return {
-          description: parts[0]?.trim() || "Item",
+          description: parts[0]?.trim() || "Kalem",
           quantity: Number(parts[1]?.trim()) || 1,
           price: Number(parts[2]?.trim()) || 0,
         };
       });
 
       const subtotal = parsedItems.reduce((sum, item) => sum + (item.quantity * item.price), 0);
-      const invoiceNumber = `INV-${Date.now().toString(36).toUpperCase()}`;
+      const kdvAmount = subtotal * (kdvRate / 100);
+      let tevkifatAmount = 0;
+      if (tevkifatRate !== "none") {
+        const [num, den] = tevkifatRate.split("/").map(Number);
+        tevkifatAmount = kdvAmount * (num / den);
+      }
+      const grandTotal = subtotal + kdvAmount - tevkifatAmount;
+      const invoiceNumber = `FTR-${Date.now().toString(36).toUpperCase()}`;
+
+      const formatNum = (n: number) => n.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
       const itemLines = parsedItems.map(item =>
-        `  ${item.description} × ${item.quantity} = $${(item.quantity * item.price).toFixed(2)}`
+        `  ${item.description} × ${item.quantity} = ${currencySymbol}${formatNum(item.quantity * item.price)}`
       ).join("\n");
 
       await storage.createAgentAction({
         userId, agentType,
         actionType: "invoice_created",
-        description: `🧾 Invoice ${invoiceNumber} created for ${clientName} — $${subtotal.toFixed(2)}`,
-        metadata: { invoiceNumber, clientName, clientEmail, subtotal, items: parsedItems, dueDays, notes },
+        description: `🧾 Fatura ${invoiceNumber} — ${clientName} — ${currencySymbol}${formatNum(grandTotal)} (KDV %${kdvRate}${tevkifatRate !== "none" ? `, Tevkifat ${tevkifatRate}` : ""})`,
+        metadata: { invoiceNumber, clientName, clientEmail, subtotal, kdvRate, kdvAmount, tevkifatRate, tevkifatAmount, grandTotal, items: parsedItems, dueDays, notes, currency },
       });
 
       if (clientEmail) {
         await sendEmail({
           userId,
           to: clientEmail,
-          subject: `Invoice ${invoiceNumber} from your business`,
-          body: `Dear ${clientName},\n\nPlease find your invoice below:\n\nInvoice #: ${invoiceNumber}\nItems:\n${itemLines}\n\nSubtotal: $${subtotal.toFixed(2)}\nDue: ${dueDays} days\n\n${notes ? `Notes: ${notes}\n\n` : ""}Thank you for your business.`,
+          subject: `Fatura ${invoiceNumber}`,
+          body: `Sayın ${clientName},\n\nFaturanız aşağıdadır:\n\nFatura No: ${invoiceNumber}\nKalemler:\n${itemLines}\n\nAra Toplam: ${currencySymbol}${formatNum(subtotal)}\nKDV (%${kdvRate}): ${currencySymbol}${formatNum(kdvAmount)}${tevkifatRate !== "none" ? `\nTevkifat (${tevkifatRate}): -${currencySymbol}${formatNum(tevkifatAmount)}` : ""}\nGenel Toplam: ${currencySymbol}${formatNum(grandTotal)}\nVade: ${dueDays} gün\n\n${notes ? `Notlar: ${notes}\n\n` : ""}Teşekkür ederiz.`,
           agentType,
         });
       }
 
       return {
-        result: `Invoice ${invoiceNumber} created!\n\nClient: ${clientName}${clientEmail ? `\nEmail: ${clientEmail} (invoice sent)` : ""}\n\nItems:\n${itemLines}\n\nSubtotal: $${subtotal.toFixed(2)}\nDue: Net ${dueDays}${notes ? `\nNotes: ${notes}` : ""}`,
+        result: `Fatura ${invoiceNumber} oluşturuldu!\n\nMüşteri: ${clientName}${clientEmail ? `\nE-posta: ${clientEmail} (fatura gönderildi)` : ""}\n\nKalemler:\n${itemLines}\n\nAra Toplam: ${currencySymbol}${formatNum(subtotal)}\nKDV (%${kdvRate}): ${currencySymbol}${formatNum(kdvAmount)}${tevkifatRate !== "none" ? `\nTevkifat (${tevkifatRate}): -${currencySymbol}${formatNum(tevkifatAmount)}` : ""}\nGenel Toplam: ${currencySymbol}${formatNum(grandTotal)}\nVade: ${dueDays} gün${notes ? `\nNotlar: ${notes}` : ""}`,
         actionType: "invoice_created",
-        actionDescription: `🧾 Invoice ${invoiceNumber}: $${subtotal.toFixed(2)} for ${clientName}`,
+        actionDescription: `🧾 Fatura ${invoiceNumber}: ${currencySymbol}${formatNum(grandTotal)} — ${clientName}`,
       };
     }
 
@@ -3173,20 +3355,61 @@ ${activeRentals.map(r => `  ${r.agentType}: ${r.messagesUsed}/${r.messagesLimit}
       const category = String(args.category);
       const date = args.date ? String(args.date) : new Date().toISOString().split("T")[0];
       const vendor = args.vendor ? String(args.vendor) : null;
+      const kdvAmount = args.kdv_amount ? Number(args.kdv_amount) : null;
 
-      const expenseId = `EXP-${Date.now().toString(36).toUpperCase()}`;
+      const expenseId = `GDR-${Date.now().toString(36).toUpperCase()}`;
+      const formatNum = (n: number) => n.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+      const categoryNames: Record<string, string> = {
+        ofis: "Ofis", yazilim: "Yazılım", seyahat: "Seyahat", pazarlama: "Pazarlama",
+        maas: "Maaş/Bordro", faturalar: "Faturalar", ekipman: "Ekipman",
+        profesyonel_hizmet: "Profesyonel Hizmet", vergi: "Vergi/Harç",
+        kira: "Kira", sigorta: "Sigorta", diger: "Diğer",
+      };
+      const categoryLabel = categoryNames[category] || category;
 
       await storage.createAgentAction({
         userId, agentType,
         actionType: "expense_logged",
-        description: `💸 Expense logged: $${amount.toFixed(2)} — ${description} [${category}]`,
-        metadata: { expenseId, description, amount, category, date, vendor },
+        description: `💸 Gider: ₺${formatNum(amount)} — ${description} [${categoryLabel}]`,
+        metadata: { expenseId, description, amount, category, categoryLabel, date, vendor, kdvAmount },
       });
 
       return {
-        result: `Expense ${expenseId} logged!\n\nDescription: ${description}\nAmount: $${amount.toFixed(2)}\nCategory: ${category}\nDate: ${date}${vendor ? `\nVendor: ${vendor}` : ""}`,
+        result: `Gider ${expenseId} kaydedildi!\n\nAçıklama: ${description}\nTutar: ₺${formatNum(amount)}${kdvAmount ? `\nKDV: ₺${formatNum(kdvAmount)}` : ""}\nKategori: ${categoryLabel}\nTarih: ${date}${vendor ? `\nTedarikçi: ${vendor}` : ""}`,
         actionType: "expense_logged",
-        actionDescription: `💸 Expense: $${amount.toFixed(2)} — ${description}`,
+        actionDescription: `💸 Gider: ₺${formatNum(amount)} — ${description}`,
+      };
+    }
+
+    case "log_income": {
+      const description = String(args.description);
+      const amount = Number(args.amount);
+      const category = String(args.category);
+      const date = args.date ? String(args.date) : new Date().toISOString().split("T")[0];
+      const clientName = args.client_name ? String(args.client_name) : null;
+      const kdvAmount = args.kdv_amount ? Number(args.kdv_amount) : null;
+
+      const incomeId = `GLR-${Date.now().toString(36).toUpperCase()}`;
+      const formatNum = (n: number) => n.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+      const categoryNames: Record<string, string> = {
+        satis: "Satış", hizmet: "Hizmet", kira: "Kira Geliri",
+        faiz: "Faiz Geliri", komisyon: "Komisyon", diger: "Diğer Gelir",
+      };
+      const categoryLabel = categoryNames[category] || category;
+
+      await storage.createAgentAction({
+        userId, agentType,
+        actionType: "income_logged",
+        description: `💰 Gelir: ₺${formatNum(amount)} — ${description} [${categoryLabel}]`,
+        metadata: { incomeId, description, amount, category, categoryLabel, date, clientName, kdvAmount },
+      });
+
+      return {
+        result: `Gelir ${incomeId} kaydedildi!\n\nAçıklama: ${description}\nTutar: ₺${formatNum(amount)}${kdvAmount ? `\nKDV: ₺${formatNum(kdvAmount)}` : ""}\nKategori: ${categoryLabel}\nTarih: ${date}${clientName ? `\nMüşteri: ${clientName}` : ""}`,
+        actionType: "income_logged",
+        actionDescription: `💰 Gelir: ₺${formatNum(amount)} — ${description}`,
       };
     }
 
@@ -3194,6 +3417,9 @@ ${activeRentals.map(r => `  ${r.agentType}: ${r.messagesUsed}/${r.messagesLimit}
       const period = args.period ? String(args.period) : "month";
       const periodDays: Record<string, number> = { week: 7, month: 30, quarter: 90, year: 365 };
       const days = periodDays[period] || 30;
+      const periodNames: Record<string, string> = { week: "Haftalık", month: "Aylık", quarter: "Çeyreklik", year: "Yıllık" };
+      const periodLabel = periodNames[period] || period;
+      const formatNum = (n: number) => n.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
       const allActions = await storage.getActionsByUser(userId);
       const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
@@ -3201,10 +3427,16 @@ ${activeRentals.map(r => `  ${r.agentType}: ${r.messagesUsed}/${r.messagesLimit}
 
       const invoices = periodActions.filter(a => a.actionType === "invoice_created");
       const expenses = periodActions.filter(a => a.actionType === "expense_logged");
+      const incomes = periodActions.filter(a => a.actionType === "income_logged");
 
       const totalInvoiced = invoices.reduce((sum, a) => {
         const meta = a.metadata as Record<string, unknown>;
-        return sum + (Number(meta?.subtotal) || 0);
+        return sum + (Number(meta?.grandTotal) || Number(meta?.subtotal) || 0);
+      }, 0);
+
+      const totalIncome = incomes.reduce((sum, a) => {
+        const meta = a.metadata as Record<string, unknown>;
+        return sum + (Number(meta?.amount) || 0);
       }, 0);
 
       const totalExpenses = expenses.reduce((sum, a) => {
@@ -3212,29 +3444,516 @@ ${activeRentals.map(r => `  ${r.agentType}: ${r.messagesUsed}/${r.messagesLimit}
         return sum + (Number(meta?.amount) || 0);
       }, 0);
 
-      const categoryCounts: Record<string, number> = {};
+      const totalRevenue = totalInvoiced + totalIncome;
+
+      const expenseCategoryCounts: Record<string, number> = {};
       for (const e of expenses) {
         const meta = e.metadata as Record<string, unknown>;
-        const cat = String(meta?.category || "other");
-        categoryCounts[cat] = (categoryCounts[cat] || 0) + (Number(meta?.amount) || 0);
+        const cat = String(meta?.categoryLabel || meta?.category || "Diğer");
+        expenseCategoryCounts[cat] = (expenseCategoryCounts[cat] || 0) + (Number(meta?.amount) || 0);
       }
 
-      const categoryReport = Object.entries(categoryCounts)
+      const incomeCategoryCounts: Record<string, number> = {};
+      for (const inc of incomes) {
+        const meta = inc.metadata as Record<string, unknown>;
+        const cat = String(meta?.categoryLabel || meta?.category || "Diğer");
+        incomeCategoryCounts[cat] = (incomeCategoryCounts[cat] || 0) + (Number(meta?.amount) || 0);
+      }
+
+      const expenseReport = Object.entries(expenseCategoryCounts)
         .sort((a, b) => b[1] - a[1])
-        .map(([k, v]) => `  ${k}: $${v.toFixed(2)}`)
+        .map(([k, v]) => `  ${k}: ₺${formatNum(v)}`)
+        .join("\n");
+
+      const incomeReport = Object.entries(incomeCategoryCounts)
+        .sort((a, b) => b[1] - a[1])
+        .map(([k, v]) => `  ${k}: ₺${formatNum(v)}`)
         .join("\n");
 
       await storage.createAgentAction({
         userId, agentType,
         actionType: "financial_summary",
-        description: `📊 ${period} financial summary generated`,
-        metadata: { period, totalInvoiced, totalExpenses, invoiceCount: invoices.length, expenseCount: expenses.length },
+        description: `📊 ${periodLabel} mali özet oluşturuldu`,
+        metadata: { period, totalInvoiced, totalIncome, totalExpenses, totalRevenue, invoiceCount: invoices.length, expenseCount: expenses.length, incomeCount: incomes.length },
       });
 
       return {
-        result: `📊 FINANCIAL SUMMARY (${period})\n\n💰 Revenue (Invoiced): $${totalInvoiced.toFixed(2)} (${invoices.length} invoices)\n💸 Expenses: $${totalExpenses.toFixed(2)} (${expenses.length} entries)\n📈 Net: $${(totalInvoiced - totalExpenses).toFixed(2)}\n\n${categoryReport ? `Expense Categories:\n${categoryReport}` : "No expenses logged this period."}`,
+        result: `📊 MALİ ÖZET (${periodLabel})\n\n💰 Gelirler:\n  Faturalar: ₺${formatNum(totalInvoiced)} (${invoices.length} adet)\n  Diğer Gelirler: ₺${formatNum(totalIncome)} (${incomes.length} adet)\n  Toplam Gelir: ₺${formatNum(totalRevenue)}\n\n💸 Giderler: ₺${formatNum(totalExpenses)} (${expenses.length} adet)\n\n📈 Net Kâr/Zarar: ₺${formatNum(totalRevenue - totalExpenses)}\n\n${incomeReport ? `Gelir Kategorileri:\n${incomeReport}\n\n` : ""}${expenseReport ? `Gider Kategorileri:\n${expenseReport}` : "Bu dönemde gider kaydı yok."}`,
         actionType: "financial_summary",
-        actionDescription: `📊 ${period} financial summary`,
+        actionDescription: `📊 ${periodLabel} mali özet`,
+      };
+    }
+
+    case "get_exchange_rate": {
+      const currency = args.currency ? String(args.currency).toUpperCase() : null;
+      const amount = args.amount ? Number(args.amount) : null;
+      const formatNum = (n: number) => n.toLocaleString("tr-TR", { minimumFractionDigits: 4, maximumFractionDigits: 4 });
+      const formatTL = (n: number) => n.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+      try {
+        const response = await fetch("https://www.tcmb.gov.tr/kurlar/today.xml");
+        const xmlText = await response.text();
+
+        const rates: Record<string, { buying: number; selling: number; name: string }> = {};
+        const currencyRegex = /<Currency[^>]*CurrencyCode="([^"]+)"[^>]*>[\s\S]*?<Isim>([^<]*)<\/Isim>[\s\S]*?<ForexBuying>([^<]*)<\/ForexBuying>[\s\S]*?<ForexSelling>([^<]*)<\/ForexSelling>[\s\S]*?<\/Currency>/g;
+        let match;
+        while ((match = currencyRegex.exec(xmlText)) !== null) {
+          const code = match[1];
+          const name = match[2];
+          const buying = parseFloat(match[3]);
+          const selling = parseFloat(match[4]);
+          if (!isNaN(buying) && !isNaN(selling)) {
+            rates[code] = { buying, selling, name };
+          }
+        }
+
+        if (Object.keys(rates).length === 0) {
+          return {
+            result: "TCMB kur verisine şu an ulaşılamıyor. Lütfen daha sonra tekrar deneyin.",
+            actionType: "exchange_rate_checked",
+            actionDescription: "💱 TCMB kur sorgusu — hata",
+          };
+        }
+
+        if (currency && rates[currency]) {
+          const r = rates[currency];
+          let resultText = `💱 TCMB Döviz Kuru — ${currency}\n\n${r.name}\nAlış: ₺${formatNum(r.buying)}\nSatış: ₺${formatNum(r.selling)}`;
+          if (amount) {
+            resultText += `\n\n${amount} ${currency} = ₺${formatTL(amount * r.buying)} (alış kuru ile)`;
+            resultText += `\n${amount} ${currency} = ₺${formatTL(amount * r.selling)} (satış kuru ile)`;
+          }
+          return {
+            result: resultText,
+            actionType: "exchange_rate_checked",
+            actionDescription: `💱 TCMB ${currency} kuru: ₺${formatNum(r.buying)}`,
+          };
+        } else if (currency) {
+          return {
+            result: `${currency} kuru TCMB listesinde bulunamadı. Geçerli döviz kodlarını kontrol edin.`,
+            actionType: "exchange_rate_checked",
+            actionDescription: `💱 ${currency} kuru bulunamadı`,
+          };
+        }
+
+        const mainCurrencies = ["USD", "EUR", "GBP", "CHF", "JPY", "SAR", "AUD", "CAD"];
+        const rateLines = mainCurrencies
+          .filter(c => rates[c])
+          .map(c => `  ${c} (${rates[c].name}): Alış ₺${formatNum(rates[c].buying)} / Satış ₺${formatNum(rates[c].selling)}`)
+          .join("\n");
+
+        return {
+          result: `💱 TCMB Günlük Döviz Kurları\n\n${rateLines}`,
+          actionType: "exchange_rate_checked",
+          actionDescription: "💱 TCMB günlük kurlar sorgulandı",
+        };
+      } catch {
+        return {
+          result: "TCMB kur servisine bağlanılamadı. İnternet bağlantınızı kontrol edin veya daha sonra tekrar deneyin.",
+          actionType: "exchange_rate_checked",
+          actionDescription: "💱 TCMB kur sorgusu — bağlantı hatası",
+        };
+      }
+    }
+
+    case "add_receivable": {
+      const entityName = String(args.entity_name);
+      const amount = Number(args.amount);
+      const dueDate = String(args.due_date);
+      const description = args.description ? String(args.description) : "";
+      const invoiceNo = args.invoice_no ? String(args.invoice_no) : null;
+      const formatNum = (n: number) => n.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+      const recId = `ALC-${Date.now().toString(36).toUpperCase()}`;
+
+      await storage.createAgentAction({
+        userId, agentType,
+        actionType: "receivable_added",
+        description: `📥 Alacak: ₺${formatNum(amount)} — ${entityName} (Vade: ${dueDate})`,
+        metadata: { recId, entityName, amount, dueDate, description, invoiceNo, status: "open" },
+      });
+
+      return {
+        result: `Alacak ${recId} kaydedildi!\n\nBorçlu: ${entityName}\nTutar: ₺${formatNum(amount)}\nVade: ${dueDate}${description ? `\nAçıklama: ${description}` : ""}${invoiceNo ? `\nFatura No: ${invoiceNo}` : ""}`,
+        actionType: "receivable_added",
+        actionDescription: `📥 Alacak: ₺${formatNum(amount)} — ${entityName}`,
+      };
+    }
+
+    case "add_payable": {
+      const entityName = String(args.entity_name);
+      const amount = Number(args.amount);
+      const dueDate = String(args.due_date);
+      const description = args.description ? String(args.description) : "";
+      const invoiceNo = args.invoice_no ? String(args.invoice_no) : null;
+      const formatNum = (n: number) => n.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+      const payId = `BRC-${Date.now().toString(36).toUpperCase()}`;
+
+      await storage.createAgentAction({
+        userId, agentType,
+        actionType: "payable_added",
+        description: `📤 Borç: ₺${formatNum(amount)} — ${entityName} (Vade: ${dueDate})`,
+        metadata: { payId, entityName, amount, dueDate, description, invoiceNo, status: "open" },
+      });
+
+      return {
+        result: `Borç ${payId} kaydedildi!\n\nAlacaklı: ${entityName}\nTutar: ₺${formatNum(amount)}\nVade: ${dueDate}${description ? `\nAçıklama: ${description}` : ""}${invoiceNo ? `\nFatura No: ${invoiceNo}` : ""}`,
+        actionType: "payable_added",
+        actionDescription: `📤 Borç: ₺${formatNum(amount)} — ${entityName}`,
+      };
+    }
+
+    case "list_debts": {
+      const filterType = args.type ? String(args.type) : "all";
+      const formatNum = (n: number) => n.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+      const allActions = await storage.getActionsByUser(userId);
+      const today = new Date().toISOString().split("T")[0];
+
+      const receivables = allActions.filter(a => a.actionType === "receivable_added");
+      const payables = allActions.filter(a => a.actionType === "payable_added");
+
+      const formatDebt = (a: typeof allActions[0], type: string) => {
+        const meta = a.metadata as Record<string, unknown>;
+        const dueDate = String(meta?.dueDate || "");
+        const isOverdue = dueDate < today;
+        return `  ${isOverdue ? "⚠️" : "✅"} ${meta?.entityName} — ₺${formatNum(Number(meta?.amount))} — Vade: ${dueDate}${isOverdue ? " (GECİKMİŞ)" : ""}${meta?.description ? ` — ${meta.description}` : ""}`;
+      };
+
+      let resultParts: string[] = [];
+      let totalReceivable = 0;
+      let totalPayable = 0;
+      let overdueReceivable = 0;
+      let overduePayable = 0;
+
+      if (filterType === "all" || filterType === "receivable" || filterType === "overdue") {
+        const filtered = filterType === "overdue"
+          ? receivables.filter(a => String((a.metadata as any)?.dueDate || "") < today)
+          : receivables;
+        totalReceivable = receivables.reduce((s, a) => s + Number((a.metadata as any)?.amount || 0), 0);
+        overdueReceivable = receivables.filter(a => String((a.metadata as any)?.dueDate || "") < today).reduce((s, a) => s + Number((a.metadata as any)?.amount || 0), 0);
+        if (filtered.length > 0) {
+          resultParts.push(`📥 ALACAKLAR (Toplam: ₺${formatNum(totalReceivable)}${overdueReceivable > 0 ? ` — ⚠️ Gecikmiş: ₺${formatNum(overdueReceivable)}` : ""})\n${filtered.map(a => formatDebt(a, "receivable")).join("\n")}`);
+        } else {
+          resultParts.push("📥 ALACAKLAR: Kayıt yok");
+        }
+      }
+
+      if (filterType === "all" || filterType === "payable" || filterType === "overdue") {
+        const filtered = filterType === "overdue"
+          ? payables.filter(a => String((a.metadata as any)?.dueDate || "") < today)
+          : payables;
+        totalPayable = payables.reduce((s, a) => s + Number((a.metadata as any)?.amount || 0), 0);
+        overduePayable = payables.filter(a => String((a.metadata as any)?.dueDate || "") < today).reduce((s, a) => s + Number((a.metadata as any)?.amount || 0), 0);
+        if (filtered.length > 0) {
+          resultParts.push(`📤 BORÇLAR (Toplam: ₺${formatNum(totalPayable)}${overduePayable > 0 ? ` — ⚠️ Gecikmiş: ₺${formatNum(overduePayable)}` : ""})\n${filtered.map(a => formatDebt(a, "payable")).join("\n")}`);
+        } else {
+          resultParts.push("📤 BORÇLAR: Kayıt yok");
+        }
+      }
+
+      if (filterType === "all") {
+        resultParts.push(`\n📊 Net Durum: ₺${formatNum(totalReceivable - totalPayable)} (Alacak - Borç)`);
+      }
+
+      return {
+        result: resultParts.join("\n\n"),
+        actionType: "debts_listed",
+        actionDescription: "📋 Borç-alacak listesi görüntülendi",
+      };
+    }
+
+    case "cash_flow_forecast": {
+      const forecastDays = args.days ? Number(args.days) : 30;
+      const formatNum = (n: number) => n.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+      const allActions = await storage.getActionsByUser(userId);
+      const now = Date.now();
+      const past30 = now - 30 * 24 * 60 * 60 * 1000;
+      const futureDate = new Date(now + forecastDays * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+      const today = new Date().toISOString().split("T")[0];
+
+      const recentIncomes = allActions.filter(a => (a.actionType === "income_logged" || a.actionType === "invoice_created") && new Date(a.createdAt).getTime() >= past30);
+      const recentExpenses = allActions.filter(a => a.actionType === "expense_logged" && new Date(a.createdAt).getTime() >= past30);
+
+      const monthlyIncome = recentIncomes.reduce((s, a) => {
+        const meta = a.metadata as Record<string, unknown>;
+        return s + (Number(meta?.amount) || Number(meta?.grandTotal) || Number(meta?.subtotal) || 0);
+      }, 0);
+
+      const monthlyExpense = recentExpenses.reduce((s, a) => {
+        const meta = a.metadata as Record<string, unknown>;
+        return s + (Number(meta?.amount) || 0);
+      }, 0);
+
+      const upcomingReceivables = allActions
+        .filter(a => a.actionType === "receivable_added")
+        .filter(a => {
+          const due = String((a.metadata as any)?.dueDate || "");
+          return due >= today && due <= futureDate;
+        });
+
+      const upcomingPayables = allActions
+        .filter(a => a.actionType === "payable_added")
+        .filter(a => {
+          const due = String((a.metadata as any)?.dueDate || "");
+          return due >= today && due <= futureDate;
+        });
+
+      const expectedReceivable = upcomingReceivables.reduce((s, a) => s + Number((a.metadata as any)?.amount || 0), 0);
+      const expectedPayable = upcomingPayables.reduce((s, a) => s + Number((a.metadata as any)?.amount || 0), 0);
+
+      const projectedIncome = (monthlyIncome / 30) * forecastDays + expectedReceivable;
+      const projectedExpense = (monthlyExpense / 30) * forecastDays + expectedPayable;
+      const projectedNet = projectedIncome - projectedExpense;
+
+      await storage.createAgentAction({
+        userId, agentType,
+        actionType: "cash_flow_forecast",
+        description: `📈 ${forecastDays} günlük nakit akış tahmini`,
+        metadata: { forecastDays, monthlyIncome, monthlyExpense, expectedReceivable, expectedPayable, projectedIncome, projectedExpense, projectedNet },
+      });
+
+      return {
+        result: `📈 NAKİT AKIŞ TAHMİNİ (${forecastDays} Gün)\n\n📊 Son 30 Gün Trendi:\n  Aylık Gelir: ₺${formatNum(monthlyIncome)}\n  Aylık Gider: ₺${formatNum(monthlyExpense)}\n\n🔮 ${forecastDays} Günlük Projeksiyon:\n  Beklenen Gelir (trend): ₺${formatNum(projectedIncome - expectedReceivable)}\n  Vadesi Gelen Alacaklar: ₺${formatNum(expectedReceivable)} (${upcomingReceivables.length} adet)\n  Beklenen Gider (trend): ₺${formatNum(projectedExpense - expectedPayable)}\n  Vadesi Gelen Borçlar: ₺${formatNum(expectedPayable)} (${upcomingPayables.length} adet)\n\n💰 Toplam Tahmini Gelir: ₺${formatNum(projectedIncome)}\n💸 Toplam Tahmini Gider: ₺${formatNum(projectedExpense)}\n📈 Tahmini Net: ₺${formatNum(projectedNet)}${projectedNet < 0 ? "\n\n⚠️ DİKKAT: Negatif nakit akışı bekleniyor! Tahsilat hızlandırma veya gider erteleme değerlendirilmeli." : ""}`,
+        actionType: "cash_flow_forecast",
+        actionDescription: `📈 ${forecastDays} gün nakit akış tahmini: ₺${formatNum(projectedNet)}`,
+      };
+    }
+
+    case "generate_balance_sheet": {
+      const reportDate = args.date ? String(args.date) : new Date().toISOString().split("T")[0];
+      const formatNum = (n: number) => n.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+      const allActions = await storage.getActionsByUser(userId);
+
+      const totalIncome = allActions
+        .filter(a => a.actionType === "income_logged" || a.actionType === "invoice_created")
+        .reduce((s, a) => {
+          const meta = a.metadata as Record<string, unknown>;
+          return s + (Number(meta?.amount) || Number(meta?.grandTotal) || Number(meta?.subtotal) || 0);
+        }, 0);
+
+      const totalExpenses = allActions
+        .filter(a => a.actionType === "expense_logged")
+        .reduce((s, a) => s + Number((a.metadata as any)?.amount || 0), 0);
+
+      const totalReceivables = allActions
+        .filter(a => a.actionType === "receivable_added")
+        .reduce((s, a) => s + Number((a.metadata as any)?.amount || 0), 0);
+
+      const totalPayables = allActions
+        .filter(a => a.actionType === "payable_added")
+        .reduce((s, a) => s + Number((a.metadata as any)?.amount || 0), 0);
+
+      const estimatedCash = totalIncome - totalExpenses - totalReceivables + totalPayables;
+      const totalAssets = (estimatedCash > 0 ? estimatedCash : 0) + totalReceivables;
+      const netEquity = totalAssets - totalPayables;
+
+      await storage.createAgentAction({
+        userId, agentType,
+        actionType: "balance_sheet_generated",
+        description: `📋 Bilanço oluşturuldu — ${reportDate}`,
+        metadata: { reportDate, totalAssets, totalPayables, netEquity, estimatedCash, totalReceivables },
+      });
+
+      return {
+        result: `📋 BİLANÇO (${reportDate})\n══════════════════════════════════\n\nAKTİF (VARLIKLAR)\n──────────────────\n  1 — DÖNEN VARLIKLAR\n    100 Kasa / 102 Bankalar: ₺${formatNum(estimatedCash > 0 ? estimatedCash : 0)}\n    120 Alıcılar: ₺${formatNum(totalReceivables)}\n  DÖNEN VARLIK TOPLAMI: ₺${formatNum(totalAssets)}\n\nAKTİF TOPLAMI: ₺${formatNum(totalAssets)}\n\n══════════════════════════════════\n\nPASİF (KAYNAKLAR)\n──────────────────\n  3 — KISA VADELİ YABANCI KAYNAKLAR\n    320 Satıcılar / Borçlar: ₺${formatNum(totalPayables)}\n  5 — ÖZKAYNAKLAR\n    590 Dönem Net Kârı: ₺${formatNum(netEquity)}\n\nPASİF TOPLAMI: ₺${formatNum(totalAssets)}\n\n══════════════════════════════════\nNot: Bu basitleştirilmiş bilançodur. Detaylı bilanço için tüm hesap hareketlerinin kaydedilmesi gerekir.`,
+        actionType: "balance_sheet_generated",
+        actionDescription: `📋 Bilanço: Aktif ₺${formatNum(totalAssets)}`,
+      };
+    }
+
+    case "generate_income_statement": {
+      const period = args.period ? String(args.period) : "month";
+      const periodDays: Record<string, number> = { month: 30, quarter: 90, year: 365 };
+      const days = periodDays[period] || 30;
+      const periodNames: Record<string, string> = { month: "Aylık", quarter: "Çeyreklik", year: "Yıllık" };
+      const periodLabel = periodNames[period] || period;
+      const formatNum = (n: number) => n.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+      const allActions = await storage.getActionsByUser(userId);
+      const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
+      const periodActions = allActions.filter(a => new Date(a.createdAt).getTime() >= cutoff);
+
+      const invoiceRevenue = periodActions
+        .filter(a => a.actionType === "invoice_created")
+        .reduce((s, a) => {
+          const meta = a.metadata as Record<string, unknown>;
+          return s + (Number(meta?.subtotal) || 0);
+        }, 0);
+
+      const otherIncome = periodActions
+        .filter(a => a.actionType === "income_logged")
+        .reduce((s, a) => s + Number((a.metadata as any)?.amount || 0), 0);
+
+      const totalRevenue = invoiceRevenue + otherIncome;
+
+      const expensesByCategory: Record<string, number> = {};
+      const expenses = periodActions.filter(a => a.actionType === "expense_logged");
+      for (const e of expenses) {
+        const meta = e.metadata as Record<string, unknown>;
+        const cat = String(meta?.categoryLabel || meta?.category || "Diğer");
+        expensesByCategory[cat] = (expensesByCategory[cat] || 0) + Number(meta?.amount || 0);
+      }
+
+      const totalExpenses = Object.values(expensesByCategory).reduce((s, v) => s + v, 0);
+      const operatingProfit = totalRevenue - totalExpenses;
+
+      const expenseLines = Object.entries(expensesByCategory)
+        .sort((a, b) => b[1] - a[1])
+        .map(([k, v]) => `    ${k}: ₺${formatNum(v)}`)
+        .join("\n");
+
+      await storage.createAgentAction({
+        userId, agentType,
+        actionType: "income_statement_generated",
+        description: `📊 ${periodLabel} gelir tablosu oluşturuldu`,
+        metadata: { period, totalRevenue, totalExpenses, operatingProfit },
+      });
+
+      return {
+        result: `📊 GELİR TABLOSU (${periodLabel})\n══════════════════════════════════\n\n  600 Yurtiçi Satışlar: ₺${formatNum(invoiceRevenue)}\n  602 Diğer Gelirler: ₺${formatNum(otherIncome)}\n  NET SATIŞLAR: ₺${formatNum(totalRevenue)}\n\n──────────────────\n  FAALİYET GİDERLERİ\n${expenseLines || "    Gider kaydı yok"}\n  TOPLAM GİDERLER: ₺${formatNum(totalExpenses)}\n\n══════════════════════════════════\n  FAALİYET KÂRI: ₺${formatNum(operatingProfit)}\n══════════════════════════════════\n${operatingProfit < 0 ? "\n⚠️ Dönem zararla kapanmıştır." : ""}`,
+        actionType: "income_statement_generated",
+        actionDescription: `📊 ${periodLabel} gelir tablosu: Kâr ₺${formatNum(operatingProfit)}`,
+      };
+    }
+
+    case "calculate_payroll": {
+      const grossSalary = Number(args.gross_salary);
+      const cumulativeTaxBase = args.cumulative_tax_base ? Number(args.cumulative_tax_base) : 0;
+      const disabilityDegree = args.disability_degree ? Number(args.disability_degree) : 0;
+      const isMinimumWage = args.is_minimum_wage === true;
+      const formatNum = (n: number) => n.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+      const SGK_WORKER_RATE = 0.14;
+      const SGK_UNEMPLOYMENT_WORKER = 0.01;
+      const SGK_EMPLOYER_RATE = 0.2175;
+      const SGK_UNEMPLOYMENT_EMPLOYER = 0.02;
+      const STAMP_TAX_RATE = 0.00759;
+      const MIN_WAGE_2026 = 33030;
+      const SGK_CEILING = 297270;
+
+      const sgkBase = Math.min(grossSalary, SGK_CEILING);
+      const sgkWorker = sgkBase * SGK_WORKER_RATE;
+      const unemploymentWorker = sgkBase * SGK_UNEMPLOYMENT_WORKER;
+      const totalWorkerDeduction = sgkWorker + unemploymentWorker;
+
+      const sgkEmployer = sgkBase * SGK_EMPLOYER_RATE;
+      const unemploymentEmployer = sgkBase * SGK_UNEMPLOYMENT_EMPLOYER;
+      const totalEmployerCost = grossSalary + sgkEmployer + unemploymentEmployer;
+
+      let taxableIncome = grossSalary - totalWorkerDeduction;
+
+      const disabilityExemptions: Record<number, number> = { 1: 6900, 2: 4000, 3: 1700 };
+      if (disabilityDegree > 0 && disabilityExemptions[disabilityDegree]) {
+        taxableIncome = Math.max(0, taxableIncome - disabilityExemptions[disabilityDegree]);
+      }
+
+      const taxBrackets2026 = [
+        { limit: 190000, rate: 0.15 },
+        { limit: 400000, rate: 0.20 },
+        { limit: 1500000, rate: 0.27 },
+        { limit: 5300000, rate: 0.35 },
+        { limit: Infinity, rate: 0.40 },
+      ];
+
+      const calcTax = (base: number, cumulative: number): number => {
+        let tax = 0;
+        let remaining = base;
+        let processed = cumulative;
+        for (const bracket of taxBrackets2026) {
+          if (processed >= bracket.limit) continue;
+          const availableInBracket = bracket.limit - processed;
+          const taxableInBracket = Math.min(remaining, availableInBracket);
+          if (taxableInBracket <= 0) continue;
+          tax += taxableInBracket * bracket.rate;
+          remaining -= taxableInBracket;
+          processed += taxableInBracket;
+          if (remaining <= 0) break;
+        }
+        return tax;
+      };
+
+      let incomeTax = calcTax(taxableIncome, cumulativeTaxBase);
+
+      let stampTax = grossSalary * STAMP_TAX_RATE;
+
+      let minWageExemptionTax = 0;
+      let minWageExemptionStamp = 0;
+      if (!isMinimumWage) {
+        const minWageTaxable = MIN_WAGE_2026 - (MIN_WAGE_2026 * (SGK_WORKER_RATE + SGK_UNEMPLOYMENT_WORKER));
+        minWageExemptionTax = calcTax(minWageTaxable, 0);
+        minWageExemptionStamp = MIN_WAGE_2026 * STAMP_TAX_RATE;
+        incomeTax = Math.max(0, incomeTax - minWageExemptionTax);
+        stampTax = Math.max(0, stampTax - minWageExemptionStamp);
+      }
+
+      if (isMinimumWage) {
+        incomeTax = 0;
+        stampTax = 0;
+      }
+
+      const totalDeductions = totalWorkerDeduction + incomeTax + stampTax;
+      const netSalary = grossSalary - totalDeductions;
+
+      await storage.createAgentAction({
+        userId, agentType,
+        actionType: "payroll_calculated",
+        description: `💰 Bordro hesaplama: Brüt ₺${formatNum(grossSalary)} → Net ₺${formatNum(netSalary)}`,
+        metadata: { grossSalary, netSalary, sgkWorker, unemploymentWorker, incomeTax, stampTax, sgkEmployer, unemploymentEmployer, totalEmployerCost, cumulativeTaxBase, newCumulativeTaxBase: cumulativeTaxBase + taxableIncome },
+      });
+
+      return {
+        result: `💰 BORDRO HESAPLAMA (2026)\n══════════════════════════════════\n\nBrüt Maaş: ₺${formatNum(grossSalary)}\n\n── İŞÇİ KESİNTİLERİ ──\n  SGK İşçi Payı (%14): ₺${formatNum(sgkWorker)}\n  İşsizlik Sigortası (%1): ₺${formatNum(unemploymentWorker)}\n  Gelir Vergisi Matrahı: ₺${formatNum(taxableIncome)}\n  Gelir Vergisi: ₺${formatNum(incomeTax)}${!isMinimumWage && minWageExemptionTax > 0 ? ` (AGİ istisna: ₺${formatNum(minWageExemptionTax)} düşüldü)` : ""}${isMinimumWage ? " (Asgari ücret istisnası)" : ""}\n  Damga Vergisi (‰7,59): ₺${formatNum(stampTax)}${isMinimumWage ? " (Asgari ücret istisnası)" : ""}\n  TOPLAM KESİNTİ: ₺${formatNum(totalDeductions)}\n\n══════════════════════════════════\n  NET MAAŞ: ₺${formatNum(netSalary)}\n══════════════════════════════════\n\n── İŞVEREN MALİYETİ ──\n  SGK İşveren Payı (%21,75): ₺${formatNum(sgkEmployer)}\n  İşsizlik İşveren (%2): ₺${formatNum(unemploymentEmployer)}\n  TOPLAM İŞVEREN MALİYETİ: ₺${formatNum(totalEmployerCost)}\n\nKümülatif Matrah (bu ay dahil): ₺${formatNum(cumulativeTaxBase + taxableIncome)}`,
+        actionType: "payroll_calculated",
+        actionDescription: `💰 Bordro: Brüt ₺${formatNum(grossSalary)} → Net ₺${formatNum(netSalary)}`,
+      };
+    }
+
+    case "calculate_withholding": {
+      const amount = Number(args.amount);
+      const withholdingType = String(args.type);
+      const isGross = args.is_gross !== false;
+      const formatNum = (n: number) => n.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+      const rates: Record<string, { rate: number; label: string; law: string }> = {
+        serbest_meslek: { rate: 0.20, label: "Serbest Meslek Stopajı", law: "GVK md. 94/2" },
+        kira_gercek: { rate: 0.20, label: "Kira Stopajı (Gerçek Kişi)", law: "GVK md. 94/5-a" },
+        kira_tuzel: { rate: 0, label: "Kira Stopajı (Tüzel Kişi)", law: "Stopaj yok" },
+        telif: { rate: 0.17, label: "Telif Hakkı Stopajı", law: "GVK md. 94/2-a" },
+        insaat_hakedis: { rate: 0.05, label: "Yıllara Yaygın İnşaat Hakediş Stopajı", law: "GVK md. 94/3" },
+        temettu: { rate: 0.10, label: "Temettü (Kâr Payı) Stopajı", law: "GVK md. 94/6" },
+        faiz: { rate: 0.15, label: "Mevduat Faizi Stopajı", law: "GVK geçici md. 67" },
+      };
+
+      const config = rates[withholdingType];
+      if (!config) {
+        return {
+          result: `Geçersiz stopaj türü: ${withholdingType}. Geçerli türler: ${Object.keys(rates).join(", ")}`,
+          actionType: "withholding_calculated",
+          actionDescription: "❌ Geçersiz stopaj türü",
+        };
+      }
+
+      let grossAmount: number;
+      let withholdingAmount: number;
+      let netAmount: number;
+
+      if (isGross) {
+        grossAmount = amount;
+        withholdingAmount = grossAmount * config.rate;
+        netAmount = grossAmount - withholdingAmount;
+      } else {
+        netAmount = amount;
+        grossAmount = config.rate < 1 ? netAmount / (1 - config.rate) : netAmount;
+        withholdingAmount = grossAmount - netAmount;
+      }
+
+      return {
+        result: `📋 STOPAJ HESAPLAMA\n══════════════════════════════════\n\nTür: ${config.label}\nYasal Dayanak: ${config.law}\nOran: %${(config.rate * 100).toFixed(0)}\n\nBrüt Tutar: ₺${formatNum(grossAmount)}\nStopaj (${isGross ? "kesilen" : "hesaplanan"}): ₺${formatNum(withholdingAmount)}\nNet Tutar: ₺${formatNum(netAmount)}\n\n══════════════════════════════════\nMuhasebe Kaydı:\n  Borç: 770 GYG / 740 Hizmet Üretim — ₺${formatNum(grossAmount)}\n  Alacak: 360 Ödenecek Vergi — ₺${formatNum(withholdingAmount)}\n  Alacak: 320 Satıcılar / 102 Banka — ₺${formatNum(netAmount)}`,
+        actionType: "withholding_calculated",
+        actionDescription: `📋 Stopaj: ${config.label} — ₺${formatNum(withholdingAmount)}`,
       };
     }
 

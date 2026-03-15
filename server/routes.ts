@@ -16,6 +16,7 @@ import { processAndStoreDocument, processAndStoreUrl, retrieveRelevantChunks, ge
 import { createFineTuningJob, syncJobStatus, getJobsByAgent, toggleActiveModel, deactivateModel, getActiveModel } from "./fineTuningService";
 import { generateAgentRulesPDF, generateTrainingDataFromChatLogs, validateJSONL, getAgentDefinitions } from "./trainingDataService";
 import { getRelevantToolsForMessage, executeToolCall } from "./agentTools";
+import { getMuhasebeContext } from "./muhasebeRetriever";
 import { computeLeadScore } from "./leadScoring";
 import { checkInput, sanitizeOutput, logGuardrailBlock } from "./guardrails";
 import { checkDistillation, addWatermark } from "./distillationProtection";
@@ -380,10 +381,24 @@ SOCIAL ACCOUNTS: Use the list_connected_accounts tool to check which platforms t
 STYLE: Creative, trend-aware, brand-conscious. Respond in user's language.
 ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}${ONBOARDING_GUIDANCE}${EMAIL_CONFIRMATION_RULE}${DOCUMENT_CAPABILITY}`,
 
-  "bookkeeping": `You are "Finn", Bookkeeping AI for RentAI 24.
-ROLE: Financial operations only — invoices, expenses, reporting, tax reminders, budgets. Not a certified accountant. Redirect non-financial topics.
-TOOLS: web_search, create_invoice, log_expense, financial_summary, send_invoice_email. Always use tools for real invoices and expenses. Use send_invoice_email when user asks to email payment reminders, invoices, or financial reports. Use web_search to research tax regulations, financial best practices, and industry benchmarks.
-DISCLAIMER: "I provide bookkeeping assistance, not certified financial or tax advice. Consult a licensed accountant for official guidance."
+  "bookkeeping": `You are "Finn", Professional Bookkeeping AI for RentAI 24 — specialized in Turkish accounting (Türk Muhasebe Sistemi).
+ROLE: Financial operations — invoices (KDV + tevkifat), expenses, income tracking, payroll (bordro), tax calculations, financial reports (bilanço, gelir tablosu), debt management (borç-alacak), cash flow forecasting, TCMB exchange rates. Not a certified accountant. Redirect non-financial topics.
+TOOLS: web_search, create_invoice (KDV + tevkifat destekli), log_expense, log_income, financial_summary, send_invoice_email, get_exchange_rate (TCMB), add_receivable, add_payable, list_debts, cash_flow_forecast, generate_balance_sheet, generate_income_statement, calculate_payroll (2026 SGK + vergi dilimleri), calculate_withholding (stopaj), list_inbox, read_email, reply_email. Always use tools for real operations.
+CURRENCY: Default ₺ (TL). Use Turkish number format (1.250.000,50 ₺). TCMB exchange rates for FX (VUK md. 280).
+ACCOUNTING RULES:
+- Use Tekdüzen Hesap Planı account codes with number+name (e.g. "120 Alıcılar", "320 Satıcılar", "391 Hesaplanan KDV").
+- KDV rates: %20 (general), %10 (food/textile/tourism), %1 (books/agriculture). Always specify KDV inclusive/exclusive.
+- KDV Tevkifat: Partial withholding rates — 9/10 (cleaning/security/labor), 7/10 (construction/repair), 5/10 (catering/shipping), 4/10 (engineering), 2/10 (copper/aluminum products).
+- Stopaj: Serbest meslek %20, kira (gerçek kişi) %20, telif %17, inşaat hakediş %5, temettü %10, faiz %15.
+- SGK 2026: İşçi %15 (SGK %14 + İşsizlik %1), İşveren %23,75 (SGK %21,75 + İşsizlik %2). Asgari ücret: 33.030 ₺, Tavan: 297.270 ₺.
+- Gelir Vergisi 2026 (Ücret): 0-190K %15, 190K-400K %20, 400K-1,5M %27, 1,5M-5,3M %35, 5,3M+ %40. Asgari ücret GV+DV istisna.
+- Damga Vergisi: Bordro binde 7,59, sözleşme binde 9,48.
+- Ba-Bs: Aylık aynı kişi/kurumdan 5.000 ₺ üzeri alım/satım bildirilir.
+- Beyanname takvimi: KDV izleyen ayın 28'i, muhtasar 26'sı, SGK ayın sonu.
+- When context from <referans_bilgisi> is provided, use it as PRIMARY SOURCE for rates, codes, and rules.
+- Cite relevant laws (VUK md. X, GVK md. Y, KDVK md. Z) in responses.
+- Proactively warn about penalty risks.
+DISCLAIMER: "Muhasebe yardımı sağlıyorum, sertifikalı mali veya vergi danışmanlığı değil. Resmi rehberlik için lisanslı bir mali müşavire danışın."
 STYLE: Precise, methodical, structured. Respond in user's language.
 ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}${ONBOARDING_GUIDANCE}${EMAIL_CONFIRMATION_RULE}${DOCUMENT_CAPABILITY}`,
 
@@ -1711,6 +1726,17 @@ ${userEmail ? `- When they say "send to me", "email me", "bana gönder", "bana a
         systemPrompt += `\n\nWHATSAPP STATUS: Connected (Phone: ${waConfig.displayName || waConfig.phoneNumberId}). You can send WhatsApp messages to customers using the send_whatsapp tool. For notifications outside the 24-hour window, use send_whatsapp_template with approved templates.`;
       } else {
         systemPrompt += `\n\nWHATSAPP STATUS: Not connected. If the user wants to send WhatsApp messages, suggest connecting WhatsApp Business API in Settings > WhatsApp Business.`;
+      }
+    }
+
+    if (agentType === "bookkeeping") {
+      try {
+        const muhasebeContext = getMuhasebeContext(message);
+        if (muhasebeContext) {
+          systemPrompt += `\n\n${muhasebeContext}`;
+        }
+      } catch (e) {
+        console.error("[MuhasebeRetriever] Error:", e);
       }
     }
 

@@ -898,6 +898,18 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
           </div>
 
           <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap">
+            {user && (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={startNewConversation}
+                className="h-8 text-xs gap-1.5 text-muted-foreground shrink-0"
+                data-testid="button-header-new-chat"
+              >
+                <MessageSquarePlus className="w-3.5 h-3.5 text-primary" />
+                <span className="hidden sm:inline">New Chat</span>
+              </Button>
+            )}
             {user && isSocialMediaAgent && (
               <div className="relative">
                 <Button

@@ -1,0 +1,496 @@
+{
+  "metadata": {
+    "document": "Türk Muhasebe Sistemi Referans Dokümanı",
+    "version": "2.0",
+    "last_updated": "2026-03",
+    "total_chunks": 52,
+    "embedding_model": "text-embedding-3-small",
+    "notes": "Her chunk Pinecone'a upsert edilecek. 'id' alanı Pinecone vector ID olarak kullanılır. 'text' alanı embedding oluşturmak için kullanılır. 'metadata' alanı filtreleme ve retrieval için kullanılır."
+  },
+  "chunks": [
+    {
+      "id": "tdhp-sinif1-hazir-degerler",
+      "text": "Tekdüzen Hesap Planı Sınıf 1 — Dönen Varlıklar, Hazır Değerler: 100 Kasa (TL ve döviz nakit takibi, para girişinde borç, çıkışında alacak), 101 Alınan Çekler (müşteriden alınan çekler, tahsilde borçtan düşer), 102 Bankalar (vadesiz/vadeli TL-döviz hesapları, alt hesapla banka bazında izlenir), 103 Verilen Çekler ve Ödeme Emirleri (−) (düzenlenen çekler, aktifi azaltıcı), 108 Diğer Hazır Değerler (posta çekleri, banka havaleleri, kredi kartı alacakları). Menkul Kıymetler: 110 Hisse Senetleri, 111 Özel Kesim Tahvil Senet ve Bonoları, 112 Kamu Kesimi Tahvil Senet ve Bonoları.",
+      "metadata": {
+        "category": "hesap_plani",
+        "subcategory": "sinif1_donen_varliklar",
+        "section": "1.1",
+        "keywords": ["kasa", "banka", "çek", "hazır değerler", "menkul kıymet", "100", "101", "102", "103", "108", "110", "111", "112"],
+        "year": "evergreen"
+      }
+    },
+    {
+      "id": "tdhp-sinif1-alacaklar",
+      "text": "Tekdüzen Hesap Planı Sınıf 1 — Ticari Alacaklar ve Diğer Alacaklar: 120 Alıcılar (kredili satışlardan doğan açık hesap alacaklar), 121 Alacak Senetleri (senetle belgelenen alacaklar), 126 Verilen Depozito ve Teminatlar, 128 Şüpheli Ticari Alacaklar (VUK md. 323 kapsamında tahsili şüpheli alacaklar), 129 Şüpheli Ticari Alacaklar Karşılığı (−) (aktifi düzeltici karşılık). Diğer Alacaklar: 131 Ortaklardan Alacaklar, 135 Personelden Alacaklar, 136 Diğer Çeşitli Alacaklar.",
+      "metadata": {
+        "category": "hesap_plani",
+        "subcategory": "sinif1_alacaklar",
+        "section": "1.1",
+        "keywords": ["alıcılar", "alacak", "senet", "şüpheli alacak", "karşılık", "depozito", "120", "121", "126", "128", "129", "131", "135", "136"],
+        "year": "evergreen"
+      }
+    },
+    {
+      "id": "tdhp-sinif1-stoklar",
+      "text": "Tekdüzen Hesap Planı Sınıf 1 — Stoklar: 150 İlk Madde ve Malzeme (üretimde kullanılacak hammaddeler), 151 Yarı Mamuller — Üretim (üretim sürecindeki yarı mamul stokları), 152 Mamuller (üretimi tamamlanmış satışa hazır ürünler), 153 Ticari Mallar (satmak amacıyla alınan mallar, alım-satım), 157 Diğer Stoklar, 158 Stok Değer Düşüklüğü Karşılığı (−), 159 Verilen Sipariş Avansları (mal alımı için peşin ödenen tutarlar).",
+      "metadata": {
+        "category": "hesap_plani",
+        "subcategory": "sinif1_stoklar",
+        "section": "1.1",
+        "keywords": ["stok", "hammadde", "yarı mamul", "mamul", "ticari mal", "150", "151", "152", "153", "157", "158", "159"],
+        "year": "evergreen"
+      }
+    },
+    {
+      "id": "tdhp-sinif1-kdv-diger",
+      "text": "Tekdüzen Hesap Planı Sınıf 1 — KDV ve Diğer Dönen Varlıklar: 170 Yıllara Yaygın İnşaat ve Onarım Maliyetleri (her proje alt hesapla izlenir, md. 42-44), 180 Gelecek Aylara Ait Giderler (peşin ödenmiş sigorta, kira vb.), 181 Gelir Tahakkukları, 190 Devreden KDV (indirilemeyen KDV sonraki aya devir), 191 İndirilecek KDV (alışlardaki KDV, ay sonunda 391 ile mahsup), 192 Diğer KDV (sorumlu sıfatıyla ödenen KDV), 193 Peşin Ödenen Vergiler ve Fonlar (geçici vergi), 195 İş Avansları, 196 Personel Avansları, 197 Sayım ve Tesellüm Noksanları.",
+      "metadata": {
+        "category": "hesap_plani",
+        "subcategory": "sinif1_kdv_diger",
+        "section": "1.1",
+        "keywords": ["KDV", "devreden", "indirilecek", "peşin vergi", "avans", "190", "191", "192", "193", "195", "196", "180", "170"],
+        "year": "evergreen"
+      }
+    },
+    {
+      "id": "tdhp-sinif2-duran-varliklar",
+      "text": "Tekdüzen Hesap Planı Sınıf 2 — Duran Varlıklar: Mali Duran Varlıklar: 240 Bağlı Menkul Kıymetler, 242 İştirakler (%10-50 arası pay), 245 Bağlı Ortaklıklar (%50+ pay). Maddi Duran Varlıklar: 250 Arazi ve Arsalar (amortismana tabi değil), 252 Binalar, 253 Tesis Makine ve Cihazlar, 254 Taşıtlar, 255 Demirbaşlar, 257 Birikmiş Amortismanlar (−), 258 Yapılmakta Olan Yatırımlar, 259 Verilen Avanslar. Maddi Olmayan Duran Varlıklar: 260 Haklar (patent, lisans, marka), 261 Şerefiye, 263 Araştırma ve Geliştirme Giderleri, 264 Özel Maliyetler (kiralanan varlıklara yapılan harcamalar), 268 Birikmiş Amortismanlar — MODV (−).",
+      "metadata": {
+        "category": "hesap_plani",
+        "subcategory": "sinif2_duran_varliklar",
+        "section": "1.2",
+        "keywords": ["duran varlık", "maddi", "makine", "taşıt", "demirbaş", "amortisman", "patent", "şerefiye", "250", "252", "253", "254", "255", "257", "258", "260", "261", "263", "264"],
+        "year": "evergreen"
+      }
+    },
+    {
+      "id": "tdhp-sinif3-kisa-vadeli-borclar",
+      "text": "Tekdüzen Hesap Planı Sınıf 3 — Kısa Vadeli Yabancı Kaynaklar: 300 Banka Kredileri, 320 Satıcılar (kredili alışlardan doğan borçlar), 321 Borç Senetleri, 335 Personele Borçlar (net maaş ve tazminat borçları), 340 Alınan Sipariş Avansları. Vergi ve SGK: 360 Ödenecek Vergi ve Fonlar (KDV, stopaj, kurumlar vergisi), 361 Ödenecek Sosyal Güvenlik Kesintileri (SGK işçi+işveren prim borçları). Karşılıklar: 370 Dönem Kârı Vergi Karşılıkları, 371 Peşin Ödenen Vergiler (−), 372 Kıdem Tazminatı Karşılığı. KDV: 391 Hesaplanan KDV (satışlardaki KDV, ay sonunda 191 ile mahsup).",
+      "metadata": {
+        "category": "hesap_plani",
+        "subcategory": "sinif3_kisa_vadeli",
+        "section": "1.3",
+        "keywords": ["satıcılar", "banka kredisi", "personel borç", "vergi", "SGK", "KDV hesaplanan", "300", "320", "335", "360", "361", "370", "391"],
+        "year": "evergreen"
+      }
+    },
+    {
+      "id": "tdhp-sinif45-uzun-vadeli-ozkaynak",
+      "text": "Tekdüzen Hesap Planı Sınıf 4 — Uzun Vadeli Yabancı Kaynaklar: 400 Banka Kredileri (1 yıldan uzun vadeli), 420 Satıcılar, 472 Kıdem Tazminatı Karşılığı (uzun vadeli kıdem tazminatı yükümlülüğü). Sınıf 5 — Özkaynaklar: 500 Sermaye, 501 Ödenmemiş Sermaye (−), 540 Yasal Yedekler (TTK md. 519 gereği I. ve II. tertip), 542 Olağanüstü Yedekler, 570 Geçmiş Yıllar Kârları, 580 Geçmiş Yıllar Zararları (−), 590 Dönem Net Kârı, 591 Dönem Net Zararı (−).",
+      "metadata": {
+        "category": "hesap_plani",
+        "subcategory": "sinif4_5_uzun_vadeli_ozkaynak",
+        "section": "1.4-1.5",
+        "keywords": ["uzun vadeli", "kıdem tazminatı", "sermaye", "yedek", "kâr", "zarar", "özkaynak", "400", "472", "500", "540", "570", "580", "590"],
+        "year": "evergreen"
+      }
+    },
+    {
+      "id": "tdhp-sinif6-gelir-tablosu",
+      "text": "Tekdüzen Hesap Planı Sınıf 6 — Gelir Tablosu Hesapları: Satış Gelirleri: 600 Yurtiçi Satışlar, 601 Yurtdışı Satışlar, 602 Diğer Gelirler. İndirimler: 610 Satıştan İadeler (−), 611 Satış İskontoları (−). Satış Maliyeti: 620 Satılan Mamuller Maliyeti, 621 Satılan Ticari Mallar Maliyeti, 622 Satılan Hizmet Maliyeti. Faaliyet Giderleri: 630 Ar-Ge Giderleri, 631 Pazarlama Satış Dağıtım Giderleri, 632 Genel Yönetim Giderleri. Diğer Gelir/Gider: 642 Faiz Gelirleri, 646 Kambiyo Kârları, 654 Karşılık Giderleri, 656 Kambiyo Zararları. Dönem Sonucu: 690 Dönem Kârı veya Zararı, 691 Vergi Karşılıkları, 692 Dönem Net Kârı/Zararı.",
+      "metadata": {
+        "category": "hesap_plani",
+        "subcategory": "sinif6_gelir_tablosu",
+        "section": "1.6",
+        "keywords": ["satış", "gelir", "maliyet", "gider", "kambiyo", "kâr", "zarar", "600", "601", "610", "620", "621", "631", "632", "646", "656", "690", "692"],
+        "year": "evergreen"
+      }
+    },
+    {
+      "id": "tdhp-sinif7-maliyet",
+      "text": "Tekdüzen Hesap Planı Sınıf 7 — Maliyet Hesapları. 7/A Seçeneği (Fonksiyon Esası): 710 Direkt İlk Madde ve Malzeme Giderleri, 720 Direkt İşçilik Giderleri, 730 Genel Üretim Giderleri, 740 Hizmet Üretim Maliyeti, 750 Araştırma ve Geliştirme Giderleri, 760 Pazarlama Satış ve Dağıtım Giderleri, 770 Genel Yönetim Giderleri, 780 Finansman Giderleri. Her hesabın yansıtma (711, 721, 731 vb.) ve fark (712, 722, 732 vb.) hesapları vardır. 7/B Seçeneği (Çeşit Esası): 790 İlk Madde Giderleri, 791 İşçi Ücretleri, 792 Memur Ücretleri, 793 Dışarıdan Sağlanan Fayda ve Hizmetler, 794 Çeşitli Giderler, 795 Vergi Resim Harçlar, 796 Amortismanlar, 797 Finansman Giderleri, 798 Yansıtma, 799 Üretim Maliyet Hesabı.",
+      "metadata": {
+        "category": "hesap_plani",
+        "subcategory": "sinif7_maliyet",
+        "section": "1.7",
+        "keywords": ["maliyet", "üretim", "direkt", "işçilik", "genel üretim", "yansıtma", "710", "720", "730", "770", "780", "7/A", "7/B"],
+        "year": "evergreen"
+      }
+    },
+    {
+      "id": "kdv-oranlar-genel",
+      "text": "KDV Oranları ve Uygulama Kuralları (3065 sayılı KDVK). Genel oran %20 (10.07.2023'ten itibaren %18'den yükseltildi). İndirimli %10: Temel gıda (un, şeker, çay, süt, et, sebze, meyve), turizm konaklama, tekstil konfeksiyon, özel eğitim/sağlık, 150 m²'ye kadar konut, tarımsal ürünler, sinema/tiyatro. İndirimli %1: Kitap/gazete/dergi, tarımsal toptan teslim, ikinci el binek otomobil (özel matrah). KDV Hesaplama: KDV hariçten → KDV = Matrah × Oran, Toplam = Matrah × (1+Oran). KDV dahilden → Matrah = Toplam ÷ (1+Oran), KDV = Toplam − Matrah.",
+      "metadata": {
+        "category": "kdv",
+        "subcategory": "oranlar",
+        "section": "2",
+        "keywords": ["KDV", "oran", "%20", "%10", "%1", "gıda", "konut", "tekstil", "hesaplama", "matrah"],
+        "year": "evergreen"
+      }
+    },
+    {
+      "id": "kdv-istisna",
+      "text": "KDV'den Muaf ve İstisna İşlemler: Md. 11 İhracat istisnası (tam istisna — KDV hesaplanmaz, yüklenilen KDV iade alınır), Md. 13 Deniz/hava/demiryolu araçları ve petrol arama, Md. 14 Transit taşımacılık, Md. 15 Diplomatik istisna, Md. 17/1 Kültür ve eğitim (genel bütçeli dairelere teslim), Md. 17/2 Sağlık/eğitim/sosyal yardım kuruluşları, Md. 17/4 Sigorta/banka muameleleri, 5 yıl+ gayrimenkul satışı, döviz teslimleri. Özel matrah (md. 23): İkinci el motorlu araç, turizm acenteleri gibi işlemlerde KDV sadece kâr marjı üzerinden hesaplanır.",
+      "metadata": {
+        "category": "kdv",
+        "subcategory": "istisna_muaf",
+        "section": "2.4",
+        "keywords": ["istisna", "muaf", "ihracat", "transit", "diplomatik", "özel matrah", "md. 11", "md. 13", "md. 17"],
+        "year": "evergreen"
+      }
+    },
+    {
+      "id": "kdv-tevkifat-tam",
+      "text": "KDV Tevkifatı (KDVK md. 9). Tam Tevkifat: Türkiye'de mukim olmayanların Türkiye'deki teslim ve hizmetlerinde alıcı KDV'nin tamamını keserek KDV-2 beyannamesi ile beyan eder. Satıcı faturada KDV hesaplar ancak tahsil etmez. GVK 18. madde kapsamında serbest meslek faaliyeti (telif kazancı istisnasından yararlanan sanatçılar) isteğe bağlı tam tevkifata tabidir.",
+      "metadata": {
+        "category": "kdv",
+        "subcategory": "tevkifat_tam",
+        "section": "3.1",
+        "keywords": ["tevkifat", "tam tevkifat", "KDV-2", "yabancı firma", "sorumlu sıfatıyla"],
+        "year": "evergreen"
+      }
+    },
+    {
+      "id": "kdv-tevkifat-kismi",
+      "text": "Kısmi KDV Tevkifatı Oranları: Yapım işleri + mühendislik/mimarlık 4/10, Etüt/danışmanlık/denetim 9/10, Makine bakım-onarım 7/10, Yemek servis/organizasyon 5/10, İşgücü temin/özel güvenlik 9/10, Yapı denetim 9/10, Fason tekstil/konfeksiyon 8/10, Temizlik/çevre/bahçe bakım 9/10, Servis taşımacılığı 5/10, Baskı/basım 5/10, Hurda/atık (metal, plastik, kâğıt, cam) 7/10, Ağaç/orman ürünleri 5/10, Külçe metal 7/10, Bakır/çinko/alüminyum ürünleri 7/10, Pamuk/tiftik/yün 9/10, Ticari reklam 3/10. Tevkifat belirli alıcılar (KDV mükellefi veya belirlenmiş alıcılar) için geçerlidir.",
+      "metadata": {
+        "category": "kdv",
+        "subcategory": "tevkifat_kismi",
+        "section": "3.2",
+        "keywords": ["kısmi tevkifat", "yapım", "danışmanlık", "işgücü", "temizlik", "hurda", "metal", "tekstil", "fason", "reklam", "4/10", "9/10", "7/10", "5/10"],
+        "year": "evergreen"
+      }
+    },
+    {
+      "id": "kdv-tevkifat-kayit-ornegi",
+      "text": "Tevkifatlı Fatura Kayıt Örneği: 100.000 ₺ danışmanlık + %20 KDV = 120.000 ₺, tevkifat 9/10. Toplam KDV: 20.000 ₺, Tevkif edilen: 18.000 ₺, Satıcıya ödenen KDV: 2.000 ₺. Alıcı muhasebe kaydı: Borç 770 Genel Yönetim Giderleri 100.000 ₺, Borç 191 İndirilecek KDV 20.000 ₺, Alacak 320 Satıcılar 102.000 ₺, Alacak 360 Ödenecek Vergi ve Fonlar 18.000 ₺ (sorumlu sıfatıyla KDV-2 beyanı). Tevkifatlı faturada tevkifat kodu, oranı ve tutarı e-Fatura UBL-TR alanlarında belirtilmelidir.",
+      "metadata": {
+        "category": "kdv",
+        "subcategory": "tevkifat_kayit",
+        "section": "3.3",
+        "keywords": ["tevkifat", "muhasebe kaydı", "fatura", "danışmanlık", "KDV-2", "sorumlu sıfatıyla"],
+        "year": "evergreen"
+      }
+    },
+    {
+      "id": "stopaj-oranlari",
+      "text": "Stopaj (Gelir Vergisi Tevkifatı) Oranları (GVK md. 94): Ücret ödemeleri kümülatif tarife %15-40, Serbest meslek (avukat/danışman/muhasebeci) %20, Gayrimenkul kira (gerçek kişiye) %20, Telif hakkı %17, Yıllara yaygın inşaat hakediş %5, Çiftçi hayvansal ürün %1, Çiftçi zirai ürün %2, Çiftçi orman ürünü %4, Esnaf muaflığı mal alımı %5, Esnaf muaflığı hizmet alımı %10, Kâr payı (temettü) %10, Mevduat faizi %15, Repo kazancı %15, Özel sektör tahvil faizi %10, Devlet tahvili faizi %10, Dar mükellef kuruma serbest meslek (KVK md. 30) %20. Muhtasar ve PHB ile takip eden ayın 26'sına kadar beyan edilir.",
+      "metadata": {
+        "category": "stopaj",
+        "subcategory": "oranlar",
+        "section": "4",
+        "keywords": ["stopaj", "tevkifat", "serbest meslek", "kira", "telif", "temettü", "faiz", "esnaf", "muhtasar", "%20", "%5", "%10", "%15"],
+        "year": "evergreen"
+      }
+    },
+    {
+      "id": "sgk-prim-oranlari-2026",
+      "text": "SGK Prim Oranları 2026 (7566 sk. değişiklikleri dahil): Kısa vadeli sigorta İşveren %2 (tehlike sınıfına göre %1-6,5). MYÖ (Malullük-Yaşlılık-Ölüm) İşçi %9 İşveren %12 (2026'da %11'den artırıldı). GSS İşçi %5 İşveren %7,75. SGK Toplam İşçi %14 İşveren %21,75. İşsizlik Sigortası İşçi %1 İşveren %2. GENEL TOPLAM (Teşviksiz) İşçi %15 İşveren %23,75 = %38,75. Teşvikli: İmalat sektörü (5 puan indirim) İşveren SGK %16,75+İşsizlik %2=%18,75. İmalat dışı (2 puan indirim, 2026'da 5 puandan düşürüldü) İşveren %19,75+%2=%21,75. 5 puanlık indirim koşulları: SGK borcu olmaması, kayıt dışı istihdam tespit edilmemiş olması, bildirge süresinde verilmesi.",
+      "metadata": {
+        "category": "sgk",
+        "subcategory": "prim_oranlari",
+        "section": "5.1-5.2",
+        "keywords": ["SGK", "prim", "işçi payı", "işveren payı", "MYÖ", "GSS", "işsizlik", "5 puan", "teşvik", "imalat", "7566"],
+        "year": "2026"
+      }
+    },
+    {
+      "id": "sgk-parametreler-2026",
+      "text": "2026 SGK Parametreleri: Brüt asgari ücret 33.030 ₺, Net asgari ücret 28.075,50 ₺. SGK PEK taban (aylık) 33.030 ₺, SGK PEK tavan (aylık, 9 kat) 297.270 ₺ (7566 sk. ile 7,5 kattan 9 kata çıkarıldı). PEK günlük taban 1.101 ₺, günlük tavan 9.909 ₺. Asgari ücret desteği sigortalı başına 1.270 ₺/ay. İşveren maliyetleri: İmalat dışı (2 puan indirimli) 40.214,03 ₺, İmalat (5 puan indirimli) 39.223,13 ₺, Teşviksiz 40.874,63 ₺. 2025 referans: Brüt 26.005,50 ₺, Net 22.104,68 ₺, Tavan (7,5 kat) 195.041,25 ₺.",
+      "metadata": {
+        "category": "sgk",
+        "subcategory": "parametreler",
+        "section": "5.3-5.4",
+        "keywords": ["asgari ücret", "tavan", "taban", "PEK", "işveren maliyeti", "33030", "297270", "28075"],
+        "year": "2026"
+      }
+    },
+    {
+      "id": "gelir-vergisi-ucret-2025",
+      "text": "2025 Yılı Ücret Gelirleri Gelir Vergisi Tarifesi: 0–158.000 ₺ %15, 158.001–330.000 ₺ %20 (158.000 için 23.700 ₺ fazlası %20), 330.001–1.200.000 ₺ %27 (330.000 için 58.100 ₺ fazlası %27), 1.200.001–4.300.000 ₺ %35 (1.200.000 için 293.000 ₺ fazlası %35), 4.300.000 ₺ üzeri %40 (4.300.000 için 1.378.000 ₺ fazlası %40).",
+      "metadata": {
+        "category": "gelir_vergisi",
+        "subcategory": "ucret_tarifesi",
+        "section": "6.1",
+        "keywords": ["gelir vergisi", "dilim", "tarife", "ücret", "%15", "%20", "%27", "%35", "%40", "158000", "330000"],
+        "year": "2025"
+      }
+    },
+    {
+      "id": "gelir-vergisi-ucret-2026",
+      "text": "2026 Yılı Ücret Gelirleri Gelir Vergisi Tarifesi: 0–190.000 ₺ %15, 190.001–400.000 ₺ %20 (190.000 için 28.500 ₺ fazlası %20), 400.001–1.500.000 ₺ %27 (400.000 için 70.500 ₺ fazlası %27), 1.500.001–5.300.000 ₺ %35 (1.500.000 için 367.500 ₺ fazlası %35), 5.300.000 ₺ üzeri %40 (5.300.000 için 1.697.500 ₺ fazlası %40). Yeniden değerleme oranı %20,49 ile güncellenmiştir.",
+      "metadata": {
+        "category": "gelir_vergisi",
+        "subcategory": "ucret_tarifesi",
+        "section": "6.1",
+        "keywords": ["gelir vergisi", "dilim", "tarife", "ücret", "2026", "190000", "400000", "1500000", "5300000"],
+        "year": "2026"
+      }
+    },
+    {
+      "id": "gelir-vergisi-ucret-disi-2026",
+      "text": "2026 Yılı Ücret Dışı Gelirler (Ticari/Serbest Meslek/Kira) Gelir Vergisi Tarifesi: 0–190.000 ₺ %15, 190.001–400.000 ₺ %20 (190.000 için 28.500 ₺ fazlası %20), 400.001–1.000.000 ₺ %27 (400.000 için 70.500 ₺ fazlası %27), 1.000.001–5.300.000 ₺ %35 (1.000.000 için 232.500 ₺ fazlası %35), 5.300.000 ₺ üzeri %40 (5.300.000 için 1.737.500 ₺ fazlası %40). Ücret ile ücret dışı fark 3. dilimde başlar: ücret 1.500.000 ₺, ücret dışı 1.000.000 ₺.",
+      "metadata": {
+        "category": "gelir_vergisi",
+        "subcategory": "ucret_disi_tarifesi",
+        "section": "6.2",
+        "keywords": ["gelir vergisi", "ücret dışı", "ticari kazanç", "serbest meslek", "kira geliri", "1000000"],
+        "year": "2026"
+      }
+    },
+    {
+      "id": "gelir-vergisi-istisna-kurumlar",
+      "text": "Asgari Ücret Gelir Vergisi İstisnası: GVK md. 23/18 uyarınca brüt asgari ücretin SGK ve işsizlik primi düşüldükten sonraki kısmına isabet eden gelir vergisi ve damga vergisi istisnadır. Asgari ücretliler gelir vergisi ve damga vergisi ödemez (2022'den itibaren). Kurumlar Vergisi (5520 sk.): Genel oran %25. İhracat kazançlarına 5 puan indirimle %20 uygulanabilir. Geçici vergi: Kurumlar vergisi oranıyla aynı, üçer aylık dönemlerde beyan.",
+      "metadata": {
+        "category": "gelir_vergisi",
+        "subcategory": "istisna_kurumlar",
+        "section": "6.3-6.4",
+        "keywords": ["asgari ücret istisnası", "kurumlar vergisi", "%25", "%20", "ihracat", "geçici vergi"],
+        "year": "2026"
+      }
+    },
+    {
+      "id": "damga-vergisi",
+      "text": "Damga Vergisi Oranları (488 sk.): Nispi oranlar — Mukavelenameler/sözleşmeler binde 9,48, Kira sözleşmeleri binde 1,89, Ücret bordroları binde 7,59, Hakedişler binde 9,48, Resmi dairelere taahhüt/teklifler binde 5,69, İhale kararları binde 5,69. Ücretlerde damga vergisi brüt ücret × binde 7,59 oranında kesilir. Asgari ücrete isabet eden damga vergisi istisna kapsamındadır (2022'den itibaren). Her kağıt için yıllık üst sınır uygulanır. Maktu damga vergisi (bilanço, gelir tablosu, beyanname) yeniden değerleme oranı ile her yıl güncellenir.",
+      "metadata": {
+        "category": "damga_vergisi",
+        "subcategory": "oranlar",
+        "section": "7",
+        "keywords": ["damga vergisi", "sözleşme", "kira", "bordro", "binde 9,48", "binde 7,59", "binde 1,89"],
+        "year": "evergreen"
+      }
+    },
+    {
+      "id": "ba-bs-bildirimleri",
+      "text": "Ba-Bs Bildirim Kuralları (VUK md. 148-149, Tebliğ 396): Ba Formu: Bir ay içinde aynı kişi/kurumdan KDV hariç 5.000 ₺ ve üzeri alımlar. Bs Formu: Bir ay içinde aynı kişi/kuruma KDV hariç 5.000 ₺ ve üzeri satışlar. Tutar KDV hariç bildirilir, aynı kişi/kurumla tüm işlemler toplanarak tek satır. VKN/TCKN bazında izlenir, bilinmeyen alıcı/satıcı 'Muhtelif' olarak bildirilir. Süre: Takip eden ayın son gününe kadar e-Beyanname ile. İhracat Bs bildirimi GB kapanma tarihindeki ayda yapılır. İthalat Ba bildirimi gümrük giriş beyannamesi kapanma tarihinde, tutar olarak KDV matrahı (KDV hariç) esas alınır. Cezalar: VUK md. 355 özel usulsüzlük. Ba-Bs dışı: sigorta poliçeleri, bankacılık işlemleri, noter.",
+      "metadata": {
+        "category": "ba_bs",
+        "subcategory": "kurallar",
+        "section": "8",
+        "keywords": ["Ba", "Bs", "bildirim", "5000", "KDV hariç", "VKN", "TCKN", "ihracat", "ithalat", "beyanname"],
+        "year": "evergreen"
+      }
+    },
+    {
+      "id": "beyanname-takvimi-aylik",
+      "text": "Vergi Beyanname Takvimi — Aylık: KDV-1 Beyannamesi takip eden ayın 28'i (aynı gün ödenir). KDV-2 (sorumlu sıfatıyla) takip eden ayın 28'i. Muhtasar ve Prim Hizmet Beyannamesi takip eden ayın 26'sı (aynı gün ödenir). SGK Prim Ödemesi takip eden ayın son günü. Ba-Bs Formları takip eden ayın son günü. Hafta sonu/tatile denk gelirse ilk iş gününe uzar (VUK md. 18).",
+      "metadata": {
+        "category": "beyanname",
+        "subcategory": "aylik",
+        "section": "9.1",
+        "keywords": ["beyanname", "KDV", "muhtasar", "SGK", "Ba-Bs", "takvim", "süre", "28", "26"],
+        "year": "evergreen"
+      }
+    },
+    {
+      "id": "beyanname-takvimi-ceyrek-yillik",
+      "text": "Vergi Beyanname Takvimi — Üç Aylık ve Yıllık: Geçici vergi 1. çeyrek (Ocak-Mart) → 17 Mayıs, 2. çeyrek → 17 Ağustos, 3. çeyrek → 17 Kasım, 4. çeyrek → 17 Şubat. Kurumlar Vergisi Beyannamesi 30 Nisan (aynı gün ödenir). Yıllık Gelir Vergisi 31 Mart (1. taksit 31 Mart, 2. taksit 31 Temmuz). Basit Usul Gelir Vergisi 28 Şubat (1. taksit 28 Şubat, 2. taksit 30 Haziran). e-Defter Berat Yükleme: Her aya ait berat ilgili ayı izleyen 3. ayın son gününe kadar.",
+      "metadata": {
+        "category": "beyanname",
+        "subcategory": "ceyrek_yillik",
+        "section": "9.2-9.4",
+        "keywords": ["geçici vergi", "kurumlar vergisi", "gelir vergisi", "beyanname", "e-defter", "berat", "30 Nisan", "31 Mart"],
+        "year": "evergreen"
+      }
+    },
+    {
+      "id": "amortisman-yontemler",
+      "text": "Amortisman Yöntemleri (VUK md. 313-321): Normal (Eşit Paylı): Maliyet bedeli ÷ Faydalı ömür = Yıllık amortisman. Azalan Bakiyeler: Normal oran × 2 (maks %50), net defter değeri üzerinden. Son yıl kalan bakiye tamamen gider yazılır. 2026 binek otomobil gider kısıtlaması: Kiralama aylık kira sınırı 46.000 ₺, ÖTV+KDV gider sınırı 1.200.000 ₺, amortisman sınırı (vergiler hariç) 1.380.000 ₺, ikinci el 2.600.000 ₺. Binek otomobillerde kıst amortisman uygulanır. 2026 doğrudan gider yazma sınırı: 12.000 ₺.",
+      "metadata": {
+        "category": "amortisman",
+        "subcategory": "yontemler",
+        "section": "10.1-10.3",
+        "keywords": ["amortisman", "normal", "azalan bakiyeler", "kıst", "binek", "gider kısıtlaması", "12000"],
+        "year": "2026"
+      }
+    },
+    {
+      "id": "amortisman-oranlar-tablo",
+      "text": "Yaygın Kıymetler Amortisman Tablosu: Bina betonarme 50 yıl %2, çelik konstrüksiyon 33 yıl %3,03, ahşap 15 yıl %6,67. Tesis/makine genel 10 yıl %10. CNC/otomasyon 10 yıl %10. Hadde makineleri 15 yıl %6,67. Galvaniz hatları 10 yıl %10. Tel çekme makineleri 10 yıl %10. Vinç 10 yıl %10. Binek otomobil 5 yıl %20. Ticari araç 5 yıl %20. Forklift 5 yıl %20. Ofis mobilya/demirbaş 5 yıl %20. Bilgisayar 4 yıl %25. Yazılım 3 yıl %33,33. Sunucu/ağ 5 yıl %20. Klima/havalandırma 10 yıl %10. Güvenlik kamerası 5 yıl %20. Jeneratör 10 yıl %10. Trafo 10 yıl %10.",
+      "metadata": {
+        "category": "amortisman",
+        "subcategory": "oranlar_tablosu",
+        "section": "10.2",
+        "keywords": ["amortisman", "oran", "faydalı ömür", "bina", "makine", "taşıt", "bilgisayar", "hadde", "galvaniz", "yazılım"],
+        "year": "evergreen"
+      }
+    },
+    {
+      "id": "fatura-turleri",
+      "text": "Fatura Türleri (VUK md. 229-232, 509 No'lu Tebliğ): Satış Faturası — 16 haneli no, tarih, VKN/TCKN, KDV oranı ve tutarı zorunlu. Kayıt: Borç 120 Alıcılar, Alacak 600 Satışlar + 391 KDV. İade Faturası — Orijinal fatura referansı verilmeli. Kayıt: Borç 610 Satıştan İadeler + 391 KDV, Alacak 120 Alıcılar. Tevkifatlı Fatura — Tevkifat kodu, oranı ve tutarı e-Fatura UBL-TR'de belirtilir. İstisna Faturası — İlgili istisna maddesi belirtilir (ihracat md.11, diplomatik md.15). İhraç Kayıtlı Fatura (md. 11/1-c) — İmalatçı KDV hesaplar tahsil etmez, tecil-terkin. Özel Matrah Faturası — Kâr marjı üzerinden KDV (ikinci el araç, turizm acentesi).",
+      "metadata": {
+        "category": "fatura",
+        "subcategory": "turler",
+        "section": "11",
+        "keywords": ["fatura", "satış", "iade", "tevkifat", "istisna", "ihraç kayıtlı", "özel matrah", "e-fatura", "UBL-TR"],
+        "year": "evergreen"
+      }
+    },
+    {
+      "id": "tcmb-kur-kurallari",
+      "text": "TCMB Döviz Kuru Kullanım Kuralları (VUK md. 280, KDVK md. 26): Dövizli fatura düzenleme/kayıt: Fatura tarihindeki TCMB döviz alış kuru. İhracat faturası: GB kapanma tarihindeki TCMB döviz alış kuru. İthalat: Gümrük beyannamesindeki kur (tescil tarihindeki gümrük idaresi kuru). Dönem sonu değerleme — kasa/banka/alacaklar: 31 Aralık TCMB döviz alış kuru (VUK md. 280), borçlar: TCMB döviz satış kuru (VUK md. 285). KDV matrahı: Fatura tarihindeki TCMB alış kuru. Kur farkı lehte → 646 Kambiyo Kârları, aleyhte → 656 Kambiyo Zararları. Kur farkı faturası: Tahsilat tarihindeki kur ile fatura tarihindeki kur farkı üzerinden KDV hesaplanır. TCMB kuru olmayan para birimleri: Çapraz kur yöntemiyle (USD üzerinden) hesaplanır. Hafta sonu/tatil: Önceki son iş gününün kuru kullanılır.",
+      "metadata": {
+        "category": "kur",
+        "subcategory": "kurallar",
+        "section": "12",
+        "keywords": ["TCMB", "kur", "döviz", "alış kuru", "satış kuru", "değerleme", "kur farkı", "kambiyo", "çapraz kur", "646", "656"],
+        "year": "evergreen"
+      }
+    },
+    {
+      "id": "diib-tanim-sistem",
+      "text": "Dahilde İşleme İzin Belgesi (DİİB) — 2005/8391 sayılı Karar, 2006/12 sayılı Tebliğ. Tanım: İhraç edilecek ürünlerin üretiminde kullanılacak hammadde/yardımcı madde/ambalajın gümrük vergisi, KDV, ÖTV'den muaf ithaline imkân veren teşvik belgesi. Şartlı Muafiyet Sistemi: Vergiler teminata bağlanır, ihracat taahhüdü gerçekleşince teminat çözülür. Geri Ödeme Sistemi: Vergiler ödenir, ihracat sonrası iade alınır. Döviz Kullanım Oranı (DKO) = CIF İthalat / FOB İhracat × 100, en fazla %80. Belge süresi genellikle 12 ay (24 aya uzatılabilir). Taahhüt kapatma: Belge süresi + 3 ay.",
+      "metadata": {
+        "category": "diib",
+        "subcategory": "tanim_sistem",
+        "section": "13.1-13.5",
+        "keywords": ["DİİB", "dahilde işleme", "şartlı muafiyet", "geri ödeme", "DKO", "taahhüt", "ihracat", "gümrük muafiyeti"],
+        "year": "evergreen"
+      }
+    },
+    {
+      "id": "diib-muhasebe-kayitlari",
+      "text": "DİİB Muhasebe Kayıtları: Yurt içi alım (tecil-terkin KDVK md. 11/1-c): Borç 150 İlk Madde Malzeme (net), Borç 191 İndirilecek KDV (tecil edilen), Alacak 320 Satıcılar (KDV hariç), Alacak 392 Diğer KDV (tecil edilen KDV). İthalat kaydı (şartlı muafiyet): Borç 150 İlk Madde Malzeme (CIF bedel TL karşılığı), Alacak 320 Satıcılar — gümrük vergisi/KDV ödenmez, teminat nazım hesaplarda izlenir. Teminat takibi: Borç 900 Borçlu Nazım — Verilen Teminat Mektupları, Alacak 901 Alacaklı Nazım. Taahhüt kapanınca ters kayıt. Kapatılamama durumu: Muaf vergiler + gecikme faizi + vergi ziyaı cezası tahsil edilir, Gümrük Kanunu md. 238 uyarınca gümrüklenmiş değerin 2 katı para cezası.",
+      "metadata": {
+        "category": "diib",
+        "subcategory": "muhasebe",
+        "section": "13.6-13.9",
+        "keywords": ["DİİB", "tecil", "terkin", "nazım hesap", "teminat", "ithalat kaydı", "900", "901", "392"],
+        "year": "evergreen"
+      }
+    },
+    {
+      "id": "ihracat-muhasebe-temel",
+      "text": "İhracat Muhasebesi — Temel Akış: İhracat geliri GB kapanma tarihinde kayıtlara alınır, kur olarak kapanma tarihindeki TCMB döviz alış kuru esas alınır. Satış kaydı: Borç 120 Alıcılar (kur × döviz tutarı), Alacak 601 Yurtdışı Satışlar (aynı tutar). İhracat KDV'den tam istisna (md. 11), 391 Hesaplanan KDV kaydı yapılmaz. Tahsilat kur farkı lehte: Borç 102 Bankalar, Alacak 120 Alıcılar + 646 Kambiyo Kârları. Aleyhte: Borç 102 Bankalar + 656 Kambiyo Zararları, Alacak 120 Alıcılar. Navlun/sigorta: FOB'da alıcıya ait, CIF'te satıcı 760 Pazarlama Giderleri'ne borç yazar.",
+      "metadata": {
+        "category": "ihracat",
+        "subcategory": "muhasebe_temel",
+        "section": "14.1-14.6",
+        "keywords": ["ihracat", "GB", "gümrük beyannamesi", "kapanma tarihi", "601", "yurtdışı satış", "kur farkı", "FOB", "CIF", "navlun"],
+        "year": "evergreen"
+      }
+    },
+    {
+      "id": "ihracat-kdv-iade",
+      "text": "İhracat KDV İadesi: İhracatçı ihraç ettiği mallara yüklendiği KDV'yi iade alabilir. Yöntemler: Mahsuben iade (diğer vergi borçlarına mahsup), Nakden iade (belirli limitin üzerinde YMM raporu veya vergi inceleme raporu gerekir), Hızlandırılmış İade Sistemi (HİS — bazı mükellefler). İade kaydı: Borç 136 Diğer Çeşitli Alacaklar (veya 193 Peşin Ödenen Vergiler), Alacak 191 İndirilecek KDV. İhraç Kayıtlı Satış (md. 11/1-c): İmalatçı KDV hesaplar tahsil etmez, vergi dairesinde tecil edilir. İhracatçı 3 ay içinde ihraç ederse tecil terkin. Kaydı: Borç 120 Alıcılar (KDV hariç) + 136 Diğer Alacaklar (tecil KDV), Alacak 600 Satışlar + 391 KDV.",
+      "metadata": {
+        "category": "ihracat",
+        "subcategory": "kdv_iade",
+        "section": "14.3-14.4",
+        "keywords": ["KDV iadesi", "ihracat", "mahsup", "nakden", "YMM", "HİS", "ihraç kayıtlı", "tecil", "terkin"],
+        "year": "evergreen"
+      }
+    },
+    {
+      "id": "kambiyo-bedel-getirme",
+      "text": "Kambiyo Mevzuatı — İhracat Bedeli Yurda Getirme: 1567 sayılı TPKK, 32 sayılı Karar, 2018-32/48 sayılı Tebliğ, TCMB İhracat Genelgesi (son güncelleme 26.02.2026). Zorunluluk: İhracat bedelleri fiili ihraç tarihinden itibaren 180 gün içinde yurda getirilmelidir. Muaf: Hizmet ihracatı, mikro ihracat, transit ticaret. İBKB (İhracat Bedeli Kabul Belgesi): İhracat bedeli bankaya geldiğinde düzenlenir, GB numarası/döviz cinsi/tutar içerir. TCMB'ye döviz satışı: İBKB tutarının en az %25'i aynı gün TCMB'ye satılır (sadece USD, EUR, GBP). Diğer döviz cinsleri muaf. Banka TCMB döviz alış kuru ile satış yapar.",
+      "metadata": {
+        "category": "kambiyo",
+        "subcategory": "bedel_getirme",
+        "section": "15.1-15.3",
+        "keywords": ["kambiyo", "180 gün", "İBKB", "TCMB", "%25", "döviz satışı", "ihracat bedeli", "USD", "EUR", "GBP"],
+        "year": "2026"
+      }
+    },
+    {
+      "id": "kambiyo-kapatma-pesin",
+      "text": "Kambiyo — Hesap Kapatma ve Peşin Döviz: İhracat hesabı kapatılması: Aracı banka 180 gün içinde bedeli izler, kapatılamazsa 10 iş günü içinde kambiyo müdürlüğüne ihbar. Terkin sınırları: Her GB için 50.000 USD veya eşitine kadar noksanlıklar banka tarafından terkin edilebilir. İhracatçının önceki yıl ihracatının %1'ine kadar açıklar kambiyo müdürlüğünce kapatılabilir. Peşin döviz: İhracattan önce alınan bedel, 24 ay içinde ihracat zorunlu. Yapılmazsa prefinansman kredisi hükümlerine tabi (50.000 USD altı muaf). Kambiyo vergisi (BSMV): Döviz alımında (TL→döviz) binde 2 (%0,2). İstisnalar: İhracat bedeli satışları, sanayi sicil belgesi kapsamında üretim amaçlı alımlar, yatırım teşvik belgesi işlemleri.",
+      "metadata": {
+        "category": "kambiyo",
+        "subcategory": "kapatma_pesin",
+        "section": "15.4-15.6",
+        "keywords": ["terkin", "50000", "peşin döviz", "24 ay", "prefinansman", "kambiyo vergisi", "BSMV", "binde 2"],
+        "year": "2026"
+      }
+    },
+    {
+      "id": "ithalat-muhasebe",
+      "text": "İthalat Muhasebesi (4458 Gümrük Kanunu, KDVK md. 21): İthalat maliyeti = FOB + navlun + sigorta (= CIF) + gümrük vergisi + ilave gümrük vergisi + ek mali yükümlülük + anti-damping (varsa) + gümrük müşaviri + ardiye/demuraj + yurt içi nakliye. KDV matrahı = CIF + tüm vergiler + beyannameye kadar giderler. KDV bu matrah üzerinden gümrükte ödenir, 191'den indirilir. Kayıt: Borç 150/153 (maliyet toplamı), Borç 191 İndirilecek KDV, Alacak 320 Satıcılar (yurt dışı — mal bedeli kur ile TL), Alacak 102 Bankalar (gümrük vergisi+KDV+masraflar). İthalatta kur: GB tescil tarihindeki gümrük idaresinin kuru. Ba bildiriminde de aynı tarih/tutar.",
+      "metadata": {
+        "category": "ithalat",
+        "subcategory": "muhasebe",
+        "section": "16",
+        "keywords": ["ithalat", "CIF", "FOB", "gümrük vergisi", "KDV matrahı", "navlun", "sigorta", "anti-damping", "gümrük beyannamesi"],
+        "year": "evergreen"
+      }
+    },
+    {
+      "id": "kidem-ihbar-tazminati",
+      "text": "Kıdem ve İhbar Tazminatı (4857 İş Kanunu, 1475 sk. md. 14): Kıdem tazminatı: Her tam yıl için 30 günlük giydirilmiş brüt ücret. Giydirilmiş = brüt + düzenli yan haklar (yemek, yol, ikramiye). Tavan 6 ayda bir güncellenir. Vergilendirme: Tavan dahili GV istisna, DV kesilir (binde 7,59), SGK primi yok. İhbar süreleri: 0-6 ay → 2 hafta, 6 ay-1,5 yıl → 4 hafta, 1,5-3 yıl → 6 hafta, 3 yıl+ → 8 hafta. İhbar tazminatı GV+DV'ye tabi, SGK yok. Karşılık kaydı: Borç 770 GYG, Alacak 472 Kıdem Tazminatı Karşılığı. Ödeme: Borç 472, Borç 770 (karşılık aşanı), Alacak 335 Personele Borçlar + 360 Vergi.",
+      "metadata": {
+        "category": "tazminat",
+        "subcategory": "kidem_ihbar",
+        "section": "17",
+        "keywords": ["kıdem tazminatı", "ihbar tazminatı", "giydirilmiş brüt", "tavan", "ihbar süresi", "472", "335"],
+        "year": "evergreen"
+      }
+    },
+    {
+      "id": "yillara-yaygin-insaat",
+      "text": "Yıllara Yaygın İnşaat ve Onarım İşleri (GVK md. 42-44): Birden fazla takvim yılına sirayet eden inşaat/onarımda kâr/zarar işin bittiği yılda tespit edilir. Her proje ayrı hesapta: 170.XX Maliyetler (aktif), 350.XX Hakediş Bedelleri (pasif). Maliyet kaydı: 170.XX borçlanır. Hakediş: 350.XX alacaklanır. İş bitiminde 170 ve 350 karşılıklı kapatılır, fark 600/620'ye aktarılır. Hakediş stopajı %5 GVK md. 94/3 (geçici vergi yerine geçer). İş bittiği yıl kurumlar/gelir vergisi beyannamesinden mahsup edilir.",
+      "metadata": {
+        "category": "insaat",
+        "subcategory": "yillara_yaygin",
+        "section": "18",
+        "keywords": ["yıllara yaygın", "inşaat", "hakediş", "170", "350", "stopaj", "%5", "md. 42"],
+        "year": "evergreen"
+      }
+    },
+    {
+      "id": "sgk-tesvik-optimizasyon",
+      "text": "SGK Teşvik Optimizasyonu 2026: 5510 md. 81/ı 5 puan indirimi (imalat %5, diğer %2 — 2026 güncellemesi). 6111 ilave istihdam teşviki. 7103 asgari ücret desteği 1.270 ₺/ay/sigortalı. 4857 md. 30 engelli istihdamı (50+ çalışanlı firmalar %3 zorunlu, SGK işveren payı Hazinece karşılanır). 5746 Ar-Ge teşviki (Ar-Ge personeli SGK işveren payı %50 Hazine). Kural: Aynı sigortalı için aynı dönemde birden fazla teşvikten yararlanılamaz. Her sigortalı için en avantajlı teşvik seçilmeli. SGK teşvik karşılaştırma modülü kullanılabilir. Hatalı kullanımda idari para cezası ve geri ödeme riski.",
+      "metadata": {
+        "category": "sgk",
+        "subcategory": "tesvik",
+        "section": "19",
+        "keywords": ["teşvik", "5 puan", "6111", "7103", "engelli", "Ar-Ge", "5746", "1270", "indirim"],
+        "year": "2026"
+      }
+    },
+    {
+      "id": "sektorel-demir-celik",
+      "text": "Sektörel Muhasebe — Demir-Çelik/İmalat: Stok değerleme (VUK md. 274-275): FIFO, ağırlıklı ortalama, hareketli ortalama (imalatta en yaygın). Fire: Normal fire üretim maliyetine dahil (çelik haddecilikte %2-5 arası), mamul maliyetini artırır. Anormal fire doğrudan gider: Borç 689, Alacak 150. Hurda/ikincil ürün geliri: Borç 100/120, Alacak 602 Diğer Gelirler + 391 KDV. Demir-çelik hurda tesliminde %70 KDV tevkifatı. Enerji maliyeti: Fırın/galvaniz/hadde için 730 GÜG'de izlenir, üretim hacmine göre dağıtılır. Maliyet akışı: 710 Direkt Madde (kütük/billet) → 720 Direkt İşçilik → 730 GÜG (enerji, amortisman, bakım) → 151 Yarı Mamuller → 152 Mamuller.",
+      "metadata": {
+        "category": "sektorel",
+        "subcategory": "demir_celik",
+        "section": "20",
+        "keywords": ["demir", "çelik", "imalat", "fire", "hurda", "hadde", "galvaniz", "kütük", "billet", "enerji", "FIFO", "ortalama maliyet"],
+        "year": "evergreen"
+      }
+    },
+    {
+      "id": "kayit-sablonu-satis-alis",
+      "text": "Sık Kullanılan Muhasebe Kayıt Şablonları — Satış ve Alış: Satış faturası KDV'li: Borç 120 Alıcılar (toplam), Alacak 600 Yurtiçi Satışlar (net) + 391 Hesaplanan KDV. Alış faturası KDV'li: Borç 153 Ticari Mallar (net) + 191 İndirilecek KDV, Alacak 320 Satıcılar (toplam). Banka tahsilat: Borç 102 Bankalar, Alacak 120 Alıcılar. Banka ödeme: Borç 320 Satıcılar, Alacak 102 Bankalar.",
+      "metadata": {
+        "category": "kayit_sablonu",
+        "subcategory": "satis_alis",
+        "section": "ek",
+        "keywords": ["satış", "alış", "fatura", "tahsilat", "ödeme", "120", "320", "600", "391", "191", "153", "102"],
+        "year": "evergreen"
+      }
+    },
+    {
+      "id": "kayit-sablonu-maas-kdv",
+      "text": "Sık Kullanılan Muhasebe Kayıt Şablonları — Maaş ve KDV: Maaş tahakkuku: Borç 770 GYG (brüt + işveren SGK + işsizlik), Alacak 335 Personele Borçlar (net ücret) + 360 Ödenecek Vergi (GV+DV) + 361 Ödenecek SGK (işçi+işveren tüm primler). Maaş ödemesi: Borç 335, Alacak 102. SGK ödemesi: Borç 361, Alacak 102. KDV mahsup (ödenecek): Borç 391, Alacak 191 + 360. KDV mahsup (devreden): Borç 391 + 190 Devreden KDV, Alacak 191.",
+      "metadata": {
+        "category": "kayit_sablonu",
+        "subcategory": "maas_kdv",
+        "section": "ek",
+        "keywords": ["maaş", "bordro", "tahakkuk", "SGK", "KDV mahsup", "devreden", "770", "335", "360", "361", "391", "191", "190"],
+        "year": "evergreen"
+      }
+    },
+    {
+      "id": "bordro-hesaplama-adimlari",
+      "text": "Bordro Hesaplama Adımları: 1) Brüt ücret belirlenir. 2) SGK işçi payı = Brüt × %14, İşsizlik işçi = Brüt × %1 (toplam %15). Brüt SGK tavanını aşıyorsa tavan üzerinden hesaplanır (2026: 297.270 ₺). 3) GV matrahı = Brüt − SGK işçi − İşsizlik işçi. 4) Gelir vergisi kümülatif tarife ile hesaplanır (2026: %15-40 arası dilimler). Asgari ücret istisnası düşülür. 5) Damga vergisi = Brüt × binde 7,59 (asgari ücrete isabet eden kısım istisna). 6) Net ücret = Brüt − SGK işçi − İşsizlik işçi − GV − DV + Asgari ücret istisnası (GV+DV). İşveren maliyeti = Brüt + İşveren SGK (%15,5-21,75 teşvike göre) + İşveren İşsizlik (%2).",
+      "metadata": {
+        "category": "bordro",
+        "subcategory": "hesaplama",
+        "section": "5-6",
+        "keywords": ["bordro", "brüt", "net", "SGK", "gelir vergisi", "damga", "kümülatif", "işveren maliyeti", "asgari ücret istisnası"],
+        "year": "2026"
+      }
+    },
+    {
+      "id": "doviz-pozisyon-takibi",
+      "text": "Döviz Pozisyon Takibi ve Değerleme: Döviz varlıkları (100 Kasa-döviz, 102 Bankalar-döviz, 120 Alıcılar-döviz) ve döviz borçları (320 Satıcılar-döviz, 300/400 Banka Kredileri-döviz) ayrı ayrı izlenir. Dönem sonunda (31 Aralık) tüm döviz kalemleri TCMB kuru ile değerlenir: Varlıklar → alış kuru (VUK md. 280), Borçlar → satış kuru (VUK md. 285). Oluşan farklar: Lehte → 646 Kambiyo Kârları, Aleyhte → 656 Kambiyo Zararları. Net döviz pozisyonu = Döviz varlıkları − Döviz borçları. Pozitif pozisyon TL değer kaybında kâr, negatif pozisyon zarar yaratır.",
+      "metadata": {
+        "category": "kur",
+        "subcategory": "pozisyon_takibi",
+        "section": "12-15",
+        "keywords": ["döviz pozisyonu", "değerleme", "dönem sonu", "alış kuru", "satış kuru", "646", "656", "VUK 280", "VUK 285"],
+        "year": "evergreen"
+      }
+    }
+  ]
+}

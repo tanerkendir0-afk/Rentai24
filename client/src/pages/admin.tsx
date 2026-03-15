@@ -4095,6 +4095,139 @@ function LimitManagementPanel({ token }: { token: string }) {
   );
 }
 
+function AgentInstructionsPanel({ token }: { token: string }) {
+  const { toast } = useToast();
+  const [instructions, setInstructions] = useState<Record<string, string>>({});
+  const [globalInstructions, setGlobalInstructions] = useState("");
+  const [saving, setSaving] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const fetchInstructions = useCallback(async () => {
+    try {
+      const res = await fetch(`${ADMIN_API}/agent-instructions`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const map: Record<string, string> = {};
+        data.instructions.forEach((i: any) => { map[i.agentType] = i.instructions; });
+        setInstructions(map);
+        setGlobalInstructions(data.globalInstructions || "");
+      }
+    } catch (e) { console.error(e); }
+    setLoading(false);
+  }, [token]);
+
+  useEffect(() => { fetchInstructions(); }, [fetchInstructions]);
+
+  const saveAgentInstruction = async (agentType: string) => {
+    setSaving(agentType);
+    try {
+      const res = await fetch(`${ADMIN_API}/agent-instructions/${agentType}`, {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ instructions: instructions[agentType] || "" }),
+      });
+      if (res.ok) {
+        toast({ title: "Kaydedildi", description: `${agentType} talimatları güncellendi.` });
+      }
+    } catch (e) { console.error(e); }
+    setSaving(null);
+  };
+
+  const saveGlobal = async () => {
+    setSaving("global");
+    try {
+      const res = await fetch(`${ADMIN_API}/global-instructions`, {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ instructions: globalInstructions }),
+      });
+      if (res.ok) {
+        toast({ title: "Kaydedildi", description: "Global talimatlar güncellendi." });
+      }
+    } catch (e) { console.error(e); }
+    setSaving(null);
+  };
+
+  if (loading) return <div className="flex justify-center p-8"><Loader2 className="animate-spin w-6 h-6" /></div>;
+
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FileText className="w-5 h-5 text-indigo-500" />
+            Ajan Özel Talimatları
+          </CardTitle>
+          <CardDescription>
+            Her ajana özel talimatlar ekleyin. Bu talimatlar ajanın sistem mesajına eklenir ve davranışını yönlendirir.
+          </CardDescription>
+        </CardHeader>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <Crown className="w-4 h-4 text-amber-500" />
+            Global Talimatlar (Tüm Ajanlar)
+          </CardTitle>
+          <CardDescription className="text-xs">
+            Bu talimatlar tüm ajanlara uygulanır. Genel kurallar, ton, kısıtlamalar buraya yazılabilir.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <textarea
+            className="w-full min-h-[120px] p-3 rounded-lg border bg-background text-sm font-mono resize-y"
+            placeholder="Örn: Tüm ajanlar Türkçe yanıt vermelidir. Fiyat bilgisi vermeden önce onay alınmalıdır..."
+            value={globalInstructions}
+            onChange={(e) => setGlobalInstructions(e.target.value)}
+            data-testid="input-global-instructions"
+          />
+          <Button
+            size="sm"
+            onClick={saveGlobal}
+            disabled={saving === "global"}
+            data-testid="button-save-global-instructions"
+          >
+            {saving === "global" ? <Loader2 className="animate-spin w-4 h-4 mr-1" /> : <CheckCircle className="w-4 h-4 mr-1" />}
+            Global Talimatları Kaydet
+          </Button>
+        </CardContent>
+      </Card>
+
+      <div className="grid gap-4">
+        {AGENTS.filter(a => a.slug !== "manager").map((agent) => (
+          <Card key={agent.slug}>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">{agent.name}</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <textarea
+                className="w-full min-h-[100px] p-3 rounded-lg border bg-background text-sm font-mono resize-y"
+                placeholder={`${agent.name} için özel talimatlar yazın...`}
+                value={instructions[agent.slug] || ""}
+                onChange={(e) => setInstructions(prev => ({ ...prev, [agent.slug]: e.target.value }))}
+                data-testid={`input-instructions-${agent.slug}`}
+              />
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => saveAgentInstruction(agent.slug)}
+                disabled={saving === agent.slug}
+                data-testid={`button-save-instructions-${agent.slug}`}
+              >
+                {saving === agent.slug ? <Loader2 className="animate-spin w-4 h-4 mr-1" /> : <CheckCircle className="w-4 h-4 mr-1" />}
+                Kaydet
+              </Button>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function EscalationsPanel({ token, autoOpenId }: { token: string; autoOpenId?: number }) {
   const { toast } = useToast();
   const headers = { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
@@ -4745,7 +4878,7 @@ export default function AdminPage() {
           setActiveTab(val);
           const tabToCategory: Record<string, string> = {
             "boss-ai": "dashboard", "overview": "dashboard", "users": "dashboard",
-            "rag": "ai-training", "training-data": "ai-training", "fine-tuning": "ai-training",
+            "rag": "ai-training", "training-data": "ai-training", "fine-tuning": "ai-training", "agent-instructions": "ai-training",
             "messages": "analytics", "spend-analysis": "analytics", "token-optimization": "analytics",
             "costs": "analytics", "performance": "analytics", "conversation-review": "analytics",
             "limit-management": "limits", "packages": "limits",
@@ -4825,6 +4958,10 @@ export default function AdminPage() {
                   <TabsTrigger value="fine-tuning" className="data-[state=active]:bg-violet-600 data-[state=active]:text-white" data-testid="tab-fine-tuning">
                     <Cpu className="w-3.5 h-3.5 mr-1" />
                     Fine-Tuning
+                  </TabsTrigger>
+                  <TabsTrigger value="agent-instructions" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:to-blue-600 data-[state=active]:text-white" data-testid="tab-agent-instructions">
+                    <FileText className="w-3.5 h-3.5 mr-1" />
+                    Özel Talimatlar
                   </TabsTrigger>
                 </>
               )}
@@ -4975,6 +5112,10 @@ export default function AdminPage() {
 
           <TabsContent value="packages">
             <PackageManagementPanel token={token} />
+          </TabsContent>
+
+          <TabsContent value="agent-instructions">
+            <AgentInstructionsPanel token={token} />
           </TabsContent>
 
           <TabsContent value="admin-guide">

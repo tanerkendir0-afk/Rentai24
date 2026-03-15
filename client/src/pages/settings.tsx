@@ -45,6 +45,9 @@ import {
   ExternalLink,
   Zap,
   Share2,
+  FileText,
+  Upload,
+  Download,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
@@ -95,6 +98,148 @@ interface ShippingProvider {
   siteId: string | null;
   status: string;
   createdAt: string;
+}
+
+function CrmDocumentsSection() {
+  const { toast } = useToast();
+  const [uploading, setUploading] = useState(false);
+
+  const { data: documents = [], refetch } = useQuery<any[]>({
+    queryKey: ["/api/crm-documents"],
+  });
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const maxSize = 5 * 1024 * 1024;
+    if (file.size > maxSize) {
+      toast({ title: "Dosya Boyutu Aşıldı", description: "Maksimum 5MB yükleyebilirsiniz.", variant: "destructive" });
+      return;
+    }
+
+    const allowedTypes = [
+      "application/pdf", "text/plain", "text/csv",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "application/vnd.ms-excel",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "application/msword",
+    ];
+    if (!allowedTypes.includes(file.type)) {
+      toast({ title: "Desteklenmeyen Format", description: "PDF, TXT, CSV, Excel veya Word dosyası yükleyin.", variant: "destructive" });
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const reader = new FileReader();
+      reader.onload = async () => {
+        const content = reader.result as string;
+        const res = await apiRequest("POST", "/api/crm-documents", {
+          fileName: `${Date.now()}_${file.name}`,
+          originalName: file.name,
+          fileType: file.type,
+          fileSize: file.size,
+          content: content,
+        });
+        if (res.ok) {
+          toast({ title: "Yüklendi", description: `${file.name} başarıyla yüklendi.` });
+          queryClient.invalidateQueries({ queryKey: ["/api/crm-documents"] });
+        }
+        setUploading(false);
+      };
+      reader.readAsText(file);
+    } catch (err) {
+      toast({ title: "Hata", description: "Dosya yüklenirken bir hata oluştu.", variant: "destructive" });
+      setUploading(false);
+    }
+    e.target.value = "";
+  };
+
+  const handleDelete = async (id: number, name: string) => {
+    try {
+      const res = await apiRequest("DELETE", `/api/crm-documents/${id}`);
+      if (res.ok) {
+        toast({ title: "Silindi", description: `${name} silindi.` });
+        queryClient.invalidateQueries({ queryKey: ["/api/crm-documents"] });
+      }
+    } catch (err) {
+      toast({ title: "Hata", description: "Silme işlemi başarısız.", variant: "destructive" });
+    }
+  };
+
+  const formatSize = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  return (
+    <Card className="p-4 sm:p-6 bg-card border-border/50" data-testid="card-crm-documents">
+      <div className="flex items-center gap-2 mb-2">
+        <FileText className="w-5 h-5 text-blue-400" />
+        <h2 className="text-lg font-semibold text-foreground">CRM Dokuman Yonetimi</h2>
+      </div>
+      <p className="text-xs text-muted-foreground mb-4">
+        Musteri listeleri, satis raporlari ve CRM verilerinizi yukleyin. Ajanlariniz bu dokumanlara erisebilir.
+      </p>
+
+      <div className="space-y-4">
+        <div className="flex items-center gap-3">
+          <label className="cursor-pointer" data-testid="button-upload-crm-document">
+            <input
+              type="file"
+              className="hidden"
+              accept=".pdf,.txt,.csv,.xlsx,.xls,.doc,.docx"
+              onChange={handleFileUpload}
+              disabled={uploading}
+            />
+            <div className="flex items-center gap-2 px-4 py-2 rounded-lg border border-dashed border-blue-400/50 hover:border-blue-400 hover:bg-blue-500/5 transition-colors">
+              {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4 text-blue-400" />}
+              <span className="text-sm">{uploading ? "Yukleniyor..." : "Dokuman Yukle"}</span>
+            </div>
+          </label>
+          <span className="text-xs text-muted-foreground">PDF, TXT, CSV, Excel, Word — Maks. 5MB</span>
+        </div>
+
+        {documents.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground">
+            <FileText className="w-10 h-10 mx-auto mb-2 opacity-30" />
+            <p className="text-sm">Henuz dokuman yuklenmemis</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {documents.map((doc: any) => (
+              <div
+                key={doc.id}
+                className="flex items-center justify-between p-3 rounded-lg border border-border/50 hover:bg-accent/30 transition-colors"
+                data-testid={`crm-document-${doc.id}`}
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <FileText className="w-4 h-4 text-blue-400 flex-shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium truncate">{doc.originalName}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {formatSize(doc.fileSize)} — {new Date(doc.uploadedAt).toLocaleDateString("tr-TR")}
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleDelete(doc.id, doc.originalName)}
+                  className="text-red-400 hover:text-red-300 flex-shrink-0"
+                  data-testid={`button-delete-crm-document-${doc.id}`}
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </Card>
+  );
 }
 
 export default function Settings() {
@@ -568,6 +713,7 @@ export default function Settings() {
     { id: "team-members", label: "Team", icon: Users },
     { id: "whatsapp-business", label: "WhatsApp", icon: Phone },
     { id: "shipping-providers", label: "Shipping", icon: Package },
+    { id: "crm-documents", label: "CRM", icon: FileText },
     { id: "api-secrets", label: "API Keys", icon: KeyRound },
     { id: "subscription", label: "Subscription", icon: CreditCard },
     { id: "image-credits", label: "Image Credits", icon: Sparkles },
@@ -1796,6 +1942,8 @@ export default function Settings() {
             </div>
           )}
         </Card>
+
+        <CrmDocumentsSection />
 
         {shippingProvidersData && shippingProvidersData.length > 0 && (
           <Card className="p-4 sm:p-6 bg-card border-border/50" data-testid="card-api-secrets">

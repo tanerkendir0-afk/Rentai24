@@ -1452,6 +1452,19 @@ export async function registerRoutes(
 
     let systemPrompt = agentSystemPrompts[agentType] || defaultSystemPrompt;
 
+    try {
+      const globalInst = await storage.getGlobalInstruction();
+      const agentInst = await storage.getAgentInstruction(agentType);
+      if (globalInst?.instructions) {
+        systemPrompt += `\n\nADMIN GLOBAL INSTRUCTIONS (apply to all agents):\n${globalInst.instructions}`;
+      }
+      if (agentInst?.instructions) {
+        systemPrompt += `\n\nADMIN CUSTOM INSTRUCTIONS (specific to this agent):\n${agentInst.instructions}`;
+      }
+    } catch (e) {
+      console.error("[CustomInstructions] Error loading:", e);
+    }
+
     let userName: string | null = null;
     let userCompany: string | null = null;
     let teamMembersContext = "";
@@ -1616,6 +1629,19 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
 
       systemPrompt = agentSystemPrompts[resolvedAgentType] || defaultSystemPrompt;
       } // close else block for isManagerDirectQuery
+
+      try {
+        const globalInst2 = await storage.getGlobalInstruction();
+        const agentInst2 = await storage.getAgentInstruction(resolvedAgentType);
+        if (globalInst2?.instructions) {
+          systemPrompt += `\n\nADMIN GLOBAL INSTRUCTIONS (apply to all agents):\n${globalInst2.instructions}`;
+        }
+        if (agentInst2?.instructions) {
+          systemPrompt += `\n\nADMIN CUSTOM INSTRUCTIONS (specific to this agent):\n${agentInst2.instructions}`;
+        }
+      } catch (e) {
+        console.error("[CustomInstructions] Manager path error:", e);
+      }
 
       systemPrompt += personalizationBlock;
       systemPrompt += teamMembersContext;
@@ -4127,6 +4153,103 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
       res.json(esc);
     } catch (error: unknown) {
       console.error("Dismiss escalation error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.get(`/api/${ADMIN_PATH}/agent-instructions`, requireAdmin, async (_req, res) => {
+    try {
+      const instructions = await storage.getAllAgentInstructions();
+      const global = await storage.getGlobalInstruction();
+      res.json({ instructions, globalInstructions: global?.instructions || "" });
+    } catch (error: unknown) {
+      console.error("Get agent instructions error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.put(`/api/${ADMIN_PATH}/agent-instructions/:agentType`, requireAdmin, async (req, res) => {
+    try {
+      const { agentType } = req.params;
+      const { instructions } = req.body;
+      if (typeof instructions !== "string") return res.status(400).json({ error: "instructions is required" });
+      const result = await storage.upsertAgentInstruction(agentType, instructions);
+      res.json(result);
+    } catch (error: unknown) {
+      console.error("Update agent instructions error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.put(`/api/${ADMIN_PATH}/global-instructions`, requireAdmin, async (req, res) => {
+    try {
+      const { instructions } = req.body;
+      if (typeof instructions !== "string") return res.status(400).json({ error: "instructions is required" });
+      const result = await storage.upsertGlobalInstruction(instructions);
+      res.json(result);
+    } catch (error: unknown) {
+      console.error("Update global instructions error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.get("/api/crm-documents", requireAuth, async (req, res) => {
+    try {
+      const docs = await storage.getCrmDocuments(req.session.userId!);
+      res.json(docs);
+    } catch (error: unknown) {
+      console.error("Get CRM documents error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.post("/api/crm-documents", requireAuth, async (req, res) => {
+    try {
+      const { fileName, originalName, fileType, fileSize, content } = req.body;
+      if (!fileName || !originalName || !fileType || !fileSize) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+      const allowedTypes = [
+        "application/pdf", "text/plain", "text/csv",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "application/vnd.ms-excel",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "application/msword",
+      ];
+      if (!allowedTypes.includes(fileType)) {
+        return res.status(400).json({ error: "Unsupported file type" });
+      }
+      const maxSize = 5 * 1024 * 1024;
+      if (typeof fileSize !== "number" || fileSize > maxSize || fileSize <= 0) {
+        return res.status(400).json({ error: "File size must be between 1 byte and 5MB" });
+      }
+      if (content && typeof content === "string" && content.length > maxSize) {
+        return res.status(400).json({ error: "Content too large" });
+      }
+      const doc = await storage.createCrmDocument({
+        userId: req.session.userId!,
+        fileName: String(fileName),
+        originalName: String(originalName),
+        fileType: String(fileType),
+        fileSize: Number(fileSize),
+        content: content ? String(content) : null,
+      });
+      res.json(doc);
+    } catch (error: unknown) {
+      console.error("Create CRM document error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.delete("/api/crm-documents/:id", requireAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ error: "Invalid ID" });
+      const deleted = await storage.deleteCrmDocument(id, req.session.userId!);
+      if (!deleted) return res.status(404).json({ error: "Document not found" });
+      res.json({ success: true });
+    } catch (error: unknown) {
+      console.error("Delete CRM document error:", error);
       res.status(500).json({ error: "Internal server error" });
     }
   });

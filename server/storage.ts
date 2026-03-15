@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { users, rentals, contactMessages, newsletterSubscribers, leads, agentActions, emailCampaigns, supportTickets, tokenUsage, agentTasks, chatMessages, conversations, teamMembers, bossNotifications, socialAccounts, shippingProviders, guardrailLogs, systemSettings, scheduledPosts, whatsappConfig, whatsappMessages, agentLimits, escalationRules, escalations, escalationMessages, type User, type InsertUser, type Rental, type InsertRental, type ContactMessage, type InsertContactMessage, type NewsletterSubscriber, type Lead, type InsertLead, type AgentAction, type InsertAgentAction, type EmailCampaign, type InsertEmailCampaign, type SupportTicket, type InsertSupportTicket, type TokenUsage, type InsertTokenUsage, type AgentTask, type InsertAgentTask, type ChatMessage, type InsertChatMessage, type ConversationRecord, type InsertConversation, type TeamMember, type InsertTeamMember, type BossNotification, type InsertBossNotification, type SocialAccount, type InsertSocialAccount, type ShippingProvider, type InsertShippingProvider, type GuardrailLog, type ScheduledPost, type InsertScheduledPost, type WhatsappConfig, type InsertWhatsappConfig, type WhatsappMessage, type InsertWhatsappMessage, type AgentLimit, type InsertAgentLimit, type EscalationRule, type InsertEscalationRule, type Escalation, type InsertEscalation, type EscalationMessage, type InsertEscalationMessage } from "@shared/schema";
+import { users, rentals, contactMessages, newsletterSubscribers, leads, agentActions, emailCampaigns, supportTickets, tokenUsage, agentTasks, chatMessages, conversations, teamMembers, bossNotifications, socialAccounts, shippingProviders, guardrailLogs, systemSettings, scheduledPosts, whatsappConfig, whatsappMessages, agentLimits, escalationRules, escalations, escalationMessages, agentInstructions, globalAgentInstructions, crmDocuments, type User, type InsertUser, type Rental, type InsertRental, type ContactMessage, type InsertContactMessage, type NewsletterSubscriber, type Lead, type InsertLead, type AgentAction, type InsertAgentAction, type EmailCampaign, type InsertEmailCampaign, type SupportTicket, type InsertSupportTicket, type TokenUsage, type InsertTokenUsage, type AgentTask, type InsertAgentTask, type ChatMessage, type InsertChatMessage, type ConversationRecord, type InsertConversation, type TeamMember, type InsertTeamMember, type BossNotification, type InsertBossNotification, type SocialAccount, type InsertSocialAccount, type ShippingProvider, type InsertShippingProvider, type GuardrailLog, type ScheduledPost, type InsertScheduledPost, type WhatsappConfig, type InsertWhatsappConfig, type WhatsappMessage, type InsertWhatsappMessage, type AgentLimit, type InsertAgentLimit, type EscalationRule, type InsertEscalationRule, type Escalation, type InsertEscalation, type EscalationMessage, type InsertEscalationMessage, type AgentInstruction, type InsertAgentInstruction, type GlobalAgentInstruction, type CrmDocument, type InsertCrmDocument } from "@shared/schema";
 import { eq, and, sql, desc, gte, lte } from "drizzle-orm";
 import * as cryptoModule from "crypto";
 
@@ -144,6 +144,17 @@ export interface IStorage {
 
   createEscalationMessage(msg: InsertEscalationMessage): Promise<EscalationMessage>;
   getEscalationMessages(escalationId: number, after?: Date): Promise<EscalationMessage[]>;
+
+  getAgentInstruction(agentType: string): Promise<AgentInstruction | undefined>;
+  getAllAgentInstructions(): Promise<AgentInstruction[]>;
+  upsertAgentInstruction(agentType: string, instructions: string): Promise<AgentInstruction>;
+  getGlobalInstruction(): Promise<GlobalAgentInstruction | undefined>;
+  upsertGlobalInstruction(instructions: string): Promise<GlobalAgentInstruction>;
+
+  getCrmDocuments(userId: number): Promise<CrmDocument[]>;
+  getCrmDocumentById(id: number, userId: number): Promise<CrmDocument | undefined>;
+  createCrmDocument(doc: InsertCrmDocument): Promise<CrmDocument>;
+  deleteCrmDocument(id: number, userId: number): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1063,6 +1074,57 @@ export class DatabaseStorage implements IStorage {
     const conditions = [eq(escalationMessages.escalationId, escalationId)];
     if (after) conditions.push(gte(escalationMessages.createdAt, after));
     return db.select().from(escalationMessages).where(and(...conditions)).orderBy(escalationMessages.createdAt);
+  }
+
+  async getAgentInstruction(agentType: string): Promise<AgentInstruction | undefined> {
+    const [row] = await db.select().from(agentInstructions).where(eq(agentInstructions.agentType, agentType));
+    return row;
+  }
+
+  async getAllAgentInstructions(): Promise<AgentInstruction[]> {
+    return db.select().from(agentInstructions).orderBy(agentInstructions.agentType);
+  }
+
+  async upsertAgentInstruction(agentType: string, instructions: string): Promise<AgentInstruction> {
+    const [row] = await db.insert(agentInstructions)
+      .values({ agentType, instructions })
+      .onConflictDoUpdate({ target: agentInstructions.agentType, set: { instructions, updatedAt: new Date() } })
+      .returning();
+    return row;
+  }
+
+  async getGlobalInstruction(): Promise<GlobalAgentInstruction | undefined> {
+    const [row] = await db.select().from(globalAgentInstructions).limit(1);
+    return row;
+  }
+
+  async upsertGlobalInstruction(instructions: string): Promise<GlobalAgentInstruction> {
+    const existing = await this.getGlobalInstruction();
+    if (existing) {
+      const [updated] = await db.update(globalAgentInstructions).set({ instructions, updatedAt: new Date() }).where(eq(globalAgentInstructions.id, existing.id)).returning();
+      return updated;
+    }
+    const [created] = await db.insert(globalAgentInstructions).values({ instructions }).returning();
+    return created;
+  }
+
+  async getCrmDocuments(userId: number): Promise<CrmDocument[]> {
+    return db.select().from(crmDocuments).where(eq(crmDocuments.userId, userId)).orderBy(desc(crmDocuments.uploadedAt));
+  }
+
+  async getCrmDocumentById(id: number, userId: number): Promise<CrmDocument | undefined> {
+    const [doc] = await db.select().from(crmDocuments).where(and(eq(crmDocuments.id, id), eq(crmDocuments.userId, userId)));
+    return doc;
+  }
+
+  async createCrmDocument(doc: InsertCrmDocument): Promise<CrmDocument> {
+    const [created] = await db.insert(crmDocuments).values(doc).returning();
+    return created;
+  }
+
+  async deleteCrmDocument(id: number, userId: number): Promise<boolean> {
+    const result = await db.delete(crmDocuments).where(and(eq(crmDocuments.id, id), eq(crmDocuments.userId, userId))).returning();
+    return result.length > 0;
   }
 }
 

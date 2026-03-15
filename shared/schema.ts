@@ -661,3 +661,45 @@ export const insertEscalationMessageSchema = createInsertSchema(escalationMessag
 
 export type EscalationMessage = typeof escalationMessages.$inferSelect;
 export type InsertEscalationMessage = z.infer<typeof insertEscalationMessageSchema>;
+
+export const agentInstructions = pgTable("agent_instructions", {
+  id: serial("id").primaryKey(),
+  agentType: text("agent_type").notNull().unique(),
+  instructions: text("instructions").notNull().default(""),
+  updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
+export const insertAgentInstructionSchema = createInsertSchema(agentInstructions).omit({
+  id: true,
+  updatedAt: true,
+});
+
+export type AgentInstruction = typeof agentInstructions.$inferSelect;
+export type InsertAgentInstruction = z.infer<typeof insertAgentInstructionSchema>;
+
+export const globalAgentInstructions = pgTable("global_agent_instructions", {
+  id: serial("id").primaryKey(),
+  instructions: text("instructions").notNull().default(""),
+  updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
+export type GlobalAgentInstruction = typeof globalAgentInstructions.$inferSelect;
+
+export const crmDocuments = pgTable("crm_documents", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  fileName: text("file_name").notNull(),
+  originalName: text("original_name").notNull(),
+  fileType: text("file_type").notNull(),
+  fileSize: integer("file_size").notNull(),
+  content: text("content"),
+  uploadedAt: timestamp("uploaded_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
+export const insertCrmDocumentSchema = createInsertSchema(crmDocuments).omit({
+  id: true,
+  uploadedAt: true,
+});
+
+export type CrmDocument = typeof crmDocuments.$inferSelect;
+export type InsertCrmDocument = z.infer<typeof insertCrmDocumentSchema>;

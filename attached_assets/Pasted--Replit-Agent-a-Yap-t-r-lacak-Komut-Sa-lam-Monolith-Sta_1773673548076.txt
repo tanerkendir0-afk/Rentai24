@@ -1,0 +1,264 @@
+# Replit Agent'a Yapıştırılacak Komut
+# Sağlam Monolith — Stabilite & Hata Yönetimi
+# ================================================
+# DB fix bittikten sonra yapıştır
+
+Sunucuyu crash'lere, hatalara ve bellek sorunlarına karşı dayanıklı hale getirmemiz gerekiyor. Şu anda tek bir ajanın hatası tüm sunucuyu çökertebiliyor. Aşağıdaki 6 iyileştirmeyi yap:
+
+## 1. Global Error Handlers
+
+server/index.ts veya ana başlatma dosyasına şunları ekle:
+
+```typescript
+// Yakalanmamış hatalar sunucuyu çökertmesin
+process.on('uncaughtException', (error) => {
+  console.error('[CRITICAL] Uncaught Exception:', error);
+  // Sunucuyu kapatma, sadece logla
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('[CRITICAL] Unhandled Rejection:', reason);
+  // Sunucuyu kapatma, sadece logla
+});
+
+// Graceful shutdown
+const gracefulShutdown = (signal: string) => {
+  console.log(`[SERVER] ${signal} alındı, sunucu kapatılıyor...`);
+  server.close(() => {
+    console.log('[SERVER] HTTP sunucusu kapatıldı');
+    process.exit(0);
+  });
+  // 10 saniye içinde kapanmazsa zorla kapat
+  setTimeout(() => process.exit(1), 10000);
+};
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+```
+
+## 2. Per-Agent Try/Catch
+
+server/routes.ts'deki /api/chat endpoint'inde her ajan çağrısını try/catch ile sarmalala. Bir ajanın hatası diğerlerini etkilemesin:
+
+```typescript
+app.post('/api/chat', authenticate, async (req, res) => {
+  const { agentId, message } = req.body;
+  
+  try {
+    // Mevcut ajan işleme kodu...
+    const response = await processAgentMessage(agentId, message, req.user);
+    res.json(response);
+  } catch (error: any) {
+    console.error(`[AGENT ERROR] ${agentId}:`, error.message, error.stack);
+    
+    // Kullanıcıya anlamlı hata mesajı dön, sunucu çökmesin
+    res.status(500).json({
+      error: true,
+      message: 'Bir hata oluştu. Lütfen tekrar deneyin.',
+      agentId,
+      // Geliştirici bilgisi (production'da kaldırılabilir)
+      debug: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+```
+
+Eğer mevcut yapıda zaten try/catch varsa, catch bloğunun doğru çalıştığından emin ol — hata loglanmalı ve 500 dönmeli, sunucu çökmemeli.
+
+## 3. Circuit Breaker (Ajan Bazlı)
+
+Bir ajan art arda 3 kez hata verirse geçici olarak devre dışı bırak, 5 dakika sonra tekrar dene:
+
+```typescript
+// server/services/circuitBreaker.ts oluştur
+
+interface CircuitState {
+  failures: number;
+  lastFailure: number;
+  isOpen: boolean;
+}
+
+class CircuitBreaker {
+  private circuits: Map<string, CircuitState> = new Map();
+  private readonly maxFailures = 3;
+  private readonly resetTimeout = 5 * 60 * 1000; // 5 dakika
+
+  recordFailure(agentId: string): void {
+    const state = this.circuits.get(agentId) || { failures: 0, lastFailure: 0, isOpen: false };
+    state.failures++;
+    state.lastFailure = Date.now();
+    if (state.failures >= this.maxFailures) {
+      state.isOpen = true;
+      console.warn(`[CIRCUIT BREAKER] ${agentId} devre dışı bırakıldı (${state.failures} ardışık hata)`);
+    }
+    this.circuits.set(agentId, state);
+  }
+
+  recordSuccess(agentId: string): void {
+    this.circuits.set(agentId, { failures: 0, lastFailure: 0, isOpen: false });
+  }
+
+  isAvailable(agentId: string): boolean {
+    const state = this.circuits.get(agentId);
+    if (!state || !state.isOpen) return true;
+    // Reset timeout geçtiyse tekrar dene
+    if (Date.now() - state.lastFailure > this.resetTimeout) {
+      state.isOpen = false;
+      state.failures = 0;
+      return true;
+    }
+    return false;
+  }
+
+  getStatus(): Record<string, CircuitState> {
+    return Object.fromEntries(this.circuits);
+  }
+}
+
+export const circuitBreaker = new CircuitBreaker();
+```
+
+Bunu chat endpoint'inde kullan:
+```typescript
+if (!circuitBreaker.isAvailable(agentId)) {
+  return res.status(503).json({
+    error: true,
+    message: `${agentId} ajanı geçici olarak devre dışı. Birkaç dakika sonra tekrar deneyin.`
+  });
+}
+
+try {
+  const response = await processAgentMessage(agentId, message);
+  circuitBreaker.recordSuccess(agentId);
+  res.json(response);
+} catch (error) {
+  circuitBreaker.recordFailure(agentId);
+  // ... hata yanıtı
+}
+```
+
+## 4. Health Check Endpoint
+
+```typescript
+// GET /api/diagnostics/health
+app.get('/api/diagnostics/health', async (req, res) => {
+  const startTime = process.uptime();
+  const memUsage = process.memoryUsage();
+  
+  // DB bağlantısı kontrol
+  let dbStatus = 'healthy';
+  try {
+    await db.execute('SELECT 1');
+  } catch {
+    dbStatus = 'down';
+  }
+
+  // OpenAI API kontrol
+  let openaiStatus = 'healthy';
+  try {
+    const response = await fetch('https://api.openai.com/v1/models', {
+      headers: { 'Authorization': `Bearer ${process.env.OPENAI_API_KEY}` }
+    });
+    if (!response.ok) openaiStatus = 'degraded';
+  } catch {
+    openaiStatus = 'down';
+  }
+
+  res.json({
+    status: dbStatus === 'healthy' && openaiStatus === 'healthy' ? 'healthy' : 'degraded',
+    uptime: Math.floor(startTime),
+    memory: {
+      heapUsed: Math.round(memUsage.heapUsed / 1024 / 1024) + ' MB',
+      heapTotal: Math.round(memUsage.heapTotal / 1024 / 1024) + ' MB',
+      rss: Math.round(memUsage.rss / 1024 / 1024) + ' MB',
+      external: Math.round(memUsage.external / 1024 / 1024) + ' MB'
+    },
+    services: {
+      database: dbStatus,
+      openai: openaiStatus
+    },
+    agents: circuitBreaker.getStatus(),
+    timestamp: new Date().toISOString()
+  });
+});
+```
+
+Bu endpoint'e authentication EKLEME — monitoring araçları erişebilmeli. Ama sensitive data koyma.
+
+## 5. Rate Limiting (Ajan Bazlı)
+
+Her ajan için dakikada max 20 mesaj limiti koy (DDoS ve maliyet koruması):
+
+```typescript
+// Basit in-memory rate limiter
+const rateLimits: Map<string, { count: number; resetAt: number }> = new Map();
+const RATE_LIMIT = 20; // dakikada max mesaj
+const RATE_WINDOW = 60 * 1000; // 1 dakika
+
+function checkRateLimit(userId: number, agentId: string): boolean {
+  const key = `${userId}:${agentId}`;
+  const now = Date.now();
+  const limit = rateLimits.get(key);
+  
+  if (!limit || now > limit.resetAt) {
+    rateLimits.set(key, { count: 1, resetAt: now + RATE_WINDOW });
+    return true;
+  }
+  
+  if (limit.count >= RATE_LIMIT) return false;
+  limit.count++;
+  return true;
+}
+
+// Chat endpoint'inde:
+if (!checkRateLimit(req.user.id, agentId)) {
+  return res.status(429).json({
+    error: true,
+    message: 'Çok fazla mesaj gönderdiniz. Lütfen bir dakika bekleyin.'
+  });
+}
+```
+
+## 6. Request Timeout
+
+OpenAI API çağrılarına timeout ekle (30 saniye). Sonsuz beklemeyi önler:
+
+```typescript
+// OpenAI çağrısında AbortController kullan
+const controller = new AbortController();
+const timeout = setTimeout(() => controller.abort(), 30000); // 30 saniye
+
+try {
+  const response = await chatClient.chat.completions.create({
+    model: modelToUse,
+    messages,
+    max_tokens: 800,
+    temperature: 0.7,
+    ...(agentTools ? { tools: agentTools } : {}),
+  }, { signal: controller.signal });
+  
+  clearTimeout(timeout);
+  return response;
+} catch (error: any) {
+  clearTimeout(timeout);
+  if (error.name === 'AbortError') {
+    throw new Error('AI yanıt süresi aşıldı. Lütfen tekrar deneyin.');
+  }
+  throw error;
+}
+```
+
+## ÖZET
+
+Yapılacaklar:
+1. ✅ Global error handlers (uncaughtException, unhandledRejection, graceful shutdown)
+2. ✅ Per-agent try/catch (her ajan kendi hatasını yakalar)
+3. ✅ Circuit breaker (3 hata → 5 dk devre dışı)
+4. ✅ Health check endpoint (GET /api/diagnostics/health)
+5. ✅ Rate limiting (kullanıcı + ajan bazlı, 20/dk)
+6. ✅ Request timeout (30 saniye)
+
+Tamamladıktan sonra sunucuyu restart et ve şu testi yap:
+- GET /api/diagnostics/health çağır, yanıt geldiğini doğrula
+- Herhangi bir ajana mesaj gönder, çalıştığını doğrula
+- Bana sonuçları göster

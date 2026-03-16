@@ -25,12 +25,37 @@ import { resolveUserLang, langMiddleware, type SupportedLang } from "./i18n";
 import { msg } from "./messages";
 import { checkDistillation, addWatermark } from "./distillationProtection";
 import { getImagePath, chatImageDir } from "./imageService";
+import { circuitBreaker } from "./services/circuitBreaker";
 import { db } from "./db";
 import { sql, eq, desc } from "drizzle-orm";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
 import crypto from "crypto";
+
+const rateLimits: Map<string, { count: number; resetAt: number }> = new Map();
+const RATE_LIMIT = 20;
+const RATE_WINDOW = 60 * 1000;
+
+function checkRateLimit(userId: number | undefined, agentId: string, ip: string): boolean {
+  const key = userId ? `${userId}:${agentId}` : `ip:${ip}:${agentId}`;
+  const now = Date.now();
+  const limit = rateLimits.get(key);
+  if (!limit || now > limit.resetAt) {
+    rateLimits.set(key, { count: 1, resetAt: now + RATE_WINDOW });
+    return true;
+  }
+  if (limit.count >= RATE_LIMIT) return false;
+  limit.count++;
+  return true;
+}
+
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, val] of rateLimits) {
+    if (now > val.resetAt) rateLimits.delete(key);
+  }
+}, 5 * 60 * 1000);
 
 const openai = new OpenAI({
   apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
@@ -664,6 +689,36 @@ export async function registerRoutes(
   }
 
   app.use("/api", langMiddleware());
+
+  app.get("/api/diagnostics/health", async (_req, res) => {
+    const memUsage = process.memoryUsage();
+    let dbStatus = "healthy";
+    try {
+      await db.execute(sql`SELECT 1`);
+    } catch {
+      dbStatus = "down";
+    }
+
+    let openaiStatus = "healthy";
+    try {
+      await openai.models.list({ timeout: 5000 });
+    } catch (e: any) {
+      openaiStatus = e?.status === 401 ? "auth_error" : "degraded";
+    }
+
+    res.json({
+      status: dbStatus === "healthy" && openaiStatus === "healthy" ? "healthy" : "degraded",
+      uptime: Math.floor(process.uptime()),
+      memory: {
+        heapUsed: Math.round(memUsage.heapUsed / 1024 / 1024) + " MB",
+        heapTotal: Math.round(memUsage.heapTotal / 1024 / 1024) + " MB",
+        rss: Math.round(memUsage.rss / 1024 / 1024) + " MB",
+      },
+      services: { database: dbStatus, openai: openaiStatus },
+      agents: circuitBreaker.getStatus(),
+      timestamp: new Date().toISOString(),
+    });
+  });
 
   app.use(`/api/${ADMIN_PATH}`, (_req, res, next) => {
     res.setHeader("X-Robots-Tag", "noindex");
@@ -1937,6 +1992,19 @@ export async function registerRoutes(
 
     const { message, agentType, conversationHistory, sessionId: clientSessionId } = parsed.data;
 
+    const clientIpForRL = (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() || req.ip || "unknown";
+    if (!checkRateLimit(req.session.userId, agentType, clientIpForRL)) {
+      return res.status(429).json({
+        reply: "Çok fazla mesaj gönderdiniz. Lütfen bir dakika bekleyin.",
+      });
+    }
+
+    if (!circuitBreaker.isAvailable(agentType)) {
+      return res.status(503).json({
+        reply: `${agentType} ajanı geçici olarak devre dışı. Birkaç dakika sonra tekrar deneyin.`,
+      });
+    }
+
     if (req.session.userId) {
       let activeEsc = await storage.getActiveEscalationForUser(req.session.userId, agentType);
       if (!activeEsc && agentType === "manager") {
@@ -2376,7 +2444,7 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
           max_tokens: 800,
           temperature: 0.7,
           ...(anthropicTools && anthropicTools.length > 0 ? { tools: anthropicTools } : {}),
-        });
+        }, { timeout: 30000 });
 
         totalPromptTokens = anthropicResponse.usage?.input_tokens || 0;
         totalCompletionTokens = anthropicResponse.usage?.output_tokens || 0;
@@ -2467,7 +2535,7 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
               max_tokens: 800,
               temperature: 0.7,
               ...(anthropicTools && anthropicTools.length > 0 ? { tools: anthropicTools } : {}),
-            });
+            }, { timeout: 30000 });
 
             totalPromptTokens += followUp.usage?.input_tokens || 0;
             totalCompletionTokens += followUp.usage?.output_tokens || 0;
@@ -2501,7 +2569,7 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
           max_tokens: 800,
           temperature: 0.7,
           ...(agentTools ? { tools: agentTools } : {}),
-        });
+        }, { timeout: 30000 });
 
         totalPromptTokens = response.usage?.prompt_tokens || 0;
         totalCompletionTokens = response.usage?.completion_tokens || 0;
@@ -2575,7 +2643,7 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
             messages,
             max_tokens: 800,
             temperature: 0.7,
-          });
+          }, { timeout: 30000 });
 
           totalPromptTokens += followUp.usage?.prompt_tokens || 0;
           totalCompletionTokens += followUp.usage?.completion_tokens || 0;
@@ -2727,11 +2795,16 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
       if (escalationData?.active) {
         responsePayload.escalationActive = { id: escalationData.id };
       }
+      circuitBreaker.recordSuccess(resolvedAgentType);
       res.json(responsePayload);
     } catch (error: any) {
-      console.error("Chat API error:", error?.message || error);
+      console.error(`[AGENT ERROR] ${agentType}:`, error?.message || error);
+      circuitBreaker.recordFailure(agentType);
+      const isTimeout = error?.name === "AbortError" || error?.message?.includes("timeout");
       res.status(502).json({
-        reply: "I'm having trouble connecting right now. Please try again in a moment.",
+        reply: isTimeout
+          ? "AI yanıt süresi aşıldı. Lütfen tekrar deneyin."
+          : "Bir hata oluştu. Lütfen tekrar deneyin.",
       });
     }
   });

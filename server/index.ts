@@ -12,6 +12,14 @@ import { getStripeSync } from "./stripeClient";
 import { WebhookHandlers } from "./webhookHandlers";
 import { pool } from "./db";
 
+process.on('uncaughtException', (error) => {
+  console.error('[CRITICAL] Uncaught Exception:', error);
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('[CRITICAL] Unhandled Rejection:', reason);
+});
+
 const ADMIN_PATH = process.env.ADMIN_PATH;
 if (!ADMIN_PATH) {
   console.error("FATAL: ADMIN_PATH environment variable is not set. Application cannot start.");
@@ -291,10 +299,6 @@ app.use((req, res, next) => {
     await setupVite(httpServer, app);
   }
 
-  // ALWAYS serve the app on the port specified in the environment variable PORT
-  // Other ports are firewalled. Default to 5000 if not specified.
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
   const port = parseInt(process.env.PORT || "5000", 10);
   httpServer.listen(
     {
@@ -306,4 +310,16 @@ app.use((req, res, next) => {
       log(`serving on port ${port}`);
     },
   );
+
+  const gracefulShutdown = (signal: string) => {
+    console.log(`[SERVER] ${signal} alındı, sunucu kapatılıyor...`);
+    httpServer.close(() => {
+      console.log('[SERVER] HTTP sunucusu kapatıldı');
+      process.exit(0);
+    });
+    setTimeout(() => process.exit(1), 10000);
+  };
+
+  process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+  process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 })();

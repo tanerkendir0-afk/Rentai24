@@ -996,7 +996,9 @@
     "providerRemoved": "Sağlayıcı kaldırıldı",
     "providerDisconnected": "{{name}} bağlantısı kesildi.",
     "providerRemoveFailed": "Sağlayıcı kaldırılamadı.",
-    "error": "Hata"
+    "error": "Hata",
+    "tasksTitle": "Görevler & Projeler",
+    "helpTitle": "Yardım & Destek"
   },
   "tasksPanel": {
     "projectsTasks": "Projeler & Görevler",
@@ -1811,7 +1813,10 @@
       "escalationMessage": "Escalation Mesajı",
       "threshold": "Eşik Değeri (kaç tekrardan sonra)",
       "historyDescription": "Müşteri devirleri ve chat kayıtları",
-      "noEscalations": "Henüz escalation yok"
+      "noEscalations": "Henüz escalation yok",
+      "title": "Escalation Listesi",
+      "joinChat": "Chat'e Katıl",
+      "view": "Görüntüle"
     },
     "abTest": {
       "generalNoAgent": "Genel (ajan yok)",

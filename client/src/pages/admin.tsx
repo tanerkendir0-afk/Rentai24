@@ -4754,7 +4754,7 @@ function EscalationsPanel({ token, autoOpenId }: { token: string; autoOpenId?: n
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-white flex items-center gap-2"><MessageSquare className="w-5 h-5 text-blue-400" /> Escalation Listesi</CardTitle>
+              <CardTitle className="text-white flex items-center gap-2"><MessageSquare className="w-5 h-5 text-blue-400" /> {t("adminPage.escalations.title")}</CardTitle>
               <CardDescription className="text-gray-400">{t("adminPage.escalations.historyDescription")}</CardDescription>
             </div>
             <div className="flex items-center gap-2">
@@ -4800,7 +4800,7 @@ function EscalationsPanel({ token, autoOpenId }: { token: string; autoOpenId?: n
                     {(esc.status === "pending" || esc.status === "admin_joined") && (
                       <>
                         <Button size="sm" className="bg-gradient-to-r from-amber-500 to-orange-500 text-white" onClick={() => openChat(esc)} data-testid={`button-join-chat-${esc.id}`}>
-                          <MessageSquare className="w-3.5 h-3.5 mr-1" /> Chat'e Katıl
+                          <MessageSquare className="w-3.5 h-3.5 mr-1" /> {t("adminPage.escalations.joinChat")}
                         </Button>
                         <Button size="sm" variant="ghost" className="text-gray-400 hover:text-red-400" onClick={() => dismissEscalation(esc.id)} data-testid={`button-dismiss-${esc.id}`}>
                           <XCircle className="w-3.5 h-3.5" />
@@ -4809,7 +4809,7 @@ function EscalationsPanel({ token, autoOpenId }: { token: string; autoOpenId?: n
                     )}
                     {esc.status === "resolved" && (
                       <Button size="sm" variant="ghost" onClick={() => openChat(esc)} data-testid={`button-view-chat-${esc.id}`}>
-                        <History className="w-3.5 h-3.5 mr-1" /> Görüntüle
+                        <History className="w-3.5 h-3.5 mr-1" /> {t("adminPage.escalations.view")}
                       </Button>
                     )}
                   </div>

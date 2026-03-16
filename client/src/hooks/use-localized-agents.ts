@@ -7,23 +7,8 @@ export function useLocalizedAgents() {
 
   const localizedAgents = useMemo((): Agent[] => {
     return agentsData.map((agent) => {
-      const metricsKeys: Record<string, string> = {
-        "customer-support": "avgResponseTime,resolutionRate,satisfaction,languages",
-        "sales-sdr": "leadsMonth,emailOpenRate,meetingBookedRate,languages",
-        "social-media": "postsWeek,engagementRate,responseTime,languages",
-        "bookkeeping": "accuracyRate,processingTime,reportsMonth,languages",
-        "scheduling": "noShowReduction,bookingSpeed,reminderRate,languages",
-        "hr-recruiting": "screeningSpeed,matchAccuracy,timeToShortlist,languages",
-        "data-analyst": "reportsDay,dataSources,accuracy,languages",
-        "ecommerce-ops": "listingUpdates,reviewResponse,priceChecks,languages",
-        "real-estate": "listingsScanned,scamDetection,marketCoverage,languages",
-      };
-
-      const metricKeyList = (metricsKeys[agent.id] || "").split(",");
-      const localizedMetrics = metricKeyList.map((key) => ({
-        label: t(`${agent.id}.metrics.${key}.label`, { defaultValue: "" }),
-        value: t(`${agent.id}.metrics.${key}.value`, { defaultValue: "" }),
-      })).filter(m => m.label);
+      const metricsObj = t(`${agent.id}.metrics`, { returnObjects: true, defaultValue: {} }) as Record<string, { label: string; value: string }>;
+      const localizedMetrics = Object.values(metricsObj).filter(m => m && m.label);
 
       const catKey = Object.entries(
         t("categories", { returnObjects: true }) as Record<string, string>

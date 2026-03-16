@@ -1174,7 +1174,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                 variant={showTasksPanel ? "default" : "ghost"}
                 onClick={() => setShowTasksPanel(!showTasksPanel)}
                 className={`h-8 text-xs gap-1 shrink-0 ${showTasksPanel ? "bg-blue-500/20 text-blue-400" : "text-muted-foreground hover:text-foreground"}`}
-                title="Tasks & Projects"
+                title={t("demoPage.tasksTitle")}
                 data-testid="button-toggle-tasks"
               >
                 <ListTodo className="w-3.5 h-3.5" />
@@ -1387,7 +1387,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                   variant="ghost"
                   onClick={() => { setShowHelpPanel(!showHelpPanel); setShowCreditsPanel(false); setShowSocialPanel(false); setShowCargoPanel(false); }}
                   className="h-8 text-xs gap-1 text-muted-foreground hover:text-foreground shrink-0"
-                  title="Help & Support"
+                  title={t("demoPage.helpTitle")}
                   data-testid="button-help"
                 >
                   <HelpCircle className="w-3.5 h-3.5" />

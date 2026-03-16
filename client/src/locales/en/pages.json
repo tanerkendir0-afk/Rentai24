@@ -996,7 +996,9 @@
     "providerRemoved": "Provider removed",
     "providerDisconnected": "{{name}} has been disconnected.",
     "providerRemoveFailed": "Failed to remove provider.",
-    "error": "Error"
+    "error": "Error",
+    "tasksTitle": "Tasks & Projects",
+    "helpTitle": "Help & Support"
   },
   "tasksPanel": {
     "projectsTasks": "Projects & Tasks",
@@ -1811,7 +1813,10 @@
       "escalationMessage": "Escalation Message",
       "threshold": "Threshold (after how many occurrences)",
       "historyDescription": "Customer escalations and chat records",
-      "noEscalations": "No escalations yet"
+      "noEscalations": "No escalations yet",
+      "title": "Escalation List",
+      "joinChat": "Join Chat",
+      "view": "View"
     },
     "abTest": {
       "generalNoAgent": "General (no agent)",

@@ -47,7 +47,7 @@ const fadeUp = {
   transition: { duration: 0.6 },
 };
 
-const getAgentList = (t: any) => [
+const getAgentList = (t: (key: string) => string) => [
   { name: "Ava", role: t("guide.agents.ava.role"), icon: Headphones, desc: t("guide.agents.ava.desc") },
   { name: "Rex", role: t("guide.agents.rex.role"), icon: TrendingUp, desc: t("guide.agents.rex.desc") },
   { name: "Maya", role: t("guide.agents.maya.role"), icon: Share2, desc: t("guide.agents.maya.desc") },
@@ -68,7 +68,7 @@ const features = [
   { icon: Shield, titleKey: "security", descKey: "securityDesc" },
 ];
 
-const getAgentTutorials = (t: any) => [
+const getAgentTutorials = (t: (key: string) => string) => [
   {
     name: "Ava",
     slug: "customer-support-agent",

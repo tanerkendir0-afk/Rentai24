@@ -25,7 +25,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Mail, Clock, Send, Loader2, CheckCircle2, Calendar } from "lucide-react";
 import { contactFormSchema, type ContactForm } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
-import { agents } from "@/data/agents";
+import { useLocalizedAgents } from "@/hooks/use-localized-agents";
 import SectionCTA from "@/components/section-cta";
 import { useTranslation } from "react-i18next";
 
@@ -41,7 +41,7 @@ export default function Contact() {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const { t } = useTranslation("pages");
-  const ta = useTranslation("agents").t;
+  const agents = useLocalizedAgents();
 
   const form = useForm<ContactForm>({
     resolver: zodResolver(contactFormSchema),
@@ -164,7 +164,7 @@ export default function Contact() {
                             <SelectContent>
                               <SelectItem value="not-sure">{t("contact.form.notSure")}</SelectItem>
                               {agents.map((a) => (
-                                <SelectItem key={a.id} value={a.id}>{ta(`${a.id}.name`)}</SelectItem>
+                                <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
                               ))}
                             </SelectContent>
                           </Select>

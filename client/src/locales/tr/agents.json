@@ -5,7 +5,14 @@
     "shortDescription": "Canlı sohbet, e-posta, şikayetler ve sipariş takibini 7/24 empati ve hızla yönetir.",
     "fullDescription": "Müşteri Destek Ajanımız, müşteri hizmetleri görevlerinin tüm yelpazesini yönetmek üzere eğitilmiştir. Canlı sohbet ve e-posta yanıtlarından şikayet çözümü ve sipariş takibine kadar, bu ajan hızlı, doğru ve empatik destek sunar. Ürünlerinizi, politikalarınızı ve marka sesinizi öğrenerek her seferinde tutarlı ve markaya uygun yanıtlar verir.",
     "tag": "En Popüler",
-    "skills": ["Canlı Sohbet", "E-posta Yanıtı", "Şikayet Yönetimi", "Sipariş Takibi", "İade İşleme", "SSS Yönetimi"],
+    "skills": [
+      "Canlı Sohbet",
+      "E-posta Yanıtı",
+      "Şikayet Yönetimi",
+      "Sipariş Takibi",
+      "İade İşleme",
+      "SSS Yönetimi"
+    ],
     "useCases": [
       "7/24 müşteri desteğine ihtiyaç duyan e-ticaret mağazaları",
       "Teknik destek sorularını yöneten SaaS şirketleri",
@@ -13,11 +20,25 @@
       "İade ve değişim işleyen perakende markaları"
     ],
     "metrics": {
-      "avgResponseTime": { "label": "Ort. Yanıt Süresi", "value": "<5sn" },
-      "resolutionRate": { "label": "Çözüm Oranı", "value": "%94" },
-      "satisfaction": { "label": "Müşteri Memnuniyeti", "value": "4.8/5" },
-      "languages": { "label": "Diller", "value": "7" }
-    }
+      "avgResponseTime": {
+        "label": "Ort. Yanıt Süresi",
+        "value": "<5sn"
+      },
+      "resolutionRate": {
+        "label": "Çözüm Oranı",
+        "value": "%94"
+      },
+      "satisfaction": {
+        "label": "Müşteri Memnuniyeti",
+        "value": "4.8/5"
+      },
+      "languages": {
+        "label": "Diller",
+        "value": "7"
+      }
+    },
+    "priceLabel": "$99/mo",
+    "responseTime": "<5 seconds"
   },
   "sales-sdr": {
     "name": "Satış Geliştirme Temsilcisi",
@@ -25,7 +46,14 @@
     "shortDescription": "Müşteri adayları oluşturur, soğuk temas gönderir, teklifler hazırlar ve CRM'inizi güncel tutar.",
     "fullDescription": "Bu yapay zeka SDR, satış sürecinin en zaman alıcı kısımlarını otomatikleştirir. Potansiyel müşterileri araştırır, kişiselleştirilmiş temas e-postaları hazırlar, sistematik takip yapar, CRM'inizi günceller ve nitelikli müşteri adaylarıyla toplantılar planlar. Hiçbir takibi kaçırmayan yorulmak bilmez bir SDR gibidir.",
     "tag": "Yüksek ROI",
-    "skills": ["Müşteri Adayı Oluşturma", "Soğuk Temas", "Takip E-postaları", "Teklif Hazırlama", "CRM Güncellemeleri", "Toplantı Planlama"],
+    "skills": [
+      "Müşteri Adayı Oluşturma",
+      "Soğuk Temas",
+      "Takip E-postaları",
+      "Teklif Hazırlama",
+      "CRM Güncellemeleri",
+      "Toplantı Planlama"
+    ],
     "useCases": [
       "Giden satışları ölçeklendiren B2B şirketleri",
       "Satış hattını kuran girişimler",
@@ -33,18 +61,38 @@
       "Yeni listeler arayan emlak firmaları"
     ],
     "metrics": {
-      "leadsPerMonth": { "label": "Aylık Aday", "value": "500+" },
-      "openRate": { "label": "E-posta Açılma Oranı", "value": "%42" },
-      "meetingRate": { "label": "Toplantı Oranı", "value": "%8" },
-      "languages": { "label": "Diller", "value": "4" }
-    }
+      "leadsPerMonth": {
+        "label": "Aylık Aday",
+        "value": "500+"
+      },
+      "openRate": {
+        "label": "E-posta Açılma Oranı",
+        "value": "%42"
+      },
+      "meetingRate": {
+        "label": "Toplantı Oranı",
+        "value": "%8"
+      },
+      "languages": {
+        "label": "Diller",
+        "value": "4"
+      }
+    },
+    "priceLabel": "$149/mo"
   },
   "social-media": {
     "name": "Sosyal Medya Yöneticisi",
     "role": "İçerik ve Topluluk Yöneticisi",
     "shortDescription": "İçerik planlar, paylaşımlar yazar, yorumları yönetir ve analitik raporları sunar.",
     "fullDescription": "Yapay Zeka Sosyal Medya Yöneticiniz, içerik planlamadan paylaşım oluşturmaya, yorum yönetiminden analitik raporlamaya kadar her şeyi yönetir. Trendleri takip eder, paylaşım zamanlarını optimize eder ve tüm sosyal kanallarınızda tutarlı etkileşimi sürdürür.",
-    "skills": ["İçerik Planlama", "Paylaşım Yazma", "Yorum Yönetimi", "Hashtag Araştırması", "Analitik Raporlama", "Trend Takibi"],
+    "skills": [
+      "İçerik Planlama",
+      "Paylaşım Yazma",
+      "Yorum Yönetimi",
+      "Hashtag Araştırması",
+      "Analitik Raporlama",
+      "Trend Takibi"
+    ],
     "useCases": [
       "Aktif sosyal medya varlığı sürdüren markalar",
       "Birden fazla müşteri hesabı yöneten pazarlama ajansları",
@@ -52,18 +100,38 @@
       "Yerel kitlelerle etkileşim kuran restoranlar ve kafeler"
     ],
     "metrics": {
-      "postsPerWeek": { "label": "Haftalık Paylaşım", "value": "20+" },
-      "engagementRate": { "label": "Etkileşim Oranı", "value": "+%35" },
-      "responseTime": { "label": "Yanıt Süresi", "value": "<15dk" },
-      "languages": { "label": "Diller", "value": "4" }
-    }
+      "postsPerWeek": {
+        "label": "Haftalık Paylaşım",
+        "value": "20+"
+      },
+      "engagementRate": {
+        "label": "Etkileşim Oranı",
+        "value": "+%35"
+      },
+      "responseTime": {
+        "label": "Yanıt Süresi",
+        "value": "<15dk"
+      },
+      "languages": {
+        "label": "Diller",
+        "value": "4"
+      }
+    },
+    "priceLabel": "$119/mo"
   },
   "bookkeeping": {
     "name": "Muhasebe Asistanı",
     "role": "Mali Operasyon Ajanı",
     "shortDescription": "Faturaları işler, giderleri takip eder, raporlar oluşturur ve vergi hatırlatıcıları gönderir.",
     "fullDescription": "Muhasebe Asistanı mali operasyonlarınızı otomatikleştirir. Faturaları işler, giderleri kategorize eder, hesapları uzlaştırır, mali raporlar oluşturur ve vergi son tarihlerini asla kaçırmamanızı sağlar. Doğru, uyumlu ve her zaman güncel.",
-    "skills": ["Fatura İşleme", "Gider Takibi", "Mali Raporlama", "Vergi Hatırlatıcıları", "Makbuz Tarama", "Uzlaştırma"],
+    "skills": [
+      "Fatura İşleme",
+      "Gider Takibi",
+      "Mali Raporlama",
+      "Vergi Hatırlatıcıları",
+      "Makbuz Tarama",
+      "Uzlaştırma"
+    ],
     "useCases": [
       "Kendi defterlerini yöneten küçük işletmeler",
       "Gelir ve giderlerini takip eden serbest çalışanlar",
@@ -71,11 +139,24 @@
       "Temiz mali kayıt tutan girişimler"
     ],
     "metrics": {
-      "accuracyRate": { "label": "Doğruluk Oranı", "value": "%99,2" },
-      "processingTime": { "label": "İşlem Süresi", "value": "<30sn" },
-      "reportsPerMonth": { "label": "Aylık Rapor", "value": "Sınırsız" },
-      "languages": { "label": "Diller", "value": "2" }
-    }
+      "accuracyRate": {
+        "label": "Doğruluk Oranı",
+        "value": "%99,2"
+      },
+      "processingTime": {
+        "label": "İşlem Süresi",
+        "value": "<30sn"
+      },
+      "reportsPerMonth": {
+        "label": "Aylık Rapor",
+        "value": "Sınırsız"
+      },
+      "languages": {
+        "label": "Diller",
+        "value": "2"
+      }
+    },
+    "priceLabel": "$129/mo"
   },
   "scheduling": {
     "name": "Randevu ve Planlama Ajanı",
@@ -83,7 +164,14 @@
     "shortDescription": "Randevuları yönetir, hatırlatıcılar gönderir, yeniden planlamaları yönetir ve gelmeyen müşterileri takip eder.",
     "fullDescription": "Bu yapay zeka planlama ajanı tüm randevu iş akışınızı yönetir. Çevrimiçi rezervasyon, otomatik hatırlatıcılar, yeniden planlama ve iptal yönetimi, gelmeyenlerin takibi ve bekleme listelerini yönetir. Hizmet tabanlı işletmeler için idealdir.",
     "tag": "En İyi Değer",
-    "skills": ["Çevrimiçi Rezervasyon", "Hatırlatıcılar", "Takvim Yönetimi", "Yeniden Planlama", "Gelmeyenlerin Takibi", "Bekleme Listesi Yönetimi"],
+    "skills": [
+      "Çevrimiçi Rezervasyon",
+      "Hatırlatıcılar",
+      "Takvim Yönetimi",
+      "Yeniden Planlama",
+      "Gelmeyenlerin Takibi",
+      "Bekleme Listesi Yönetimi"
+    ],
     "useCases": [
       "Klinikler ve sağlık hizmet sağlayıcıları",
       "Randevuları yöneten kuaförler ve spa'lar",
@@ -91,18 +179,37 @@
       "Rezervasyon yöneten restoranlar"
     ],
     "metrics": {
-      "noshowReduction": { "label": "Gelmeme Azalması", "value": "%60" },
-      "bookingSpeed": { "label": "Rezervasyon Hızı", "value": "<10sn" },
-      "reminderRate": { "label": "Hatırlatıcı Oranı", "value": "%100" },
-      "languages": { "label": "Diller", "value": "6" }
-    }
+      "noshowReduction": {
+        "label": "Gelmeme Azalması",
+        "value": "%60"
+      },
+      "bookingSpeed": {
+        "label": "Rezervasyon Hızı",
+        "value": "<10sn"
+      },
+      "reminderRate": {
+        "label": "Hatırlatıcı Oranı",
+        "value": "%100"
+      },
+      "languages": {
+        "label": "Diller",
+        "value": "6"
+      }
+    },
+    "priceLabel": "$79/mo"
   },
   "hr-recruiting": {
     "name": "İK ve İşe Alım Asistanı",
     "role": "Yetenek Kazanım Ajanı",
     "shortDescription": "Özgeçmişleri tarar, adayları kısa listeye alır, mülakatları planlar ve işe alımı yönetir.",
     "fullDescription": "İK ve İşe Alım Asistanı tüm işe alım sürecinizi kolaylaştırır. Özgeçmişleri kriterlerinize göre tarar, en iyi adayları kısa listeye alır, mülakat planlamasını koordine eder, işe başlama belgelerini hazırlar ve birden fazla platformda iş ilanı yayınlar.",
-    "skills": ["Özgeçmiş Tarama", "Aday Kısa Listeleme", "Mülakat Planlama", "İşe Alım Belgeleri", "İş İlanı Yayınlama"],
+    "skills": [
+      "Özgeçmiş Tarama",
+      "Aday Kısa Listeleme",
+      "Mülakat Planlama",
+      "İşe Alım Belgeleri",
+      "İş İlanı Yayınlama"
+    ],
     "useCases": [
       "Ekibini büyüten şirketler",
       "Yüksek hacim işleyen İK departmanları",
@@ -110,11 +217,24 @@
       "İlk çalışanlarını işe alan girişimler"
     ],
     "metrics": {
-      "screeningSpeed": { "label": "Tarama Hızı", "value": "50 CV/saat" },
-      "matchAccuracy": { "label": "Eşleşme Doğruluğu", "value": "%91" },
-      "timeToShortlist": { "label": "Kısa Liste Süresi", "value": "<2 saat" },
-      "languages": { "label": "Diller", "value": "3" }
-    }
+      "screeningSpeed": {
+        "label": "Tarama Hızı",
+        "value": "50 CV/saat"
+      },
+      "matchAccuracy": {
+        "label": "Eşleşme Doğruluğu",
+        "value": "%91"
+      },
+      "timeToShortlist": {
+        "label": "Kısa Liste Süresi",
+        "value": "<2 saat"
+      },
+      "languages": {
+        "label": "Diller",
+        "value": "3"
+      }
+    },
+    "priceLabel": "$139/mo"
   },
   "data-analyst": {
     "name": "Veri Analisti Ajanı",
@@ -122,7 +242,14 @@
     "shortDescription": "Verileri temizler, raporlar oluşturur, panolar oluşturur ve KPI'ları otomatik takip eder.",
     "fullDescription": "Yapay Zeka Veri Analistiniz veri temizleme, rapor oluşturma, pano oluşturma, trend analizi, KPI takibi ve anomali tespitini yönetir. Tek bir formül yazmanıza gerek kalmadan ham verileri eyleme geçirilebilir içgörülere dönüştürür.",
     "tag": "Yeni",
-    "skills": ["Veri Temizleme", "Rapor Oluşturma", "Pano Oluşturma", "Trend Analizi", "KPI Takibi", "Anomali Tespiti"],
+    "skills": [
+      "Veri Temizleme",
+      "Rapor Oluşturma",
+      "Pano Oluşturma",
+      "Trend Analizi",
+      "KPI Takibi",
+      "Anomali Tespiti"
+    ],
     "useCases": [
       "Kampanya performansını analiz eden pazarlama ekipleri",
       "İş metriklerini izleyen operasyon ekipleri",
@@ -130,18 +257,38 @@
       "Kullanıcı davranışını takip eden ürün ekipleri"
     ],
     "metrics": {
-      "reportsPerDay": { "label": "Günlük Rapor", "value": "Sınırsız" },
-      "dataSources": { "label": "Veri Kaynağı", "value": "50+" },
-      "accuracy": { "label": "Doğruluk", "value": "%99,5" },
-      "languages": { "label": "Diller", "value": "1" }
-    }
+      "reportsPerDay": {
+        "label": "Günlük Rapor",
+        "value": "Sınırsız"
+      },
+      "dataSources": {
+        "label": "Veri Kaynağı",
+        "value": "50+"
+      },
+      "accuracy": {
+        "label": "Doğruluk",
+        "value": "%99,5"
+      },
+      "languages": {
+        "label": "Diller",
+        "value": "1"
+      }
+    },
+    "priceLabel": "$159/mo"
   },
   "ecommerce-ops": {
     "name": "E-Ticaret Operasyon Ajanı",
     "role": "Mağaza Operasyon Yöneticisi",
     "shortDescription": "Ürün listelerini yönetir, envanter uyarıları, fiyat izleme ve yorum yanıtları sağlar.",
     "fullDescription": "Bu yapay zeka ajanı e-ticaret operasyonlarınızı uçtan uca yönetir. Ürün listeleme optimizasyonu ve envanter uyarılarından rakip fiyat izleme, yorum yanıtları ve sipariş takibine kadar, çevrimiçi mağazanızı 7/24 sorunsuz çalışır durumda tutar.",
-    "skills": ["Ürün Listeleme", "Envanter Uyarıları", "Fiyat İzleme", "Yorum Yanıtları", "Sipariş Takibi", "Rakip Analizi"],
+    "skills": [
+      "Ürün Listeleme",
+      "Envanter Uyarıları",
+      "Fiyat İzleme",
+      "Yorum Yanıtları",
+      "Sipariş Takibi",
+      "Rakip Analizi"
+    ],
     "useCases": [
       "Birden fazla SKU'ya sahip e-ticaret markaları",
       "Amazon/Etsy pazaryeri satıcıları",
@@ -149,18 +296,39 @@
       "Tedarikçileri yöneten stoksuz satış işletmeleri"
     ],
     "metrics": {
-      "listingUpdates": { "label": "Liste Güncellemeleri", "value": "Gerçek zamanlı" },
-      "reviewResponse": { "label": "Yorum Yanıtı", "value": "<1 saat" },
-      "priceChecks": { "label": "Fiyat Kontrolleri", "value": "Saatlik" },
-      "languages": { "label": "Diller", "value": "4" }
-    }
+      "listingUpdates": {
+        "label": "Liste Güncellemeleri",
+        "value": "Gerçek zamanlı"
+      },
+      "reviewResponse": {
+        "label": "Yorum Yanıtı",
+        "value": "<1 saat"
+      },
+      "priceChecks": {
+        "label": "Fiyat Kontrolleri",
+        "value": "Saatlik"
+      },
+      "languages": {
+        "label": "Diller",
+        "value": "4"
+      }
+    },
+    "priceLabel": "$129/mo"
   },
   "real-estate": {
     "name": "Emlak ve Mülk Ajanı",
     "role": "Mülk Operasyon Uzmanı",
     "shortDescription": "Daire bulur, listeleri değerlendirir, mahalleleri analiz eder, kira sözleşmelerini inceler ve mülk operasyonlarını yönetir.",
     "fullDescription": "Bu yapay zeka ajanı tüm emlak ve mülk ihtiyaçlarınızı karşılar. Kiralık ilanları araştırmaktan mülkleri değerlendirmeye, mahalleleri analiz etmekten kira koşullarını incelemeye ve gerçek yaşam maliyetlerini hesaplamaya kadar, Reno 7/24 çalışan özel mülk uzmanınızdır.",
-    "skills": ["Mülk Arama", "İlan Değerlendirme", "Mahalle Analizi", "Kira İncelemesi", "Piyasa Raporları", "Maliyet Hesaplayıcı", "Dolandırıcılık Tespiti"],
+    "skills": [
+      "Mülk Arama",
+      "İlan Değerlendirme",
+      "Mahalle Analizi",
+      "Kira İncelemesi",
+      "Piyasa Raporları",
+      "Maliyet Hesaplayıcı",
+      "Dolandırıcılık Tespiti"
+    ],
     "useCases": [
       "Birden fazla ilan yöneten emlak ajansları",
       "Kiralık portföylere sahip mülk yöneticileri",
@@ -168,11 +336,24 @@
       "Kira fiyatlandırmasını optimize eden ev sahipleri"
     ],
     "metrics": {
-      "listingsScanned": { "label": "Taranan İlanlar", "value": "Günlük 1000+" },
-      "scamDetection": { "label": "Dolandırıcılık Tespiti", "value": "%99,2" },
-      "marketCoverage": { "label": "Piyasa Kapsamı", "value": "50+ Şehir" },
-      "languages": { "label": "Diller", "value": "4" }
-    }
+      "listingsScanned": {
+        "label": "Taranan İlanlar",
+        "value": "Günlük 1000+"
+      },
+      "scamDetection": {
+        "label": "Dolandırıcılık Tespiti",
+        "value": "%99,2"
+      },
+      "marketCoverage": {
+        "label": "Piyasa Kapsamı",
+        "value": "50+ Şehir"
+      },
+      "languages": {
+        "label": "Diller",
+        "value": "4"
+      }
+    },
+    "priceLabel": "$139/mo"
   },
   "categories": {
     "All": "Tümü",
@@ -183,18 +364,48 @@
     "HR": "İK",
     "Operations": "Operasyonlar"
   },
-  "industries": {
-    "ecommerce": "E-Ticaret ve Perakende",
-    "restaurants": "Restoranlar ve Konaklama",
-    "healthcare": "Sağlık ve Klinikler",
-    "legal": "Hukuk ve Avukatlık",
-    "accounting": "Muhasebe ve Finans",
-    "realEstate": "Emlak",
-    "education": "Eğitim ve E-Öğrenme",
-    "travel": "Seyahat ve Turizm",
-    "saas": "SaaS ve Teknoloji Girişimleri",
-    "marketing": "Pazarlama Ajansları"
-  },
+  "industries": [
+    {
+      "name": "E-Ticaret & Perakende",
+      "icon": "ShoppingCart"
+    },
+    {
+      "name": "Restoranlar & Konaklama",
+      "icon": "UtensilsCrossed"
+    },
+    {
+      "name": "Sağlık & Klinikler",
+      "icon": "Heart"
+    },
+    {
+      "name": "Hukuk & Avukatlık",
+      "icon": "Scale"
+    },
+    {
+      "name": "Muhasebe & Finans",
+      "icon": "Calculator"
+    },
+    {
+      "name": "Gayrimenkul",
+      "icon": "Building2"
+    },
+    {
+      "name": "Eğitim & E-Öğrenme",
+      "icon": "GraduationCap"
+    },
+    {
+      "name": "Seyahat & Turizm",
+      "icon": "Plane"
+    },
+    {
+      "name": "SaaS & Teknoloji",
+      "icon": "Code"
+    },
+    {
+      "name": "Pazarlama Ajansları",
+      "icon": "Megaphone"
+    }
+  ],
   "testimonials": [
     {
       "text": "3 destek temsilcisini tek bir RentAI çalışanıyla değiştirdik. Yanıt süresi %80 düştü ve müşteri memnuniyeti arttı.",

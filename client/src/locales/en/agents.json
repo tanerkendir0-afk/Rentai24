@@ -5,7 +5,14 @@
     "shortDescription": "Handles live chat, email, complaints, and order tracking 24/7 with empathy and speed.",
     "fullDescription": "Our Customer Support Agent is trained to handle the full spectrum of customer service tasks. From live chat and email responses to complaint resolution and order tracking, this agent delivers fast, accurate, and empathetic support around the clock. It learns your products, policies, and brand voice to provide consistent, on-brand responses every time.",
     "tag": "Most Popular",
-    "skills": ["Live Chat", "Email Response", "Complaint Handling", "Order Tracking", "Refund Processing", "FAQ Handling"],
+    "skills": [
+      "Live Chat",
+      "Email Response",
+      "Complaint Handling",
+      "Order Tracking",
+      "Refund Processing",
+      "FAQ Handling"
+    ],
     "useCases": [
       "E-commerce stores needing 24/7 customer support",
       "SaaS companies handling technical support queries",
@@ -13,11 +20,25 @@
       "Retail brands processing returns and exchanges"
     ],
     "metrics": {
-      "avgResponseTime": { "label": "Avg Response Time", "value": "<5s" },
-      "resolutionRate": { "label": "Resolution Rate", "value": "94%" },
-      "satisfaction": { "label": "Customer Satisfaction", "value": "4.8/5" },
-      "languages": { "label": "Languages", "value": "7" }
-    }
+      "avgResponseTime": {
+        "label": "Avg Response Time",
+        "value": "<5s"
+      },
+      "resolutionRate": {
+        "label": "Resolution Rate",
+        "value": "94%"
+      },
+      "satisfaction": {
+        "label": "Customer Satisfaction",
+        "value": "4.8/5"
+      },
+      "languages": {
+        "label": "Languages",
+        "value": "7"
+      }
+    },
+    "priceLabel": "$99/mo",
+    "responseTime": "<5 seconds"
   },
   "sales-sdr": {
     "name": "Sales Development Rep",
@@ -25,7 +46,14 @@
     "shortDescription": "Generates leads, sends cold outreach, drafts proposals, and keeps your CRM updated.",
     "fullDescription": "This AI SDR automates the most time-consuming parts of the sales process. It researches prospects, crafts personalized outreach emails, follows up systematically, updates your CRM, and schedules meetings with qualified leads. It's like having a tireless SDR that never misses a follow-up.",
     "tag": "High ROI",
-    "skills": ["Lead Generation", "Cold Outreach", "Follow-up Emails", "Proposal Drafting", "CRM Updates", "Meeting Scheduling"],
+    "skills": [
+      "Lead Generation",
+      "Cold Outreach",
+      "Follow-up Emails",
+      "Proposal Drafting",
+      "CRM Updates",
+      "Meeting Scheduling"
+    ],
     "useCases": [
       "B2B companies scaling outbound sales",
       "Startups building their sales pipeline",
@@ -33,18 +61,38 @@
       "Real estate firms prospecting new listings"
     ],
     "metrics": {
-      "leadsPerMonth": { "label": "Leads/Month", "value": "500+" },
-      "openRate": { "label": "Email Open Rate", "value": "42%" },
-      "meetingRate": { "label": "Meeting Booked Rate", "value": "8%" },
-      "languages": { "label": "Languages", "value": "4" }
-    }
+      "leadsPerMonth": {
+        "label": "Leads/Month",
+        "value": "500+"
+      },
+      "openRate": {
+        "label": "Email Open Rate",
+        "value": "42%"
+      },
+      "meetingRate": {
+        "label": "Meeting Booked Rate",
+        "value": "8%"
+      },
+      "languages": {
+        "label": "Languages",
+        "value": "4"
+      }
+    },
+    "priceLabel": "$149/mo"
   },
   "social-media": {
     "name": "Social Media Manager",
     "role": "Content & Community Manager",
     "shortDescription": "Plans content, writes posts, moderates comments, and delivers analytics reports.",
     "fullDescription": "Your AI Social Media Manager handles everything from content planning and post creation to comment moderation and analytics reporting. It stays on top of trends, optimizes posting times, and maintains consistent engagement across all your social channels.",
-    "skills": ["Content Planning", "Post Writing", "Comment Moderation", "Hashtag Research", "Analytics Reporting", "Trend Monitoring"],
+    "skills": [
+      "Content Planning",
+      "Post Writing",
+      "Comment Moderation",
+      "Hashtag Research",
+      "Analytics Reporting",
+      "Trend Monitoring"
+    ],
     "useCases": [
       "Brands maintaining active social media presence",
       "Marketing agencies managing multiple client accounts",
@@ -52,18 +100,38 @@
       "Restaurants and cafes engaging local audiences"
     ],
     "metrics": {
-      "postsPerWeek": { "label": "Posts/Week", "value": "20+" },
-      "engagementRate": { "label": "Engagement Rate", "value": "+35%" },
-      "responseTime": { "label": "Response Time", "value": "<15min" },
-      "languages": { "label": "Languages", "value": "4" }
-    }
+      "postsPerWeek": {
+        "label": "Posts/Week",
+        "value": "20+"
+      },
+      "engagementRate": {
+        "label": "Engagement Rate",
+        "value": "+35%"
+      },
+      "responseTime": {
+        "label": "Response Time",
+        "value": "<15min"
+      },
+      "languages": {
+        "label": "Languages",
+        "value": "4"
+      }
+    },
+    "priceLabel": "$119/mo"
   },
   "bookkeeping": {
     "name": "Bookkeeping Assistant",
     "role": "Financial Operations Agent",
     "shortDescription": "Processes invoices, tracks expenses, generates reports, and sends tax reminders.",
     "fullDescription": "The Bookkeeping Assistant automates your financial operations. It processes invoices, categorizes expenses, reconciles accounts, generates financial reports, and ensures you never miss a tax deadline. Accurate, compliant, and always up to date.",
-    "skills": ["Invoice Processing", "Expense Tracking", "Financial Reporting", "Tax Reminders", "Receipt Scanning", "Reconciliation"],
+    "skills": [
+      "Invoice Processing",
+      "Expense Tracking",
+      "Financial Reporting",
+      "Tax Reminders",
+      "Receipt Scanning",
+      "Reconciliation"
+    ],
     "useCases": [
       "Small businesses managing their own books",
       "Freelancers tracking income and expenses",
@@ -71,11 +139,24 @@
       "Startups keeping clean financial records"
     ],
     "metrics": {
-      "accuracyRate": { "label": "Accuracy Rate", "value": "99.2%" },
-      "processingTime": { "label": "Processing Time", "value": "<30s" },
-      "reportsPerMonth": { "label": "Reports/Month", "value": "Unlimited" },
-      "languages": { "label": "Languages", "value": "2" }
-    }
+      "accuracyRate": {
+        "label": "Accuracy Rate",
+        "value": "99.2%"
+      },
+      "processingTime": {
+        "label": "Processing Time",
+        "value": "<30s"
+      },
+      "reportsPerMonth": {
+        "label": "Reports/Month",
+        "value": "Unlimited"
+      },
+      "languages": {
+        "label": "Languages",
+        "value": "2"
+      }
+    },
+    "priceLabel": "$129/mo"
   },
   "scheduling": {
     "name": "Appointment & Scheduling Agent",
@@ -83,7 +164,14 @@
     "shortDescription": "Manages bookings, sends reminders, handles rescheduling, and follows up on no-shows.",
     "fullDescription": "This AI scheduling agent manages your entire appointment workflow. It handles online booking, sends automated reminders, manages rescheduling and cancellations, follows up on no-shows, and maintains waitlists. Perfect for service-based businesses.",
     "tag": "Best Value",
-    "skills": ["Online Booking", "Reminders", "Calendar Management", "Rescheduling", "No-show Follow-up", "Waitlist Management"],
+    "skills": [
+      "Online Booking",
+      "Reminders",
+      "Calendar Management",
+      "Rescheduling",
+      "No-show Follow-up",
+      "Waitlist Management"
+    ],
     "useCases": [
       "Clinics and healthcare providers",
       "Salons and spas managing appointments",
@@ -91,18 +179,37 @@
       "Restaurants handling reservations"
     ],
     "metrics": {
-      "noshowReduction": { "label": "No-show Reduction", "value": "60%" },
-      "bookingSpeed": { "label": "Booking Speed", "value": "<10s" },
-      "reminderRate": { "label": "Reminder Rate", "value": "100%" },
-      "languages": { "label": "Languages", "value": "6" }
-    }
+      "noshowReduction": {
+        "label": "No-show Reduction",
+        "value": "60%"
+      },
+      "bookingSpeed": {
+        "label": "Booking Speed",
+        "value": "<10s"
+      },
+      "reminderRate": {
+        "label": "Reminder Rate",
+        "value": "100%"
+      },
+      "languages": {
+        "label": "Languages",
+        "value": "6"
+      }
+    },
+    "priceLabel": "$79/mo"
   },
   "hr-recruiting": {
     "name": "HR & Recruiting Assistant",
     "role": "Talent Acquisition Agent",
     "shortDescription": "Screens resumes, shortlists candidates, schedules interviews, and manages onboarding.",
     "fullDescription": "The HR & Recruiting Assistant streamlines your entire hiring pipeline. It screens resumes against your criteria, shortlists top candidates, coordinates interview scheduling, prepares onboarding documents, and posts jobs across multiple platforms.",
-    "skills": ["Resume Screening", "Candidate Shortlisting", "Interview Scheduling", "Onboarding Docs", "Job Posting"],
+    "skills": [
+      "Resume Screening",
+      "Candidate Shortlisting",
+      "Interview Scheduling",
+      "Onboarding Docs",
+      "Job Posting"
+    ],
     "useCases": [
       "Growing companies scaling their team",
       "HR departments processing high volumes",
@@ -110,11 +217,24 @@
       "Startups hiring their first employees"
     ],
     "metrics": {
-      "screeningSpeed": { "label": "Screening Speed", "value": "50 CVs/hr" },
-      "matchAccuracy": { "label": "Match Accuracy", "value": "91%" },
-      "timeToShortlist": { "label": "Time to Shortlist", "value": "<2hrs" },
-      "languages": { "label": "Languages", "value": "3" }
-    }
+      "screeningSpeed": {
+        "label": "Screening Speed",
+        "value": "50 CVs/hr"
+      },
+      "matchAccuracy": {
+        "label": "Match Accuracy",
+        "value": "91%"
+      },
+      "timeToShortlist": {
+        "label": "Time to Shortlist",
+        "value": "<2hrs"
+      },
+      "languages": {
+        "label": "Languages",
+        "value": "3"
+      }
+    },
+    "priceLabel": "$139/mo"
   },
   "data-analyst": {
     "name": "Data Analyst Agent",
@@ -122,7 +242,14 @@
     "shortDescription": "Cleans data, generates reports, builds dashboards, and tracks KPIs automatically.",
     "fullDescription": "Your AI Data Analyst handles data cleaning, report generation, dashboard creation, trend analysis, KPI tracking, and anomaly detection. It turns raw data into actionable insights without you needing to write a single formula.",
     "tag": "New",
-    "skills": ["Data Cleaning", "Report Generation", "Dashboard Creation", "Trend Analysis", "KPI Tracking", "Anomaly Detection"],
+    "skills": [
+      "Data Cleaning",
+      "Report Generation",
+      "Dashboard Creation",
+      "Trend Analysis",
+      "KPI Tracking",
+      "Anomaly Detection"
+    ],
     "useCases": [
       "Marketing teams analyzing campaign performance",
       "Operations teams monitoring business metrics",
@@ -130,18 +257,38 @@
       "Product teams tracking user behavior"
     ],
     "metrics": {
-      "reportsPerDay": { "label": "Reports/Day", "value": "Unlimited" },
-      "dataSources": { "label": "Data Sources", "value": "50+" },
-      "accuracy": { "label": "Accuracy", "value": "99.5%" },
-      "languages": { "label": "Languages", "value": "1" }
-    }
+      "reportsPerDay": {
+        "label": "Reports/Day",
+        "value": "Unlimited"
+      },
+      "dataSources": {
+        "label": "Data Sources",
+        "value": "50+"
+      },
+      "accuracy": {
+        "label": "Accuracy",
+        "value": "99.5%"
+      },
+      "languages": {
+        "label": "Languages",
+        "value": "1"
+      }
+    },
+    "priceLabel": "$159/mo"
   },
   "ecommerce-ops": {
     "name": "E-Commerce Operations Agent",
     "role": "Store Operations Manager",
     "shortDescription": "Manages product listings, inventory alerts, price monitoring, and review responses.",
     "fullDescription": "This AI agent manages your e-commerce operations end to end. From product listing optimization and inventory alerts to competitor price monitoring, review responses, and order tracking, it keeps your online store running smoothly 24/7.",
-    "skills": ["Product Listing", "Inventory Alerts", "Price Monitoring", "Review Responses", "Order Tracking", "Competitor Analysis"],
+    "skills": [
+      "Product Listing",
+      "Inventory Alerts",
+      "Price Monitoring",
+      "Review Responses",
+      "Order Tracking",
+      "Competitor Analysis"
+    ],
     "useCases": [
       "E-commerce brands with multiple SKUs",
       "Marketplace sellers on Amazon/Etsy",
@@ -149,18 +296,39 @@
       "Dropshipping businesses managing suppliers"
     ],
     "metrics": {
-      "listingUpdates": { "label": "Listing Updates", "value": "Real-time" },
-      "reviewResponse": { "label": "Review Response", "value": "<1hr" },
-      "priceChecks": { "label": "Price Checks", "value": "Hourly" },
-      "languages": { "label": "Languages", "value": "4" }
-    }
+      "listingUpdates": {
+        "label": "Listing Updates",
+        "value": "Real-time"
+      },
+      "reviewResponse": {
+        "label": "Review Response",
+        "value": "<1hr"
+      },
+      "priceChecks": {
+        "label": "Price Checks",
+        "value": "Hourly"
+      },
+      "languages": {
+        "label": "Languages",
+        "value": "4"
+      }
+    },
+    "priceLabel": "$129/mo"
   },
   "real-estate": {
     "name": "Real Estate & Property Agent",
     "role": "Property Operations Specialist",
     "shortDescription": "Finds apartments, evaluates listings, analyzes neighborhoods, reviews leases, and manages property operations.",
     "fullDescription": "This AI agent handles all your real estate and property needs. From searching rental listings and evaluating properties to analyzing neighborhoods, reviewing lease terms, and calculating true costs of living, Reno is your dedicated property specialist working around the clock.",
-    "skills": ["Property Search", "Listing Evaluation", "Neighborhood Analysis", "Lease Review", "Market Reports", "Cost Calculator", "Scam Detection"],
+    "skills": [
+      "Property Search",
+      "Listing Evaluation",
+      "Neighborhood Analysis",
+      "Lease Review",
+      "Market Reports",
+      "Cost Calculator",
+      "Scam Detection"
+    ],
     "useCases": [
       "Real estate agencies managing multiple listings",
       "Property managers with rental portfolios",
@@ -168,11 +336,24 @@
       "Landlords optimizing rental pricing"
     ],
     "metrics": {
-      "listingsScanned": { "label": "Listings Scanned", "value": "1000+/day" },
-      "scamDetection": { "label": "Scam Detection", "value": "99.2%" },
-      "marketCoverage": { "label": "Market Coverage", "value": "50+ Cities" },
-      "languages": { "label": "Languages", "value": "4" }
-    }
+      "listingsScanned": {
+        "label": "Listings Scanned",
+        "value": "1000+/day"
+      },
+      "scamDetection": {
+        "label": "Scam Detection",
+        "value": "99.2%"
+      },
+      "marketCoverage": {
+        "label": "Market Coverage",
+        "value": "50+ Cities"
+      },
+      "languages": {
+        "label": "Languages",
+        "value": "4"
+      }
+    },
+    "priceLabel": "$139/mo"
   },
   "categories": {
     "All": "All",
@@ -183,18 +364,48 @@
     "HR": "HR",
     "Operations": "Operations"
   },
-  "industries": {
-    "ecommerce": "E-Commerce & Retail",
-    "restaurants": "Restaurants & Hospitality",
-    "healthcare": "Healthcare & Clinics",
-    "legal": "Legal & Law Firms",
-    "accounting": "Accounting & Finance",
-    "realEstate": "Real Estate",
-    "education": "Education & E-Learning",
-    "travel": "Travel & Tourism",
-    "saas": "SaaS & Tech Startups",
-    "marketing": "Marketing Agencies"
-  },
+  "industries": [
+    {
+      "name": "E-Commerce & Retail",
+      "icon": "ShoppingCart"
+    },
+    {
+      "name": "Restaurants & Hospitality",
+      "icon": "UtensilsCrossed"
+    },
+    {
+      "name": "Healthcare & Clinics",
+      "icon": "Heart"
+    },
+    {
+      "name": "Legal & Law Firms",
+      "icon": "Scale"
+    },
+    {
+      "name": "Accounting & Finance",
+      "icon": "Calculator"
+    },
+    {
+      "name": "Real Estate",
+      "icon": "Building2"
+    },
+    {
+      "name": "Education & E-Learning",
+      "icon": "GraduationCap"
+    },
+    {
+      "name": "Travel & Tourism",
+      "icon": "Plane"
+    },
+    {
+      "name": "SaaS & Tech Startups",
+      "icon": "Code"
+    },
+    {
+      "name": "Marketing Agencies",
+      "icon": "Megaphone"
+    }
+  ],
   "testimonials": [
     {
       "text": "We replaced 3 support reps with one RentAI worker. Response time dropped 80% and customer satisfaction went up.",

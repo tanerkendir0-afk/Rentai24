@@ -1,25 +1,27 @@
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { agents as agentsData, categories as categoriesData, type Agent } from "@/data/agents";
+import { agentMetadata, categories as categoriesData, type Agent } from "@/data/agents";
 
 export function useLocalizedAgents() {
   const { t } = useTranslation("agents");
 
   const localizedAgents = useMemo((): Agent[] => {
-    return agentsData.map((agent) => {
-      const metricsObj = t(`${agent.id}.metrics`, { returnObjects: true, defaultValue: {} }) as Record<string, { label: string; value: string }>;
+    return agentMetadata.map((meta) => {
+      const metricsObj = t(`${meta.id}.metrics`, { returnObjects: true }) as Record<string, { label: string; value: string }>;
       const localizedMetrics = Object.values(metricsObj).filter(m => m && m.label);
 
       return {
-        ...agent,
-        name: t(`${agent.id}.name`, { defaultValue: agent.name }),
-        role: t(`${agent.id}.role`, { defaultValue: agent.role }),
-        shortDescription: t(`${agent.id}.shortDescription`, { defaultValue: agent.shortDescription }),
-        fullDescription: t(`${agent.id}.fullDescription`, { defaultValue: agent.fullDescription }),
-        tag: agent.tag ? t(`${agent.id}.tag`, { defaultValue: agent.tag }) : undefined,
-        skills: t(`${agent.id}.skills`, { returnObjects: true, defaultValue: agent.skills }) as string[],
-        useCases: t(`${agent.id}.useCases`, { returnObjects: true, defaultValue: agent.useCases }) as string[],
-        metrics: localizedMetrics.length > 0 ? localizedMetrics : agent.metrics,
+        ...meta,
+        name: t(`${meta.id}.name`),
+        role: t(`${meta.id}.role`),
+        shortDescription: t(`${meta.id}.shortDescription`),
+        fullDescription: t(`${meta.id}.fullDescription`),
+        priceLabel: t(`${meta.id}.priceLabel`),
+        tag: t(`${meta.id}.tag`, { defaultValue: "" }) || undefined,
+        responseTime: t(`${meta.id}.responseTime`, { defaultValue: "" }) || undefined,
+        skills: t(`${meta.id}.skills`, { returnObjects: true }) as string[],
+        useCases: t(`${meta.id}.useCases`, { returnObjects: true }) as string[],
+        metrics: localizedMetrics,
       };
     });
   }, [t]);
@@ -35,5 +37,47 @@ export function useLocalizedCategories(): Array<{ key: string; label: string }> 
       key: cat,
       label: cats[cat] || cat,
     }));
+  }, [t]);
+}
+
+export interface LocalizedTestimonial {
+  name: string;
+  company: string;
+  role: string;
+  text: string;
+  rating: number;
+}
+
+export function useLocalizedTestimonials(): LocalizedTestimonial[] {
+  const { t } = useTranslation("agents");
+  return useMemo(() => {
+    const items = t("testimonials", { returnObjects: true }) as LocalizedTestimonial[];
+    return Array.isArray(items) ? items : [];
+  }, [t]);
+}
+
+export interface LocalizedFaqItem {
+  question: string;
+  answer: string;
+}
+
+export function useLocalizedFaqItems(): LocalizedFaqItem[] {
+  const { t } = useTranslation("agents");
+  return useMemo(() => {
+    const items = t("faqItems", { returnObjects: true }) as LocalizedFaqItem[];
+    return Array.isArray(items) ? items : [];
+  }, [t]);
+}
+
+export interface LocalizedIndustry {
+  name: string;
+  icon: string;
+}
+
+export function useLocalizedIndustries(): LocalizedIndustry[] {
+  const { t } = useTranslation("agents");
+  return useMemo(() => {
+    const items = t("industries", { returnObjects: true }) as LocalizedIndustry[];
+    return Array.isArray(items) ? items : [];
   }, [t]);
 }

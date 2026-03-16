@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect, useCallback, useMemo } from "react";
+import { useRef, useState, useEffect, useCallback } from "react";
 import { Link } from "wouter";
 import { motion, useInView, useScroll, useTransform, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -49,8 +49,7 @@ import {
   Mail,
   CheckCircle2,
 } from "lucide-react";
-import { testimonials as rawTestimonials, faqItems as rawFaqItems, industries as rawIndustries } from "@/data/agents";
-import { useLocalizedAgents } from "@/hooks/use-localized-agents";
+import { useLocalizedAgents, useLocalizedTestimonials, useLocalizedFaqItems, useLocalizedIndustries } from "@/hooks/use-localized-agents";
 import SectionCTA from "@/components/section-cta";
 import PlatformGuide from "@/components/platform-guide";
 import { useAuth } from "@/lib/auth";
@@ -126,6 +125,7 @@ const stagger = {
 const comparisonKeys = ["1", "2", "3", "4", "5", "6"];
 
 function HeroCarousel() {
+  const { t } = useTranslation("pages");
   const { t: ta } = useTranslation("agents");
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -205,7 +205,7 @@ function HeroCarousel() {
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
                     <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500 shadow-[0_0_5px_rgba(16,185,129,0.8)]" />
                   </div>
-                  <span className="text-[8px] uppercase tracking-wider font-bold text-emerald-400/90">Online</span>
+                  <span className="text-[8px] uppercase tracking-wider font-bold text-emerald-400/90">{t("home.online")}</span>
                 </div>
 
                 <div className="relative w-16 h-16 sm:w-20 sm:h-20 mt-4 mb-4 flex items-center justify-center group-hover:scale-110 transition-transform duration-500 ease-out">
@@ -845,32 +845,10 @@ export default function Home() {
   const { t } = useTranslation("pages");
   const { t: ta } = useTranslation("agents");
   const agents = useLocalizedAgents();
+  const testimonials = useLocalizedTestimonials();
+  const faqItems = useLocalizedFaqItems();
+  const industries = useLocalizedIndustries();
   const { user, isLoading } = useAuth();
-
-  const testimonials = useMemo(() => {
-    const localized = ta("testimonials", { returnObjects: true }) as Array<{ text: string; name: string; company: string; role: string }>;
-    return Array.isArray(localized) ? localized.map((item, i) => ({ ...rawTestimonials[i], ...item })) : rawTestimonials;
-  }, [ta]);
-
-  const faqItems = useMemo(() => {
-    const localized = ta("faqItems", { returnObjects: true }) as Array<{ question: string; answer: string }>;
-    return Array.isArray(localized) ? localized : rawFaqItems;
-  }, [ta]);
-
-  const industries = useMemo(() => {
-    const localized = ta("industries", { returnObjects: true }) as Record<string, string>;
-    if (typeof localized === "object" && !Array.isArray(localized)) {
-      const keyMap: Record<string, string> = {
-        "E-Commerce & Retail": "ecommerce", "Restaurants & Hospitality": "restaurants",
-        "Healthcare & Clinics": "healthcare", "Legal & Law Firms": "legal",
-        "Accounting & Finance": "accounting", "Real Estate": "realEstate",
-        "Education & E-Learning": "education", "Travel & Tourism": "travel",
-        "SaaS & Tech Startups": "saas", "Marketing Agencies": "marketing",
-      };
-      return rawIndustries.map(ind => ({ ...ind, name: localized[keyMap[ind.name] || ""] || ind.name }));
-    }
-    return rawIndustries;
-  }, [ta]);
 
   const [testimonialIdx, setTestimonialIdx] = useState(0);
   const [dragStartX, setDragStartX] = useState<number | null>(null);

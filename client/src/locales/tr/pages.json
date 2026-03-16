@@ -1251,7 +1251,9 @@
       "personalLabel": "Kişisel",
       "usernamePlaceholder": "@kullaniciadi",
       "profileUrlPlaceholder": "https://instagram.com/kullaniciadi",
-      "companyPageIdPlaceholder": "Şirket Sayfa ID"
+      "companyPageIdPlaceholder": "Şirket Sayfa ID",
+      "igBusinessAccountId": "IG İşletme Hesabı ID",
+      "facebookPageId": "Facebook Sayfa ID"
     },
     "team": {
       "title": "Ekip Üyeleri",

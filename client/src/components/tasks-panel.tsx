@@ -37,7 +37,7 @@ function MiniCalendar({ selectedDate, onSelect, taskDates, t }: {
   selectedDate: string | null;
   onSelect: (date: string | null) => void;
   taskDates: Set<string>;
-  t: (key: string, options?: any) => string;
+  t: (key: string, options?: Record<string, unknown>) => string;
 }) {
   const [viewMonth, setViewMonth] = useState(() => {
     const d = selectedDate ? new Date(selectedDate) : new Date();

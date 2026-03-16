@@ -1251,7 +1251,9 @@
       "personalLabel": "Personal",
       "usernamePlaceholder": "@yourusername",
       "profileUrlPlaceholder": "https://instagram.com/yourusername",
-      "companyPageIdPlaceholder": "Company Page ID"
+      "companyPageIdPlaceholder": "Company Page ID",
+      "igBusinessAccountId": "IG Business Account ID",
+      "facebookPageId": "Facebook Page ID"
     },
     "team": {
       "title": "Team Members",

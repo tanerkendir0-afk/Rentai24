@@ -85,6 +85,7 @@ interface SocialAccount {
   username: string;
   profileUrl: string | null;
   accessToken: string | null;
+  accountType?: string;
   status: string;
   connectedAt: string;
 }
@@ -99,8 +100,14 @@ interface ShippingProvider {
   password: string | null;
   accountNumber: string | null;
   siteId: string | null;
+  hasCustomerCode?: boolean;
+  hasUsername?: boolean;
+  hasPassword?: boolean;
+  hasAccountNumber?: boolean;
+  hasSiteId?: boolean;
   status: string;
   createdAt: string;
+  [key: string]: string | number | boolean | null | undefined;
 }
 
 function CrmDocumentsSection() {
@@ -1399,7 +1406,7 @@ export default function Settings() {
                         <Input
                           value={socialForm.platform === "instagram" ? socialForm.businessAccountId : socialForm.pageId}
                           onChange={(e) => setSocialForm(p => ({ ...p, [socialForm.platform === "instagram" ? "businessAccountId" : "pageId"]: e.target.value }))}
-                          placeholder={socialForm.platform === "instagram" ? "IG Business Account ID" : "Facebook Page ID"}
+                          placeholder={socialForm.platform === "instagram" ? t("settingsPage.social.igBusinessAccountId") : t("settingsPage.social.facebookPageId")}
                           className="mt-0.5 h-7 text-xs" data-testid="input-business-id"
                         />
                       </div>
@@ -1469,8 +1476,8 @@ export default function Settings() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Badge className={`text-[10px] ${(account as any).accountType === "business" ? "bg-blue-500/10 text-blue-400 border-blue-500/30" : "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"}`}>
-                        {(account as any).accountType === "business" ? `🔗 ${t("settingsPage.social.apiLabel")}` : `👤 ${t("settingsPage.social.personalLabel")}`}
+                      <Badge className={`text-[10px] ${account.accountType === "business" ? "bg-blue-500/10 text-blue-400 border-blue-500/30" : "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"}`}>
+                        {account.accountType === "business" ? `🔗 ${t("settingsPage.social.apiLabel")}` : `👤 ${t("settingsPage.social.personalLabel")}`}
                       </Badge>
                       <button
                         onClick={() => handleDeleteSocialAccount(account.id, account.platform, account.username)}
@@ -1600,7 +1607,7 @@ export default function Settings() {
                   className="bg-gradient-to-r from-violet-500 to-purple-500 text-white border-0"
                   data-testid="button-save-member"
                 >
-                  <Save className="w-3.5 h-3.5 mr-1" />{editingMember ? "Update" : "Add"}
+                  <Save className="w-3.5 h-3.5 mr-1" />{editingMember ? t("settingsPage.team.update") : t("settingsPage.team.add")}
                 </Button>
                 <Button
                   size="sm"
@@ -1968,7 +1975,7 @@ export default function Settings() {
                         <div className="relative">
                           <Input
                             type={(field === "apiKey" || field === "password") && !showShippingApiKey ? "password" : "text"}
-                            value={(shippingForm as any)[field] || ""}
+                            value={shippingForm[field as keyof typeof shippingForm] || ""}
                             onChange={(e) => setShippingForm(p => ({ ...p, [field]: e.target.value }))}
                             placeholder={shippingFieldLabels[field]}
                             className="mt-1 h-8 text-sm pr-8"
@@ -2124,12 +2131,13 @@ export default function Settings() {
                           const fieldKey = `${sp.id}-${field}`;
                           const isVisible = visibleSecretFields[fieldKey] || false;
 
+                          const hasFieldKey = `has${field.charAt(0).toUpperCase() + field.slice(1)}`;
                           const currentMasked = field === "apiKey" ? sp.apiKey : (
-                            (sp as any)[`has${field.charAt(0).toUpperCase() + field.slice(1)}`]
+                            sp[hasFieldKey]
                               ? "********"
                               : ""
                           );
-                          const hasValue = field === "apiKey" ? !!sp.apiKey : !!(sp as any)[`has${field.charAt(0).toUpperCase() + field.slice(1)}`];
+                          const hasValue = field === "apiKey" ? !!sp.apiKey : !!sp[hasFieldKey];
 
                           return (
                             <div key={field} className="space-y-1">

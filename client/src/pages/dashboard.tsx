@@ -135,7 +135,7 @@ export default function Dashboard() {
     setInstallingAgent(agentId);
     try {
       const res = await apiRequest("POST", "/api/test-checkout", {
-        plan: "starter",
+        plan: "standard",
         agentType: agentId,
         cardNumber: "4242424242424242",
         expiry: "12/28",
@@ -143,7 +143,7 @@ export default function Dashboard() {
       });
       const data = await res.json();
       if (data.success) {
-        trackEvent("agent_rented", "agent", { agentType: agentId, plan: "starter" });
+        trackEvent("agent_rented", "agent", { agentType: agentId, plan: "standard" });
         toast({ title: t("dashboard.toast.agentActivated"), description: t("dashboard.toast.agentActivatedDesc") });
         queryClient.invalidateQueries({ queryKey: ["/api/rentals"] });
       }
@@ -440,7 +440,7 @@ export default function Dashboard() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <h4 className="text-sm font-semibold text-foreground truncate">{agent.name}</h4>
-                          <p className="text-xs text-muted-foreground">${agent.price}{t("dashboard.perMonth")}</p>
+                          <p className="text-xs text-muted-foreground">{agent.priceLabel}</p>
                         </div>
                       </div>
                       <p className="text-xs text-muted-foreground mb-3 line-clamp-2">{agent.shortDescription}</p>

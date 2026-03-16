@@ -41,6 +41,13 @@ const anthropicClient = process.env.ANTHROPIC_API_KEY
   ? new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
   : null;
 
+const PLAN_CONFIG: Record<string, { maxAgents: number; dailyMessagesPerAgent: number; allowedAgents?: string[]; excludedAgents?: string[] }> = {
+  standard: { maxAgents: 3, dailyMessagesPerAgent: 100, excludedAgents: ["bookkeeping"] },
+  professional: { maxAgents: 7, dailyMessagesPerAgent: 150, excludedAgents: ["bookkeeping"] },
+  "all-in-one": { maxAgents: 9, dailyMessagesPerAgent: 150 },
+  accounting: { maxAgents: 1, dailyMessagesPerAgent: 200, allowedAgents: ["bookkeeping"] },
+};
+
 const MODEL_PRICING: Record<string, { input: number; output: number }> = {
   "gpt-4o": { input: 2.50, output: 10.00 },
   "gpt-4o-mini": { input: 0.15, output: 0.60 },
@@ -1755,8 +1762,21 @@ export async function registerRoutes(
       return res.status(403).json({ error: msg("subscriptionNotActive", req.lang!) });
     }
 
-    const planMeta = (subscription.metadata as Record<string, string> | null)?.plan || 'starter';
-    const planLimits: Record<string, number> = { starter: 100, professional: 500, enterprise: 5000 };
+    const planMeta = (subscription.metadata as Record<string, string> | null)?.plan || 'standard';
+    const planConfig = PLAN_CONFIG[planMeta] || PLAN_CONFIG.standard;
+
+    if (planConfig.allowedAgents && !planConfig.allowedAgents.includes(agentType)) {
+      return res.status(403).json({ error: msg("agentNotAllowedInPlan", req.lang!) });
+    }
+    if (planConfig.excludedAgents && planConfig.excludedAgents.includes(agentType)) {
+      return res.status(403).json({ error: msg("agentNotAllowedInPlan", req.lang!) });
+    }
+
+    const userRentals = await storage.getRentalsByUser(req.session.userId!);
+    const activeRentals = userRentals.filter(r => r.status === "active");
+    if (activeRentals.length >= planConfig.maxAgents) {
+      return res.status(403).json({ error: msg("agentLimitReached", req.lang!) });
+    }
 
     const expiresAt = new Date();
     expiresAt.setMonth(expiresAt.getMonth() + 1);
@@ -1766,7 +1786,8 @@ export async function registerRoutes(
       agentType,
       plan: planMeta,
       status: "active",
-      messagesLimit: planLimits[planMeta] || 100,
+      messagesLimit: planConfig.dailyMessagesPerAgent,
+      dailyMessagesUsed: 0,
       expiresAt,
     });
 
@@ -2143,9 +2164,12 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
         managerRoutedTo = classification.targetAgent;
         const rental = activeRentals.find(r => r.agentType === resolvedAgentType);
         if (rental) {
-          if (rental.messagesUsed >= rental.messagesLimit) {
+          const now = new Date();
+          const resetAt = rental.dailyResetAt ? new Date(rental.dailyResetAt) : new Date(0);
+          const dailyUsed = now.toDateString() !== resetAt.toDateString() ? 0 : (rental.dailyMessagesUsed || 0);
+          if (dailyUsed >= rental.messagesLimit) {
             return res.status(403).json({
-              reply: `Message limit reached for ${agentPersonaMap[resolvedAgentType] || resolvedAgentType}. Please upgrade your plan for more messages.`,
+              reply: `Daily message limit reached for ${agentPersonaMap[resolvedAgentType] || resolvedAgentType}. Your limit resets tomorrow. Please upgrade your plan for more messages.`,
             });
           }
           const userSpending = await storage.getTokenSpending(req.session.userId, resolvedAgentType);
@@ -2216,9 +2240,12 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
             reply: "Bu ajana erişiminiz yok. Lütfen Workers sayfasından kiralayın.",
           });
         }
-        if (rental.messagesUsed >= rental.messagesLimit) {
+        const now2 = new Date();
+        const resetAt2 = rental.dailyResetAt ? new Date(rental.dailyResetAt) : new Date(0);
+        const dailyUsed2 = now2.toDateString() !== resetAt2.toDateString() ? 0 : (rental.dailyMessagesUsed || 0);
+        if (dailyUsed2 >= rental.messagesLimit) {
           return res.status(403).json({
-            reply: "Bu ajan için mesaj limitinize ulaştınız. Daha fazla mesaj için planınızı yükseltin.",
+            reply: "Bu ajan için günlük mesaj limitinize ulaştınız. Limitiniz yarın sıfırlanacak. Daha fazla mesaj için planınızı yükseltin.",
           });
         }
         const userSpending = await storage.getTokenSpending(req.session.userId, agentType);
@@ -2795,7 +2822,7 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
     try {
       const { plan, agentType, cardNumber, expiry, cvc } = req.body;
 
-      const allowedPlans = ["starter", "professional"];
+      const allowedPlans = ["standard", "professional", "all-in-one", "accounting"];
       if (!plan || !allowedPlans.includes(plan)) {
         return res.status(400).json({ error: msg("invalidPlan", req.lang!) });
       }
@@ -2830,14 +2857,25 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
         return res.status(401).json({ error: msg("userNotFound", req.lang!) });
       }
 
-      const planLimits: Record<string, number> = { starter: 100, professional: 500 };
+      const planConfig = PLAN_CONFIG[plan] || PLAN_CONFIG.standard;
       const expiresAt = new Date();
       expiresAt.setMonth(expiresAt.getMonth() + 1);
 
       if (agentType && agentNameMap[agentType]) {
+        if (planConfig.allowedAgents && !planConfig.allowedAgents.includes(agentType)) {
+          return res.status(403).json({ error: msg("agentNotAllowedInPlan", req.lang!) });
+        }
+        if (planConfig.excludedAgents && planConfig.excludedAgents.includes(agentType)) {
+          return res.status(403).json({ error: msg("agentNotAllowedInPlan", req.lang!) });
+        }
         const existing = await storage.getActiveRental(user.id, agentType);
         if (existing) {
           return res.status(409).json({ error: msg("alreadyRented", req.lang!) });
+        }
+        const userRentals = await storage.getRentalsByUser(user.id);
+        const activeRentals = userRentals.filter(r => r.status === "active");
+        if (activeRentals.length >= planConfig.maxAgents) {
+          return res.status(403).json({ error: msg("agentLimitReached", req.lang!) });
         }
 
         await storage.createRental({
@@ -2845,11 +2883,12 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
           agentType,
           plan,
           status: "active",
-          messagesLimit: planLimits[plan] || 100,
+          messagesLimit: planConfig.dailyMessagesPerAgent,
+          dailyMessagesUsed: 0,
           expiresAt,
         });
       } else {
-        const defaultAgent = "customer-support";
+        const defaultAgent = plan === "accounting" ? "bookkeeping" : "customer-support";
         const existing = await storage.getActiveRental(user.id, defaultAgent);
         if (!existing) {
           await storage.createRental({
@@ -2857,7 +2896,8 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
             agentType: defaultAgent,
             plan,
             status: "active",
-            messagesLimit: planLimits[plan] || 100,
+            messagesLimit: planConfig.dailyMessagesPerAgent,
+            dailyMessagesUsed: 0,
             expiresAt,
           });
         }
@@ -2891,10 +2931,10 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
         return res.status(400).json({ error: msg("invalidProduct", req.lang!) });
       }
 
-      const allowedPlans = ["starter", "professional"];
+      const allowedPlans = ["standard", "professional", "all-in-one", "accounting"];
       const planMeta = (product.metadata as Record<string, string> | null)?.plan;
       if (!planMeta || !allowedPlans.includes(planMeta)) {
-        return res.status(400).json({ error: msg("enterpriseContactSales", req.lang!) });
+        return res.status(400).json({ error: msg("invalidPlan", req.lang!) });
       }
 
       const user = await storage.getUserById(req.session.userId!);

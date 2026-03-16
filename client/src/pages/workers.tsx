@@ -72,17 +72,16 @@ export default function Workers() {
   const categories = useLocalizedCategories();
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("All");
-  const [priceFilter, setPriceFilter] = useState("all");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [checkingOut, setCheckingOut] = useState<string | null>(null);
   const [signupDialogOpen, setSignupDialogOpen] = useState(false);
   const [planDialogOpen, setPlanDialogOpen] = useState(false);
   const [selectedAgentId, setSelectedAgentId] = useState("");
   const [selectedAgentName, setSelectedAgentName] = useState("");
-  const [selectedPlan, setSelectedPlan] = useState("starter");
+  const [selectedPlan, setSelectedPlan] = useState("standard");
   const { user } = useAuth();
   const { toast } = useToast();
-  const hasActiveFilters = categoryFilter !== "All" || priceFilter !== "all";
+  const hasActiveFilters = categoryFilter !== "All";
 
   interface RentalInfo {
     id: number;
@@ -119,7 +118,7 @@ export default function Workers() {
     const agent = agents.find(a => a.id === agentId);
     setSelectedAgentId(agentId);
     setSelectedAgentName(agent?.name || t("workers.thisAiWorker"));
-    setSelectedPlan("starter");
+    setSelectedPlan("standard");
     setPlanDialogOpen(true);
   }
 
@@ -159,12 +158,7 @@ export default function Workers() {
         agent.skills.some((s) => s.toLowerCase().includes(search.toLowerCase()));
       const matchCategory =
         categoryFilter === "All" || agent.category === categoryFilter;
-      const matchPrice =
-        priceFilter === "all" ||
-        (priceFilter === "low" && agent.price <= 99) ||
-        (priceFilter === "mid" && agent.price > 99 && agent.price <= 139) ||
-        (priceFilter === "high" && agent.price > 139);
-      return matchSearch && matchCategory && matchPrice;
+      return matchSearch && matchCategory;
     });
     if (user && rentals) {
       const hired = list.filter(a => rentalMap[a.id]);
@@ -172,7 +166,7 @@ export default function Workers() {
       return [...hired, ...available];
     }
     return list;
-  }, [search, categoryFilter, priceFilter, user, rentals, rentalMap]);
+  }, [search, categoryFilter, user, rentals, rentalMap]);
 
   const hiredCount = user ? filtered.filter(a => rentalMap[a.id]).length : 0;
 
@@ -233,17 +227,6 @@ export default function Workers() {
                     ))}
                   </SelectContent>
                 </Select>
-                <Select value={priceFilter} onValueChange={setPriceFilter}>
-                  <SelectTrigger className="w-48" data-testid="select-price">
-                    <SelectValue placeholder={t("workers.pricePlaceholder")} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">{t("workers.allPrices")}</SelectItem>
-                    <SelectItem value="low">{t("workers.priceLow")}</SelectItem>
-                    <SelectItem value="mid">{t("workers.priceMid")}</SelectItem>
-                    <SelectItem value="high">{t("workers.priceHigh")}</SelectItem>
-                  </SelectContent>
-                </Select>
               </div>
             </div>
             {filtersOpen && (
@@ -256,17 +239,6 @@ export default function Workers() {
                     {categories.map((c) => (
                       <SelectItem key={c.key} value={c.key}>{c.label}</SelectItem>
                     ))}
-                  </SelectContent>
-                </Select>
-                <Select value={priceFilter} onValueChange={setPriceFilter}>
-                  <SelectTrigger className="w-full min-h-[44px]" data-testid="select-price-mobile">
-                    <SelectValue placeholder={t("workers.pricePlaceholder")} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">{t("workers.allPrices")}</SelectItem>
-                    <SelectItem value="low">{t("workers.priceLow")}</SelectItem>
-                    <SelectItem value="mid">{t("workers.priceMid")}</SelectItem>
-                    <SelectItem value="high">{t("workers.priceHigh")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -386,8 +358,7 @@ export default function Workers() {
                         <>
                           <div className="flex items-center justify-between gap-2 mb-3">
                             <div>
-                              <span className="text-xl font-bold bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent">${agent.price}</span>
-                              <span className="text-xs text-muted-foreground">{t("workers.perMonth")}</span>
+                              <span className="text-lg font-bold bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent">{agent.priceLabel}</span>
                             </div>
                           </div>
                           <div className="flex gap-2">
@@ -445,18 +416,19 @@ export default function Workers() {
           </DialogHeader>
           <div className="space-y-3 py-4">
             {[
-              { id: "starter", name: t("workers.planDialog.starter"), price: t("workers.planDialog.starterPrice"), msgs: t("workers.planDialog.starterMsgs"), features: [t("workers.planDialog.basicSupport"), t("workers.planDialog.standardResponse")] },
-              { id: "professional", name: t("workers.planDialog.professional"), price: t("workers.planDialog.professionalPrice"), msgs: t("workers.planDialog.professionalMsgs"), features: [t("workers.planDialog.prioritySupport"), t("workers.planDialog.fasterResponses"), t("workers.planDialog.allToolsUnlocked")], popular: true },
-              { id: "enterprise", name: t("workers.planDialog.enterprise"), price: t("workers.planDialog.enterprisePrice"), msgs: t("workers.planDialog.enterpriseMsgs"), features: [t("workers.planDialog.dedicatedSupport"), t("workers.planDialog.customIntegrations"), t("workers.planDialog.slaGuarantee")] },
+              { id: "standard", name: t("workers.planDialog.standard"), price: t("workers.planDialog.standardPrice"), msgs: t("workers.planDialog.standardMsgs"), features: [t("workers.planDialog.threeAgents"), t("workers.planDialog.basicSupport")] },
+              { id: "professional", name: t("workers.planDialog.professional"), price: t("workers.planDialog.professionalPrice"), msgs: t("workers.planDialog.professionalMsgs"), features: [t("workers.planDialog.sevenAgents"), t("workers.planDialog.prioritySupport"), t("workers.planDialog.allToolsUnlocked")], popular: true },
+              { id: "all-in-one", name: t("workers.planDialog.allInOne"), price: t("workers.planDialog.allInOnePrice"), msgs: t("workers.planDialog.allInOneMsgs"), features: [t("workers.planDialog.allAgents"), t("workers.planDialog.dedicatedSupport")] },
+              { id: "accounting", name: t("workers.planDialog.accounting"), price: t("workers.planDialog.accountingPrice"), msgs: t("workers.planDialog.accountingMsgs"), features: [t("workers.planDialog.finnOnly"), t("workers.planDialog.prioritySupport")] },
             ].map((plan) => (
               <div
                 key={plan.id}
-                onClick={() => plan.id !== "enterprise" && setSelectedPlan(plan.id)}
+                onClick={() => setSelectedPlan(plan.id)}
                 className={`relative p-4 rounded-lg border-2 cursor-pointer transition-all ${
                   selectedPlan === plan.id
                     ? "border-blue-500 bg-blue-500/5"
                     : "border-border hover:border-blue-500/30"
-                } ${plan.id === "enterprise" ? "opacity-60 cursor-not-allowed" : ""}`}
+                }`}
                 data-testid={`plan-option-${plan.id}`}
               >
                 {plan.popular && (
@@ -475,7 +447,7 @@ export default function Workers() {
                   </div>
                   <div>
                     <span className="text-lg font-bold text-foreground">{plan.price}</span>
-                    {plan.id !== "enterprise" && <span className="text-xs text-muted-foreground">{t("workers.perMonth")}</span>}
+                    <span className="text-xs text-muted-foreground">{t("workers.perMonth")}</span>
                   </div>
                 </div>
                 <p className="text-xs text-muted-foreground ml-6 mb-1">{plan.msgs}</p>
@@ -486,16 +458,14 @@ export default function Workers() {
                     </span>
                   ))}
                 </div>
-                {plan.id === "enterprise" && (
-                  <p className="text-xs text-muted-foreground ml-6 mt-1 italic">{t("workers.planDialog.contactEnterprise")}</p>
-                )}
               </div>
             ))}
           </div>
+          <p className="text-xs text-muted-foreground/70 text-center">{t("pricing.taxNote")}</p>
           <div className="flex gap-3">
             <Button
               className="flex-1 bg-gradient-to-r from-blue-500 to-violet-500 text-white border-0"
-              disabled={!selectedPlan || selectedPlan === "enterprise"}
+              disabled={!selectedPlan}
               onClick={confirmHire}
               data-testid="button-confirm-hire"
             >

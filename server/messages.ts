@@ -235,6 +235,14 @@ const messages = {
     en: "You already have an active rental for this agent",
     tr: "Bu ajan için zaten aktif bir kiralama mevcut",
   },
+  agentNotAllowedInPlan: {
+    en: "This agent is not available in your current plan.",
+    tr: "Bu ajan mevcut planınızda kullanılamaz.",
+  },
+  agentLimitReached: {
+    en: "You have reached the maximum number of agents for your plan. Please upgrade to add more agents.",
+    tr: "Planınız için maksimum ajan sayısına ulaştınız. Daha fazla ajan eklemek için planınızı yükseltin.",
+  },
   subscriptionNotActive: {
     en: "Your subscription is not active. Please update your billing.",
     tr: "Aboneliğiniz aktif değil. Lütfen fatura bilgilerinizi güncelleyin.",

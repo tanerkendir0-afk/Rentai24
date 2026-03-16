@@ -37,7 +37,7 @@
         "value": "7"
       }
     },
-    "priceLabel": "$99/ay",
+    "priceLabel": "$300/ay'dan (KDV hariç)",
     "responseTime": "<5 saniye",
     "integrations": [
       "WhatsApp",
@@ -96,7 +96,7 @@
         "value": "4"
       }
     },
-    "priceLabel": "$149/ay",
+    "priceLabel": "$300/ay'dan (KDV hariç)",
     "integrations": [
       "HubSpot",
       "Salesforce",
@@ -149,7 +149,7 @@
         "value": "4"
       }
     },
-    "priceLabel": "$119/ay",
+    "priceLabel": "$300/ay'dan (KDV hariç)",
     "integrations": [
       "Instagram",
       "Twitter/X",
@@ -203,7 +203,7 @@
         "value": "2"
       }
     },
-    "priceLabel": "$129/ay",
+    "priceLabel": "$500/ay'dan (KDV hariç)",
     "integrations": [
       "QuickBooks",
       "Xero",
@@ -255,7 +255,7 @@
         "value": "6"
       }
     },
-    "priceLabel": "$79/ay",
+    "priceLabel": "$300/ay'dan (KDV hariç)",
     "integrations": [
       "Google Calendar",
       "Calendly",
@@ -309,7 +309,7 @@
         "value": "3"
       }
     },
-    "priceLabel": "$139/ay",
+    "priceLabel": "$300/ay'dan (KDV hariç)",
     "integrations": [
       "LinkedIn",
       "Indeed",
@@ -362,7 +362,7 @@
         "value": "1"
       }
     },
-    "priceLabel": "$159/ay",
+    "priceLabel": "$300/ay'dan (KDV hariç)",
     "integrations": [
       "Google Sheets",
       "Excel",
@@ -412,7 +412,7 @@
         "value": "4"
       }
     },
-    "priceLabel": "$129/ay",
+    "priceLabel": "$300/ay'dan (KDV hariç)",
     "integrations": [
       "Shopify",
       "WooCommerce",
@@ -465,7 +465,7 @@
         "value": "4"
       }
     },
-    "priceLabel": "$139/ay",
+    "priceLabel": "$300/ay'dan (KDV hariç)",
     "integrations": [
       "Zillow",
       "Apartments.com",

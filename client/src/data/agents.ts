@@ -8,7 +8,6 @@ export interface Agent {
   skills: string[];
   integrations: string[];
   languages: string[];
-  price: number;
   priceLabel: string;
   category: string;
   tag?: string;
@@ -22,7 +21,6 @@ export interface AgentMetadata {
   slug: string;
   integrations: string[];
   languages: string[];
-  price: number;
   category: string;
 }
 
@@ -32,7 +30,6 @@ export const agentMetadata: AgentMetadata[] = [
     slug: "customer-support-agent",
     integrations: ["WhatsApp", "Intercom", "Zendesk", "Freshdesk", "Instagram DM", "Facebook Messenger", "Slack"],
     languages: ["English", "Spanish", "French", "German", "Arabic", "Turkish", "Portuguese"],
-    price: 99,
     category: "Customer Support",
   },
   {
@@ -40,7 +37,6 @@ export const agentMetadata: AgentMetadata[] = [
     slug: "sales-development-rep",
     integrations: ["HubSpot", "Salesforce", "Pipedrive", "LinkedIn", "Gmail", "Calendly"],
     languages: ["English", "Spanish", "French", "German"],
-    price: 149,
     category: "Sales",
   },
   {
@@ -48,7 +44,6 @@ export const agentMetadata: AgentMetadata[] = [
     slug: "social-media-manager",
     integrations: ["Instagram", "Twitter/X", "Facebook", "LinkedIn", "TikTok", "Buffer", "Hootsuite"],
     languages: ["English", "Spanish", "French", "Portuguese"],
-    price: 119,
     category: "Marketing",
   },
   {
@@ -56,7 +51,6 @@ export const agentMetadata: AgentMetadata[] = [
     slug: "bookkeeping-assistant",
     integrations: ["QuickBooks", "Xero", "FreshBooks", "Excel", "Stripe", "PayPal"],
     languages: ["English", "Spanish"],
-    price: 129,
     category: "Finance",
   },
   {
@@ -64,7 +58,6 @@ export const agentMetadata: AgentMetadata[] = [
     slug: "appointment-scheduling-agent",
     integrations: ["Google Calendar", "Calendly", "Acuity", "WhatsApp", "SMS", "Email"],
     languages: ["English", "Spanish", "French", "German", "Arabic", "Turkish"],
-    price: 79,
     category: "Operations",
   },
   {
@@ -72,7 +65,6 @@ export const agentMetadata: AgentMetadata[] = [
     slug: "hr-recruiting-assistant",
     integrations: ["LinkedIn", "Indeed", "Greenhouse", "Lever", "Workable", "BambooHR"],
     languages: ["English", "Spanish", "French"],
-    price: 139,
     category: "HR",
   },
   {
@@ -80,7 +72,6 @@ export const agentMetadata: AgentMetadata[] = [
     slug: "data-analyst-agent",
     integrations: ["Google Sheets", "Excel", "Tableau", "Looker", "SQL Databases", "Airtable"],
     languages: ["English"],
-    price: 159,
     category: "Operations",
   },
   {
@@ -88,7 +79,6 @@ export const agentMetadata: AgentMetadata[] = [
     slug: "ecommerce-operations-agent",
     integrations: ["Shopify", "WooCommerce", "Amazon Seller", "Etsy", "eBay"],
     languages: ["English", "Spanish", "French", "German"],
-    price: 129,
     category: "Operations",
   },
   {
@@ -96,7 +86,6 @@ export const agentMetadata: AgentMetadata[] = [
     slug: "real-estate-property-agent",
     integrations: ["Zillow", "Apartments.com", "Redfin", "Craigslist", "Google Maps"],
     languages: ["English", "Spanish", "Turkish", "German"],
-    price: 139,
     category: "Operations",
   },
 ];

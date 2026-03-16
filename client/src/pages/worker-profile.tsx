@@ -59,7 +59,7 @@ export default function WorkerProfile() {
   const [renting, setRenting] = useState(false);
   const [signupDialogOpen, setSignupDialogOpen] = useState(false);
   const [planDialogOpen, setPlanDialogOpen] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState("starter");
+  const [selectedPlan, setSelectedPlan] = useState("standard");
 
   if (!agent) {
     return (
@@ -119,7 +119,7 @@ export default function WorkerProfile() {
                   data-testid="button-hire-worker"
                   disabled={renting}
                   onClick={() => {
-                    setSelectedPlan("starter");
+                    setSelectedPlan("standard");
                     setPlanDialogOpen(true);
                   }}
                 >
@@ -200,8 +200,7 @@ export default function WorkerProfile() {
               <Card className="p-4 sm:p-6 bg-card border-border/50">
                 <h3 className="font-semibold text-foreground mb-3 sm:mb-4">{t("workerProfile.pricingTitle")}</h3>
                 <div className="mb-3 sm:mb-4">
-                  <span className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent">${agent.price}</span>
-                  <span className="text-muted-foreground">{t("workerProfile.perMonth")}</span>
+                  <span className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent">{agent.priceLabel}</span>
                 </div>
                 <p className="text-xs sm:text-sm text-muted-foreground">
                   {t("workerProfile.pricingDesc")}
@@ -235,7 +234,7 @@ export default function WorkerProfile() {
                           </div>
                           <div>
                             <h4 className="font-medium text-foreground text-sm">{r.name}</h4>
-                            <p className="text-xs text-muted-foreground">${r.price}{t("workerProfile.perMonth")}</p>
+                            <p className="text-xs text-muted-foreground">{r.priceLabel}</p>
                           </div>
                         </div>
                         <p className="text-xs text-muted-foreground">{r.shortDescription}</p>
@@ -265,18 +264,19 @@ export default function WorkerProfile() {
           </DialogHeader>
           <div className="space-y-3 py-4">
             {[
-              { id: "starter", name: t("workers.planDialog.starter"), price: t("workers.planDialog.starterPrice"), msgs: t("workers.planDialog.starterMsgs"), features: [t("workers.planDialog.basicSupport"), t("workers.planDialog.standardResponse")] },
-              { id: "professional", name: t("workers.planDialog.professional"), price: t("workers.planDialog.professionalPrice"), msgs: t("workers.planDialog.professionalMsgs"), features: [t("workers.planDialog.prioritySupport"), t("workers.planDialog.fasterResponses"), t("workers.planDialog.allToolsUnlocked")], popular: true },
-              { id: "enterprise", name: t("workers.planDialog.enterprise"), price: t("workers.planDialog.enterprisePrice"), msgs: t("workers.planDialog.enterpriseMsgs"), features: [t("workers.planDialog.dedicatedSupport"), t("workers.planDialog.customIntegrations"), t("workers.planDialog.slaGuarantee")] },
+              { id: "standard", name: t("workers.planDialog.standard"), price: t("workers.planDialog.standardPrice"), msgs: t("workers.planDialog.standardMsgs"), features: [t("workers.planDialog.threeAgents"), t("workers.planDialog.basicSupport")] },
+              { id: "professional", name: t("workers.planDialog.professional"), price: t("workers.planDialog.professionalPrice"), msgs: t("workers.planDialog.professionalMsgs"), features: [t("workers.planDialog.sevenAgents"), t("workers.planDialog.prioritySupport"), t("workers.planDialog.allToolsUnlocked")], popular: true },
+              { id: "all-in-one", name: t("workers.planDialog.allInOne"), price: t("workers.planDialog.allInOnePrice"), msgs: t("workers.planDialog.allInOneMsgs"), features: [t("workers.planDialog.allAgents"), t("workers.planDialog.dedicatedSupport")] },
+              { id: "accounting", name: t("workers.planDialog.accounting"), price: t("workers.planDialog.accountingPrice"), msgs: t("workers.planDialog.accountingMsgs"), features: [t("workers.planDialog.finnOnly"), t("workers.planDialog.prioritySupport")] },
             ].map((plan) => (
               <div
                 key={plan.id}
-                onClick={() => plan.id !== "enterprise" && setSelectedPlan(plan.id)}
+                onClick={() => setSelectedPlan(plan.id)}
                 className={`relative p-4 rounded-lg border-2 cursor-pointer transition-all ${
                   selectedPlan === plan.id
                     ? "border-blue-500 bg-blue-500/5"
                     : "border-border hover:border-blue-500/30"
-                } ${plan.id === "enterprise" ? "opacity-60 cursor-not-allowed" : ""}`}
+                }`}
                 data-testid={`plan-option-${plan.id}`}
               >
                 {plan.popular && (
@@ -295,7 +295,7 @@ export default function WorkerProfile() {
                   </div>
                   <div>
                     <span className="text-lg font-bold text-foreground">{plan.price}</span>
-                    {plan.id !== "enterprise" && <span className="text-xs text-muted-foreground">{t("workers.perMonth")}</span>}
+                    <span className="text-xs text-muted-foreground">{t("workers.perMonth")}</span>
                   </div>
                 </div>
                 <p className="text-xs text-muted-foreground ml-6 mb-1">{plan.msgs}</p>
@@ -306,16 +306,14 @@ export default function WorkerProfile() {
                     </span>
                   ))}
                 </div>
-                {plan.id === "enterprise" && (
-                  <p className="text-xs text-muted-foreground ml-6 mt-1 italic">{t("workers.planDialog.contactEnterprise")}</p>
-                )}
               </div>
             ))}
           </div>
+          <p className="text-xs text-muted-foreground/70 text-center">{t("pricing.taxNote")}</p>
           <div className="flex gap-3">
             <Button
               className="flex-1 bg-gradient-to-r from-blue-500 to-violet-500 text-white border-0"
-              disabled={!selectedPlan || selectedPlan === "enterprise" || renting}
+              disabled={!selectedPlan || renting}
               onClick={async () => {
                 setPlanDialogOpen(false);
                 setRenting(true);

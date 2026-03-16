@@ -220,9 +220,17 @@ export class DatabaseStorage implements IStorage {
   async incrementUsage(rentalId: number): Promise<void> {
     const [rental] = await db.select().from(rentals).where(eq(rentals.id, rentalId));
     if (rental) {
+      const now = new Date();
+      const resetAt = rental.dailyResetAt ? new Date(rental.dailyResetAt) : new Date(0);
+      const needsReset = now.toDateString() !== resetAt.toDateString();
+
       await db
         .update(rentals)
-        .set({ messagesUsed: rental.messagesUsed + 1 })
+        .set({
+          messagesUsed: rental.messagesUsed + 1,
+          dailyMessagesUsed: needsReset ? 1 : (rental.dailyMessagesUsed || 0) + 1,
+          dailyResetAt: needsReset ? now : rental.dailyResetAt,
+        })
         .where(eq(rentals.id, rentalId));
     }
   }

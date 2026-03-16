@@ -31,17 +31,17 @@ export default function Pricing() {
 
   const plans = [
     {
-      name: t("pricing.plans.starter.name"),
-      price: "$49",
-      per: t("pricing.plans.starter.per"),
-      desc: t("pricing.plans.starter.desc"),
+      name: t("pricing.plans.standard.name"),
+      price: "$300",
+      per: t("pricing.plans.standard.per"),
+      desc: t("pricing.plans.standard.desc"),
       featured: false,
-      plan: "starter",
-      features: t("pricing.plans.starter.features", { returnObjects: true }) as string[],
+      plan: "standard",
+      features: t("pricing.plans.standard.features", { returnObjects: true }) as string[],
     },
     {
       name: t("pricing.plans.professional.name"),
-      price: "$39",
+      price: "$600",
       per: t("pricing.plans.professional.per"),
       desc: t("pricing.plans.professional.desc"),
       featured: true,
@@ -49,13 +49,22 @@ export default function Pricing() {
       features: t("pricing.plans.professional.features", { returnObjects: true }) as string[],
     },
     {
-      name: t("pricing.plans.enterprise.name"),
-      price: "custom",
-      per: "",
-      desc: t("pricing.plans.enterprise.desc"),
+      name: t("pricing.plans.allInOne.name"),
+      price: "$1,200",
+      per: t("pricing.plans.allInOne.per"),
+      desc: t("pricing.plans.allInOne.desc"),
       featured: false,
-      plan: "enterprise",
-      features: t("pricing.plans.enterprise.features", { returnObjects: true }) as string[],
+      plan: "all-in-one",
+      features: t("pricing.plans.allInOne.features", { returnObjects: true }) as string[],
+    },
+    {
+      name: t("pricing.plans.accounting.name"),
+      price: "$500",
+      per: t("pricing.plans.accounting.per"),
+      desc: t("pricing.plans.accounting.desc"),
+      featured: false,
+      plan: "accounting",
+      features: t("pricing.plans.accounting.features", { returnObjects: true }) as string[],
     },
   ];
 
@@ -88,9 +97,10 @@ export default function Pricing() {
               <Shield className="w-4 h-4 text-emerald-400 shrink-0" />
               <span className="text-xs sm:text-sm text-emerald-400 font-medium">{t("pricing.guarantee")}</span>
             </div>
+            <p className="text-xs text-muted-foreground/70 mt-2">{t("pricing.taxNote")}</p>
           </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 max-w-5xl mx-auto items-stretch">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 max-w-6xl mx-auto items-stretch">
             {plans.map((plan, i) => (
               <motion.div key={plan.plan} {...stagger} transition={{ duration: 0.5, delay: i * 0.15 }} className="flex">
                 <Card
@@ -129,32 +139,18 @@ export default function Pricing() {
                     ))}
                   </ul>
 
-                  {plan.plan === "enterprise" ? (
-                    <Link href="/contact">
-                      <Button
-                        variant="outline"
-                        size="lg"
-                        className="w-full min-h-[44px]"
-                        data-testid={`button-plan-${plan.plan}`}
-                      >
-                        {t("pricing.contactSales")}
-                        <ArrowRight className="w-4 h-4 ml-2" />
-                      </Button>
-                    </Link>
-                  ) : (
-                    <Button
-                      className={`w-full min-h-[44px] ${
-                        plan.featured ? "bg-gradient-to-r from-blue-500 to-violet-500 text-white border-0" : ""
-                      }`}
-                      variant={plan.featured ? "default" : "outline"}
-                      size="lg"
-                      data-testid={`button-plan-${plan.plan}`}
-                      onClick={() => handleSelectPlan(plan.plan)}
-                    >
-                      {user ? t("pricing.subscribeNow") : t("pricing.getStarted")}
-                      <ArrowRight className="w-4 h-4 ml-2" />
-                    </Button>
-                  )}
+                  <Button
+                    className={`w-full min-h-[44px] ${
+                      plan.featured ? "bg-gradient-to-r from-blue-500 to-violet-500 text-white border-0" : ""
+                    }`}
+                    variant={plan.featured ? "default" : "outline"}
+                    size="lg"
+                    data-testid={`button-plan-${plan.plan}`}
+                    onClick={() => handleSelectPlan(plan.plan)}
+                  >
+                    {user ? t("pricing.subscribeNow") : t("pricing.getStarted")}
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </Button>
                 </Card>
               </motion.div>
             ))}

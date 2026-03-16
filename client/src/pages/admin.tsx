@@ -3797,28 +3797,40 @@ function PackageManagementPanel({ token }: { token: string }) {
 
   const PLANS = [
     {
-      id: "starter",
-      name: t("adminPage.limits.starter"),
-      price: "$49/ay",
+      id: "standard",
+      name: t("adminPage.limits.standard"),
+      price: "$300/ay",
       messages: 100,
-      features: [t("adminPage.packages.basicSupport"), t("adminPage.packages.standardResponseTime"), t("adminPage.packages.singleAgentAccess")],
+      maxAgents: 3,
+      features: [t("adminPage.packages.threeAgents"), t("adminPage.packages.basicSupport"), t("adminPage.packages.dailyReset")],
       color: "from-blue-500 to-blue-600",
     },
     {
       id: "professional",
       name: t("adminPage.limits.professional"),
-      price: "$39/ay",
-      messages: 500,
-      features: [t("adminPage.packages.prioritySupport"), t("adminPage.packages.fastResponses"), t("adminPage.packages.allToolsOpen"), t("adminPage.packages.advancedAnalytics")],
+      price: "$600/ay",
+      messages: 150,
+      maxAgents: 7,
+      features: [t("adminPage.packages.sevenAgents"), t("adminPage.packages.prioritySupport"), t("adminPage.packages.allToolsOpen"), t("adminPage.packages.advancedAnalytics")],
       color: "from-violet-500 to-purple-600",
       popular: true,
     },
     {
-      id: "enterprise",
-      name: t("adminPage.limits.enterprise"),
-      price: t("adminPage.packages.customPrice"),
-      messages: 5000,
-      features: [t("adminPage.packages.customSupport"), t("adminPage.packages.customIntegrations"), t("adminPage.packages.slaGuarantee"), t("adminPage.packages.apiAccess"), t("adminPage.packages.unlimitedAgents")],
+      id: "all-in-one",
+      name: t("adminPage.limits.allInOne"),
+      price: "$1.200/ay",
+      messages: 150,
+      maxAgents: 9,
+      features: [t("adminPage.packages.allAgents"), t("adminPage.packages.dedicatedSupport"), t("adminPage.packages.slaGuarantee"), t("adminPage.packages.apiAccess")],
+      color: "from-emerald-500 to-teal-600",
+    },
+    {
+      id: "accounting",
+      name: t("adminPage.limits.accounting"),
+      price: "$500/ay",
+      messages: 200,
+      maxAgents: 1,
+      features: [t("adminPage.packages.finnOnly"), t("adminPage.packages.prioritySupport"), t("adminPage.packages.financialReporting")],
       color: "from-amber-500 to-orange-600",
     },
   ];
@@ -3904,7 +3916,11 @@ function PackageManagementPanel({ token }: { token: string }) {
                 <div className="mt-3 space-y-1">
                   <div className="flex items-center gap-2">
                     <MessageSquare className="w-4 h-4 text-violet-400" />
-                    <span className="text-sm text-gray-300">{plan.messages.toLocaleString()} mesaj/ay</span>
+                    <span className="text-sm text-gray-300">{plan.messages} {t("adminPage.limits.messagesPerDay")}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Users className="w-4 h-4 text-blue-400" />
+                    <span className="text-sm text-gray-300">{t("adminPage.limits.maxAgentsLabel", { count: plan.maxAgents } as Record<string, string | number>)}</span>
                   </div>
                   {plan.features.map((f, i) => (
                     <div key={i} className="flex items-center gap-2">
@@ -3916,11 +3932,9 @@ function PackageManagementPanel({ token }: { token: string }) {
                 <div className="mt-3 pt-3 border-t border-[#1E2448]">
                   <p className="text-xs text-gray-500">{t("adminPage.limits.planRules")}:</p>
                   <ul className="text-xs text-gray-400 mt-1 space-y-0.5">
-                    <li>• {t("adminPage.limits.monthlyMsgLimit", { count: plan.messages.toLocaleString() } as Record<string, string>)}</li>
+                    <li>• {t("adminPage.limits.dailyMsgLimit", { count: plan.messages } as Record<string, string | number>)}</li>
                     <li>• {t("adminPage.limits.limitExceeded")}</li>
-                    <li>• {t("adminPage.limits.monthlyReset")}</li>
-                    {plan.id === "professional" && <li>• {t("adminPage.limits.allAgentToolsActive")}</li>}
-                    {plan.id === "enterprise" && <li>• {t("adminPage.limits.customSlaIntegration")}</li>}
+                    <li>• {t("adminPage.limits.dailyReset")}</li>
                   </ul>
                 </div>
               </div>
@@ -3990,9 +4004,10 @@ function PackageManagementPanel({ token }: { token: string }) {
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent className="bg-[#111633] border-[#1E2448]">
-                            <SelectItem value="starter" className="text-white">{t("adminPage.limits.starter")}</SelectItem>
+                            <SelectItem value="standard" className="text-white">{t("adminPage.limits.standard")}</SelectItem>
                             <SelectItem value="professional" className="text-white">{t("adminPage.limits.professional")}</SelectItem>
-                            <SelectItem value="enterprise" className="text-white">{t("adminPage.limits.enterprise")}</SelectItem>
+                            <SelectItem value="all-in-one" className="text-white">{t("adminPage.limits.allInOne")}</SelectItem>
+                            <SelectItem value="accounting" className="text-white">{t("adminPage.limits.accounting")}</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -5956,9 +5971,10 @@ function AdminGuidePanel() {
                 {t("adminPage.guide.paymentRules")}
               </h3>
               <ul className="space-y-2 text-sm text-gray-300">
-                <li className="flex items-start gap-2"><span className="text-violet-400 mt-0.5">•</span> <strong className="text-white">{t("adminPage.packages.starterPrice")}:</strong> {t("adminPage.guide.starterFeatures")}</li>
+                <li className="flex items-start gap-2"><span className="text-violet-400 mt-0.5">•</span> <strong className="text-white">{t("adminPage.packages.standardPrice")}:</strong> {t("adminPage.guide.standardFeatures")}</li>
                 <li className="flex items-start gap-2"><span className="text-violet-400 mt-0.5">•</span> <strong className="text-white">{t("adminPage.packages.professionalPrice")}:</strong> {t("adminPage.guide.professionalFeatures")}</li>
-                <li className="flex items-start gap-2"><span className="text-violet-400 mt-0.5">•</span> <strong className="text-white">{t("adminPage.packages.enterprisePrice")}:</strong> {t("adminPage.guide.enterpriseFeatures")}</li>
+                <li className="flex items-start gap-2"><span className="text-violet-400 mt-0.5">•</span> <strong className="text-white">{t("adminPage.packages.allInOnePrice")}:</strong> {t("adminPage.guide.allInOneFeatures")}</li>
+                <li className="flex items-start gap-2"><span className="text-violet-400 mt-0.5">•</span> <strong className="text-white">{t("adminPage.packages.accountingPrice")}:</strong> {t("adminPage.guide.accountingFeatures")}</li>
                 <li className="flex items-start gap-2"><span className="text-violet-400 mt-0.5">•</span> {t("adminPage.guide.paymentTestMode")}</li>
                 <li className="flex items-start gap-2"><span className="text-violet-400 mt-0.5">•</span> {t("adminPage.guide.creditSystem")}</li>
                 <li className="flex items-start gap-2"><span className="text-violet-400 mt-0.5">•</span> {t("adminPage.guide.adminManualChange")}</li>

@@ -77,16 +77,18 @@ export class WebhookHandlers {
 
     const metadata = session.metadata || {};
     const agentType = metadata.agentType;
-    const plan = metadata.plan || 'starter';
+    const plan = metadata.plan || 'standard';
+
+    const PLAN_DAILY_LIMITS: Record<string, number> = {
+      standard: 100,
+      professional: 150,
+      "all-in-one": 150,
+      accounting: 200,
+    };
 
     if (agentType) {
       const existing = await storage.getActiveRental(user.id, agentType);
       if (!existing) {
-        const planLimits: Record<string, number> = {
-          starter: 100,
-          professional: 500,
-          enterprise: 5000,
-        };
         const expiresAt = new Date();
         expiresAt.setMonth(expiresAt.getMonth() + 1);
 
@@ -95,7 +97,9 @@ export class WebhookHandlers {
           agentType,
           plan,
           status: 'active',
-          messagesLimit: planLimits[plan] || 100,
+          messagesLimit: PLAN_DAILY_LIMITS[plan] || 100,
+          dailyMessagesUsed: 0,
+          dailyResetAt: new Date(),
           expiresAt,
         });
         console.log(`Webhook: Created rental for user ${user.id}, agent ${agentType}, plan ${plan}`);

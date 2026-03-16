@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -80,6 +81,7 @@ interface AdminUser {
 }
 
 function AdminLoginForm({ onLogin }: { onLogin: (token: string) => void }) {
+  const { t } = useTranslation("pages");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
@@ -94,10 +96,10 @@ function AdminLoginForm({ onLogin }: { onLogin: (token: string) => void }) {
         body: JSON.stringify({ password }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Auth failed");
+      if (!res.ok) throw new Error(data.error || t("adminPage.toast.accessDenied"));
       onLogin(data.token);
     } catch (err: any) {
-      toast({ title: "Access Denied", description: err.message, variant: "destructive" });
+      toast({ title: t("adminPage.toast.accessDenied"), description: err.message, variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -110,14 +112,14 @@ function AdminLoginForm({ onLogin }: { onLogin: (token: string) => void }) {
           <div className="mx-auto w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-violet-500 flex items-center justify-center mb-4">
             <Shield className="w-8 h-8 text-white" />
           </div>
-          <CardTitle className="text-2xl text-white">RentAI 24 Admin</CardTitle>
-          <CardDescription className="text-gray-400">Enter admin password to continue</CardDescription>
+          <CardTitle className="text-2xl text-white">{t("adminPage.login.title")}</CardTitle>
+          <CardDescription className="text-gray-400">{t("adminPage.login.subtitle")}</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <Input
               type="password"
-              placeholder="Admin Password"
+              placeholder={t("adminPage.login.passwordPlaceholder")}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="bg-[#0A0E27] border-[#1E2448] text-white"
@@ -129,7 +131,7 @@ function AdminLoginForm({ onLogin }: { onLogin: (token: string) => void }) {
               className="w-full bg-gradient-to-r from-blue-500 to-violet-500 hover:from-blue-600 hover:to-violet-600"
               data-testid="button-admin-login"
             >
-              {loading ? "Authenticating..." : "Access Admin Panel"}
+              {loading ? t("adminPage.login.authenticating") : t("adminPage.login.accessPanel")}
             </Button>
           </form>
         </CardContent>
@@ -139,6 +141,7 @@ function AdminLoginForm({ onLogin }: { onLogin: (token: string) => void }) {
 }
 
 function OverviewPanel({ token }: { token: string }) {
+  const { t } = useTranslation("pages");
   const [data, setData] = useState<OverviewData | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -159,12 +162,12 @@ function OverviewPanel({ token }: { token: string }) {
   useEffect(() => { fetchData(); }, [fetchData]);
 
   const cards = [
-    { label: "Total Users", value: data?.totalUsers || 0, icon: Users, color: "text-blue-400" },
-    { label: "Active Rentals", value: data?.activeRentals || 0, icon: UserCheck, color: "text-emerald-400" },
-    { label: "Total API Cost", value: `$${data ? parseFloat(data.totalCost).toFixed(4) : "0.00"}`, icon: DollarSign, color: "text-red-400" },
-    { label: "API Requests", value: data?.totalRequests || 0, icon: Activity, color: "text-violet-400" },
-    { label: "Total Rentals", value: data?.totalRentals || 0, icon: ShoppingCart, color: "text-yellow-400" },
-    { label: "Contact Messages", value: data?.totalContacts || 0, icon: MessageSquare, color: "text-cyan-400" },
+    { label: t("adminPage.overview.totalUsers"), value: data?.totalUsers || 0, icon: Users, color: "text-blue-400" },
+    { label: t("adminPage.overview.activeRentals"), value: data?.activeRentals || 0, icon: UserCheck, color: "text-emerald-400" },
+    { label: t("adminPage.overview.totalApiCost"), value: `$${data ? parseFloat(data.totalCost).toFixed(4) : "0.00"}`, icon: DollarSign, color: "text-red-400" },
+    { label: t("adminPage.overview.apiRequests"), value: data?.totalRequests || 0, icon: Activity, color: "text-violet-400" },
+    { label: t("adminPage.overview.totalRentals"), value: data?.totalRentals || 0, icon: ShoppingCart, color: "text-yellow-400" },
+    { label: t("adminPage.overview.contactMessages"), value: data?.totalContacts || 0, icon: MessageSquare, color: "text-cyan-400" },
   ];
 
   return (
@@ -200,6 +203,7 @@ function OverviewPanel({ token }: { token: string }) {
 }
 
 function UsersPanel({ token }: { token: string }) {
+  const { t } = useTranslation("pages");
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
@@ -237,7 +241,7 @@ function UsersPanel({ token }: { token: string }) {
               <Users className="w-5 h-5 text-blue-400" />
               Registered Users ({users.length})
             </CardTitle>
-            <CardDescription className="text-gray-400">User accounts, subscriptions, and active rentals</CardDescription>
+            <CardDescription className="text-gray-400">{t("adminPage.users.description")}</CardDescription>
           </div>
           <Button variant="ghost" size="sm" onClick={fetchUsers} disabled={loading} data-testid="button-refresh-users">
             <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
@@ -245,14 +249,14 @@ function UsersPanel({ token }: { token: string }) {
         </CardHeader>
         <CardContent>
           <Input
-            placeholder="Search by name, email, or company..."
+            placeholder={t("adminPage.users.searchPlaceholder")}
             value={search}
             onChange={e => setSearch(e.target.value)}
             className="bg-[#111633] border-[#1E2448] text-white mb-4"
             data-testid="input-search-users"
           />
           {filtered.length === 0 ? (
-            <p className="text-gray-500 text-center py-8">{users.length === 0 ? "No registered users yet" : "No users match your search"}</p>
+            <p className="text-gray-500 text-center py-8">{users.length === 0 ? t("adminPage.users.noUsersYet") : t("adminPage.users.noUsersMatch")}</p>
           ) : (
             <div className="space-y-3 max-h-[600px] overflow-y-auto">
               {filtered.map((user) => (
@@ -270,7 +274,7 @@ function UsersPanel({ token }: { token: string }) {
                           Subscribed
                         </Badge>
                       ) : (
-                        <Badge variant="outline" className="border-[#1E2448] text-gray-500 text-xs">Free</Badge>
+                        <Badge variant="outline" className="border-[#1E2448] text-gray-500 text-xs">{t("adminPage.users.free")}</Badge>
                       )}
                       {user.image_credits > 0 && (
                         <Badge variant="outline" className="border-yellow-800 text-yellow-400 text-xs">
@@ -303,6 +307,7 @@ function UsersPanel({ token }: { token: string }) {
 }
 
 function DocumentsPanel({ agentType, token }: { agentType: string; token: string }) {
+  const { t } = useTranslation("pages");
   const [documents, setDocuments] = useState<AgentDocument[]>([]);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -340,10 +345,10 @@ function DocumentsPanel({ agentType, token }: { agentType: string; token: string
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      toast({ title: "Document uploaded", description: `${file.name} processed into ${data.chunkCount} chunks` });
+      toast({ title: t("adminPage.toast.documentUploaded"), description: t("adminPage.toast.documentUploadedDesc", { name: file.name, chunks: data.chunkCount }) });
       fetchDocs();
     } catch (err: any) {
-      toast({ title: "Upload failed", description: err.message, variant: "destructive" });
+      toast({ title: t("adminPage.toast.uploadFailed"), description: err.message, variant: "destructive" });
     } finally {
       setUploading(false);
       e.target.value = "";
@@ -361,11 +366,11 @@ function DocumentsPanel({ agentType, token }: { agentType: string; token: string
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      toast({ title: "URL processed", description: `Content extracted into ${data.chunkCount} chunks` });
+      toast({ title: t("adminPage.toast.urlProcessed"), description: t("adminPage.toast.urlProcessedDesc", { chunks: data.chunkCount }) });
       setUrlInput("");
       fetchDocs();
     } catch (err: any) {
-      toast({ title: "URL processing failed", description: err.message, variant: "destructive" });
+      toast({ title: t("adminPage.toast.urlProcessingFailed"), description: err.message, variant: "destructive" });
     } finally {
       setUrlLoading(false);
     }
@@ -377,11 +382,11 @@ function DocumentsPanel({ agentType, token }: { agentType: string; token: string
         method: "DELETE",
         headers,
       });
-      if (!res.ok) throw new Error("Delete failed");
-      toast({ title: "Document deleted" });
+      if (!res.ok) throw new Error(t("adminPage.toast.deleteFailed"));
+      toast({ title: t("adminPage.toast.documentDeleted") });
       fetchDocs();
     } catch (err: any) {
-      toast({ title: "Delete failed", description: err.message, variant: "destructive" });
+      toast({ title: t("adminPage.toast.deleteFailed"), description: err.message, variant: "destructive" });
     }
   };
 
@@ -409,7 +414,7 @@ function DocumentsPanel({ agentType, token }: { agentType: string; token: string
               <div className="border-2 border-dashed border-[#1E2448] rounded-lg p-8 text-center cursor-pointer hover:border-blue-500/50 transition-colors">
                 <Upload className="w-10 h-10 mx-auto text-gray-500 mb-2" />
                 <p className="text-gray-400 text-sm">
-                  {uploading ? "Processing document..." : "Click to upload or drag & drop"}
+                  {uploading ? t("adminPage.documents.processing") : t("adminPage.documents.clickToUpload")}
                 </p>
               </div>
               <input
@@ -436,7 +441,7 @@ function DocumentsPanel({ agentType, token }: { agentType: string; token: string
           </CardHeader>
           <CardContent className="space-y-3">
             <Input
-              placeholder="https://example.com/docs/page"
+              placeholder={t("adminPage.documents.urlPlaceholder")}
               value={urlInput}
               onChange={(e) => setUrlInput(e.target.value)}
               className="bg-[#111633] border-[#1E2448] text-white"
@@ -448,7 +453,7 @@ function DocumentsPanel({ agentType, token }: { agentType: string; token: string
               className="w-full bg-violet-600 hover:bg-violet-700"
               data-testid="button-add-url"
             >
-              {urlLoading ? "Processing..." : "Extract & Index"}
+              {urlLoading ? t("adminPage.documents.urlProcessing") : t("adminPage.documents.extractIndex")}
             </Button>
           </CardContent>
         </Card>
@@ -468,7 +473,7 @@ function DocumentsPanel({ agentType, token }: { agentType: string; token: string
         </CardHeader>
         <CardContent>
           {documents.length === 0 ? (
-            <p className="text-gray-500 text-center py-8">No documents uploaded yet</p>
+            <p className="text-gray-500 text-center py-8">{t("adminPage.documents.noDocuments")}</p>
           ) : (
             <div className="space-y-2">
               {documents.map((doc) => (
@@ -524,6 +529,7 @@ interface ProblematicSession {
 }
 
 function PerformancePanel({ token }: { token: string }) {
+  const { t } = useTranslation("pages");
   const [stats, setStats] = useState<AgentPerfStat[]>([]);
   const [problematic, setProblematic] = useState<ProblematicSession[]>([]);
   const [loading, setLoading] = useState(false);
@@ -534,12 +540,12 @@ function PerformancePanel({ token }: { token: string }) {
     setLoading(true);
     try {
       const res = await fetch(`${ADMIN_API}/agent-performance`, { headers });
-      if (!res.ok) throw new Error("Failed to fetch performance data");
+      if (!res.ok) throw new Error(t("adminPage.performance.fetchFailed"));
       const data = await res.json();
       setStats(data.stats || []);
       setProblematic(data.problematicSessions || []);
     } catch (err: any) {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
+      toast({ title: t("adminPage.toast.error"), description: err.message, variant: "destructive" });
     } finally { setLoading(false); }
   }, [token]);
 
@@ -562,21 +568,21 @@ function PerformancePanel({ token }: { token: string }) {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="flex items-center gap-2 text-gray-400"><RefreshCw className="w-4 h-4 animate-spin" /> Loading...</div>
+            <div className="flex items-center gap-2 text-gray-400"><RefreshCw className="w-4 h-4 animate-spin" /> {t("adminPage.common.loading")}</div>
           ) : (
             <>
             <div className="hidden sm:block overflow-x-auto">
               <table className="w-full text-sm" data-testid="table-agent-performance">
                 <thead>
                   <tr className="border-b border-[#1E2448]">
-                    <th className="text-left p-2 text-gray-400">Agent</th>
-                    <th className="text-center p-2 text-gray-400">Sessions</th>
-                    <th className="text-center p-2 text-gray-400">Messages</th>
-                    <th className="text-center p-2 text-gray-400">Actions</th>
-                    <th className="text-center p-2 text-gray-400">Avg Tools</th>
-                    <th className="text-center p-2 text-gray-400">Error</th>
-                    <th className="text-center p-2 text-gray-400">Dup</th>
-                    <th className="text-center p-2 text-gray-400">Health</th>
+                    <th className="text-left p-2 text-gray-400">{t("adminPage.performance.agent")}</th>
+                    <th className="text-center p-2 text-gray-400">{t("adminPage.performance.sessions")}</th>
+                    <th className="text-center p-2 text-gray-400">{t("adminPage.performance.messages")}</th>
+                    <th className="text-center p-2 text-gray-400">{t("adminPage.performance.actions")}</th>
+                    <th className="text-center p-2 text-gray-400">{t("adminPage.performance.avgTools")}</th>
+                    <th className="text-center p-2 text-gray-400">{t("adminPage.performance.error")}</th>
+                    <th className="text-center p-2 text-gray-400">{t("adminPage.performance.dup")}</th>
+                    <th className="text-center p-2 text-gray-400">{t("adminPage.performance.health")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -600,9 +606,9 @@ function PerformancePanel({ token }: { token: string }) {
                           </span>
                         </td>
                         <td className="p-2 text-center">
-                          {health === "good" && <Badge className="bg-green-900/30 text-green-400 border-green-800">Good</Badge>}
-                          {health === "warning" && <Badge className="bg-yellow-900/30 text-yellow-400 border-yellow-800">Warning</Badge>}
-                          {health === "critical" && <Badge className="bg-red-900/30 text-red-400 border-red-800">Critical</Badge>}
+                          {health === "good" && <Badge className="bg-green-900/30 text-green-400 border-green-800">{t("adminPage.performance.good")}</Badge>}
+                          {health === "warning" && <Badge className="bg-yellow-900/30 text-yellow-400 border-yellow-800">{t("adminPage.performance.warning")}</Badge>}
+                          {health === "critical" && <Badge className="bg-red-900/30 text-red-400 border-red-800">{t("adminPage.performance.critical")}</Badge>}
                         </td>
                       </tr>
                     );
@@ -617,24 +623,24 @@ function PerformancePanel({ token }: { token: string }) {
                   <div key={s.agentType} className="bg-[#0A0E27] rounded-lg p-3 border border-[#1E2448]" data-testid={`card-agent-${s.agentType}`}>
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-white font-medium text-sm">{agentNameMap[s.agentType] || s.agentType}</span>
-                      {health === "good" && <Badge className="bg-green-900/30 text-green-400 border-green-800 text-[10px]">Good</Badge>}
-                      {health === "warning" && <Badge className="bg-yellow-900/30 text-yellow-400 border-yellow-800 text-[10px]">Warning</Badge>}
-                      {health === "critical" && <Badge className="bg-red-900/30 text-red-400 border-red-800 text-[10px]">Critical</Badge>}
+                      {health === "good" && <Badge className="bg-green-900/30 text-green-400 border-green-800 text-[10px]">{t("adminPage.convReview.good")}</Badge>}
+                      {health === "warning" && <Badge className="bg-yellow-900/30 text-yellow-400 border-yellow-800 text-[10px]">{t("adminPage.performance.warning")}</Badge>}
+                      {health === "critical" && <Badge className="bg-red-900/30 text-red-400 border-red-800 text-[10px]">{t("adminPage.performance.critical")}</Badge>}
                     </div>
                     <div className="grid grid-cols-3 gap-2 text-xs">
-                      <div><span className="text-gray-500">Sessions</span><p className="text-gray-300">{s.totalSessions}</p></div>
-                      <div><span className="text-gray-500">Messages</span><p className="text-gray-300">{s.totalMessages}</p></div>
-                      <div><span className="text-gray-500">Actions</span><p className="text-gray-300">{s.totalActions}</p></div>
-                      <div><span className="text-gray-500">Avg Tools</span><p className="text-cyan-400">{s.avgToolsPerSession}</p></div>
-                      <div><span className="text-gray-500">Error</span><p className={s.errorRate > 20 ? "text-red-400" : s.errorRate > 10 ? "text-yellow-400" : "text-green-400"}>{s.errorRate}%</p></div>
-                      <div><span className="text-gray-500">Dup</span><p className={s.dupRate > 10 ? "text-orange-400" : "text-green-400"}>{s.dupRate}%</p></div>
+                      <div><span className="text-gray-500">{t("adminPage.performance.sessions")}</span><p className="text-gray-300">{s.totalSessions}</p></div>
+                      <div><span className="text-gray-500">{t("adminPage.performance.messages")}</span><p className="text-gray-300">{s.totalMessages}</p></div>
+                      <div><span className="text-gray-500">{t("adminPage.performance.actions")}</span><p className="text-gray-300">{s.totalActions}</p></div>
+                      <div><span className="text-gray-500">{t("adminPage.performance.avgTools")}</span><p className="text-cyan-400">{s.avgToolsPerSession}</p></div>
+                      <div><span className="text-gray-500">{t("adminPage.performance.error")}</span><p className={s.errorRate > 20 ? "text-red-400" : s.errorRate > 10 ? "text-yellow-400" : "text-green-400"}>{s.errorRate}%</p></div>
+                      <div><span className="text-gray-500">{t("adminPage.performance.dup")}</span><p className={s.dupRate > 10 ? "text-orange-400" : "text-green-400"}>{s.dupRate}%</p></div>
                     </div>
                   </div>
                 );
               })}
             </div>
               {stats.length === 0 && (
-                <p className="text-gray-500 text-center py-8">No agent performance data yet. Start chatting with agents to collect data.</p>
+                <p className="text-gray-500 text-center py-8">{t("adminPage.performance.noData")}</p>
               )}
             </>
           )}
@@ -664,7 +670,7 @@ function PerformancePanel({ token }: { token: string }) {
                     <span className="text-gray-400">{s.msg_count} msgs</span>
                     <span className={Number(s.tool_count) > 5 ? "text-orange-400" : "text-gray-400"}>{s.tool_count} tools</span>
                     {Number(s.auth_error_count) > 0 && <span className="text-red-400">{s.auth_error_count} auth errs</span>}
-                    {Number(s.max_response_length) > 3000 && <span className="text-yellow-400">long resp</span>}
+                    {Number(s.max_response_length) > 3000 && <span className="text-yellow-400">{t("adminPage.performance.longResp")}</span>}
                     <span className="text-gray-500">{s.started_at ? new Date(s.started_at).toLocaleDateString() : ""}</span>
                   </div>
                 </div>
@@ -697,6 +703,7 @@ interface ConvReviewMessage {
 }
 
 function ConversationReviewPanel({ token }: { token: string }) {
+  const { t } = useTranslation("pages");
   const [conversations, setConversations] = useState<ConvReviewItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedConv, setSelectedConv] = useState<ConvReviewItem | null>(null);
@@ -717,11 +724,11 @@ function ConversationReviewPanel({ token }: { token: string }) {
       if (agentFilter !== "all") params.set("agentType", agentFilter);
       if (ratingFilter !== "all") params.set("rating", ratingFilter);
       const res = await fetch(`${ADMIN_API}/conversation-review?${params}`, { headers });
-      if (!res.ok) throw new Error("Failed to fetch conversations");
+      if (!res.ok) throw new Error(t("adminPage.convReview.fetchFailed"));
       const data = await res.json();
       setConversations(data.conversations || []);
     } catch (err: any) {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
+      toast({ title: t("adminPage.toast.error"), description: err.message, variant: "destructive" });
     } finally { setLoading(false); }
   }, [token, agentFilter, ratingFilter]);
 
@@ -732,11 +739,11 @@ function ConversationReviewPanel({ token }: { token: string }) {
     setLoadingMsgs(true);
     try {
       const res = await fetch(`${ADMIN_API}/conversation-review/${conv.visible_id}/messages`, { headers });
-      if (!res.ok) throw new Error("Failed to fetch messages");
+      if (!res.ok) throw new Error(t("adminPage.messages.fetchFailed"));
       const data = await res.json();
       setMessages(data.messages || []);
     } catch (err: any) {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
+      toast({ title: t("adminPage.toast.error"), description: err.message, variant: "destructive" });
     } finally { setLoadingMsgs(false); }
   };
 
@@ -746,11 +753,11 @@ function ConversationReviewPanel({ token }: { token: string }) {
         method: "PATCH", headers: { ...headers, "Content-Type": "application/json" },
         body: JSON.stringify({ rating }),
       });
-      if (!res.ok) throw new Error("Failed to rate conversation");
+      if (!res.ok) throw new Error(t("adminPage.convReview.rateFailed"));
       setConversations(prev => prev.map(c => c.id === id ? { ...c, quality_rating: rating } : c));
-      toast({ title: "Rated", description: `Conversation marked as ${rating || "unrated"}` });
+      toast({ title: t("adminPage.toast.rated"), description: t("adminPage.toast.ratedDesc", { rating: rating || t("adminPage.toast.unrated") }) });
     } catch (err: any) {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
+      toast({ title: t("adminPage.toast.error"), description: err.message, variant: "destructive" });
     }
   };
 
@@ -800,13 +807,13 @@ function ConversationReviewPanel({ token }: { token: string }) {
                       <Badge variant="outline" className={`text-[10px] ${
                         msg.role === "user" ? "border-blue-800 text-blue-400" : "border-purple-800 text-purple-400"
                       }`}>{msg.role}</Badge>
-                      {msg.used_tool && <Badge className="bg-violet-900/30 text-violet-400 border-violet-800 text-[10px]">Tool Used</Badge>}
+                      {msg.used_tool && <Badge className="bg-violet-900/30 text-violet-400 border-violet-800 text-[10px]">{t("adminPage.messages.toolUsed")}</Badge>}
                       <span className="text-[10px] text-gray-500">{new Date(msg.created_at).toLocaleTimeString()}</span>
                     </div>
                     <p className="text-gray-300 whitespace-pre-wrap">{msg.content.substring(0, 500)}{msg.content.length > 500 ? "..." : ""}</p>
                   </div>
                 ))}
-                {messages.length === 0 && <p className="text-gray-500 text-center py-4">No messages found.</p>}
+                {messages.length === 0 && <p className="text-gray-500 text-center py-4">{t("adminPage.messages.noMessages")}</p>}
               </div>
             )}
           </CardContent>
@@ -831,10 +838,10 @@ function ConversationReviewPanel({ token }: { token: string }) {
           <div className="flex gap-3">
             <Select value={agentFilter} onValueChange={setAgentFilter}>
               <SelectTrigger className="bg-[#0A0E27] border-[#1E2448] text-white w-48" data-testid="select-review-agent">
-                <SelectValue placeholder="All Agents" />
+                <SelectValue placeholder={t("adminPage.select.allAgents")} />
               </SelectTrigger>
               <SelectContent className="bg-[#111633] border-[#1E2448]">
-                <SelectItem value="all" className="text-white">All Agents</SelectItem>
+                <SelectItem value="all" className="text-white">{t("adminPage.select.allAgents")}</SelectItem>
                 {AGENTS.map(a => (
                   <SelectItem key={a.slug} value={a.slug} className="text-white">{a.name}</SelectItem>
                 ))}
@@ -842,19 +849,19 @@ function ConversationReviewPanel({ token }: { token: string }) {
             </Select>
             <Select value={ratingFilter} onValueChange={setRatingFilter}>
               <SelectTrigger className="bg-[#0A0E27] border-[#1E2448] text-white w-40" data-testid="select-review-rating">
-                <SelectValue placeholder="All Ratings" />
+                <SelectValue placeholder={t("adminPage.select.allRatings")} />
               </SelectTrigger>
               <SelectContent className="bg-[#111633] border-[#1E2448]">
                 <SelectItem value="all" className="text-white">All</SelectItem>
-                <SelectItem value="unrated" className="text-white">Unrated</SelectItem>
-                <SelectItem value="good" className="text-white">Good</SelectItem>
-                <SelectItem value="bad" className="text-white">Bad</SelectItem>
+                <SelectItem value="unrated" className="text-white">{t("adminPage.convReview.unrated")}</SelectItem>
+                <SelectItem value="good" className="text-white">{t("adminPage.convReview.good")}</SelectItem>
+                <SelectItem value="bad" className="text-white">{t("adminPage.convReview.bad")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           {loading ? (
-            <div className="flex items-center gap-2 text-gray-400"><RefreshCw className="w-4 h-4 animate-spin" /> Loading...</div>
+            <div className="flex items-center gap-2 text-gray-400"><RefreshCw className="w-4 h-4 animate-spin" /> {t("adminPage.common.loading")}</div>
           ) : (
             <div className="space-y-2">
               {conversations.map((c: any) => (
@@ -869,9 +876,9 @@ function ConversationReviewPanel({ token }: { token: string }) {
                   <div className="flex items-center gap-2 shrink-0">
                     <span className="text-xs text-gray-500">{c.message_count} msgs</span>
                     {Number(c.tool_count) > 0 && <Badge variant="outline" className="border-violet-800 text-violet-400 text-[10px]">{c.tool_count} tools</Badge>}
-                    {c.quality_rating === "good" && <Badge className="bg-green-900/30 text-green-400 border-green-800 text-[10px]">Good</Badge>}
-                    {c.quality_rating === "bad" && <Badge className="bg-red-900/30 text-red-400 border-red-800 text-[10px]">Bad</Badge>}
-                    {!c.quality_rating && <Badge variant="outline" className="border-gray-700 text-gray-500 text-[10px]">Unrated</Badge>}
+                    {c.quality_rating === "good" && <Badge className="bg-green-900/30 text-green-400 border-green-800 text-[10px]">{t("adminPage.convReview.good")}</Badge>}
+                    {c.quality_rating === "bad" && <Badge className="bg-red-900/30 text-red-400 border-red-800 text-[10px]">{t("adminPage.convReview.bad")}</Badge>}
+                    {!c.quality_rating && <Badge variant="outline" className="border-gray-700 text-gray-500 text-[10px]">{t("adminPage.convReview.unrated")}</Badge>}
                     <div className="flex gap-1">
                       <button onClick={(e) => { e.stopPropagation(); rateConversation(c.id, c.quality_rating === "good" ? null : "good"); }}
                         className={`p-1 rounded ${c.quality_rating === "good" ? "text-green-400" : "text-gray-600 hover:text-green-400"}`}
@@ -888,7 +895,7 @@ function ConversationReviewPanel({ token }: { token: string }) {
                 </div>
               ))}
               {conversations.length === 0 && (
-                <p className="text-gray-500 text-center py-8">No conversations found. Start chatting with agents to generate data.</p>
+                <p className="text-gray-500 text-center py-8">{t("adminPage.convReview.noConversations")}</p>
               )}
             </div>
           )}
@@ -899,6 +906,7 @@ function ConversationReviewPanel({ token }: { token: string }) {
 }
 
 function TrainingDataPanel({ agentType, token }: { agentType: string; token: string }) {
+  const { t } = useTranslation("pages");
   const [stats, setStats] = useState<{ total_conversations: number; with_tools: number; avg_messages: number; earliest: string | null; latest: string | null } | null>(null);
   const [loading, setLoading] = useState(false);
   const [exporting, setExporting] = useState(false);
@@ -912,13 +920,13 @@ function TrainingDataPanel({ agentType, token }: { agentType: string; token: str
     setLoading(true);
     try {
       const res = await fetch(`${ADMIN_API}/agents/${agentType}/training-data-stats`, { headers });
-      if (!res.ok) throw new Error("Failed to fetch stats");
+      if (!res.ok) throw new Error(t("adminPage.trainingData.fetchStatsFailed"));
       const data = await res.json();
       if (typeof data.total_conversations === "number") {
         setStats(data);
       }
     } catch (err: any) {
-      toast({ title: "Stats Error", description: err.message, variant: "destructive" });
+      toast({ title: t("adminPage.toast.statsError"), description: err.message, variant: "destructive" });
       setStats(null);
     } finally { setLoading(false); }
   }, [agentType, token]);
@@ -931,7 +939,7 @@ function TrainingDataPanel({ agentType, token }: { agentType: string; token: str
       const params = new URLSearchParams({ minTurns, toolsOnly: String(toolsOnly) });
       const res = await fetch(`${ADMIN_API}/agents/${agentType}/download-training-data?${params}`, { headers });
       if (!res.ok) {
-        let errorMsg = "Export failed";
+        let errorMsg = t("adminPage.toast.exportFailed");
         try { const err = await res.json(); errorMsg = err.error || errorMsg; } catch {}
         throw new Error(errorMsg);
       }
@@ -946,21 +954,21 @@ function TrainingDataPanel({ agentType, token }: { agentType: string; token: str
       const validation = res.headers.get("X-Training-Validation");
       if (validation) {
         const v = JSON.parse(validation);
-        const qualityInfo = v.qualityStats ? ` Quality: ${v.qualityStats.avgScore}/100 (${v.qualityStats.filtered} filtered).` : "";
+        const qualityInfo = v.qualityStats ? ` ${t("adminPage.toast.quality")}: ${v.qualityStats.avgScore}/100 (${v.qualityStats.filtered} ${t("adminPage.toast.filtered")}).` : "";
         toast({
-          title: "Training Data Exported",
-          description: `${v.totalExamples} conversations exported. ${v.meetsMinimum ? "✅ Meets minimum (10+)" : "⚠️ Below minimum (need 10+)"}${qualityInfo}`,
+          title: t("adminPage.toast.trainingDataExported"),
+          description: `${v.totalExamples} ${t("adminPage.toast.conversationsExported")}. ${v.meetsMinimum ? `✅ ${t("adminPage.toast.meetsMinimum")}` : `⚠️ ${t("adminPage.toast.belowMinimum")}`}${qualityInfo}`,
         });
       }
     } catch (err: any) {
-      toast({ title: "Export Failed", description: err.message, variant: "destructive" });
+      toast({ title: t("adminPage.toast.exportFailed"), description: err.message, variant: "destructive" });
     } finally { setExporting(false); }
   };
 
   const handleDownloadRules = async () => {
     try {
       const res = await fetch(`${ADMIN_API}/agent-rules-pdf`, { headers });
-      if (!res.ok) throw new Error("Download failed");
+      if (!res.ok) throw new Error(t("adminPage.toast.downloadFailed"));
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -968,9 +976,9 @@ function TrainingDataPanel({ agentType, token }: { agentType: string; token: str
       a.download = `RentAI24-Agent-Rules.pdf`;
       a.click();
       URL.revokeObjectURL(url);
-      toast({ title: "Rules Document Downloaded", description: "All 9 agent rules exported successfully." });
+      toast({ title: t("adminPage.toast.rulesDocumentDownloaded"), description: t("adminPage.toast.rulesExported") });
     } catch (err: any) {
-      toast({ title: "Download Failed", description: err.message, variant: "destructive" });
+      toast({ title: t("adminPage.toast.downloadFailed"), description: err.message, variant: "destructive" });
     }
   };
 
@@ -1018,25 +1026,25 @@ function TrainingDataPanel({ agentType, token }: { agentType: string; token: str
           ) : stats ? (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div className="bg-[#0A0E27] rounded-lg p-3 border border-[#1E2448]">
-                <p className="text-xs text-gray-400">Total Conversations</p>
+                <p className="text-xs text-gray-400">{t("adminPage.trainingData.totalConversations")}</p>
                 <p className="text-xl font-bold text-white" data-testid="text-total-conversations">{stats.total_conversations}</p>
               </div>
               <div className="bg-[#0A0E27] rounded-lg p-3 border border-[#1E2448]">
-                <p className="text-xs text-gray-400">With Tool Usage</p>
+                <p className="text-xs text-gray-400">{t("adminPage.trainingData.withToolUsage")}</p>
                 <p className="text-xl font-bold text-violet-400">{stats.with_tools}</p>
               </div>
               <div className="bg-[#0A0E27] rounded-lg p-3 border border-[#1E2448]">
-                <p className="text-xs text-gray-400">Avg Messages/Conv</p>
+                <p className="text-xs text-gray-400">{t("adminPage.trainingData.avgMessagesConv")}</p>
                 <p className="text-xl font-bold text-cyan-400">{stats.avg_messages}</p>
               </div>
               <div className="bg-[#0A0E27] rounded-lg p-3 border border-[#1E2448]">
-                <p className="text-xs text-gray-400">Status</p>
+                <p className="text-xs text-gray-400">{t("adminPage.trainingData.status")}</p>
                 <p className="text-xl font-bold">{stats.total_conversations >= 10 ? (
-                  <span className="text-green-400">Ready</span>
+                  <span className="text-green-400">{t("adminPage.trainingData.ready")}</span>
                 ) : stats.total_conversations > 0 ? (
-                  <span className="text-yellow-400">Need more</span>
+                  <span className="text-yellow-400">{t("adminPage.trainingData.needMore")}</span>
                 ) : (
-                  <span className="text-gray-500">No data</span>
+                  <span className="text-gray-500">{t("adminPage.trainingData.noDataLabel")}</span>
                 )}</p>
               </div>
             </div>
@@ -1044,7 +1052,7 @@ function TrainingDataPanel({ agentType, token }: { agentType: string; token: str
 
           <div className="flex flex-col sm:flex-row gap-3 items-end">
             <div className="flex-1">
-              <label className="text-xs text-gray-400 mb-1 block">Min Conversation Turns</label>
+              <label className="text-xs text-gray-400 mb-1 block">{t("adminPage.trainingData.minConvTurns")}</label>
               <Select value={minTurns} onValueChange={setMinTurns}>
                 <SelectTrigger className="bg-[#0A0E27] border-[#1E2448] text-white" data-testid="select-min-turns">
                   <SelectValue />
@@ -1098,6 +1106,7 @@ function TrainingDataPanel({ agentType, token }: { agentType: string; token: str
 }
 
 function FineTuningPanel({ agentType, token }: { agentType: string; token: string }) {
+  const { t } = useTranslation("pages");
   const [jobs, setJobs] = useState<FineTuningJob[]>([]);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -1133,10 +1142,10 @@ function FineTuningPanel({ agentType, token }: { agentType: string; token: strin
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      toast({ title: "Fine-tuning started", description: `Job ${data.openaiJobId} created` });
+      toast({ title: t("adminPage.toast.fineTuningStarted"), description: t("adminPage.toast.fineTuningStartedDesc", { jobId: data.openaiJobId }) });
       fetchJobs();
     } catch (err: any) {
-      toast({ title: "Fine-tuning failed", description: err.message, variant: "destructive" });
+      toast({ title: t("adminPage.toast.fineTuningFailed"), description: err.message, variant: "destructive" });
     } finally {
       setUploading(false);
       e.target.value = "";
@@ -1148,10 +1157,10 @@ function FineTuningPanel({ agentType, token }: { agentType: string; token: strin
       const res = await fetch(`${ADMIN_API}/fine-tuning/${jobId}/sync`, { method: "POST", headers });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      toast({ title: "Status synced", description: `Status: ${data.status}` });
+      toast({ title: t("adminPage.toast.statusSynced"), description: t("adminPage.toast.statusSyncedDesc", { status: data.status }) });
       fetchJobs();
     } catch (err: any) {
-      toast({ title: "Sync failed", description: err.message, variant: "destructive" });
+      toast({ title: t("adminPage.toast.syncFailed"), description: err.message, variant: "destructive" });
     }
   };
 
@@ -1164,21 +1173,21 @@ function FineTuningPanel({ agentType, token }: { agentType: string; token: strin
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      toast({ title: "Model activated" });
+      toast({ title: t("adminPage.toast.modelActivated") });
       fetchJobs();
     } catch (err: any) {
-      toast({ title: "Activation failed", description: err.message, variant: "destructive" });
+      toast({ title: t("adminPage.toast.activationFailed"), description: err.message, variant: "destructive" });
     }
   };
 
   const handleDeactivate = async () => {
     try {
       const res = await fetch(`${ADMIN_API}/agents/${agentType}/fine-tuning/deactivate`, { method: "POST", headers });
-      if (!res.ok) throw new Error("Deactivation failed");
-      toast({ title: "All models deactivated for this agent" });
+      if (!res.ok) throw new Error(t("adminPage.toast.deactivationFailed"));
+      toast({ title: t("adminPage.toast.allModelsDeactivated") });
       fetchJobs();
     } catch (err: any) {
-      toast({ title: "Deactivation failed", description: err.message, variant: "destructive" });
+      toast({ title: t("adminPage.toast.deactivationFailed"), description: err.message, variant: "destructive" });
     }
   };
 
@@ -1208,7 +1217,7 @@ function FineTuningPanel({ agentType, token }: { agentType: string; token: strin
             <div className="border-2 border-dashed border-[#1E2448] rounded-lg p-8 text-center cursor-pointer hover:border-violet-500/50 transition-colors">
               <Cpu className="w-10 h-10 mx-auto text-gray-500 mb-2" />
               <p className="text-gray-400 text-sm">
-                {uploading ? "Uploading & starting job..." : "Click to upload JSONL training file"}
+                {uploading ? t("adminPage.fineTuning.uploading") : t("adminPage.fineTuning.clickToUpload")}
               </p>
             </div>
             <input
@@ -1242,7 +1251,7 @@ function FineTuningPanel({ agentType, token }: { agentType: string; token: strin
         </CardHeader>
         <CardContent>
           {jobs.length === 0 ? (
-            <p className="text-gray-500 text-center py-8">No fine-tuning jobs yet</p>
+            <p className="text-gray-500 text-center py-8">{t("adminPage.fineTuning.noJobs")}</p>
           ) : (
             <div className="space-y-3">
               {jobs.map((job) => (
@@ -1250,7 +1259,7 @@ function FineTuningPanel({ agentType, token }: { agentType: string; token: strin
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <Badge className={statusColor(job.status)}>{job.status}</Badge>
-                      {job.isActive && <Badge className="bg-green-900/30 text-green-400 border-green-800">ACTIVE</Badge>}
+                      {job.isActive && <Badge className="bg-green-900/30 text-green-400 border-green-800">{t("adminPage.fineTuning.active")}</Badge>}
                     </div>
                     <div className="flex gap-2">
                       <Button variant="ghost" size="sm" onClick={() => handleSync(job.id)} className="text-blue-400 hover:text-blue-300" data-testid={`button-sync-${job.id}`}>
@@ -1264,10 +1273,10 @@ function FineTuningPanel({ agentType, token }: { agentType: string; token: strin
                     </div>
                   </div>
                   <div className="text-sm space-y-1">
-                    <p className="text-gray-400"><span className="text-gray-500">File:</span> {job.trainingFile}</p>
-                    <p className="text-gray-400"><span className="text-gray-500">Job ID:</span> {job.openaiJobId || "N/A"}</p>
+                    <p className="text-gray-400"><span className="text-gray-500">{t("adminPage.fineTuning.file")}:</span> {job.trainingFile}</p>
+                    <p className="text-gray-400"><span className="text-gray-500">{t("adminPage.fineTuning.jobId")}:</span> {job.openaiJobId || "N/A"}</p>
                     {job.fineTunedModel && (
-                      <p className="text-gray-400"><span className="text-gray-500">Model:</span> <span className="text-green-400 font-mono text-xs">{job.fineTunedModel}</span></p>
+                      <p className="text-gray-400"><span className="text-gray-500">{t("adminPage.fineTuning.model")}:</span> <span className="text-green-400 font-mono text-xs">{job.fineTunedModel}</span></p>
                     )}
                     {job.error && <p className="text-red-400 text-xs mt-1">{job.error}</p>}
                     <p className="text-gray-500 text-xs">Created: {new Date(job.createdAt).toLocaleString()}</p>
@@ -1300,6 +1309,7 @@ interface Subscriber {
 }
 
 function MessagesPanel({ token }: { token: string }) {
+  const { t } = useTranslation("pages");
   const [messages, setMessages] = useState<ContactMsg[]>([]);
   const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
   const [loading, setLoading] = useState(false);
@@ -1341,7 +1351,7 @@ function MessagesPanel({ token }: { token: string }) {
         </CardHeader>
         <CardContent>
           {messages.length === 0 ? (
-            <p className="text-gray-500 text-center py-8">No messages yet</p>
+            <p className="text-gray-500 text-center py-8">{t("adminPage.overview.noMessages")}</p>
           ) : (
             <div className="space-y-3">
               {messages.map((msg) => (
@@ -1373,7 +1383,7 @@ function MessagesPanel({ token }: { token: string }) {
         </CardHeader>
         <CardContent>
           {subscribers.length === 0 ? (
-            <p className="text-gray-500 text-center py-8">No subscribers yet</p>
+            <p className="text-gray-500 text-center py-8">{t("adminPage.overview.noSubscribers")}</p>
           ) : (
             <div className="space-y-2">
               {subscribers.map((sub) => (
@@ -1458,6 +1468,7 @@ interface TokenOptData {
 }
 
 function TokenOptimizationPanel({ token }: { token: string }) {
+  const { t } = useTranslation("pages");
   const [data, setData] = useState<TokenOptData | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -1492,41 +1503,41 @@ function TokenOptimizationPanel({ token }: { token: string }) {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card className="bg-[#0A0E27] border-[#1E2448]">
           <CardContent className="p-4">
-            <p className="text-xs text-gray-400">Avg Prompt Tokens</p>
+            <p className="text-xs text-gray-400">{t("adminPage.tokenOpt.avgPromptTokens")}</p>
             <p className="text-2xl font-bold text-blue-400" data-testid="text-avg-prompt-tokens">
               {data?.averages?.avg_prompt?.toLocaleString() || 0}
             </p>
-            <p className="text-xs text-gray-500">per message</p>
+            <p className="text-xs text-gray-500">{t("adminPage.tokenOpt.perMessage")}</p>
           </CardContent>
         </Card>
 
         <Card className="bg-[#0A0E27] border-[#1E2448]">
           <CardContent className="p-4">
-            <p className="text-xs text-gray-400">Avg Total Tokens</p>
+            <p className="text-xs text-gray-400">{t("adminPage.tokenOpt.avgTotalTokens")}</p>
             <p className="text-2xl font-bold text-violet-400" data-testid="text-avg-total-tokens">
               {data?.averages?.avg_total?.toLocaleString() || 0}
             </p>
-            <p className="text-xs text-gray-500">per message</p>
+            <p className="text-xs text-gray-500">{t("adminPage.tokenOpt.perMessage")}</p>
           </CardContent>
         </Card>
 
         <Card className="bg-[#0A0E27] border-[#1E2448]">
           <CardContent className="p-4">
-            <p className="text-xs text-gray-400">Mini Usage</p>
+            <p className="text-xs text-gray-400">{t("adminPage.tokenOpt.miniUsage")}</p>
             <p className="text-2xl font-bold text-emerald-400" data-testid="text-mini-usage-percent">
               {data?.miniUsagePercent || "0"}%
             </p>
-            <p className="text-xs text-gray-500">of total requests</p>
+            <p className="text-xs text-gray-500">{t("adminPage.tokenOpt.ofTotalRequests")}</p>
           </CardContent>
         </Card>
 
         <Card className="bg-[#0A0E27] border-[#1E2448]">
           <CardContent className="p-4">
-            <p className="text-xs text-gray-400">Est. Savings</p>
+            <p className="text-xs text-gray-400">{t("adminPage.tokenOpt.estSavings")}</p>
             <p className="text-2xl font-bold text-green-400" data-testid="text-estimated-savings">
               ${data?.estimatedSavingsUsd || "0.00"}
             </p>
-            <p className="text-xs text-gray-500">from mini routing</p>
+            <p className="text-xs text-gray-500">{t("adminPage.tokenOpt.fromMiniRouting")}</p>
           </CardContent>
         </Card>
       </div>
@@ -1534,33 +1545,33 @@ function TokenOptimizationPanel({ token }: { token: string }) {
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         <Card className="bg-[#0A0E27] border-[#1E2448]">
           <CardContent className="p-4">
-            <p className="text-xs text-gray-400">Summaries Generated</p>
+            <p className="text-xs text-gray-400">{t("adminPage.tokenOpt.summariesGenerated")}</p>
             <p className="text-2xl font-bold text-orange-400" data-testid="text-summarization-count">
               {data?.summarizationCount?.toLocaleString() || 0}
             </p>
-            <p className="text-xs text-gray-500">conversation summaries</p>
+            <p className="text-xs text-gray-500">{t("adminPage.tokenOpt.conversationSummaries")}</p>
           </CardContent>
         </Card>
 
         <Card className="bg-[#0A0E27] border-[#1E2448]">
           <CardContent className="p-4">
-            <p className="text-xs text-gray-400">Cache Hits</p>
+            <p className="text-xs text-gray-400">{t("adminPage.tokenOpt.cacheHits")}</p>
             <p className="text-2xl font-bold text-cyan-400" data-testid="text-cache-hits">
               {data?.summaryCacheHits?.toLocaleString() || 0}
             </p>
-            <p className="text-xs text-gray-500">reused summaries</p>
+            <p className="text-xs text-gray-500">{t("adminPage.tokenOpt.reusedSummaries")}</p>
           </CardContent>
         </Card>
 
         <Card className="bg-[#0A0E27] border-[#1E2448]">
           <CardContent className="p-4">
-            <p className="text-xs text-gray-400">Cache Hit Rate</p>
+            <p className="text-xs text-gray-400">{t("adminPage.tokenOpt.cacheHitRate")}</p>
             <p className="text-2xl font-bold text-teal-400" data-testid="text-cache-hit-rate">
               {data && (data.summarizationCount + data.summaryCacheHits) > 0
                 ? ((data.summaryCacheHits / (data.summarizationCount + data.summaryCacheHits)) * 100).toFixed(1)
                 : "0"}%
             </p>
-            <p className="text-xs text-gray-500">summary reuse rate</p>
+            <p className="text-xs text-gray-500">{t("adminPage.tokenOpt.summaryReuseRate")}</p>
           </CardContent>
         </Card>
       </div>
@@ -1574,7 +1585,7 @@ function TokenOptimizationPanel({ token }: { token: string }) {
         </CardHeader>
         <CardContent>
           {!data?.modelDistribution?.length ? (
-            <p className="text-gray-500 text-center py-4">No data yet</p>
+            <p className="text-gray-500 text-center py-4">{t("adminPage.tokenOpt.noDataYet")}</p>
           ) : (
             <div className="space-y-3">
               {data.modelDistribution.map((m) => {
@@ -1595,8 +1606,8 @@ function TokenOptimizationPanel({ token }: { token: string }) {
                       />
                     </div>
                     <div className="flex justify-between text-xs text-gray-500">
-                      <span>Avg prompt: {m.avg_prompt_tokens}</span>
-                      <span>Avg completion: {m.avg_completion_tokens}</span>
+                      <span>{t("adminPage.tokenOpt.avgPrompt")}: {m.avg_prompt_tokens}</span>
+                      <span>{t("adminPage.tokenOpt.avgCompletion")}: {m.avg_completion_tokens}</span>
                     </div>
                   </div>
                 );
@@ -1615,7 +1626,7 @@ function TokenOptimizationPanel({ token }: { token: string }) {
         </CardHeader>
         <CardContent>
           {!data?.dailyStats?.length ? (
-            <p className="text-gray-500 text-center py-4">No recent data</p>
+            <p className="text-gray-500 text-center py-4">{t("adminPage.tokenOpt.noRecentData")}</p>
           ) : (
             <div className="space-y-2">
               {data.dailyStats.map((d) => (
@@ -1642,6 +1653,7 @@ function TokenOptimizationPanel({ token }: { token: string }) {
 }
 
 function CostTrackerPanel({ token }: { token: string }) {
+  const { t } = useTranslation("pages");
   const [totals, setTotals] = useState<TokenTotals | null>(null);
   const [summary, setSummary] = useState<TokenSummary[]>([]);
   const [detailed, setDetailed] = useState<TokenDetail[]>([]);
@@ -1681,7 +1693,7 @@ function CostTrackerPanel({ token }: { token: string }) {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card className="bg-[#0A0E27] border-[#1E2448]">
           <CardContent className="p-4">
-            <p className="text-xs text-gray-400">Total Cost</p>
+            <p className="text-xs text-gray-400">{t("adminPage.costs.totalCost")}</p>
             <p className="text-xl font-bold text-red-400" data-testid="text-total-cost">
               ${totals ? parseFloat(totals.total_cost).toFixed(4) : "0.0000"}
             </p>
@@ -1689,7 +1701,7 @@ function CostTrackerPanel({ token }: { token: string }) {
         </Card>
         <Card className="bg-[#0A0E27] border-[#1E2448]">
           <CardContent className="p-4">
-            <p className="text-xs text-gray-400">Total Requests</p>
+            <p className="text-xs text-gray-400">{t("adminPage.costs.totalRequests")}</p>
             <p className="text-xl font-bold text-blue-400" data-testid="text-total-requests">
               {totals?.total_requests || 0}
             </p>
@@ -1697,7 +1709,7 @@ function CostTrackerPanel({ token }: { token: string }) {
         </Card>
         <Card className="bg-[#0A0E27] border-[#1E2448]">
           <CardContent className="p-4">
-            <p className="text-xs text-gray-400">Total Tokens</p>
+            <p className="text-xs text-gray-400">{t("adminPage.costs.totalTokens")}</p>
             <p className="text-xl font-bold text-violet-400" data-testid="text-total-tokens">
               {totals?.total_tokens ? totals.total_tokens.toLocaleString() : "0"}
             </p>
@@ -1705,7 +1717,7 @@ function CostTrackerPanel({ token }: { token: string }) {
         </Card>
         <Card className="bg-[#0A0E27] border-[#1E2448]">
           <CardContent className="p-4">
-            <p className="text-xs text-gray-400">Unique Users</p>
+            <p className="text-xs text-gray-400">{t("adminPage.costs.uniqueUsers")}</p>
             <p className="text-xl font-bold text-emerald-400" data-testid="text-unique-users">
               {totals?.unique_users || 0}
             </p>
@@ -1720,7 +1732,7 @@ function CostTrackerPanel({ token }: { token: string }) {
               <DollarSign className="w-5 h-5 text-yellow-400" />
               Token Cost Breakdown
             </CardTitle>
-            <CardDescription className="text-gray-400">AI API costs per user and agent</CardDescription>
+            <CardDescription className="text-gray-400">{t("adminPage.costs.description")}</CardDescription>
           </div>
           <div className="flex items-center gap-2">
             <Button
@@ -1760,7 +1772,7 @@ function CostTrackerPanel({ token }: { token: string }) {
           {view === "summary" ? (
             <div className="space-y-2">
               {summary.length === 0 && (
-                <p className="text-gray-500 text-sm text-center py-8">No token usage data yet. Chat with agents to generate data.</p>
+                <p className="text-gray-500 text-sm text-center py-8">{t("adminPage.costs.noData")}</p>
               )}
               {summary.map((row, i) => (
                 <div key={i} className="flex items-center justify-between p-3 bg-[#111633] rounded-lg border border-[#1E2448]" data-testid={`cost-summary-row-${i}`}>
@@ -1789,7 +1801,7 @@ function CostTrackerPanel({ token }: { token: string }) {
             <div className="space-y-2 max-h-[500px] overflow-y-auto">
               {detailed.length === 0 && (
                 <p className="text-gray-500 text-sm text-center py-8">
-                  {showExpensive ? "No requests over $0.01 yet." : "No token usage data yet."}
+                  {showExpensive ? t("adminPage.tokenOpt.noExpensiveRequests") : t("adminPage.tokenOpt.noTokenData")}
                 </p>
               )}
               {detailed.map((row) => (
@@ -1874,6 +1886,7 @@ interface SavedCollabSession {
 }
 
 function CollaborationPanel({ token }: { token: string }) {
+  const { t } = useTranslation("pages");
   const [topic, setTopic] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<CollaborationResult | null>(null);
@@ -1919,7 +1932,7 @@ function CollaborationPanel({ token }: { token: string }) {
       const res = await fetch(`${ADMIN_API}/collaboration-sessions/${id}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
       if (res.ok) {
         setSessions(prev => prev.filter(s => s.id !== id));
-        toast({ title: "Deleted", description: "Session removed" });
+        toast({ title: t("adminPage.toast.deleted"), description: t("adminPage.toast.sessionRemoved") });
       }
     } catch {}
   };
@@ -1933,7 +1946,7 @@ function CollaborationPanel({ token }: { token: string }) {
   const startBrainstorm = async () => {
     if (!topic.trim()) return;
     if (selectedAgents.length === 0) {
-      toast({ title: "Error", description: "Select at least one agent", variant: "destructive" });
+      toast({ title: t("adminPage.toast.error"), description: t("adminPage.toast.selectAtLeastOneAgent"), variant: "destructive" });
       return;
     }
     setLoading(true);
@@ -1952,7 +1965,7 @@ function CollaborationPanel({ token }: { token: string }) {
       });
       if (!res.ok) {
         const err = await res.json();
-        throw new Error(err.error || "Collaboration failed");
+        throw new Error(err.error || t("adminPage.collaboration.failed"));
       }
       const data: CollaborationResult = await res.json();
       setResult(data);
@@ -1960,7 +1973,7 @@ function CollaborationPanel({ token }: { token: string }) {
       fetchSessions();
     } catch (err: unknown) {
       const errMsg = err instanceof Error ? err.message : String(err);
-      toast({ title: "Error", description: errMsg, variant: "destructive" });
+      toast({ title: t("adminPage.toast.error"), description: errMsg, variant: "destructive" });
     } finally {
       clearInterval(progressInterval);
       setLoading(false);
@@ -2028,12 +2041,12 @@ function CollaborationPanel({ token }: { token: string }) {
             </Button>
           </div>
           <CardDescription className="text-gray-300">
-            Bring your AI agents together for a team brainstorming session. Each agent provides their unique perspective, then Boss AI synthesizes everything into an action plan.
+            {t("adminPage.collaboration.description")}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <label className="text-sm text-gray-400 mb-2 block">Select Agents for Brainstorm</label>
+            <label className="text-sm text-gray-400 mb-2 block">{t("adminPage.collaboration.selectAgents")}</label>
             <div className="flex flex-wrap gap-2">
               {AGENTS.map(agent => (
                 <button
@@ -2054,19 +2067,19 @@ function CollaborationPanel({ token }: { token: string }) {
                 className="px-3 py-1.5 rounded-full text-sm font-medium bg-[#0A0E27] text-gray-400 hover:text-white border border-[#1E2448]"
                 data-testid="toggle-all-agents"
               >
-                {selectedAgents.length === AGENTS.length ? "Deselect All" : "Select All"}
+                {selectedAgents.length === AGENTS.length ? t("adminPage.collaboration.deselectAll") : t("adminPage.collaboration.selectAll")}
               </button>
             </div>
           </div>
           <div className="flex items-center gap-2 mb-2">
-            <label className="text-sm text-gray-400">AI Provider:</label>
+            <label className="text-sm text-gray-400">{t("adminPage.collaboration.aiProvider")}:</label>
             <Select value={collabProvider} onValueChange={setCollabProvider}>
               <SelectTrigger className="w-[200px] bg-[#0A0E27] border-[#1E2448] text-white text-xs h-8" data-testid="select-collab-provider">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="openai">OpenAI (GPT-4o)</SelectItem>
-                <SelectItem value="anthropic">Anthropic (Claude)</SelectItem>
+                <SelectItem value="openai">{t("adminPage.select.openaiGpt4o")}</SelectItem>
+                <SelectItem value="anthropic">{t("adminPage.select.anthropicClaude")}</SelectItem>
               </SelectContent>
             </Select>
             <Badge className={`text-xs ${collabProvider === "anthropic" ? "bg-violet-900/30 text-violet-400 border-violet-800" : "bg-green-900/30 text-green-400 border-green-800"}`}>
@@ -2077,7 +2090,7 @@ function CollaborationPanel({ token }: { token: string }) {
             <Input
               value={topic}
               onChange={(e) => setTopic(e.target.value)}
-              placeholder="Enter a topic, question, or challenge for the team..."
+              placeholder={t("adminPage.collaboration.topicPlaceholder")}
               className="bg-[#0A0E27] border-[#1E2448] text-white flex-1"
               onKeyDown={(e) => e.key === "Enter" && !loading && startBrainstorm()}
               disabled={loading}
@@ -2090,7 +2103,7 @@ function CollaborationPanel({ token }: { token: string }) {
               data-testid="button-start-brainstorm"
             >
               {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Zap className="w-4 h-4 mr-2" />}
-              {loading ? "Thinking..." : "Brainstorm"}
+              {loading ? t("adminPage.collaboration.thinking") : t("adminPage.collaboration.brainstorm")}
             </Button>
           </div>
 
@@ -2121,7 +2134,7 @@ function CollaborationPanel({ token }: { token: string }) {
           </CardHeader>
           <CardContent>
             {sessions.length === 0 ? (
-              <p className="text-gray-500 text-center py-6">No saved sessions yet. Start a brainstorm to save it automatically.</p>
+              <p className="text-gray-500 text-center py-6">{t("adminPage.collaboration.noSessions")}</p>
             ) : (
               <div className="space-y-2 max-h-80 overflow-y-auto">
                 {sessions.map(session => (
@@ -2163,7 +2176,7 @@ function CollaborationPanel({ token }: { token: string }) {
               <div className="flex items-center justify-between">
                 <CardTitle className="text-lg text-white flex items-center gap-2">
                   <Crown className="w-5 h-5 text-amber-400" />
-                  Boss AI — Unified Synthesis
+                  {t("adminPage.bossAi.unifiedSynthesis")}
                 </CardTitle>
                 <div className="flex items-center gap-2">
                   <Badge className="bg-indigo-600/30 text-indigo-300 border-indigo-500/30">
@@ -2306,6 +2319,7 @@ interface SpendData {
 }
 
 function SpendAnalysisPanel({ token }: { token: string }) {
+  const { t } = useTranslation("pages");
   const [data, setData] = useState<SpendData | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -2351,28 +2365,28 @@ function SpendAnalysisPanel({ token }: { token: string }) {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card className="bg-[#0A0E27] border-[#1E2448]">
           <CardContent className="p-4">
-            <p className="text-xs text-gray-400">Total Spend</p>
+            <p className="text-xs text-gray-400">{t("adminPage.spend.totalSpend")}</p>
             <p className="text-2xl font-bold text-red-400" data-testid="text-spend-total">${totalCost.toFixed(4)}</p>
             <p className="text-xs text-gray-500 mt-1">{data.overall.total_requests} requests</p>
           </CardContent>
         </Card>
         <Card className="bg-[#0A0E27] border-[#1E2448]">
           <CardContent className="p-4">
-            <p className="text-xs text-gray-400">Total Tokens</p>
+            <p className="text-xs text-gray-400">{t("adminPage.spend.totalTokens")}</p>
             <p className="text-2xl font-bold text-violet-400" data-testid="text-spend-tokens">{parseInt(data.overall.total_tokens).toLocaleString()}</p>
             <p className="text-xs text-gray-500 mt-1">Prompt: {parseInt(data.overall.total_prompt_tokens).toLocaleString()}</p>
           </CardContent>
         </Card>
         <Card className="bg-[#0A0E27] border-[#1E2448]">
           <CardContent className="p-4">
-            <p className="text-xs text-gray-400">Avg Cost/Request</p>
+            <p className="text-xs text-gray-400">{t("adminPage.spend.avgCostRequest")}</p>
             <p className="text-2xl font-bold text-blue-400" data-testid="text-spend-avg">${parseFloat(data.overall.avg_cost_per_request).toFixed(4)}</p>
             <p className="text-xs text-gray-500 mt-1">{data.overall.unique_users} users</p>
           </CardContent>
         </Card>
         <Card className="bg-[#0A0E27] border-[#1E2448]">
           <CardContent className="p-4">
-            <p className="text-xs text-gray-400">Collaboration Cost</p>
+            <p className="text-xs text-gray-400">{t("adminPage.spend.collaborationCost")}</p>
             <p className="text-2xl font-bold text-indigo-400" data-testid="text-spend-collab">${collabCost.toFixed(4)}</p>
             <p className="text-xs text-gray-500 mt-1">{data.collaboration.total_requests} sessions</p>
           </CardContent>
@@ -2393,7 +2407,7 @@ function SpendAnalysisPanel({ token }: { token: string }) {
         </CardHeader>
         <CardContent className="space-y-3">
           {data.perAgent.length === 0 ? (
-            <p className="text-gray-500 text-center py-8">No usage data yet</p>
+            <p className="text-gray-500 text-center py-8">{t("adminPage.spend.noUsageData")}</p>
           ) : (
             data.perAgent.map((agent) => {
               const cost = parseFloat(agent.total_cost);
@@ -2419,8 +2433,8 @@ function SpendAnalysisPanel({ token }: { token: string }) {
                     />
                   </div>
                   <div className="flex items-center justify-between mt-1 text-xs text-gray-500">
-                    <span>Avg: ${parseFloat(agent.avg_cost_per_request).toFixed(4)}/req</span>
-                    <span>Max: ${parseFloat(agent.max_single_cost).toFixed(4)}</span>
+                    <span>{t("adminPage.spend.avg")}: ${parseFloat(agent.avg_cost_per_request).toFixed(4)}/{t("adminPage.spend.req")}</span>
+                    <span>{t("adminPage.spend.max")}: ${parseFloat(agent.max_single_cost).toFixed(4)}</span>
                     <span>{agent.unique_users} users</span>
                   </div>
                 </div>
@@ -2478,7 +2492,7 @@ function SpendAnalysisPanel({ token }: { token: string }) {
         </CardHeader>
         <CardContent>
           {data.dailyTrend.length === 0 ? (
-            <p className="text-gray-500 text-center py-4">No daily data yet</p>
+            <p className="text-gray-500 text-center py-4">{t("adminPage.spend.noDailyData")}</p>
           ) : (
             <div className="space-y-1">
               {data.dailyTrend.slice(0, 14).map((day) => {
@@ -2532,19 +2546,19 @@ function SpendAnalysisPanel({ token }: { token: string }) {
                     </div>
                     <div className="grid grid-cols-2 gap-2 text-xs">
                       <div className="bg-black/20 rounded p-2">
-                        <p className="text-gray-500">Requests</p>
+                        <p className="text-gray-500">{t("adminPage.spend.requests")}</p>
                         <p className="text-white font-semibold">{p.total_requests.toLocaleString()}</p>
                       </div>
                       <div className="bg-black/20 rounded p-2">
-                        <p className="text-gray-500">Tokens</p>
+                        <p className="text-gray-500">{t("adminPage.spend.tokens")}</p>
                         <p className="text-white font-semibold">{parseInt(p.total_tokens).toLocaleString()}</p>
                       </div>
                       <div className="bg-black/20 rounded p-2">
-                        <p className="text-gray-500">Avg/Request</p>
+                        <p className="text-gray-500">{t("adminPage.spend.avgRequest")}</p>
                         <p className="text-white font-semibold">${parseFloat(p.avg_cost_per_request).toFixed(4)}</p>
                       </div>
                       <div className="bg-black/20 rounded p-2">
-                        <p className="text-gray-500">Users</p>
+                        <p className="text-gray-500">{t("adminPage.spend.users")}</p>
                         <p className="text-white font-semibold">{p.unique_users}</p>
                       </div>
                     </div>
@@ -2555,17 +2569,17 @@ function SpendAnalysisPanel({ token }: { token: string }) {
 
             {data.providerByAgent && data.providerByAgent.length > 0 && (
               <div className="mt-4">
-                <h4 className="text-sm font-medium text-gray-300 mb-3">Provider x Agent Detay</h4>
+                <h4 className="text-sm font-medium text-gray-300 mb-3">{t("adminPage.spend.providerAgentDetail")}</h4>
                 <div className="overflow-x-auto">
                   <table className="w-full text-xs">
                     <thead>
                       <tr className="border-b border-[#1E2448]">
-                        <th className="text-left text-gray-400 pb-2 pr-4">Agent</th>
-                        <th className="text-center text-green-400 pb-2 px-2">OpenAI Cost</th>
-                        <th className="text-center text-green-400 pb-2 px-2">OpenAI Reqs</th>
-                        <th className="text-center text-violet-400 pb-2 px-2">Anthropic Cost</th>
-                        <th className="text-center text-violet-400 pb-2 px-2">Anthropic Reqs</th>
-                        <th className="text-center text-yellow-400 pb-2 px-2">Fark</th>
+                        <th className="text-left text-gray-400 pb-2 pr-4">{t("adminPage.spend.agentHeader")}</th>
+                        <th className="text-center text-green-400 pb-2 px-2">{t("adminPage.spend.openaiCost")}</th>
+                        <th className="text-center text-green-400 pb-2 px-2">{t("adminPage.spend.openaiReqs")}</th>
+                        <th className="text-center text-violet-400 pb-2 px-2">{t("adminPage.spend.anthropicCost")}</th>
+                        <th className="text-center text-violet-400 pb-2 px-2">{t("adminPage.spend.anthropicReqs")}</th>
+                        <th className="text-center text-yellow-400 pb-2 px-2">{t("adminPage.spend.difference")}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -2607,6 +2621,7 @@ function SpendAnalysisPanel({ token }: { token: string }) {
 }
 
 function BossAIPanel({ token }: { token: string }) {
+  const { t } = useTranslation("pages");
   const [messages, setMessages] = useState<BossMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -2654,7 +2669,7 @@ function BossAIPanel({ token }: { token: string }) {
         if (res.ok) fetchConversations();
         return convId;
       } else {
-        const topic = autoTopic || msgs.find(m => m.role === "user")?.content.slice(0, 80) || "New Conversation";
+        const topic = autoTopic || msgs.find(m => m.role === "user")?.content.slice(0, 80) || t("adminPage.bossAi.newConversation");
         const res = await fetch(`${ADMIN_API}/boss-conversations`, {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
@@ -2698,8 +2713,8 @@ function BossAIPanel({ token }: { token: string }) {
       });
 
       if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: "Request failed" }));
-        throw new Error(err.error || "Boss AI is unavailable");
+        const err = await res.json().catch(() => ({ error: t("adminPage.bossAi.requestFailed") }));
+        throw new Error(err.error || t("adminPage.bossAi.unavailable"));
       }
 
       const data = await res.json();
@@ -2714,7 +2729,7 @@ function BossAIPanel({ token }: { token: string }) {
       const newId = await saveConversation(allMessages, activeConvId);
       if (newId) setActiveConvId(newId);
     } catch (err: any) {
-      toast({ title: "Boss AI Error", description: err.message, variant: "destructive" });
+      toast({ title: t("adminPage.toast.bossAiError"), description: err.message, variant: "destructive" });
       setMessages(prev => prev.slice(0, -1));
     } finally {
       setLoading(false);
@@ -2800,7 +2815,7 @@ function BossAIPanel({ token }: { token: string }) {
             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center">
               <Crown className="w-4 h-4 text-white" />
             </div>
-            Boss AI — Platform Commander
+            {t("adminPage.bossAi.platformCommander")}
             {savingConv && <Loader2 className="w-3 h-3 animate-spin text-amber-400 ml-2" />}
           </CardTitle>
           <div className="flex items-center gap-2">
@@ -2833,7 +2848,7 @@ function BossAIPanel({ token }: { token: string }) {
                 {activeConv.topic}
                 <span className="text-gray-500 text-xs">({activeConv.messageCount} messages)</span>
               </span>
-            : "Your AI assistant that knows everything about the platform. Ask about stats, agents, architecture, or development."
+            : t("adminPage.bossAi.description")
           }
         </CardDescription>
       </CardHeader>
@@ -2841,7 +2856,7 @@ function BossAIPanel({ token }: { token: string }) {
         {showHistory ? (
           <div className="h-[500px] flex flex-col">
             <div className="px-4 py-2 border-b border-[#1E2448] flex items-center justify-between">
-              <span className="text-sm font-medium text-white">Conversation History</span>
+              <span className="text-sm font-medium text-white">{t("adminPage.bossAi.conversationHistory")}</span>
               <Button
                 variant="ghost"
                 size="sm"
@@ -2856,8 +2871,8 @@ function BossAIPanel({ token }: { token: string }) {
               {conversations.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-center space-y-3">
                   <History className="w-10 h-10 text-gray-600" />
-                  <p className="text-gray-500 text-sm">No saved conversations yet.</p>
-                  <p className="text-gray-600 text-xs">Start chatting with Boss — conversations are saved automatically.</p>
+                  <p className="text-gray-500 text-sm">{t("adminPage.bossAi.noConversations")}</p>
+                  <p className="text-gray-600 text-xs">{t("adminPage.bossAi.startChatting")}</p>
                 </div>
               ) : (
                 conversations.map((conv) => (
@@ -2937,17 +2952,17 @@ function BossAIPanel({ token }: { token: string }) {
                     <Crown className="w-8 h-8 text-amber-400" />
                   </div>
                   <div>
-                    <p className="text-white font-medium text-lg">Boss AI</p>
+                    <p className="text-white font-medium text-lg">{t("adminPage.tabs.bossAi")}</p>
                     <p className="text-gray-400 text-sm max-w-md mt-1">
                       I oversee all 9 agents and know every detail of the platform. Ask me anything.
                     </p>
                   </div>
                   <div className="grid grid-cols-2 gap-2 max-w-lg">
                     {[
-                      "How many active users do we have?",
-                      "Which agent is most popular?",
-                      "What's our total API cost?",
-                      "Show me recent platform activity",
+                      t("adminPage.bossAi.q1"),
+                      t("adminPage.bossAi.q2"),
+                      t("adminPage.bossAi.q3"),
+                      t("adminPage.bossAi.q4"),
                     ].map((q, i) => (
                       <button
                         key={i}
@@ -2972,7 +2987,7 @@ function BossAIPanel({ token }: { token: string }) {
                     {msg.role === "assistant" && (
                       <div className="flex items-center gap-1.5 mb-2">
                         <Crown className="w-3.5 h-3.5 text-amber-400" />
-                        <span className="text-xs font-medium text-amber-400">Boss</span>
+                        <span className="text-xs font-medium text-amber-400">{t("adminPage.bossAi.boss")}</span>
                         {msg.toolsUsed && (
                           <Badge className="bg-violet-900/30 text-violet-400 border-violet-800 text-[10px] px-1.5 py-0 ml-1">
                             <Database className="w-2.5 h-2.5 mr-0.5" /> live data
@@ -2993,7 +3008,7 @@ function BossAIPanel({ token }: { token: string }) {
                     <div className="flex items-center gap-2">
                       <Crown className="w-3.5 h-3.5 text-amber-400" />
                       <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
-                      <span className="text-sm text-gray-400">Boss is analyzing...</span>
+                      <span className="text-sm text-gray-400">{t("adminPage.bossAi.analyzing")}</span>
                     </div>
                   </div>
                 </div>
@@ -3004,14 +3019,14 @@ function BossAIPanel({ token }: { token: string }) {
 
             <div className="border-t border-[#1E2448] px-4 py-3 space-y-2">
               <div className="flex items-center gap-2">
-                <label className="text-xs text-gray-500">Provider:</label>
+                <label className="text-xs text-gray-500">{t("adminPage.bossAi.provider")}:</label>
                 <Select value={bossProvider} onValueChange={setBossProvider}>
                   <SelectTrigger className="w-[160px] bg-[#0A0E27] border-[#1E2448] text-white text-xs h-7" data-testid="select-boss-provider">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="openai">OpenAI (GPT-4o)</SelectItem>
-                    <SelectItem value="anthropic">Anthropic (Claude)</SelectItem>
+                    <SelectItem value="openai">{t("adminPage.select.openaiGpt4o")}</SelectItem>
+                    <SelectItem value="anthropic">{t("adminPage.select.anthropicClaude")}</SelectItem>
                   </SelectContent>
                 </Select>
                 <Badge className={`text-[10px] ${bossProvider === "anthropic" ? "bg-violet-900/30 text-violet-400" : "bg-green-900/30 text-green-400"}`}>
@@ -3023,7 +3038,7 @@ function BossAIPanel({ token }: { token: string }) {
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder="Ask Boss anything about the platform..."
+                  placeholder={t("adminPage.bossAi.askPlaceholder")}
                   className="flex-1 bg-[#0A0E27] border-[#1E2448] text-white placeholder:text-gray-500"
                   disabled={loading}
                   data-testid="boss-input"
@@ -3046,6 +3061,7 @@ function BossAIPanel({ token }: { token: string }) {
 }
 
 function GuardrailsPanel({ token }: { token: string }) {
+  const { t } = useTranslation("pages");
   const [logs, setLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [agentFilter, setAgentFilter] = useState("all");
@@ -3071,12 +3087,12 @@ function GuardrailsPanel({ token }: { token: string }) {
   useEffect(() => { fetchLogs(); }, [fetchLogs]);
 
   const ruleTypes = [
-    { value: "all", label: "All Rules" },
-    { value: "prompt_injection", label: "Prompt Injection" },
-    { value: "blocked_topic", label: "Blocked Topic" },
-    { value: "input_length", label: "Input Length" },
-    { value: "rate_limit", label: "Rate Limit" },
-    { value: "daily_limit", label: "Daily Limit" },
+    { value: "all", label: t("adminPage.guardrails.allRules") },
+    { value: "prompt_injection", label: t("adminPage.guardrails.promptInjection") },
+    { value: "blocked_topic", label: t("adminPage.guardrails.blockedTopic") },
+    { value: "input_length", label: t("adminPage.guardrails.inputLength") },
+    { value: "rate_limit", label: t("adminPage.guardrails.rateLimit") },
+    { value: "daily_limit", label: t("adminPage.guardrails.dailyLimit") },
   ];
 
   const ruleColors: Record<string, string> = {
@@ -3110,7 +3126,7 @@ function GuardrailsPanel({ token }: { token: string }) {
                 <Shield className="w-5 h-5 text-red-400" />
               </div>
               <div>
-                <p className="text-xs text-slate-400" data-testid="text-guardrail-today-label">Today's Blocks</p>
+                <p className="text-xs text-slate-400" data-testid="text-guardrail-today-label">{t("adminPage.guardrails.todaysBlocks")}</p>
                 <p className="text-2xl font-bold text-white" data-testid="text-guardrail-today-count">{todayCount}</p>
               </div>
             </div>
@@ -3123,7 +3139,7 @@ function GuardrailsPanel({ token }: { token: string }) {
                 <AlertTriangle className="w-5 h-5 text-orange-400" />
               </div>
               <div>
-                <p className="text-xs text-slate-400" data-testid="text-guardrail-total-label">Total Blocks</p>
+                <p className="text-xs text-slate-400" data-testid="text-guardrail-total-label">{t("adminPage.guardrails.totalBlocks")}</p>
                 <p className="text-2xl font-bold text-white" data-testid="text-guardrail-total-count">{logs.length}</p>
               </div>
             </div>
@@ -3136,7 +3152,7 @@ function GuardrailsPanel({ token }: { token: string }) {
                 <Activity className="w-5 h-5 text-cyan-400" />
               </div>
               <div>
-                <p className="text-xs text-slate-400" data-testid="text-guardrail-toprule-label">Most Triggered</p>
+                <p className="text-xs text-slate-400" data-testid="text-guardrail-toprule-label">{t("adminPage.guardrails.mostTriggered")}</p>
                 <p className="text-lg font-bold text-white" data-testid="text-guardrail-toprule">{topRule.replace("_", " ")}</p>
               </div>
             </div>
@@ -3154,10 +3170,10 @@ function GuardrailsPanel({ token }: { token: string }) {
             <div className="flex gap-2 flex-wrap">
               <Select value={agentFilter} onValueChange={setAgentFilter}>
                 <SelectTrigger className="w-[180px] bg-[#111633] border-[#1E2448] text-white" data-testid="select-guardrail-agent">
-                  <SelectValue placeholder="All Agents" />
+                  <SelectValue placeholder={t("adminPage.select.allAgents")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Agents</SelectItem>
+                  <SelectItem value="all">{t("adminPage.select.allAgents")}</SelectItem>
                   {AGENTS.map(a => (
                     <SelectItem key={a.slug} value={a.slug}>{a.name}</SelectItem>
                   ))}
@@ -3165,7 +3181,7 @@ function GuardrailsPanel({ token }: { token: string }) {
               </Select>
               <Select value={ruleFilter} onValueChange={setRuleFilter}>
                 <SelectTrigger className="w-[180px] bg-[#111633] border-[#1E2448] text-white" data-testid="select-guardrail-rule">
-                  <SelectValue placeholder="All Rules" />
+                  <SelectValue placeholder={t("adminPage.select.allRules")} />
                 </SelectTrigger>
                 <SelectContent>
                   {ruleTypes.map(r => (
@@ -3201,7 +3217,7 @@ function GuardrailsPanel({ token }: { token: string }) {
           ) : logs.length === 0 ? (
             <div className="text-center py-8 text-slate-400">
               <Shield className="w-10 h-10 mx-auto mb-2 opacity-30" />
-              <p>No guardrail blocks recorded</p>
+              <p>{t("adminPage.guardrails.noBlocks")}</p>
             </div>
           ) : (
             <div className="space-y-2 max-h-[500px] overflow-y-auto">
@@ -3241,6 +3257,7 @@ function GuardrailsPanel({ token }: { token: string }) {
 }
 
 function SupportTicketsPanel({ token }: { token: string }) {
+  const { t } = useTranslation("pages");
   const [tickets, setTickets] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [replyingId, setReplyingId] = useState<number | null>(null);
@@ -3269,9 +3286,9 @@ function SupportTicketsPanel({ token }: { token: string }) {
         body: JSON.stringify(updates),
       });
       fetchTickets();
-      toast({ title: "Updated", description: "Ticket updated successfully" });
+      toast({ title: t("adminPage.toast.updated"), description: t("adminPage.toast.ticketUpdated") });
     } catch {
-      toast({ title: "Error", description: "Failed to update ticket", variant: "destructive" });
+      toast({ title: t("adminPage.toast.error"), description: t("adminPage.toast.failedUpdateTicket"), variant: "destructive" });
     }
   };
 
@@ -3301,7 +3318,7 @@ function SupportTicketsPanel({ token }: { token: string }) {
                 <Badge className="bg-blue-500/20 text-blue-400 text-xs">{inProgressCount} in progress</Badge>
               )}
             </CardTitle>
-            <CardDescription>Manage user-submitted bug reports, issues, and feedback</CardDescription>
+            <CardDescription>{t("adminPage.tickets.description")}</CardDescription>
           </div>
           <div className="flex items-center gap-2">
             <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -3309,11 +3326,11 @@ function SupportTicketsPanel({ token }: { token: string }) {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Tickets</SelectItem>
-                <SelectItem value="open">Open</SelectItem>
-                <SelectItem value="in_progress">In Progress</SelectItem>
-                <SelectItem value="resolved">Resolved</SelectItem>
-                <SelectItem value="closed">Closed</SelectItem>
+                <SelectItem value="all">{t("adminPage.select.allTickets")}</SelectItem>
+                <SelectItem value="open">{t("adminPage.select.open")}</SelectItem>
+                <SelectItem value="in_progress">{t("adminPage.select.inProgress")}</SelectItem>
+                <SelectItem value="resolved">{t("adminPage.select.resolved")}</SelectItem>
+                <SelectItem value="closed">{t("adminPage.select.closed")}</SelectItem>
               </SelectContent>
             </Select>
             <Button size="sm" variant="outline" onClick={fetchTickets} className="h-8">
@@ -3324,7 +3341,7 @@ function SupportTicketsPanel({ token }: { token: string }) {
       </CardHeader>
       <CardContent>
         {loading ? (
-          <div className="text-center py-8 text-muted-foreground">Loading...</div>
+          <div className="text-center py-8 text-muted-foreground">{t("adminPage.common.loading")}</div>
         ) : filtered.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
             <HelpCircle className="w-10 h-10 mx-auto mb-2 opacity-30" />
@@ -3360,16 +3377,16 @@ function SupportTicketsPanel({ token }: { token: string }) {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="open">Open</SelectItem>
-                        <SelectItem value="in_progress">In Progress</SelectItem>
-                        <SelectItem value="resolved">Resolved</SelectItem>
-                        <SelectItem value="closed">Closed</SelectItem>
+                        <SelectItem value="open">{t("adminPage.select.open")}</SelectItem>
+                        <SelectItem value="in_progress">{t("adminPage.select.inProgress")}</SelectItem>
+                        <SelectItem value="resolved">{t("adminPage.select.resolved")}</SelectItem>
+                        <SelectItem value="closed">{t("adminPage.select.closed")}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                 </div>
                 <div className="flex items-center gap-3 text-[10px] text-muted-foreground mb-2">
-                  <span>User #{ticket.userId}</span>
+                  <span>{t("adminPage.tickets.userHash", { id: ticket.userId })}</span>
                   <span>·</span>
                   <span className="capitalize">{ticket.category || "general"}</span>
                   {ticket.agentType && (
@@ -3383,7 +3400,7 @@ function SupportTicketsPanel({ token }: { token: string }) {
                 </div>
                 {ticket.adminReply && (
                   <div className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 mb-2">
-                    <p className="text-[10px] font-medium text-emerald-400 mb-0.5">Your Reply:</p>
+                    <p className="text-[10px] font-medium text-emerald-400 mb-0.5">{t("adminPage.tickets.yourReply")}:</p>
                     <p className="text-xs text-emerald-300/80">{ticket.adminReply}</p>
                   </div>
                 )}
@@ -3392,7 +3409,7 @@ function SupportTicketsPanel({ token }: { token: string }) {
                     <Input
                       value={replyText}
                       onChange={(e) => setReplyText(e.target.value)}
-                      placeholder="Write your reply..."
+                      placeholder={t("adminPage.tickets.replyPlaceholder")}
                       className="flex-1 h-8 text-xs bg-[#0C1029] border-[#1E2448]"
                       data-testid={`input-admin-reply-${ticket.id}`}
                     />
@@ -3444,6 +3461,7 @@ interface SecurityReportData {
 }
 
 function SecurityReportPanel({ token }: { token: string }) {
+  const { t } = useTranslation("pages");
   const [data, setData] = useState<SecurityReportData | null>(null);
   const [loading, setLoading] = useState(false);
   const [period, setPeriod] = useState("24h");
@@ -3465,9 +3483,9 @@ function SecurityReportPanel({ token }: { token: string }) {
   useEffect(() => { fetchData(); }, [fetchData]);
 
   const eventTypeLabels: Record<string, { label: string; color: string }> = {
-    distillation_attempt: { label: "Distillation Attempt", color: "text-red-400 bg-red-900/30 border-red-800" },
-    guardrail_block: { label: "Guardrail Block", color: "text-yellow-400 bg-yellow-900/30 border-yellow-800" },
-    rate_limit: { label: "Rate Limit", color: "text-orange-400 bg-orange-900/30 border-orange-800" },
+    distillation_attempt: { label: t("adminPage.security.distillationAttempt"), color: "text-red-400 bg-red-900/30 border-red-800" },
+    guardrail_block: { label: t("adminPage.security.guardrailBlock"), color: "text-yellow-400 bg-yellow-900/30 border-yellow-800" },
+    rate_limit: { label: t("adminPage.guardrails.rateLimit"), color: "text-orange-400 bg-orange-900/30 border-orange-800" },
     suspicious_pattern: { label: "Suspicious Pattern", color: "text-purple-400 bg-purple-900/30 border-purple-800" },
   };
 
@@ -3486,9 +3504,9 @@ function SecurityReportPanel({ token }: { token: string }) {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="24h">Last 24h</SelectItem>
-              <SelectItem value="7d">Last 7 days</SelectItem>
-              <SelectItem value="30d">Last 30 days</SelectItem>
+              <SelectItem value="24h">{t("adminPage.select.last24h")}</SelectItem>
+              <SelectItem value="7d">{t("adminPage.select.last7d")}</SelectItem>
+              <SelectItem value="30d">{t("adminPage.select.last30d")}</SelectItem>
             </SelectContent>
           </Select>
           <Button variant="ghost" size="sm" onClick={fetchData} disabled={loading} data-testid="button-refresh-security">
@@ -3548,7 +3566,7 @@ function SecurityReportPanel({ token }: { token: string }) {
         </CardHeader>
         <CardContent>
           {!data?.topIps || data.topIps.length === 0 ? (
-            <p className="text-gray-500 text-center py-6">No suspicious activity detected in this period</p>
+            <p className="text-gray-500 text-center py-6">{t("adminPage.security.noSuspicious")}</p>
           ) : (
             <div className="space-y-2">
               {data.topIps.map((ip, i) => (
@@ -3581,7 +3599,7 @@ function SecurityReportPanel({ token }: { token: string }) {
         </CardHeader>
         <CardContent>
           {!data?.events || data.events.length === 0 ? (
-            <p className="text-gray-500 text-center py-6">No security events in this period</p>
+            <p className="text-gray-500 text-center py-6">{t("adminPage.security.noEvents")}</p>
           ) : (
             <div className="space-y-2 max-h-[500px] overflow-y-auto">
               {data.events.slice(0, 50).map((evt) => {
@@ -3610,6 +3628,7 @@ function SecurityReportPanel({ token }: { token: string }) {
 }
 
 function PackageManagementPanel({ token }: { token: string }) {
+  const { t } = useTranslation("pages");
   const [rentals, setRentals] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -3621,27 +3640,27 @@ function PackageManagementPanel({ token }: { token: string }) {
   const PLANS = [
     {
       id: "starter",
-      name: "Starter",
+      name: t("adminPage.limits.starter"),
       price: "$49/ay",
       messages: 100,
-      features: ["Temel destek", "Standart yanıt süresi", "Tek ajan erişimi"],
+      features: [t("adminPage.packages.basicSupport"), t("adminPage.packages.standardResponseTime"), t("adminPage.packages.singleAgentAccess")],
       color: "from-blue-500 to-blue-600",
     },
     {
       id: "professional",
-      name: "Professional",
+      name: t("adminPage.limits.professional"),
       price: "$39/ay",
       messages: 500,
-      features: ["Öncelikli destek", "Hızlı yanıtlar", "Tüm araçlar açık", "Gelişmiş analiz"],
+      features: [t("adminPage.packages.prioritySupport"), t("adminPage.packages.fastResponses"), t("adminPage.packages.allToolsOpen"), t("adminPage.packages.advancedAnalytics")],
       color: "from-violet-500 to-purple-600",
       popular: true,
     },
     {
       id: "enterprise",
-      name: "Enterprise",
-      price: "Özel Fiyat",
+      name: t("adminPage.limits.enterprise"),
+      price: t("adminPage.packages.customPrice"),
       messages: 5000,
-      features: ["Özel destek", "Özel entegrasyonlar", "SLA garantisi", "API erişimi", "Sınırsız ajan"],
+      features: [t("adminPage.packages.customSupport"), t("adminPage.packages.customIntegrations"), t("adminPage.packages.slaGuarantee"), t("adminPage.packages.apiAccess"), t("adminPage.packages.unlimitedAgents")],
       color: "from-amber-500 to-orange-600",
     },
   ];
@@ -3672,15 +3691,15 @@ function PackageManagementPanel({ token }: { token: string }) {
         body: JSON.stringify({ messagesLimit: editLimit, messagesUsed: editUsed, plan: editPlan }),
       });
       if (res.ok) {
-        toast({ title: "Güncellendi", description: "Rental bilgileri başarıyla güncellendi." });
+        toast({ title: t("adminPage.toast.updated"), description: t("adminPage.toast.rentalUpdated") });
         setEditingId(null);
         fetchRentals();
       } else {
         const err = await res.json();
-        toast({ title: "Hata", description: err.error, variant: "destructive" });
+        toast({ title: t("adminPage.toast.error"), description: err.error, variant: "destructive" });
       }
     } catch {
-      toast({ title: "Hata", description: "Güncelleme başarısız", variant: "destructive" });
+      toast({ title: t("adminPage.toast.error"), description: t("adminPage.toast.updateFailed"), variant: "destructive" });
     }
   };
 
@@ -3737,13 +3756,13 @@ function PackageManagementPanel({ token }: { token: string }) {
                   ))}
                 </div>
                 <div className="mt-3 pt-3 border-t border-[#1E2448]">
-                  <p className="text-xs text-gray-500">Plan Kuralları:</p>
+                  <p className="text-xs text-gray-500">{t("adminPage.limits.planRules")}:</p>
                   <ul className="text-xs text-gray-400 mt-1 space-y-0.5">
-                    <li>• Aylık {plan.messages.toLocaleString()} mesaj limiti</li>
-                    <li>• Limit aşılınca mesajlaşma durur</li>
-                    <li>• Her ay limit sıfırlanır</li>
-                    {plan.id === "professional" && <li>• Tüm ajan araçları aktif</li>}
-                    {plan.id === "enterprise" && <li>• Özel SLA ve entegrasyon</li>}
+                    <li>• {t("adminPage.limits.monthlyMsgLimit", { count: plan.messages.toLocaleString() })}</li>
+                    <li>• {t("adminPage.limits.limitExceeded")}</li>
+                    <li>• {t("adminPage.limits.monthlyReset")}</li>
+                    {plan.id === "professional" && <li>• {t("adminPage.limits.allAgentToolsActive")}</li>}
+                    {plan.id === "enterprise" && <li>• {t("adminPage.limits.customSlaIntegration")}</li>}
                   </ul>
                 </div>
               </div>
@@ -3757,10 +3776,10 @@ function PackageManagementPanel({ token }: { token: string }) {
           <div>
             <CardTitle className="text-lg text-white flex items-center gap-2">
               <Users className="w-5 h-5 text-blue-400" />
-              Aktif Kiralama Yönetimi
+              {t("adminPage.limits.activeRentalMgmt")}
             </CardTitle>
             <CardDescription className="text-gray-400">
-              Kullanıcıların mesaj limitleri ve planlarını düzenle.
+              {t("adminPage.limits.editUsersLimits")}
             </CardDescription>
           </div>
           <Button variant="ghost" size="sm" onClick={fetchRentals} disabled={loading} data-testid="button-refresh-rentals">
@@ -3769,7 +3788,7 @@ function PackageManagementPanel({ token }: { token: string }) {
         </CardHeader>
         <CardContent>
           {rentals.length === 0 ? (
-            <p className="text-gray-500 text-center py-6">Henüz aktif kiralama yok.</p>
+            <p className="text-gray-500 text-center py-6">{t("adminPage.limits.noActiveRental")}</p>
           ) : (
             <div className="space-y-3 max-h-[500px] overflow-y-auto">
               {rentals.map((rental) => (
@@ -3792,35 +3811,35 @@ function PackageManagementPanel({ token }: { token: string }) {
                     {editingId === rental.id ? (
                       <div className="flex gap-2">
                         <Button size="sm" onClick={() => saveEdit(rental.id)} className="bg-green-600 hover:bg-green-700 text-white" data-testid={`button-save-rental-${rental.id}`}>
-                          <CheckCircle className="w-3 h-3 mr-1" /> Kaydet
+                          <CheckCircle className="w-3 h-3 mr-1" /> {t("adminPage.limits.save")}
                         </Button>
                         <Button size="sm" variant="ghost" onClick={() => setEditingId(null)} className="text-gray-400">
-                          İptal
+                          {t("adminPage.limits.cancel")}
                         </Button>
                       </div>
                     ) : (
                       <Button size="sm" variant="outline" onClick={() => startEdit(rental)} className="border-[#1E2448] text-gray-300" data-testid={`button-edit-rental-${rental.id}`}>
-                        Düzenle
+                        {t("adminPage.limits.edit")}
                       </Button>
                     )}
                   </div>
                   {editingId === rental.id ? (
                     <div className="mt-3 grid grid-cols-3 gap-3">
                       <div>
-                        <label className="text-xs text-gray-500 block mb-1">Plan</label>
+                        <label className="text-xs text-gray-500 block mb-1">{t("adminPage.limits.plan")}</label>
                         <Select value={editPlan} onValueChange={setEditPlan}>
                           <SelectTrigger className="bg-[#0A0E27] border-[#1E2448] text-white h-8 text-sm">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent className="bg-[#111633] border-[#1E2448]">
-                            <SelectItem value="starter" className="text-white">Starter</SelectItem>
-                            <SelectItem value="professional" className="text-white">Professional</SelectItem>
-                            <SelectItem value="enterprise" className="text-white">Enterprise</SelectItem>
+                            <SelectItem value="starter" className="text-white">{t("adminPage.limits.starter")}</SelectItem>
+                            <SelectItem value="professional" className="text-white">{t("adminPage.limits.professional")}</SelectItem>
+                            <SelectItem value="enterprise" className="text-white">{t("adminPage.limits.enterprise")}</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
                       <div>
-                        <label className="text-xs text-gray-500 block mb-1">Mesaj Limiti</label>
+                        <label className="text-xs text-gray-500 block mb-1">{t("adminPage.limits.messageLimit")}</label>
                         <Input
                           type="number"
                           value={editLimit}
@@ -3830,7 +3849,7 @@ function PackageManagementPanel({ token }: { token: string }) {
                         />
                       </div>
                       <div>
-                        <label className="text-xs text-gray-500 block mb-1">Kullanılan</label>
+                        <label className="text-xs text-gray-500 block mb-1">{t("adminPage.limits.used")}</label>
                         <Input
                           type="number"
                           value={editUsed}
@@ -3845,7 +3864,7 @@ function PackageManagementPanel({ token }: { token: string }) {
                       <Badge variant="outline" className="border-[#1E2448] text-gray-300 text-xs capitalize">{rental.plan}</Badge>
                       <div className="flex-1">
                         <div className="flex justify-between text-xs text-gray-400 mb-1">
-                          <span>{rental.messages_used}/{rental.messages_limit} mesaj</span>
+                          <span>{rental.messages_used}/{rental.messages_limit} {t("adminPage.limits.messages")}</span>
                           <span>{Math.round((rental.messages_used / rental.messages_limit) * 100)}%</span>
                         </div>
                         <div className="w-full bg-[#0A0E27] rounded-full h-1.5">
@@ -3886,6 +3905,7 @@ interface UsageData {
 }
 
 function LimitManagementPanel({ token }: { token: string }) {
+  const { t } = useTranslation("pages");
   const [limits, setLimits] = useState<AgentLimitData[]>([]);
   const [usageCache, setUsageCache] = useState<Record<string, UsageData>>({});
   const [loading, setLoading] = useState(false);
@@ -3951,24 +3971,24 @@ function LimitManagementPanel({ token }: { token: string }) {
         headers: { ...headers, "Content-Type": "application/json" },
         body: JSON.stringify({ agentType, period, tokenLimit: edit.tokenLimit, messageLimit: edit.messageLimit }),
       });
-      if (!res.ok) throw new Error("Save failed");
-      toast({ title: "Limit kaydedildi", description: `${agentType} — ${period}` });
+      if (!res.ok) throw new Error(t("adminPage.toast.saveFailed"));
+      toast({ title: t("adminPage.toast.limitSaved"), description: `${agentType} — ${period}` });
       fetchLimits();
       fetchUsage(agentType, period);
       setEditingLimits(prev => { const copy = { ...prev }; delete copy[key]; return copy; });
     } catch (err: any) {
-      toast({ title: "Kaydetme başarısız", description: err.message, variant: "destructive" });
+      toast({ title: t("adminPage.toast.saveFailed"), description: err.message, variant: "destructive" });
     } finally { setSaving(false); }
   };
 
   const handleDeleteLimit = async (id: number) => {
     try {
       const res = await fetch(`${ADMIN_API}/agent-limits/${id}`, { method: "DELETE", headers });
-      if (!res.ok) throw new Error("Delete failed");
-      toast({ title: "Limit silindi" });
+      if (!res.ok) throw new Error(t("adminPage.toast.deleteFailed"));
+      toast({ title: t("adminPage.toast.limitDeleted") });
       fetchLimits();
     } catch (err: any) {
-      toast({ title: "Silme başarısız", description: err.message, variant: "destructive" });
+      toast({ title: t("adminPage.toast.deleteFailed"), description: err.message, variant: "destructive" });
     }
   };
 
@@ -3987,13 +4007,13 @@ function LimitManagementPanel({ token }: { token: string }) {
           userId: parseInt(userOverrideUserId),
         }),
       });
-      if (!res.ok) throw new Error("Save failed");
-      toast({ title: "Kullanıcı limiti kaydedildi" });
+      if (!res.ok) throw new Error(t("adminPage.toast.saveFailed"));
+      toast({ title: t("adminPage.toast.userLimitSaved") });
       fetchLimits();
       setUserOverrideTokenLimit("");
       setUserOverrideMessageLimit("");
     } catch (err: any) {
-      toast({ title: "Kaydetme başarısız", description: err.message, variant: "destructive" });
+      toast({ title: t("adminPage.toast.saveFailed"), description: err.message, variant: "destructive" });
     } finally { setSaving(false); }
   };
 
@@ -4024,7 +4044,7 @@ function LimitManagementPanel({ token }: { token: string }) {
     : AGENTS.filter(a => a.slug === selectedAgentFilter);
 
   const periods = ["daily", "weekly", "monthly"] as const;
-  const periodLabels: Record<string, string> = { daily: "Günlük", weekly: "Haftalık", monthly: "Aylık" };
+  const periodLabels: Record<string, string> = { daily: t("adminPage.limits.daily"), weekly: t("adminPage.limits.weekly"), monthly: t("adminPage.limits.monthly") };
 
   const userOverrides = limits.filter(l => l.userId !== null);
 
@@ -4035,9 +4055,9 @@ function LimitManagementPanel({ token }: { token: string }) {
           <div>
             <CardTitle className="text-lg text-white flex items-center gap-2">
               <Zap className="w-5 h-5 text-yellow-400" />
-              Limit Yönetimi
+              {t("adminPage.tabs.limitManagement")}
             </CardTitle>
-            <CardDescription className="text-gray-400">Ajan bazında günlük, haftalık ve aylık token/mesaj limitleri</CardDescription>
+            <CardDescription className="text-gray-400">{t("adminPage.limits.agentLimitsDesc")}</CardDescription>
           </div>
           <div className="flex items-center gap-2">
             <Select value={selectedAgentFilter} onValueChange={setSelectedAgentFilter}>
@@ -4045,7 +4065,7 @@ function LimitManagementPanel({ token }: { token: string }) {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="bg-[#111633] border-[#1E2448]">
-                <SelectItem value="all" className="text-white">Tüm Ajanlar</SelectItem>
+                <SelectItem value="all" className="text-white">{t("adminPage.limits.allAgents")}</SelectItem>
                 {AGENTS.filter(a => a.slug !== "manager").map(a => (
                   <SelectItem key={a.slug} value={a.slug} className="text-white">{a.name}</SelectItem>
                 ))}
@@ -4064,7 +4084,7 @@ function LimitManagementPanel({ token }: { token: string }) {
                   <Bot className="w-5 h-5 text-blue-400" />
                   <h4 className="text-white font-medium">{agent.name}</h4>
                   <Badge variant="outline" className="border-[#1E2448] text-gray-400 text-xs ml-auto">
-                    Varsayılan: {getDefaultTokenLimit(agent.slug).toLocaleString()} token/gün
+                    {t("adminPage.limits.default")}: {getDefaultTokenLimit(agent.slug).toLocaleString()} token/{t("adminPage.limits.day")}
                   </Badge>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -4089,12 +4109,12 @@ function LimitManagementPanel({ token }: { token: string }) {
                         </div>
                         <div className="space-y-3">
                           <div>
-                            <label className="text-xs text-gray-500 mb-1 block">Token Limiti</label>
+                            <label className="text-xs text-gray-500 mb-1 block">{t("adminPage.limits.tokenLimit")}</label>
                             <Input
                               type="number"
                               value={editVal.tokenLimit || ""}
                               onChange={e => setEditValue(agent.slug, period, "tokenLimit", parseInt(e.target.value) || 0)}
-                              placeholder={period === "daily" ? getDefaultTokenLimit(agent.slug).toString() : "0 (limitsiz)"}
+                              placeholder={period === "daily" ? getDefaultTokenLimit(agent.slug).toString() : t("adminPage.limits.unlimited")}
                               className="bg-[#111633] border-[#1E2448] text-white h-8 text-sm"
                               data-testid={`input-token-limit-${agent.slug}-${period}`}
                             />
@@ -4114,12 +4134,12 @@ function LimitManagementPanel({ token }: { token: string }) {
                             )}
                           </div>
                           <div>
-                            <label className="text-xs text-gray-500 mb-1 block">Mesaj Limiti</label>
+                            <label className="text-xs text-gray-500 mb-1 block">{t("adminPage.limits.messageLimitLabel")}</label>
                             <Input
                               type="number"
                               value={editVal.messageLimit || ""}
                               onChange={e => setEditValue(agent.slug, period, "messageLimit", parseInt(e.target.value) || 0)}
-                              placeholder="0 (limitsiz)"
+                              placeholder=t("adminPage.limits.unlimited")
                               className="bg-[#111633] border-[#1E2448] text-white h-8 text-sm"
                               data-testid={`input-message-limit-${agent.slug}-${period}`}
                             />
@@ -4145,7 +4165,7 @@ function LimitManagementPanel({ token }: { token: string }) {
                             className="w-full bg-blue-600 hover:bg-blue-700 h-7 text-xs"
                             data-testid={`button-save-limit-${agent.slug}-${period}`}
                           >
-                            {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : "Kaydet"}
+                            {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : t("adminPage.limits.save")}
                           </Button>
                         </div>
                       </div>
@@ -4162,17 +4182,17 @@ function LimitManagementPanel({ token }: { token: string }) {
         <CardHeader>
           <CardTitle className="text-lg text-white flex items-center gap-2">
             <Crown className="w-5 h-5 text-yellow-400" />
-            Kullanıcı Bazlı Limit Override
+            {t("adminPage.limits.userLimitOverride")}
           </CardTitle>
-          <CardDescription className="text-gray-400">Belirli kullanıcılar için özel limit tanımlayın (ör. premium kullanıcıya daha yüksek limit)</CardDescription>
+          <CardDescription className="text-gray-400">{t("adminPage.limits.userOverrideDesc")})</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
             <div>
-              <label className="text-xs text-gray-500 mb-1 block">Kullanıcı</label>
+              <label className="text-xs text-gray-500 mb-1 block">{t("adminPage.limits.user")}</label>
               <Select value={userOverrideUserId} onValueChange={setUserOverrideUserId}>
                 <SelectTrigger className="bg-[#111633] border-[#1E2448] text-white" data-testid="select-override-user">
-                  <SelectValue placeholder="Kullanıcı seçin" />
+                  <SelectValue placeholder={t("adminPage.limits.selectUser")} />
                 </SelectTrigger>
                 <SelectContent className="bg-[#111633] border-[#1E2448] max-h-48">
                   {users.map(u => (
@@ -4182,7 +4202,7 @@ function LimitManagementPanel({ token }: { token: string }) {
               </Select>
             </div>
             <div>
-              <label className="text-xs text-gray-500 mb-1 block">Ajan</label>
+              <label className="text-xs text-gray-500 mb-1 block">{t("adminPage.limits.agent")}</label>
               <Select value={userOverrideAgent} onValueChange={setUserOverrideAgent}>
                 <SelectTrigger className="bg-[#111633] border-[#1E2448] text-white" data-testid="select-override-agent">
                   <SelectValue />
@@ -4195,20 +4215,20 @@ function LimitManagementPanel({ token }: { token: string }) {
               </Select>
             </div>
             <div>
-              <label className="text-xs text-gray-500 mb-1 block">Periyot</label>
+              <label className="text-xs text-gray-500 mb-1 block">{t("adminPage.limits.period")}</label>
               <Select value={userOverridePeriod} onValueChange={setUserOverridePeriod}>
                 <SelectTrigger className="bg-[#111633] border-[#1E2448] text-white" data-testid="select-override-period">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="bg-[#111633] border-[#1E2448]">
-                  <SelectItem value="daily" className="text-white">Günlük</SelectItem>
-                  <SelectItem value="weekly" className="text-white">Haftalık</SelectItem>
-                  <SelectItem value="monthly" className="text-white">Aylık</SelectItem>
+                  <SelectItem value="daily" className="text-white">{t("adminPage.limits.daily")}</SelectItem>
+                  <SelectItem value="weekly" className="text-white">{t("adminPage.limits.weekly")}</SelectItem>
+                  <SelectItem value="monthly" className="text-white">{t("adminPage.limits.monthly")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <label className="text-xs text-gray-500 mb-1 block">Token Limiti</label>
+              <label className="text-xs text-gray-500 mb-1 block">{t("adminPage.limits.tokenLimit")}</label>
               <Input
                 type="number"
                 value={userOverrideTokenLimit}
@@ -4219,7 +4239,7 @@ function LimitManagementPanel({ token }: { token: string }) {
               />
             </div>
             <div>
-              <label className="text-xs text-gray-500 mb-1 block">Mesaj Limiti</label>
+              <label className="text-xs text-gray-500 mb-1 block">{t("adminPage.limits.messageLimitLabel")}</label>
               <Input
                 type="number"
                 value={userOverrideMessageLimit}
@@ -4237,14 +4257,14 @@ function LimitManagementPanel({ token }: { token: string }) {
                 data-testid="button-save-user-override"
               >
                 {saving ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Plus className="w-4 h-4 mr-1" />}
-                Override Ekle
+                {t("adminPage.limits.addOverride")}
               </Button>
             </div>
           </div>
 
           {userOverrides.length > 0 && (
             <div className="space-y-2 mt-4">
-              <h4 className="text-sm font-medium text-gray-400 mb-2">Mevcut Override'lar</h4>
+              <h4 className="text-sm font-medium text-gray-400 mb-2">{t("adminPage.limits.existingOverrides")}</h4>
               {userOverrides.map(override => {
                 const user = users.find(u => u.id === override.userId);
                 const agentName = AGENTS.find(a => a.slug === override.agentType)?.name || override.agentType;
@@ -4275,6 +4295,7 @@ function LimitManagementPanel({ token }: { token: string }) {
 }
 
 function AgentInstructionsPanel({ token }: { token: string }) {
+  const { t } = useTranslation("pages");
   const { toast } = useToast();
   const [instructions, setInstructions] = useState<Record<string, string>>({});
   const [globalInstructions, setGlobalInstructions] = useState("");
@@ -4308,7 +4329,7 @@ function AgentInstructionsPanel({ token }: { token: string }) {
         body: JSON.stringify({ instructions: instructions[agentType] || "" }),
       });
       if (res.ok) {
-        toast({ title: "Kaydedildi", description: `${agentType} talimatları güncellendi.` });
+        toast({ title: t("adminPage.toast.saved"), description: t("adminPage.toast.agentInstructionsUpdated", { agent: agentType }) });
       }
     } catch (e) { console.error(e); }
     setSaving(null);
@@ -4323,7 +4344,7 @@ function AgentInstructionsPanel({ token }: { token: string }) {
         body: JSON.stringify({ instructions: globalInstructions }),
       });
       if (res.ok) {
-        toast({ title: "Kaydedildi", description: "Global talimatlar güncellendi." });
+        toast({ title: t("adminPage.toast.saved"), description: t("adminPage.toast.globalInstructionsUpdated") });
       }
     } catch (e) { console.error(e); }
     setSaving(null);
@@ -4358,7 +4379,7 @@ function AgentInstructionsPanel({ token }: { token: string }) {
         <CardContent className="space-y-3">
           <textarea
             className="w-full min-h-[120px] p-3 rounded-lg border bg-background text-sm font-mono resize-y"
-            placeholder="Örn: Tüm ajanlar Türkçe yanıt vermelidir. Fiyat bilgisi vermeden önce onay alınmalıdır..."
+            placeholder={t("adminPage.instructions.globalPlaceholder")}
             value={globalInstructions}
             onChange={(e) => setGlobalInstructions(e.target.value)}
             data-testid="input-global-instructions"
@@ -4370,7 +4391,7 @@ function AgentInstructionsPanel({ token }: { token: string }) {
             data-testid="button-save-global-instructions"
           >
             {saving === "global" ? <Loader2 className="animate-spin w-4 h-4 mr-1" /> : <CheckCircle className="w-4 h-4 mr-1" />}
-            Global Talimatları Kaydet
+            Global Talimatları {t("adminPage.limits.save")}
           </Button>
         </CardContent>
       </Card>
@@ -4397,7 +4418,7 @@ function AgentInstructionsPanel({ token }: { token: string }) {
                 data-testid={`button-save-instructions-${agent.slug}`}
               >
                 {saving === agent.slug ? <Loader2 className="animate-spin w-4 h-4 mr-1" /> : <CheckCircle className="w-4 h-4 mr-1" />}
-                Kaydet
+                {t("adminPage.limits.save")}
               </Button>
             </CardContent>
           </Card>
@@ -4408,6 +4429,7 @@ function AgentInstructionsPanel({ token }: { token: string }) {
 }
 
 function EscalationsPanel({ token, autoOpenId }: { token: string; autoOpenId?: number }) {
+  const { t } = useTranslation("pages");
   const { toast } = useToast();
   const headers = { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
   const [rules, setRules] = useState<any[]>([]);
@@ -4456,8 +4478,8 @@ function EscalationsPanel({ token, autoOpenId }: { token: string; autoOpenId?: n
     try {
       await fetch(`${ADMIN_API}/escalation-rules/${id}`, { method: "PATCH", headers, body: JSON.stringify({ isActive: !isActive }) });
       fetchRules();
-      toast({ title: !isActive ? "Kural aktifleştirildi" : "Kural devre dışı bırakıldı" });
-    } catch { toast({ title: "Hata", variant: "destructive" }); }
+      toast({ title: !isActive ? t("adminPage.toast.ruleActivated") : t("adminPage.toast.ruleDeactivated") });
+    } catch { toast({ title: t("adminPage.toast.error"), variant: "destructive" }); }
   };
 
   const saveRule = async (id: number) => {
@@ -4469,8 +4491,8 @@ function EscalationsPanel({ token, autoOpenId }: { token: string; autoOpenId?: n
       });
       setEditingRule(null);
       fetchRules();
-      toast({ title: "Kural güncellendi" });
-    } catch { toast({ title: "Hata", variant: "destructive" }); }
+      toast({ title: t("adminPage.toast.ruleUpdated") });
+    } catch { toast({ title: t("adminPage.toast.error"), variant: "destructive" }); }
   };
 
   const openChat = async (esc: any) => {
@@ -4486,7 +4508,7 @@ function EscalationsPanel({ token, autoOpenId }: { token: string; autoOpenId?: n
         }
         startPolling(esc.id);
       }
-    } catch { toast({ title: "Hata", variant: "destructive" }); }
+    } catch { toast({ title: t("adminPage.toast.error"), variant: "destructive" }); }
   };
 
   const startPolling = (escId: number) => {
@@ -4519,7 +4541,7 @@ function EscalationsPanel({ token, autoOpenId }: { token: string; autoOpenId?: n
       setAdminMessage("");
       const res = await fetch(`${ADMIN_API}/escalation/${chatEscalation.id}/messages`, { headers: { Authorization: `Bearer ${token}` } });
       if (res.ok) setChatMessages(await res.json());
-    } catch { toast({ title: "Mesaj gönderilemedi", variant: "destructive" }); }
+    } catch { toast({ title: t("adminPage.toast.messageSendFailed"), variant: "destructive" }); }
   };
 
   const resolveEscalation = async (id: number) => {
@@ -4531,16 +4553,16 @@ function EscalationsPanel({ token, autoOpenId }: { token: string; autoOpenId?: n
         if (pollingRef.current) clearInterval(pollingRef.current);
       }
       fetchEscalations();
-      toast({ title: "Escalation çözüldü" });
-    } catch { toast({ title: "Hata", variant: "destructive" }); }
+      toast({ title: t("adminPage.toast.escalationResolved") });
+    } catch { toast({ title: t("adminPage.toast.error"), variant: "destructive" }); }
   };
 
   const dismissEscalation = async (id: number) => {
     try {
       await fetch(`${ADMIN_API}/escalation/${id}/dismiss`, { method: "POST", headers });
       fetchEscalations();
-      toast({ title: "Escalation reddedildi" });
-    } catch { toast({ title: "Hata", variant: "destructive" }); }
+      toast({ title: t("adminPage.toast.escalationRejected") });
+    } catch { toast({ title: t("adminPage.toast.error"), variant: "destructive" }); }
   };
 
   const priorityColors: Record<string, string> = {
@@ -4558,16 +4580,16 @@ function EscalationsPanel({ token, autoOpenId }: { token: string; autoOpenId?: n
   };
 
   const statusLabels: Record<string, string> = {
-    pending: "Bekliyor",
-    admin_joined: "Chat Aktif",
-    resolved: "Çözüldü",
-    dismissed: "Reddedildi",
+    pending: t("adminPage.escalations.pending"),
+    admin_joined: t("adminPage.escalations.chatActive"),
+    resolved: t("adminPage.escalations.resolved"),
+    dismissed: t("adminPage.escalations.dismissed"),
   };
 
   const reasonLabels: Record<string, string> = {
-    angry_customer: "Sinirli Müşteri",
-    repeated_failure: "Tekrar Hatası",
-    sensitive_topic: "Hassas Konu",
+    angry_customer: t("adminPage.escalations.angryCustomer"),
+    repeated_failure: t("adminPage.escalations.repeatedFailure"),
+    sensitive_topic: t("adminPage.escalations.sensitiveTopic"),
   };
 
   if (loading) return <div className="flex items-center justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-blue-400" /></div>;
@@ -4577,7 +4599,7 @@ function EscalationsPanel({ token, autoOpenId }: { token: string; autoOpenId?: n
       <div className="space-y-4" data-testid="escalation-chat-view">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="sm" onClick={() => { setChatEscalation(null); setChatMessages([]); if (pollingRef.current) clearInterval(pollingRef.current); }} data-testid="button-back-escalations">
-            <ChevronLeft className="w-4 h-4 mr-1" /> Geri
+            <ChevronLeft className="w-4 h-4 mr-1" /> {t("adminPage.escalations.back")}
           </Button>
           <div className="flex-1">
             <h3 className="text-white font-medium">{chatEscalation.userName} — {reasonLabels[chatEscalation.reason] || chatEscalation.reason}</h3>
@@ -4586,23 +4608,23 @@ function EscalationsPanel({ token, autoOpenId }: { token: string; autoOpenId?: n
           <Badge className={statusColors[chatEscalation.status]} data-testid="badge-escalation-status">{statusLabels[chatEscalation.status]}</Badge>
           {(chatEscalation.status === "pending" || chatEscalation.status === "admin_joined") && (
             <Button size="sm" variant="outline" className="border-green-500/30 text-green-400 hover:bg-green-500/10" onClick={() => resolveEscalation(chatEscalation.id)} data-testid="button-resolve-escalation">
-              <CheckCircle className="w-3.5 h-3.5 mr-1" /> Çözüldü
+              <CheckCircle className="w-3.5 h-3.5 mr-1" /> {t("adminPage.escalations.resolved")}
             </Button>
           )}
         </div>
 
         <Card className="bg-[#0D1135] border-[#1E2448]">
           <CardHeader className="py-2 px-4 border-b border-[#1E2448]">
-            <CardTitle className="text-sm text-gray-300">Orijinal Mesaj</CardTitle>
+            <CardTitle className="text-sm text-gray-300">{t("adminPage.escalations.originalMessage")}</CardTitle>
           </CardHeader>
           <CardContent className="p-4">
             <p className="text-gray-300 text-sm">{chatEscalation.userMessage}</p>
             {chatEscalation.chatHistory && Array.isArray(chatEscalation.chatHistory) && chatEscalation.chatHistory.length > 0 && (
               <div className="mt-3 space-y-2 border-t border-[#1E2448] pt-3">
-                <p className="text-xs text-gray-500 mb-2">Son chat geçmişi:</p>
+                <p className="text-xs text-gray-500 mb-2">{t("adminPage.escalations.recentChatHistory")}:</p>
                 {(chatEscalation.chatHistory as any[]).slice(-4).map((m: any, i: number) => (
                   <div key={i} className={`text-xs p-2 rounded ${m.role === "user" ? "bg-blue-500/10 text-blue-300" : "bg-[#111633] text-gray-400"}`}>
-                    <span className="font-medium">{m.role === "user" ? "Müşteri" : "Ajan"}:</span> {(m.content || "").slice(0, 200)}
+                    <span className="font-medium">{m.role === "user" ? t("adminPage.escalations.customer") : t("adminPage.escalations.agentLabel")}:</span> {(m.content || "").slice(0, 200)}
                   </div>
                 ))}
               </div>
@@ -4613,7 +4635,7 @@ function EscalationsPanel({ token, autoOpenId }: { token: string; autoOpenId?: n
         <Card className="bg-[#0D1135] border-[#1E2448] flex flex-col" style={{ height: "400px" }}>
           <CardContent className="flex-1 overflow-y-auto p-4 space-y-3" data-testid="escalation-chat-messages">
             {chatMessages.length === 0 && (
-              <p className="text-center text-gray-500 text-sm py-8">Henüz mesaj yok. Müşteriye yazmaya başlayın.</p>
+              <p className="text-center text-gray-500 text-sm py-8">{t("adminPage.escalations.noMessagesYet")}</p>
             )}
             {chatMessages.map((msg: any) => (
               <div key={msg.id} className={`flex ${msg.senderType === "admin" ? "justify-end" : "justify-start"}`}>
@@ -4622,7 +4644,7 @@ function EscalationsPanel({ token, autoOpenId }: { token: string; autoOpenId?: n
                     ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-tr-md"
                     : "bg-[#111633] text-gray-300 border border-[#1E2448] rounded-tl-md"
                 }`} data-testid={`escalation-msg-${msg.id}`}>
-                  <p className="text-xs font-medium mb-1 opacity-70">{msg.senderType === "admin" ? "Admin" : "Müşteri"}</p>
+                  <p className="text-xs font-medium mb-1 opacity-70">{msg.senderType === "admin" ? t("adminPage.escalations.admin") : t("adminPage.escalations.customer")}</p>
                   <p className="text-sm">{msg.content}</p>
                   <p className="text-[10px] opacity-50 mt-1">{new Date(msg.createdAt).toLocaleTimeString("tr-TR")}</p>
                 </div>
@@ -4635,7 +4657,7 @@ function EscalationsPanel({ token, autoOpenId }: { token: string; autoOpenId?: n
               <Input
                 value={adminMessage}
                 onChange={(e) => setAdminMessage(e.target.value)}
-                placeholder="Müşteriye mesaj yazın..."
+                placeholder={t("adminPage.escalations.messagePlaceholder")}
                 className="bg-[#111633] border-[#1E2448] text-white"
                 onKeyDown={(e) => e.key === "Enter" && sendAdminMessage()}
                 data-testid="input-admin-message"
@@ -4654,8 +4676,8 @@ function EscalationsPanel({ token, autoOpenId }: { token: string; autoOpenId?: n
     <div className="space-y-6" data-testid="escalations-panel">
       <Card className="bg-[#0D1135] border-[#1E2448]">
         <CardHeader>
-          <CardTitle className="text-white flex items-center gap-2"><AlertTriangle className="w-5 h-5 text-orange-400" /> Escalation Kuralları</CardTitle>
-          <CardDescription className="text-gray-400">Hangi durumlarda müşteri yetkiliye devredilsin belirleyin</CardDescription>
+          <CardTitle className="text-white flex items-center gap-2"><AlertTriangle className="w-5 h-5 text-orange-400" /> {t("adminPage.escalations.rules")}</CardTitle>
+          <CardDescription className="text-gray-400">{t("adminPage.escalations.rulesDescription")}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {rules.map(rule => (
@@ -4695,7 +4717,7 @@ function EscalationsPanel({ token, autoOpenId }: { token: string; autoOpenId?: n
               {editingRule === rule.id && (
                 <div className="mt-3 space-y-3 pt-3 border-t border-[#2a2f5a]">
                   <div>
-                    <label className="text-xs text-gray-400 mb-1 block">Anahtar Kelimeler (virgülle ayırın)</label>
+                    <label className="text-xs text-gray-400 mb-1 block">{t("adminPage.escalations.keywords")}</label>
                     <textarea
                       value={editKeywords}
                       onChange={(e) => setEditKeywords(e.target.value)}
@@ -4704,7 +4726,7 @@ function EscalationsPanel({ token, autoOpenId }: { token: string; autoOpenId?: n
                     />
                   </div>
                   <div>
-                    <label className="text-xs text-gray-400 mb-1 block">Escalation Mesajı</label>
+                    <label className="text-xs text-gray-400 mb-1 block">{t("adminPage.escalations.escalationMessage")}</label>
                     <textarea
                       value={editMessage}
                       onChange={(e) => setEditMessage(e.target.value)}
@@ -4714,12 +4736,12 @@ function EscalationsPanel({ token, autoOpenId }: { token: string; autoOpenId?: n
                   </div>
                   {rule.type === "repeated_failure" && (
                     <div>
-                      <label className="text-xs text-gray-400 mb-1 block">Eşik Değeri (kaç tekrardan sonra)</label>
+                      <label className="text-xs text-gray-400 mb-1 block">{t("adminPage.escalations.threshold")}</label>
                       <Input type="number" value={editThreshold} onChange={(e) => setEditThreshold(Number(e.target.value))} className="bg-[#0D1135] border-[#1E2448] text-white w-24" data-testid={`input-threshold-${rule.id}`} />
                     </div>
                   )}
                   <Button size="sm" onClick={() => saveRule(rule.id)} className="bg-blue-600 text-white" data-testid={`button-save-rule-${rule.id}`}>
-                    <CheckCircle className="w-3.5 h-3.5 mr-1" /> Kaydet
+                    <CheckCircle className="w-3.5 h-3.5 mr-1" /> {t("adminPage.limits.save")}
                   </Button>
                 </div>
               )}
@@ -4733,7 +4755,7 @@ function EscalationsPanel({ token, autoOpenId }: { token: string; autoOpenId?: n
           <div className="flex items-center justify-between">
             <div>
               <CardTitle className="text-white flex items-center gap-2"><MessageSquare className="w-5 h-5 text-blue-400" /> Escalation Listesi</CardTitle>
-              <CardDescription className="text-gray-400">Müşteri devirleri ve chat kayıtları</CardDescription>
+              <CardDescription className="text-gray-400">{t("adminPage.escalations.historyDescription")}</CardDescription>
             </div>
             <div className="flex items-center gap-2">
               <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -4741,11 +4763,11 @@ function EscalationsPanel({ token, autoOpenId }: { token: string; autoOpenId?: n
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Tümü</SelectItem>
-                  <SelectItem value="pending">Bekliyor</SelectItem>
-                  <SelectItem value="admin_joined">Aktif Chat</SelectItem>
-                  <SelectItem value="resolved">Çözüldü</SelectItem>
-                  <SelectItem value="dismissed">Reddedildi</SelectItem>
+                  <SelectItem value="all">{t("adminPage.select.all")}</SelectItem>
+                  <SelectItem value="pending">{t("adminPage.select.pending")}</SelectItem>
+                  <SelectItem value="admin_joined">{t("adminPage.select.activeChat")}</SelectItem>
+                  <SelectItem value="resolved">{t("adminPage.select.resolved")}</SelectItem>
+                  <SelectItem value="dismissed">{t("adminPage.select.dismissed")}</SelectItem>
                 </SelectContent>
               </Select>
               <Button variant="ghost" size="sm" onClick={fetchEscalations} data-testid="button-refresh-escalations">
@@ -4756,7 +4778,7 @@ function EscalationsPanel({ token, autoOpenId }: { token: string; autoOpenId?: n
         </CardHeader>
         <CardContent>
           {escalationsList.length === 0 ? (
-            <p className="text-gray-500 text-center py-8">Henüz escalation yok</p>
+            <p className="text-gray-500 text-center py-8">{t("adminPage.escalations.noEscalations")}</p>
           ) : (
             <div className="space-y-3">
               {escalationsList.map(esc => (
@@ -4812,6 +4834,7 @@ interface ABTestResult {
 }
 
 function ABTestPanel({ token }: { token: string }) {
+  const { t } = useTranslation("pages");
   const [prompt, setPrompt] = useState("");
   const [agentType, setAgentType] = useState("");
   const [loading, setLoading] = useState(false);
@@ -4832,11 +4855,11 @@ function ABTestPanel({ token }: { token: string }) {
         headers,
         body: JSON.stringify({ prompt: prompt.trim(), agentType: agentType || undefined }),
       });
-      if (!res.ok) throw new Error("A/B test failed");
+      if (!res.ok) throw new Error(t("adminPage.toast.abTestError"));
       const data = await res.json();
       setResults(data.results || []);
     } catch (err: any) {
-      toast({ title: "A/B Test Error", description: err.message, variant: "destructive" });
+      toast({ title: t("adminPage.toast.abTestError"), description: err.message, variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -4875,13 +4898,13 @@ function ABTestPanel({ token }: { token: string }) {
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <label className="text-sm text-gray-400 mb-2 block">Ajan Konteksti (opsiyonel)</label>
+            <label className="text-sm text-gray-400 mb-2 block">{t("adminPage.abTest.agentContext")}</label>
             <Select value={agentType} onValueChange={setAgentType}>
               <SelectTrigger className="w-full max-w-xs bg-[#0A0E27] border-[#1E2448] text-white" data-testid="select-ab-agent">
-                <SelectValue placeholder="Genel (ajan yok)" />
+                <SelectValue placeholder={t("adminPage.abTest.generalNoAgent")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="general">Genel (ajan yok)</SelectItem>
+                <SelectItem value="general">{t("adminPage.abTest.generalNoAgent")}</SelectItem>
                 {AGENTS.map(a => <SelectItem key={a.slug} value={a.slug}>{a.name}</SelectItem>)}
               </SelectContent>
             </Select>
@@ -4891,7 +4914,7 @@ function ABTestPanel({ token }: { token: string }) {
             <Input
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
-              placeholder="Test edilecek promptu girin..."
+              placeholder={t("adminPage.abTest.promptPlaceholder")}
               className="bg-[#0A0E27] border-[#1E2448] text-white flex-1"
               onKeyDown={(e) => e.key === "Enter" && !loading && runTest()}
               disabled={loading}
@@ -4904,14 +4927,14 @@ function ABTestPanel({ token }: { token: string }) {
               data-testid="button-run-ab-test"
             >
               {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <FlaskConical className="w-4 h-4 mr-2" />}
-              {loading ? "Test ediliyor..." : "A/B Test Baslat"}
+              {loading ? t("adminPage.abTest.testing") : t("adminPage.abTest.startTest")}
             </Button>
           </div>
 
           {loading && (
             <div className="flex items-center gap-2 text-sm text-orange-300">
               <Loader2 className="w-4 h-4 animate-spin" />
-              Her iki provider'a da ayni prompt gonderiliyor...
+              {t("adminPage.abTest.sendingToBoth")}
             </div>
           )}
         </CardContent>
@@ -4920,28 +4943,28 @@ function ABTestPanel({ token }: { token: string }) {
       {results.length > 0 && (
         <>
           <div className="p-3 bg-[#111633] rounded-lg border border-[#1E2448]">
-            <p className="text-xs text-gray-500">Test Prompt:</p>
+            <p className="text-xs text-gray-500">{t("adminPage.abTest.testPrompt")}:</p>
             <p className="text-sm text-white font-medium">"{testedPrompt}"</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {[
               {
-                label: "Hiz (Latency)",
+                label: t("adminPage.abTest.latency"),
                 openai: openaiResult ? `${(openaiResult.latencyMs / 1000).toFixed(2)}s` : "-",
                 anthropic: anthropicResult ? `${(anthropicResult.latencyMs / 1000).toFixed(2)}s` : "-",
                 winner: openaiResult && anthropicResult && !openaiResult.error && !anthropicResult.error
                   ? (openaiResult.latencyMs < anthropicResult.latencyMs ? "openai" : "anthropic") : null,
               },
               {
-                label: "Maliyet (Cost)",
+                label: t("adminPage.abTest.cost"),
                 openai: openaiResult ? `$${openaiResult.cost.toFixed(4)}` : "-",
                 anthropic: anthropicResult ? `$${anthropicResult.cost.toFixed(4)}` : "-",
                 winner: openaiResult && anthropicResult && !openaiResult.error && !anthropicResult.error
                   ? (openaiResult.cost < anthropicResult.cost ? "openai" : "anthropic") : null,
               },
               {
-                label: "Token Kullanimi",
+                label: t("adminPage.abTest.tokenUsage"),
                 openai: openaiResult ? openaiResult.tokens.toLocaleString() : "-",
                 anthropic: anthropicResult ? anthropicResult.tokens.toLocaleString() : "-",
                 winner: openaiResult && anthropicResult && !openaiResult.error && !anthropicResult.error
@@ -4956,7 +4979,7 @@ function ABTestPanel({ token }: { token: string }) {
                       <p className="text-xs text-green-400">OpenAI</p>
                       <p className="text-lg font-bold text-white">{metric.openai}</p>
                     </div>
-                    <span className="text-gray-600">vs</span>
+                    <span className="text-gray-600">{t("adminPage.abTest.vs")}</span>
                     <div className={`${metric.winner === "anthropic" ? "ring-2 ring-violet-500 rounded-lg" : ""} p-2`}>
                       <p className="text-xs text-violet-400">Anthropic</p>
                       <p className="text-lg font-bold text-white">{metric.anthropic}</p>
@@ -4985,7 +5008,7 @@ function ABTestPanel({ token }: { token: string }) {
                   ) : openaiResult ? (
                     formatResponse(openaiResult.response)
                   ) : (
-                    <p className="text-gray-500 text-sm">No result</p>
+                    <p className="text-gray-500 text-sm">{t("adminPage.abTest.noResult")}</p>
                   )}
                 </div>
               </CardContent>
@@ -5008,7 +5031,7 @@ function ABTestPanel({ token }: { token: string }) {
                   ) : anthropicResult ? (
                     formatResponse(anthropicResult.response)
                   ) : (
-                    <p className="text-gray-500 text-sm">No result</p>
+                    <p className="text-gray-500 text-sm">{t("adminPage.abTest.noResult")}</p>
                   )}
                 </div>
               </CardContent>
@@ -5021,6 +5044,7 @@ function ABTestPanel({ token }: { token: string }) {
 }
 
 function AIProviderPanel({ token }: { token: string }) {
+  const { t } = useTranslation("pages");
   const [defaultProvider, setDefaultProvider] = useState("openai");
   const [agentProviders, setAgentProviders] = useState<Record<string, string>>({});
   const [anthropicConfigured, setAnthropicConfigured] = useState(false);
@@ -5054,10 +5078,10 @@ function AIProviderPanel({ token }: { token: string }) {
         headers: { ...headers, "Content-Type": "application/json" },
         body: JSON.stringify({ defaultProvider, agentProviders }),
       });
-      if (!res.ok) throw new Error("Save failed");
-      toast({ title: "AI Provider ayarları kaydedildi" });
+      if (!res.ok) throw new Error(t("adminPage.toast.saveFailed"));
+      toast({ title: t("adminPage.toast.aiProviderSaved") });
     } catch (err: any) {
-      toast({ title: "Kaydetme başarısız", description: err.message, variant: "destructive" });
+      toast({ title: t("adminPage.toast.saveFailed"), description: err.message, variant: "destructive" });
     } finally {
       setSaving(false);
     }
@@ -5081,10 +5105,10 @@ function AIProviderPanel({ token }: { token: string }) {
         <CardHeader>
           <CardTitle className="text-lg text-white flex items-center gap-2">
             <Bot className="w-5 h-5 text-violet-400" />
-            AI Provider Ayarları
+            {t("adminPage.aiProvider.settings")}
           </CardTitle>
           <CardDescription className="text-gray-400">
-            Ajanların hangi AI sağlayıcısını kullanacağını seçin. Varsayılan sağlayıcı veya ajan bazında override yapabilirsiniz.
+            {t("adminPage.aiProvider.settingsDesc")}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -5092,7 +5116,7 @@ function AIProviderPanel({ token }: { token: string }) {
             <div className="p-3 bg-yellow-900/20 border border-yellow-800/50 rounded-lg flex items-start gap-2">
               <AlertTriangle className="w-5 h-5 text-yellow-400 mt-0.5 shrink-0" />
               <p className="text-yellow-300 text-sm">
-                Anthropic API anahtarı yapılandırılmamış. Anthropic kullanabilmek için <code className="bg-yellow-900/50 px-1 rounded">ANTHROPIC_API_KEY</code> environment variable'ı ekleyin.
+                {t("adminPage.aiProvider.anthropicNotConfigured")} <code className="bg-yellow-900/50 px-1 rounded">{t("adminPage.aiProvider.anthropicApiKey")}</code> {t("adminPage.aiProvider.addEnvVar")}
               </p>
             </div>
           )}
@@ -5100,18 +5124,18 @@ function AIProviderPanel({ token }: { token: string }) {
           <div className="p-4 bg-[#111633] rounded-lg border border-[#1E2448]">
             <h4 className="text-white font-medium mb-3 flex items-center gap-2">
               <Zap className="w-4 h-4 text-blue-400" />
-              Varsayılan AI Sağlayıcı
+              {t("adminPage.aiProvider.defaultProvider")}
             </h4>
             <p className="text-gray-400 text-sm mb-3">
-              Tüm ajanlar için varsayılan sağlayıcı. Ajan bazında override yapılmadıkça bu sağlayıcı kullanılır.
+              {t("adminPage.aiProvider.defaultProviderDesc")}
             </p>
             <Select value={defaultProvider} onValueChange={setDefaultProvider}>
               <SelectTrigger className="w-full max-w-xs bg-[#0A0E27] border-[#1E2448] text-white" data-testid="select-default-provider">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="openai">OpenAI (GPT-4o / GPT-4o-mini)</SelectItem>
-                <SelectItem value="anthropic">Anthropic (Claude Sonnet 4)</SelectItem>
+                <SelectItem value="openai">{t("adminPage.select.openaiModels")}</SelectItem>
+                <SelectItem value="anthropic">{t("adminPage.select.anthropicSonnet")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -5119,10 +5143,10 @@ function AIProviderPanel({ token }: { token: string }) {
           <div className="p-4 bg-[#111633] rounded-lg border border-[#1E2448]">
             <h4 className="text-white font-medium mb-3 flex items-center gap-2">
               <Brain className="w-4 h-4 text-violet-400" />
-              Ajan Bazında Override
+              {t("adminPage.aiProvider.perAgentOverride")}
             </h4>
             <p className="text-gray-400 text-sm mb-4">
-              Belirli ajanlar için farklı sağlayıcı seçebilirsiniz. "Varsayılan" seçeneği genel ayarı kullanır.
+              {t("adminPage.aiProvider.perAgentDesc")}
             </p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {AGENTS.map(agent => (
@@ -5136,7 +5160,7 @@ function AIProviderPanel({ token }: { token: string }) {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="default">Varsayılan ({defaultProvider === "openai" ? "OpenAI" : "Anthropic"})</SelectItem>
+                      <SelectItem value="default">{t("adminPage.aiProvider.default")} ({defaultProvider === "openai" ? "OpenAI" : "Anthropic"})</SelectItem>
                       <SelectItem value="openai">OpenAI</SelectItem>
                       <SelectItem value="anthropic">Anthropic</SelectItem>
                     </SelectContent>
@@ -5147,15 +5171,15 @@ function AIProviderPanel({ token }: { token: string }) {
           </div>
 
           <div className="p-4 bg-[#111633] rounded-lg border border-[#1E2448]">
-            <h4 className="text-white font-medium mb-3">Model Bilgileri & Fiyatlandırma</h4>
+            <h4 className="text-white font-medium mb-3">{t("adminPage.aiProvider.modelInfo")}</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div className="p-3 bg-[#0A0E27] rounded-lg border border-[#1E2448]">
                 <div className="flex items-center gap-2 mb-2">
                   <Badge className="bg-green-900/30 text-green-400 border-green-800 text-xs">OpenAI</Badge>
                 </div>
                 <ul className="space-y-1 text-xs text-gray-400">
-                  <li><span className="text-white">GPT-4o:</span> $2.50/1M input, $10.00/1M output</li>
-                  <li><span className="text-white">GPT-4o-mini:</span> $0.15/1M input, $0.60/1M output</li>
+                  <li><span className="text-white">{t("adminPage.aiProvider.gpt4o")}:</span> $2.50/1M input, $10.00/1M output</li>
+                  <li><span className="text-white">{t("adminPage.aiProvider.gpt4oMini")}:</span> $0.15/1M input, $0.60/1M output</li>
                 </ul>
               </div>
               <div className="p-3 bg-[#0A0E27] rounded-lg border border-[#1E2448]">
@@ -5163,8 +5187,8 @@ function AIProviderPanel({ token }: { token: string }) {
                   <Badge className="bg-violet-900/30 text-violet-400 border-violet-800 text-xs">Anthropic</Badge>
                 </div>
                 <ul className="space-y-1 text-xs text-gray-400">
-                  <li><span className="text-white">Claude Sonnet 4:</span> $3.00/1M input, $15.00/1M output</li>
-                  <li><span className="text-white">Claude 3 Haiku:</span> $0.25/1M input, $1.25/1M output</li>
+                  <li><span className="text-white">{t("adminPage.aiProvider.claudeSonnet4")}:</span> $3.00/1M input, $15.00/1M output</li>
+                  <li><span className="text-white">{t("adminPage.aiProvider.claude3Haiku")}:</span> $0.25/1M input, $1.25/1M output</li>
                 </ul>
               </div>
             </div>
@@ -5176,7 +5200,7 @@ function AIProviderPanel({ token }: { token: string }) {
             className="bg-gradient-to-r from-violet-500 to-blue-500 hover:from-violet-600 hover:to-blue-600"
             data-testid="button-save-ai-provider"
           >
-            {saving ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Kaydediliyor...</> : "Ayarları Kaydet"}
+            {saving ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> {t("adminPage.aiProvider.saving")}</> : t("adminPage.aiProvider.saveSettings")}
           </Button>
         </CardContent>
       </Card>
@@ -5185,17 +5209,18 @@ function AIProviderPanel({ token }: { token: string }) {
 }
 
 function AdminGuidePanel() {
+  const { t } = useTranslation("pages");
   const AGENT_DETAILS = [
-    { slug: "customer-support", name: "Ava", role: "Müşteri Destek", desc: "Müşteri sorularını yanıtlar, şikayet yönetir, ticket oluşturur.", icon: "🎧", color: "from-blue-500 to-blue-600" },
-    { slug: "sales-sdr", name: "Rex", role: "Satış Temsilcisi", desc: "Lead takibi, satış maili, CRM güncellemesi, teklif hazırlama.", icon: "📈", color: "from-red-500 to-red-600" },
-    { slug: "social-media", name: "Maya", role: "Sosyal Medya", desc: "Post oluşturma, içerik takvimi, hashtag analizi, kampanya yönetimi.", icon: "📱", color: "from-pink-500 to-pink-600" },
-    { slug: "bookkeeping", name: "Finn", role: "Muhasebe", desc: "Fatura takibi, gelir-gider analizi, mali raporlama.", icon: "📊", color: "from-green-500 to-green-600" },
-    { slug: "scheduling", name: "Cal", role: "Zamanlama", desc: "Takvim yönetimi, randevu planlama, hatırlatmalar.", icon: "📅", color: "from-yellow-500 to-yellow-600" },
-    { slug: "hr-recruiting", name: "Harper", role: "İK & İşe Alım", desc: "Aday taraması, mülakat planlama, iş ilanı yönetimi.", icon: "👥", color: "from-purple-500 to-purple-600" },
-    { slug: "data-analyst", name: "DataBot", role: "Veri Analisti", desc: "Veri analizi, rapor oluşturma, KPI takibi, trend analizi.", icon: "🔬", color: "from-cyan-500 to-cyan-600" },
-    { slug: "ecommerce-ops", name: "ShopBot", role: "E-Ticaret", desc: "Ürün yönetimi, stok takibi, sipariş yönetimi, kampanya.", icon: "🛒", color: "from-orange-500 to-orange-600" },
-    { slug: "real-estate", name: "Reno", role: "Gayrimenkul", desc: "Emlak listeleme, fiyat analizi, müşteri eşleştirme.", icon: "🏠", color: "from-teal-500 to-teal-600" },
-    { slug: "manager", name: "Manager", role: "Akıllı Yönlendirici", desc: "Mesajları doğru ajana yönlendirir, ekip koordinasyonu sağlar.", icon: "🧠", color: "from-amber-500 to-amber-600" },
+    { slug: "customer-support", name: "Ava", role: t("adminPage.instructions.customerSupport"), desc: t("adminPage.instructions.customerSupportDesc"), icon: "🎧", color: "from-blue-500 to-blue-600" },
+    { slug: "sales-sdr", name: "Rex", role: t("adminPage.instructions.salesRep"), desc: t("adminPage.instructions.salesRepDesc"), icon: "📈", color: "from-red-500 to-red-600" },
+    { slug: "social-media", name: "Maya", role: t("adminPage.instructions.socialMedia"), desc: t("adminPage.instructions.socialMediaDesc"), icon: "📱", color: "from-pink-500 to-pink-600" },
+    { slug: "bookkeeping", name: "Finn", role: t("adminPage.instructions.accounting"), desc: t("adminPage.instructions.accountingDesc"), icon: "📊", color: "from-green-500 to-green-600" },
+    { slug: "scheduling", name: "Cal", role: t("adminPage.instructions.scheduling"), desc: t("adminPage.instructions.schedulingDesc"), icon: "📅", color: "from-yellow-500 to-yellow-600" },
+    { slug: "hr-recruiting", name: "Harper", role: t("adminPage.instructions.hrRole"), desc: t("adminPage.instructions.hrDesc"), icon: "👥", color: "from-purple-500 to-purple-600" },
+    { slug: "data-analyst", name: "DataBot", role: t("adminPage.instructions.dataAnalyst"), desc: t("adminPage.instructions.dataAnalystDesc"), icon: "🔬", color: "from-cyan-500 to-cyan-600" },
+    { slug: "ecommerce-ops", name: "ShopBot", role: t("adminPage.instructions.ecommerceRole"), desc: t("adminPage.instructions.ecommerceDesc"), icon: "🛒", color: "from-orange-500 to-orange-600" },
+    { slug: "real-estate", name: "Reno", role: t("adminPage.instructions.realEstate"), desc: t("adminPage.instructions.realEstateDesc"), icon: "🏠", color: "from-teal-500 to-teal-600" },
+    { slug: "manager", name: "Manager", role: t("adminPage.instructions.managerRole"), desc: t("adminPage.instructions.managerDesc"), icon: "🧠", color: "from-amber-500 to-amber-600" },
   ];
 
   return (
@@ -5204,10 +5229,10 @@ function AdminGuidePanel() {
         <CardHeader>
           <CardTitle className="text-xl text-white flex items-center gap-2">
             <HelpCircle className="w-5 h-5 text-emerald-400" />
-            Admin Rehberi — Platform Kuralları
+            {t("adminPage.guide.title")}
           </CardTitle>
           <CardDescription className="text-gray-300">
-            Platformun nasıl çalıştığı, paket kuralları ve yönetim bilgileri.
+            {t("adminPage.guide.description")}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -5215,31 +5240,31 @@ function AdminGuidePanel() {
             <div className="p-4 bg-[#0A0E27] rounded-lg border border-[#1E2448]">
               <h3 className="text-white font-semibold flex items-center gap-2 mb-3">
                 <Shield className="w-4 h-4 text-blue-400" />
-                Genel Platform Kuralları
+                {t("adminPage.guide.generalRules")}
               </h3>
               <ul className="space-y-2 text-sm text-gray-300">
-                <li className="flex items-start gap-2"><span className="text-blue-400 mt-0.5">•</span> Kullanıcılar e-posta ile kayıt olur ve giriş yapar</li>
-                <li className="flex items-start gap-2"><span className="text-blue-400 mt-0.5">•</span> Her ajan ayrı ayrı kiralanır (ajan başına plan seçimi)</li>
-                <li className="flex items-start gap-2"><span className="text-blue-400 mt-0.5">•</span> Mesaj limiti aşıldığında o ajan ile sohbet durur</li>
-                <li className="flex items-start gap-2"><span className="text-blue-400 mt-0.5">•</span> Admin paneli ayrı şifre ile korunur (ADMIN_PASSWORD)</li>
-                <li className="flex items-start gap-2"><span className="text-blue-400 mt-0.5">•</span> Manager ajanı sadece kiralanmış ajanlara yönlendirir</li>
-                <li className="flex items-start gap-2"><span className="text-blue-400 mt-0.5">•</span> Guardrail sistemi zararlı içeriği otomatik engeller</li>
-                <li className="flex items-start gap-2"><span className="text-blue-400 mt-0.5">•</span> Distillation koruması sistematik veri çekmeyi engeller</li>
+                <li className="flex items-start gap-2"><span className="text-blue-400 mt-0.5">•</span> {t("adminPage.guide.rule1")}</li>
+                <li className="flex items-start gap-2"><span className="text-blue-400 mt-0.5">•</span> {t("adminPage.guide.rule2")}</li>
+                <li className="flex items-start gap-2"><span className="text-blue-400 mt-0.5">•</span> {t("adminPage.guide.rule3")}</li>
+                <li className="flex items-start gap-2"><span className="text-blue-400 mt-0.5">•</span> {t("adminPage.guide.rule4")}</li>
+                <li className="flex items-start gap-2"><span className="text-blue-400 mt-0.5">•</span> {t("adminPage.guide.rule5")}</li>
+                <li className="flex items-start gap-2"><span className="text-blue-400 mt-0.5">•</span> {t("adminPage.guide.rule6")}</li>
+                <li className="flex items-start gap-2"><span className="text-blue-400 mt-0.5">•</span> {t("adminPage.guide.rule7")}</li>
               </ul>
             </div>
             <div className="p-4 bg-[#0A0E27] rounded-lg border border-[#1E2448]">
               <h3 className="text-white font-semibold flex items-center gap-2 mb-3">
                 <CreditCard className="w-4 h-4 text-violet-400" />
-                Paket ve Ödeme Kuralları
+                {t("adminPage.guide.paymentRules")}
               </h3>
               <ul className="space-y-2 text-sm text-gray-300">
-                <li className="flex items-start gap-2"><span className="text-violet-400 mt-0.5">•</span> <strong className="text-white">Starter ($49/ay):</strong> 100 mesaj, temel destek</li>
-                <li className="flex items-start gap-2"><span className="text-violet-400 mt-0.5">•</span> <strong className="text-white">Professional ($39/ay):</strong> 500 mesaj, tüm araçlar açık</li>
-                <li className="flex items-start gap-2"><span className="text-violet-400 mt-0.5">•</span> <strong className="text-white">Enterprise (Özel):</strong> 5000 mesaj, SLA garantisi</li>
-                <li className="flex items-start gap-2"><span className="text-violet-400 mt-0.5">•</span> Ödeme test modunda: /api/test-checkout kullanılır</li>
-                <li className="flex items-start gap-2"><span className="text-violet-400 mt-0.5">•</span> Kredi sistemi: Görsel üretim için ayrı kredi satın alınır</li>
-                <li className="flex items-start gap-2"><span className="text-violet-400 mt-0.5">•</span> Admin panelden limit ve plan manuel değiştirilebilir</li>
-                <li className="flex items-start gap-2"><span className="text-violet-400 mt-0.5">•</span> Mesaj kullanımı sıfırlanabilir (admin tarafından)</li>
+                <li className="flex items-start gap-2"><span className="text-violet-400 mt-0.5">•</span> <strong className="text-white">{t("adminPage.packages.starterPrice")}:</strong> {t("adminPage.guide.starterFeatures")}</li>
+                <li className="flex items-start gap-2"><span className="text-violet-400 mt-0.5">•</span> <strong className="text-white">{t("adminPage.packages.professionalPrice")}:</strong> {t("adminPage.guide.professionalFeatures")}</li>
+                <li className="flex items-start gap-2"><span className="text-violet-400 mt-0.5">•</span> <strong className="text-white">{t("adminPage.packages.enterprisePrice")}:</strong> {t("adminPage.guide.enterpriseFeatures")}</li>
+                <li className="flex items-start gap-2"><span className="text-violet-400 mt-0.5">•</span> {t("adminPage.guide.paymentTestMode")}</li>
+                <li className="flex items-start gap-2"><span className="text-violet-400 mt-0.5">•</span> {t("adminPage.guide.creditSystem")}</li>
+                <li className="flex items-start gap-2"><span className="text-violet-400 mt-0.5">•</span> {t("adminPage.guide.adminManualChange")}</li>
+                <li className="flex items-start gap-2"><span className="text-violet-400 mt-0.5">•</span> {t("adminPage.guide.adminResetMessages")}</li>
               </ul>
             </div>
           </div>
@@ -5247,10 +5272,10 @@ function AdminGuidePanel() {
           <div className="p-4 bg-[#0A0E27] rounded-lg border border-[#1E2448]">
             <h3 className="text-white font-semibold flex items-center gap-2 mb-3">
               <Bot className="w-4 h-4 text-amber-400" />
-              Akış: Kullanıcı Bir Ajan Kiralarken Ne Olur?
+              {t("adminPage.guide.rentalFlow")}
             </h3>
             <div className="flex flex-wrap gap-2">
-              {["1. Kullanıcı Workers sayfasından ajan seçer", "2. Plan seçer (Starter/Professional)", "3. Ödeme tamamlanır", "4. Rental kaydı oluşur (status: active)", "5. Mesaj limiti plana göre atanır", "6. Kullanıcı sohbet edebilir", "7. Her mesajda messages_used artar", "8. Limit dolunca sohbet durur"].map((step, i) => (
+              {[t("adminPage.guide.step1"), t("adminPage.guide.step2"), t("adminPage.guide.step3"), t("adminPage.guide.step4"), t("adminPage.guide.step5"), t("adminPage.guide.step6"), t("adminPage.guide.step7"), t("adminPage.guide.step8")].map((step, i) => (
                 <Badge key={i} variant="outline" className="border-[#1E2448] text-gray-300 text-xs py-1.5">
                   {step}
                 </Badge>
@@ -5261,18 +5286,18 @@ function AdminGuidePanel() {
           <div className="p-4 bg-[#0A0E27] rounded-lg border border-[#1E2448]">
             <h3 className="text-white font-semibold flex items-center gap-2 mb-3">
               <Activity className="w-4 h-4 text-green-400" />
-              Admin Yetkiler
+              {t("adminPage.guide.adminPermissions")}
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {[
-                { title: "Kullanıcı Yönetimi", desc: "Kayıtlı kullanıcıları görüntüleme ve arama" },
-                { title: "Mesaj Limiti Değiştirme", desc: "Herhangi bir rental'ın mesaj limitini artırma/azaltma" },
-                { title: "Plan Değiştirme", desc: "Kullanıcının planını admin panelden değiştirme" },
-                { title: "Mesaj Sayacı Sıfırlama", desc: "Kullanılan mesaj sayısını sıfırlama" },
-                { title: "RAG Doküman Yönetimi", desc: "Ajanlara bilgi dokümanı yükleme ve silme" },
-                { title: "Fine-Tuning", desc: "Ajan eğitim verisi oluşturma ve fine-tuning başlatma" },
-                { title: "Güvenlik Raporları", desc: "Distillation, guardrail ve güvenlik olaylarını izleme" },
-                { title: "Maliyet Analizi", desc: "Token kullanımı ve OpenAI maliyetlerini takip" },
+                { title: t("adminPage.guide.userMgmt"), desc: t("adminPage.guide.userMgmtDesc") },
+                { title: t("adminPage.guide.changeMsgLimit"), desc: t("adminPage.guide.changeMsgLimitDesc") },
+                { title: t("adminPage.guide.changePlan"), desc: t("adminPage.guide.changePlanDesc") },
+                { title: t("adminPage.guide.resetCounter"), desc: t("adminPage.guide.resetCounterDesc") },
+                { title: t("adminPage.guide.ragDocMgmt"), desc: t("adminPage.guide.ragDocMgmtDesc") },
+                { title: t("adminPage.guide.fineTuning"), desc: t("adminPage.guide.fineTuningDesc") },
+                { title: t("adminPage.guide.securityReports"), desc: t("adminPage.guide.securityReportsDesc") },
+                { title: t("adminPage.guide.costAnalysis"), desc: t("adminPage.guide.costAnalysisDesc") },
               ].map((item, i) => (
                 <div key={i} className="flex items-start gap-2">
                   <CheckCircle className="w-4 h-4 text-green-400 mt-0.5 shrink-0" />
@@ -5321,6 +5346,7 @@ function AdminGuidePanel() {
 }
 
 export default function AdminPage() {
+  const { t } = useTranslation("pages");
   const [token, setToken] = useState<string | null>(null);
   const [selectedAgent, setSelectedAgent] = useState(AGENTS[0].slug);
   const [stats, setStats] = useState<AgentStats | null>(null);
@@ -5385,8 +5411,8 @@ export default function AdminPage() {
               <Lock className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
             </div>
             <div className="min-w-0">
-              <h1 className="text-lg sm:text-2xl font-bold text-white truncate" data-testid="text-admin-title">RentAI 24 Admin</h1>
-              <p className="text-gray-400 text-xs sm:text-sm hidden sm:block">Platform management & monitoring</p>
+              <h1 className="text-lg sm:text-2xl font-bold text-white truncate" data-testid="text-admin-title">{t("adminPage.login.title")}</h1>
+              <p className="text-gray-400 text-xs sm:text-sm hidden sm:block">{t("adminPage.header.subtitle")}</p>
             </div>
           </div>
           <Button
@@ -5397,7 +5423,7 @@ export default function AdminPage() {
             data-testid="button-admin-logout"
           >
             <LogOut className="w-4 h-4 sm:mr-1" />
-            <span className="hidden sm:inline">Logout</span>
+            <span className="hidden sm:inline">{t("adminPage.header.logout")}</span>
           </Button>
         </div>
 
@@ -5453,12 +5479,12 @@ export default function AdminPage() {
             <div className="relative">
               <div className="flex gap-1 sm:gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
                 {[
-                  { id: "dashboard", label: "Dashboard", icon: Crown, gradient: "from-amber-500 to-orange-600" },
-                  { id: "ai-training", label: "AI Training", icon: Database, gradient: "from-violet-500 to-purple-600" },
-                  { id: "analytics", label: "Analytics", icon: BarChart3, gradient: "from-emerald-500 to-teal-600" },
-                  { id: "limits", label: "Limits", icon: Zap, gradient: "from-yellow-500 to-amber-600" },
-                  { id: "security", label: "Security", icon: Shield, gradient: "from-red-500 to-rose-600" },
-                  { id: "help", label: "Rehber", icon: HelpCircle, gradient: "from-cyan-500 to-blue-600" },
+                  { id: "dashboard", label: t("adminPage.categories.dashboard"), icon: Crown, gradient: "from-amber-500 to-orange-600" },
+                  { id: "ai-training", label: t("adminPage.categories.aiTraining"), icon: Database, gradient: "from-violet-500 to-purple-600" },
+                  { id: "analytics", label: t("adminPage.categories.analytics"), icon: BarChart3, gradient: "from-emerald-500 to-teal-600" },
+                  { id: "limits", label: t("adminPage.categories.limits"), icon: Zap, gradient: "from-yellow-500 to-amber-600" },
+                  { id: "security", label: t("adminPage.categories.security"), icon: Shield, gradient: "from-red-500 to-rose-600" },
+                  { id: "help", label: t("adminPage.categories.guide"), icon: HelpCircle, gradient: "from-cyan-500 to-blue-600" },
                 ].map(cat => {
                   const Icon = cat.icon;
                   return (
@@ -5497,15 +5523,15 @@ export default function AdminPage() {
                 <>
                   <TabsTrigger value="boss-ai" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-amber-500 data-[state=active]:to-orange-600 data-[state=active]:text-white" data-testid="tab-boss-ai">
                     <Crown className="w-3.5 h-3.5 mr-1" />
-                    Boss AI
+                    {t("adminPage.tabs.bossAi")}
                   </TabsTrigger>
                   <TabsTrigger value="overview" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white" data-testid="tab-overview">
                     <BarChart3 className="w-3.5 h-3.5 mr-1" />
-                    Overview
+                    {t("adminPage.tabs.overview")}
                   </TabsTrigger>
                   <TabsTrigger value="users" className="data-[state=active]:bg-cyan-600 data-[state=active]:text-white" data-testid="tab-users">
                     <Users className="w-3.5 h-3.5 mr-1" />
-                    Users
+                    {t("adminPage.tabs.users")}
                   </TabsTrigger>
                 </>
               )}
@@ -5513,27 +5539,27 @@ export default function AdminPage() {
                 <>
                   <TabsTrigger value="rag" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white" data-testid="tab-rag">
                     <Database className="w-3.5 h-3.5 mr-1" />
-                    Knowledge Base
+                    {t("adminPage.tabs.knowledgeBase")}
                   </TabsTrigger>
                   <TabsTrigger value="training-data" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white" data-testid="tab-training-data">
                     <Database className="w-3.5 h-3.5 mr-1" />
-                    Training Data
+                    {t("adminPage.tabs.trainingData")}
                   </TabsTrigger>
                   <TabsTrigger value="fine-tuning" className="data-[state=active]:bg-violet-600 data-[state=active]:text-white" data-testid="tab-fine-tuning">
                     <Cpu className="w-3.5 h-3.5 mr-1" />
-                    Fine-Tuning
+                    {t("adminPage.tabs.fineTuning")}
                   </TabsTrigger>
                   <TabsTrigger value="agent-instructions" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:to-blue-600 data-[state=active]:text-white" data-testid="tab-agent-instructions">
                     <FileText className="w-3.5 h-3.5 mr-1" />
-                    Özel Talimatlar
+                    {t("adminPage.tabs.agentInstructions")}
                   </TabsTrigger>
                   <TabsTrigger value="ab-test" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-violet-600 data-[state=active]:text-white" data-testid="tab-ab-test">
                     <FlaskConical className="w-3.5 h-3.5 mr-1" />
-                    A/B Test
+                    {t("adminPage.tabs.abTest")}
                   </TabsTrigger>
                   <TabsTrigger value="ai-provider" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-violet-500 data-[state=active]:to-blue-600 data-[state=active]:text-white" data-testid="tab-ai-provider">
                     <Bot className="w-3.5 h-3.5 mr-1" />
-                    AI Provider
+                    {t("adminPage.tabs.aiProvider")}
                   </TabsTrigger>
                 </>
               )}
@@ -5541,27 +5567,27 @@ export default function AdminPage() {
                 <>
                   <TabsTrigger value="messages" className="data-[state=active]:bg-teal-600 data-[state=active]:text-white" data-testid="tab-messages">
                     <MessageSquare className="w-3.5 h-3.5 mr-1" />
-                    Messages
+                    {t("adminPage.tabs.messages")}
                   </TabsTrigger>
                   <TabsTrigger value="spend-analysis" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-500 data-[state=active]:to-teal-600 data-[state=active]:text-white" data-testid="tab-spend-analysis">
                     <BarChart3 className="w-3.5 h-3.5 mr-1" />
-                    Spend
+                    {t("adminPage.tabs.spend")}
                   </TabsTrigger>
                   <TabsTrigger value="token-optimization" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-yellow-500 data-[state=active]:to-amber-600 data-[state=active]:text-white" data-testid="tab-token-optimization">
                     <Zap className="w-3.5 h-3.5 mr-1" />
-                    Token Opt.
+                    {t("adminPage.tabs.tokenOpt")}
                   </TabsTrigger>
                   <TabsTrigger value="costs" className="data-[state=active]:bg-red-600 data-[state=active]:text-white" data-testid="tab-costs">
                     <DollarSign className="w-3.5 h-3.5 mr-1" />
-                    Costs
+                    {t("adminPage.tabs.costs")}
                   </TabsTrigger>
                   <TabsTrigger value="performance" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-500 data-[state=active]:to-emerald-600 data-[state=active]:text-white" data-testid="tab-performance">
                     <Activity className="w-3.5 h-3.5 mr-1" />
-                    Performance
+                    {t("adminPage.tabs.performance")}
                   </TabsTrigger>
                   <TabsTrigger value="conversation-review" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-teal-500 data-[state=active]:to-cyan-600 data-[state=active]:text-white" data-testid="tab-conversation-review">
                     <MessageSquare className="w-3.5 h-3.5 mr-1" />
-                    Conv. Review
+                    {t("adminPage.tabs.convReview")}
                   </TabsTrigger>
                 </>
               )}
@@ -5569,11 +5595,11 @@ export default function AdminPage() {
                 <>
                   <TabsTrigger value="limit-management" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-yellow-500 data-[state=active]:to-orange-600 data-[state=active]:text-white" data-testid="tab-limit-management">
                     <Zap className="w-3.5 h-3.5 mr-1" />
-                    Limit Yönetimi
+                    {t("adminPage.tabs.limitManagement")}
                   </TabsTrigger>
                   <TabsTrigger value="packages" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-violet-500 data-[state=active]:to-purple-600 data-[state=active]:text-white" data-testid="tab-packages">
                     <CreditCard className="w-3.5 h-3.5 mr-1" />
-                    Paketler
+                    {t("adminPage.tabs.packages")}
                   </TabsTrigger>
                 </>
               )}
@@ -5581,23 +5607,23 @@ export default function AdminPage() {
                 <>
                   <TabsTrigger value="guardrails" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-500 data-[state=active]:to-rose-600 data-[state=active]:text-white" data-testid="tab-guardrails">
                     <Shield className="w-3.5 h-3.5 mr-1" />
-                    Guardrails
+                    {t("adminPage.tabs.guardrails")}
                   </TabsTrigger>
                   <TabsTrigger value="support-tickets" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-red-600 data-[state=active]:text-white" data-testid="tab-support-tickets">
                     <HelpCircle className="w-3.5 h-3.5 mr-1" />
-                    Support Tickets
+                    {t("adminPage.tabs.supportTickets")}
                   </TabsTrigger>
                   <TabsTrigger value="security-report" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-600 data-[state=active]:to-orange-600 data-[state=active]:text-white" data-testid="tab-security-report">
                     <AlertTriangle className="w-3.5 h-3.5 mr-1" />
-                    Security
+                    {t("adminPage.tabs.security")}
                   </TabsTrigger>
                   <TabsTrigger value="escalations" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-amber-500 data-[state=active]:to-orange-600 data-[state=active]:text-white" data-testid="tab-escalations">
                     <AlertTriangle className="w-3.5 h-3.5 mr-1" />
-                    Escalations
+                    {t("adminPage.tabs.escalations")}
                   </TabsTrigger>
                   <TabsTrigger value="collaboration" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:to-purple-600 data-[state=active]:text-white" data-testid="tab-collaboration">
                     <Brain className="w-3.5 h-3.5 mr-1" />
-                    Collaboration
+                    {t("adminPage.tabs.collaboration")}
                   </TabsTrigger>
                 </>
               )}

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Copy, Check, Download, ExternalLink, Image as ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from "react-i18next";
 
 interface PublishAssistantData {
   type: "publish_assistant";
@@ -52,6 +53,7 @@ export default function PublishAssistantCard({ data }: { data: PublishAssistantD
   const [copiedCaption, setCopiedCaption] = useState(false);
   const [copiedHashtags, setCopiedHashtags] = useState(false);
   const { toast } = useToast();
+  const { t } = useTranslation("pages");
   const cfg = platformConfig[data.platform] || { icon: "📱", color: "text-gray-400", bg: "bg-gray-500/10", name: data.platform };
 
   const copyToClipboard = async (text: string, type: "caption" | "hashtags") => {
@@ -64,9 +66,9 @@ export default function PublishAssistantCard({ data }: { data: PublishAssistantD
         setCopiedHashtags(true);
         setTimeout(() => setCopiedHashtags(false), 2000);
       }
-      toast({ title: "Copied!", description: `${type === "caption" ? "Caption" : "Hashtags"} copied to clipboard` });
+      toast({ title: t("publishCard.copied"), description: t(type === "caption" ? "publishCard.captionCopied" : "publishCard.hashtagsCopied") });
     } catch {
-      toast({ title: "Error", description: "Failed to copy to clipboard", variant: "destructive" });
+      toast({ title: t("publishCard.error"), description: t("publishCard.copyFailed"), variant: "destructive" });
     }
   };
 
@@ -85,7 +87,7 @@ export default function PublishAssistantCard({ data }: { data: PublishAssistantD
     <div className="my-3 rounded-xl border border-pink-500/30 bg-gradient-to-br from-pink-500/5 to-purple-500/5 overflow-hidden" data-testid="card-publish-assistant">
       <div className={`px-4 py-2.5 flex items-center gap-2 ${cfg.bg} border-b border-pink-500/20`}>
         <span className="text-lg">{cfg.icon}</span>
-        <span className={`text-sm font-semibold ${cfg.color}`}>{cfg.name} — Publish Assistant</span>
+        <span className={`text-sm font-semibold ${cfg.color}`}>{cfg.name} — {t("publishCard.publishAssistant")}</span>
       </div>
 
       <div className="p-4 space-y-3">
@@ -106,7 +108,7 @@ export default function PublishAssistantCard({ data }: { data: PublishAssistantD
               data-testid="button-download-image"
             >
               <Download className="w-3 h-3" />
-              Download
+              {t("publishCard.download")}
             </a>
           </div>
         )}
@@ -124,7 +126,7 @@ export default function PublishAssistantCard({ data }: { data: PublishAssistantD
               data-testid="button-copy-caption"
             >
               {copiedCaption ? <Check className="w-3 h-3 text-green-400" /> : <Copy className="w-3 h-3" />}
-              {copiedCaption ? "Copied!" : "Copy Caption"}
+              {copiedCaption ? t("publishCard.copied") : t("publishCard.copyCaption")}
             </Button>
           </div>
 
@@ -141,7 +143,7 @@ export default function PublishAssistantCard({ data }: { data: PublishAssistantD
                 data-testid="button-copy-hashtags"
               >
                 {copiedHashtags ? <Check className="w-3 h-3 text-green-400" /> : <Copy className="w-3 h-3" />}
-                {copiedHashtags ? "Copied!" : "Copy #"}
+                {copiedHashtags ? t("publishCard.copied") : t("publishCard.copyHashtags")}
               </Button>
             </div>
           )}
@@ -159,7 +161,7 @@ export default function PublishAssistantCard({ data }: { data: PublishAssistantD
             data-testid="button-copy-and-open"
           >
             <Copy className="w-3.5 h-3.5 mr-1" />
-            Copy & Open {cfg.name}
+            {t("publishCard.copyAndOpen", { name: cfg.name })}
           </Button>
           {data.webLink && (
             <Button
@@ -175,10 +177,10 @@ export default function PublishAssistantCard({ data }: { data: PublishAssistantD
         </div>
 
         <div className="flex items-center gap-3 pt-1 text-[10px] text-muted-foreground">
-          <span>1. {data.imageUrl ? "Download image ↓" : "Ready!"}</span>
-          <span>2. Copy caption 📋</span>
-          <span>3. Open app 📱</span>
-          <span>4. Paste & share ✓</span>
+          <span>1. {data.imageUrl ? t("publishCard.step1Download") : t("publishCard.step1Ready")}</span>
+          <span>2. {t("publishCard.step2")}</span>
+          <span>3. {t("publishCard.step3")}</span>
+          <span>4. {t("publishCard.step4")}</span>
         </div>
       </div>
     </div>

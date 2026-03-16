@@ -105,6 +105,7 @@ interface ShippingProvider {
 
 function CrmDocumentsSection() {
   const { toast } = useToast();
+  const { t } = useTranslation("pages");
   const [uploading, setUploading] = useState(false);
 
   const { data: documents = [], refetch } = useQuery<any[]>({
@@ -158,7 +159,7 @@ function CrmDocumentsSection() {
 
     const maxSize = 5 * 1024 * 1024;
     if (file.size > maxSize) {
-      toast({ title: "Dosya Boyutu Aşıldı", description: "Maksimum 5MB yükleyebilirsiniz.", variant: "destructive" });
+      toast({ title: t("settingsPage.crmDocuments.fileSizeExceeded"), description: t("settingsPage.crmDocuments.maxFileSize"), variant: "destructive" });
       e.target.value = "";
       return;
     }
@@ -166,8 +167,8 @@ function CrmDocumentsSection() {
     if (!isAllowedFile(file)) {
       const ext = getFileExtension(file.name);
       toast({
-        title: "Desteklenmeyen Format",
-        description: `"${ext || "bilinmeyen"}" formatı desteklenmiyor. PDF, TXT, CSV, Excel (.xlsx/.xls) veya Word (.doc/.docx) dosyası yükleyin.`,
+        title: t("settingsPage.crmDocuments.unsupportedFormat"),
+        description: t("settingsPage.crmDocuments.unsupportedFormatDesc", { ext: ext || t("settingsPage.crmDocuments.unknownFormat") }),
         variant: "destructive",
       });
       e.target.value = "";
@@ -178,7 +179,7 @@ function CrmDocumentsSection() {
     try {
       const reader = new FileReader();
       reader.onerror = () => {
-        toast({ title: "Hata", description: "Dosya okunamadı. Lütfen tekrar deneyin.", variant: "destructive" });
+        toast({ title: t("settingsPage.crmDocuments.readError"), description: t("settingsPage.crmDocuments.readErrorDesc"), variant: "destructive" });
         setUploading(false);
         e.target.value = "";
       };
@@ -195,13 +196,13 @@ function CrmDocumentsSection() {
             encoding: isTextFile(file) ? "text" : "base64",
           });
           if (res.ok) {
-            toast({ title: "Yüklendi", description: `${file.name} başarıyla yüklendi.` });
+            toast({ title: t("settingsPage.crmDocuments.uploaded"), description: t("settingsPage.crmDocuments.uploadedDesc", { name: file.name }) });
             queryClient.invalidateQueries({ queryKey: ["/api/crm-documents"] });
           } else {
-            toast({ title: "Hata", description: "Dosya yüklenirken sunucu hatası oluştu.", variant: "destructive" });
+            toast({ title: t("settingsPage.crmDocuments.serverError"), description: t("settingsPage.crmDocuments.serverErrorDesc"), variant: "destructive" });
           }
         } catch (err) {
-          toast({ title: "Hata", description: "Dosya yüklenirken bir hata oluştu.", variant: "destructive" });
+          toast({ title: t("settingsPage.crmDocuments.uploadError"), description: t("settingsPage.crmDocuments.uploadErrorDesc"), variant: "destructive" });
         }
         setUploading(false);
         e.target.value = "";
@@ -212,7 +213,7 @@ function CrmDocumentsSection() {
         reader.readAsDataURL(file);
       }
     } catch (err) {
-      toast({ title: "Hata", description: "Dosya yüklenirken bir hata oluştu.", variant: "destructive" });
+      toast({ title: t("settingsPage.crmDocuments.uploadError"), description: t("settingsPage.crmDocuments.uploadErrorDesc"), variant: "destructive" });
       setUploading(false);
       e.target.value = "";
     }
@@ -222,11 +223,11 @@ function CrmDocumentsSection() {
     try {
       const res = await apiRequest("DELETE", `/api/crm-documents/${id}`);
       if (res.ok) {
-        toast({ title: "Silindi", description: `${name} silindi.` });
+        toast({ title: t("settingsPage.crmDocuments.deleted"), description: t("settingsPage.crmDocuments.deletedDesc", { name }) });
         queryClient.invalidateQueries({ queryKey: ["/api/crm-documents"] });
       }
     } catch (err) {
-      toast({ title: "Hata", description: "Silme işlemi başarısız.", variant: "destructive" });
+      toast({ title: t("settingsPage.crmDocuments.deleteError"), description: t("settingsPage.crmDocuments.deleteErrorDesc"), variant: "destructive" });
     }
   };
 
@@ -240,10 +241,10 @@ function CrmDocumentsSection() {
     <Card className="p-4 sm:p-6 bg-card border-border/50" data-testid="card-crm-documents">
       <div className="flex items-center gap-2 mb-2">
         <FileText className="w-5 h-5 text-blue-400" />
-        <h2 className="text-lg font-semibold text-foreground">CRM Dokuman Yonetimi</h2>
+        <h2 className="text-lg font-semibold text-foreground">{t("settingsPage.crmDocuments.title")}</h2>
       </div>
       <p className="text-xs text-muted-foreground mb-4">
-        Musteri listeleri, satis raporlari ve CRM verilerinizi yukleyin. Ajanlariniz bu dokumanlara erisebilir.
+        {t("settingsPage.crmDocuments.description")}
       </p>
 
       <div className="space-y-4">
@@ -258,16 +259,16 @@ function CrmDocumentsSection() {
             />
             <div className="flex items-center gap-2 px-4 py-2 rounded-lg border border-dashed border-blue-400/50 hover:border-blue-400 hover:bg-blue-500/5 transition-colors">
               {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4 text-blue-400" />}
-              <span className="text-sm">{uploading ? "Yukleniyor..." : "Dokuman Yukle"}</span>
+              <span className="text-sm">{uploading ? t("settingsPage.crmDocuments.uploading") : t("settingsPage.crmDocuments.uploadDocument")}</span>
             </div>
           </label>
-          <span className="text-xs text-muted-foreground">PDF, TXT, CSV, Excel, Word — Maks. 5MB</span>
+          <span className="text-xs text-muted-foreground">{t("settingsPage.crmDocuments.fileTypes")}</span>
         </div>
 
         {documents.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
             <FileText className="w-10 h-10 mx-auto mb-2 opacity-30" />
-            <p className="text-sm">Henuz dokuman yuklenmemis</p>
+            <p className="text-sm">{t("settingsPage.crmDocuments.noDocuments")}</p>
           </div>
         ) : (
           <div className="space-y-2">
@@ -358,6 +359,7 @@ export default function Settings() {
   const { user, isLoading: authLoading } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { t } = useTranslation("pages");
 
   const [fullName, setFullName] = useState("");
   const [company, setCompany] = useState("");
@@ -486,10 +488,10 @@ export default function Settings() {
         queryClient.invalidateQueries({ queryKey: ["/api/image-credits"] });
         setSelectedCreditPkg(null);
         setCreditCard({ number: "", expiry: "", cvc: "" });
-        toast({ title: "Credits purchased!", description: data.message });
+        toast({ title: t("settingsPage.toast.creditsPurchased"), description: data.message });
       }
     } catch (err: any) {
-      toast({ title: "Purchase failed", description: err.message || "Failed to purchase credits", variant: "destructive" });
+      toast({ title: t("settingsPage.toast.purchaseFailed"), description: err.message || t("settingsPage.toast.failedPurchaseCredits"), variant: "destructive" });
     } finally {
       setCreditPurchasing(false);
     }
@@ -502,10 +504,10 @@ export default function Settings() {
     },
     onSuccess: (data) => {
       queryClient.setQueryData(["/api/auth/me"], { user: data.user });
-      toast({ title: "Profile updated", description: "Your profile has been saved." });
+      toast({ title: t("settingsPage.toast.profileUpdated"), description: t("settingsPage.toast.profileSaved") });
     },
     onError: (err: any) => {
-      toast({ title: "Error", description: err.message || "Failed to update profile", variant: "destructive" });
+      toast({ title: t("settingsPage.toast.error"), description: err.message || t("settingsPage.toast.failedUpdateProfile"), variant: "destructive" });
     },
   });
 
@@ -518,10 +520,10 @@ export default function Settings() {
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
-      toast({ title: "Password changed", description: "Your password has been updated." });
+      toast({ title: t("settingsPage.toast.passwordChanged"), description: t("settingsPage.toast.passwordUpdated") });
     },
     onError: (err: any) => {
-      toast({ title: "Error", description: err.message || "Failed to change password", variant: "destructive" });
+      toast({ title: t("settingsPage.toast.error"), description: err.message || t("settingsPage.toast.failedChangePassword"), variant: "destructive" });
     },
   });
 
@@ -533,21 +535,21 @@ export default function Settings() {
 
   const handleSaveMember = async () => {
     if (!memberForm.name.trim() || !memberForm.email.trim()) {
-      toast({ title: "Error", description: "Name and email are required", variant: "destructive" });
+      toast({ title: t("settingsPage.toast.error"), description: t("settingsPage.toast.nameEmailRequired"), variant: "destructive" });
       return;
     }
     try {
       if (editingMember) {
         await apiRequest("PATCH", `/api/team-members/${editingMember.id}`, memberForm);
-        toast({ title: "Member updated", description: `${memberForm.name} has been updated.` });
+        toast({ title: t("settingsPage.toast.memberUpdated"), description: t("settingsPage.toast.memberUpdatedDesc", { name: memberForm.name }) });
       } else {
         await apiRequest("POST", "/api/team-members", memberForm);
-        toast({ title: "Member added", description: `${memberForm.name} has been added to your team.` });
+        toast({ title: t("settingsPage.toast.memberAdded"), description: t("settingsPage.toast.memberAddedDesc", { name: memberForm.name }) });
       }
       queryClient.invalidateQueries({ queryKey: ["/api/team-members"] });
       resetMemberForm();
     } catch (err: any) {
-      toast({ title: "Error", description: err.message || "Failed to save team member", variant: "destructive" });
+      toast({ title: t("settingsPage.toast.error"), description: err.message || t("settingsPage.toast.failedSaveMember"), variant: "destructive" });
     }
   };
 
@@ -555,15 +557,15 @@ export default function Settings() {
     try {
       await apiRequest("DELETE", `/api/team-members/${id}`);
       queryClient.invalidateQueries({ queryKey: ["/api/team-members"] });
-      toast({ title: "Member removed", description: `${name} has been removed from your team.` });
+      toast({ title: t("settingsPage.toast.memberRemoved"), description: t("settingsPage.toast.memberRemovedDesc", { name }) });
     } catch (err: any) {
-      toast({ title: "Error", description: err.message || "Failed to remove team member", variant: "destructive" });
+      toast({ title: t("settingsPage.toast.error"), description: err.message || t("settingsPage.toast.failedRemoveMember"), variant: "destructive" });
     }
   };
 
   const handleAddSocialAccount = async () => {
     if (!socialForm.platform || !socialForm.username.trim()) {
-      toast({ title: "Error", description: "Platform and username are required", variant: "destructive" });
+      toast({ title: t("settingsPage.toast.error"), description: t("settingsPage.toast.platformUsernameRequired"), variant: "destructive" });
       return;
     }
     try {
@@ -585,9 +587,9 @@ export default function Settings() {
       queryClient.invalidateQueries({ queryKey: ["/api/social-accounts"] });
       setSocialForm({ platform: "", username: "", profileUrl: "", accountType: "personal", apiKey: "", apiSecret: "", accessToken: "", accessTokenSecret: "", pageId: "", businessAccountId: "" });
       setShowAddSocial(false);
-      toast({ title: "Account connected", description: `${socialForm.platform} account @${socialForm.username.replace(/^@/, "")} has been added.` });
+      toast({ title: t("settingsPage.toast.accountConnected"), description: t("settingsPage.toast.accountConnectedDesc", { platform: socialForm.platform, username: socialForm.username.replace(/^@/, "") }) });
     } catch (err: any) {
-      toast({ title: "Error", description: err.message || "Failed to add account", variant: "destructive" });
+      toast({ title: t("settingsPage.toast.error"), description: err.message || t("settingsPage.toast.failedAddAccount"), variant: "destructive" });
     }
   };
 
@@ -595,9 +597,9 @@ export default function Settings() {
     try {
       await apiRequest("DELETE", `/api/social-accounts/${id}`);
       queryClient.invalidateQueries({ queryKey: ["/api/social-accounts"] });
-      toast({ title: "Account removed", description: `${platform} @${username} has been disconnected.` });
+      toast({ title: t("settingsPage.toast.accountRemoved"), description: t("settingsPage.toast.accountRemovedDesc", { platform, username }) });
     } catch (err: any) {
-      toast({ title: "Error", description: err.message || "Failed to remove account", variant: "destructive" });
+      toast({ title: t("settingsPage.toast.error"), description: err.message || t("settingsPage.toast.failedRemoveAccount"), variant: "destructive" });
     }
   };
 
@@ -629,17 +631,17 @@ export default function Settings() {
   };
 
   const shippingFieldLabels: Record<string, string> = {
-    apiKey: "API Key",
-    customerCode: "Customer Code",
-    username: "Username",
-    password: "Password",
-    accountNumber: "Account Number",
-    siteId: "Site ID",
+    apiKey: t("settingsPage.shipping.fieldLabels.apiKey"),
+    customerCode: t("settingsPage.shipping.fieldLabels.customerCode"),
+    username: t("settingsPage.shipping.fieldLabels.username"),
+    password: t("settingsPage.shipping.fieldLabels.password"),
+    accountNumber: t("settingsPage.shipping.fieldLabels.accountNumber"),
+    siteId: t("settingsPage.shipping.fieldLabels.siteId"),
   };
 
   const handleAddShippingProvider = async () => {
     if (!shippingForm.provider || !shippingForm.apiKey.trim()) {
-      toast({ title: "Error", description: "Provider and API key are required", variant: "destructive" });
+      toast({ title: t("settingsPage.toast.error"), description: t("settingsPage.toast.providerApiKeyRequired"), variant: "destructive" });
       return;
     }
     try {
@@ -654,9 +656,9 @@ export default function Settings() {
       setShippingForm({ provider: "", apiKey: "", customerCode: "", username: "", password: "", accountNumber: "", siteId: "" });
       setShowAddShipping(false);
       const cfg = shippingProviderConfig[shippingForm.provider];
-      toast({ title: "Provider connected", description: `${cfg?.name || shippingForm.provider} has been added.` });
+      toast({ title: t("settingsPage.toast.providerConnected"), description: t("settingsPage.toast.providerConnectedDesc", { name: cfg?.name || shippingForm.provider }) });
     } catch (err: any) {
-      toast({ title: "Error", description: err.message || "Failed to add provider", variant: "destructive" });
+      toast({ title: t("settingsPage.toast.error"), description: err.message || t("settingsPage.toast.failedAddProvider"), variant: "destructive" });
     }
   };
 
@@ -666,7 +668,7 @@ export default function Settings() {
       if (v.trim()) nonEmpty[k] = v.trim();
     }
     if (Object.keys(nonEmpty).length === 0) {
-      toast({ title: "No changes", description: "Enter at least one field to update", variant: "destructive" });
+      toast({ title: t("settingsPage.toast.noChanges"), description: t("settingsPage.toast.enterFieldToUpdate"), variant: "destructive" });
       return;
     }
     setSecretSaving(true);
@@ -677,9 +679,9 @@ export default function Settings() {
       setSecretForm({});
       setVisibleSecretFields({});
       const cfg = shippingProviderConfig[providerKey];
-      toast({ title: "Secrets updated", description: `${cfg?.name || providerKey} credentials have been updated.` });
+      toast({ title: t("settingsPage.toast.secretsUpdated"), description: t("settingsPage.toast.secretsUpdatedDesc", { name: cfg?.name || providerKey }) });
     } catch (err: any) {
-      toast({ title: "Error", description: err.message || "Failed to update secrets", variant: "destructive" });
+      toast({ title: t("settingsPage.toast.error"), description: err.message || t("settingsPage.toast.failedUpdateSecrets"), variant: "destructive" });
     } finally {
       setSecretSaving(false);
     }
@@ -690,15 +692,15 @@ export default function Settings() {
     try {
       await apiRequest("DELETE", `/api/shipping-providers/${id}`);
       queryClient.invalidateQueries({ queryKey: ["/api/shipping-providers"] });
-      toast({ title: "Provider removed", description: `${cfg?.name || providerKey} has been disconnected.` });
+      toast({ title: t("settingsPage.toast.providerRemoved"), description: t("settingsPage.toast.providerRemovedDesc", { name: cfg?.name || providerKey }) });
     } catch (err: any) {
-      toast({ title: "Error", description: err.message || "Failed to remove provider", variant: "destructive" });
+      toast({ title: t("settingsPage.toast.error"), description: err.message || t("settingsPage.toast.failedRemoveProvider"), variant: "destructive" });
     }
   };
 
   const handleSaveWhatsapp = async () => {
     if (!whatsappForm.phoneNumberId.trim() || !whatsappForm.accessToken.trim() || !whatsappForm.verifyToken.trim()) {
-      toast({ title: "Error", description: "Phone Number ID, Access Token, and Verify Token are required", variant: "destructive" });
+      toast({ title: t("settingsPage.toast.error"), description: t("settingsPage.toast.whatsappRequired"), variant: "destructive" });
       return;
     }
     setWhatsappSaving(true);
@@ -712,9 +714,9 @@ export default function Settings() {
       });
       queryClient.invalidateQueries({ queryKey: ["/api/whatsapp/config"] });
       setShowWhatsappSetup(false);
-      toast({ title: "WhatsApp Connected", description: "WhatsApp Business API has been configured successfully." });
+      toast({ title: t("settingsPage.toast.whatsappConnected"), description: t("settingsPage.toast.whatsappConfigured") });
     } catch (err: any) {
-      toast({ title: "Error", description: err.message || "Failed to save WhatsApp config", variant: "destructive" });
+      toast({ title: t("settingsPage.toast.error"), description: err.message || t("settingsPage.toast.failedSaveWhatsapp"), variant: "destructive" });
     } finally {
       setWhatsappSaving(false);
     }
@@ -726,12 +728,12 @@ export default function Settings() {
       const res = await apiRequest("POST", "/api/whatsapp/test");
       const data = await res.json();
       if (data.success) {
-        toast({ title: "Connection Successful", description: `Phone: ${data.phone}${data.name ? ` (${data.name})` : ""}` });
+        toast({ title: t("settingsPage.toast.connectionSuccessful"), description: `Phone: ${data.phone}${data.name ? ` (${data.name})` : ""}` });
       } else {
-        toast({ title: "Connection Failed", description: data.error || "Could not verify WhatsApp connection", variant: "destructive" });
+        toast({ title: t("settingsPage.toast.connectionFailed"), description: data.error || t("settingsPage.toast.couldNotVerifyWhatsapp"), variant: "destructive" });
       }
     } catch (err: any) {
-      toast({ title: "Test Failed", description: err.message || "Connection test failed", variant: "destructive" });
+      toast({ title: t("settingsPage.toast.testFailed"), description: err.message || t("settingsPage.toast.connectionTestFailed"), variant: "destructive" });
     } finally {
       setWhatsappTesting(false);
     }
@@ -742,16 +744,16 @@ export default function Settings() {
       await apiRequest("DELETE", "/api/whatsapp/config");
       queryClient.invalidateQueries({ queryKey: ["/api/whatsapp/config"] });
       setWhatsappForm({ phoneNumberId: "", businessAccountId: "", accessToken: "", verifyToken: "", displayName: "" });
-      toast({ title: "WhatsApp Disconnected", description: "WhatsApp Business API has been removed." });
+      toast({ title: t("settingsPage.toast.whatsappDisconnected"), description: t("settingsPage.toast.whatsappRemoved") });
     } catch (err: any) {
-      toast({ title: "Error", description: err.message || "Failed to disconnect WhatsApp", variant: "destructive" });
+      toast({ title: t("settingsPage.toast.error"), description: err.message || t("settingsPage.toast.failedDisconnectWhatsapp"), variant: "destructive" });
     }
   };
 
   const copyWebhookUrl = () => {
     const url = `${window.location.origin}/api/whatsapp/webhook`;
     navigator.clipboard.writeText(url);
-    toast({ title: "Copied!", description: "Webhook URL copied to clipboard" });
+    toast({ title: t("settingsPage.toast.copied"), description: t("settingsPage.toast.webhookCopied") });
   };
 
   const platformConfig: Record<string, { icon: string; color: string; bgColor: string }> = {
@@ -779,7 +781,7 @@ export default function Settings() {
 
   const handleProfileSave = () => {
     if (!fullName.trim()) {
-      toast({ title: "Error", description: "Full name is required", variant: "destructive" });
+      toast({ title: t("settingsPage.toast.error"), description: t("settingsPage.toast.fullNameRequired"), variant: "destructive" });
       return;
     }
     profileMutation.mutate({ fullName: fullName.trim(), company: company.trim() });
@@ -787,15 +789,15 @@ export default function Settings() {
 
   const handlePasswordChange = () => {
     if (!currentPassword || !newPassword) {
-      toast({ title: "Error", description: "Please fill in all password fields", variant: "destructive" });
+      toast({ title: t("settingsPage.toast.error"), description: t("settingsPage.toast.fillPasswordFields"), variant: "destructive" });
       return;
     }
     if (newPassword.length < 6) {
-      toast({ title: "Error", description: "New password must be at least 6 characters", variant: "destructive" });
+      toast({ title: t("settingsPage.toast.error"), description: t("settingsPage.toast.passwordMinLength"), variant: "destructive" });
       return;
     }
     if (newPassword !== confirmPassword) {
-      toast({ title: "Error", description: "New passwords do not match", variant: "destructive" });
+      toast({ title: t("settingsPage.toast.error"), description: t("settingsPage.toast.passwordsDoNotMatch"), variant: "destructive" });
       return;
     }
     passwordMutation.mutate({ currentPassword, newPassword });
@@ -818,19 +820,19 @@ export default function Settings() {
     : null;
 
   const settingsSections = [
-    { id: "profile", label: "Profile", icon: User },
-    { id: "language", label: "Language", icon: Languages },
-    { id: "integrations", label: "Integrations", icon: Link2 },
-    { id: "personal-gmail", label: "Gmail", icon: Mail },
-    { id: "social-accounts", label: "Social Media", icon: Share2 },
-    { id: "team-members", label: "Team", icon: Users },
-    { id: "whatsapp-business", label: "WhatsApp", icon: Phone },
-    { id: "shipping-providers", label: "Shipping", icon: Package },
-    { id: "crm-documents", label: "CRM", icon: FileText },
-    { id: "api-secrets", label: "API Keys", icon: KeyRound },
-    { id: "subscription", label: "Subscription", icon: CreditCard },
-    { id: "image-credits", label: "Image Credits", icon: Sparkles },
-    { id: "security", label: "Security", icon: Shield },
+    { id: "profile", label: t("settingsPage.nav.profile"), icon: User },
+    { id: "language", label: t("settingsPage.nav.language"), icon: Languages },
+    { id: "integrations", label: t("settingsPage.nav.integrations"), icon: Link2 },
+    { id: "personal-gmail", label: t("settingsPage.nav.gmail"), icon: Mail },
+    { id: "social-accounts", label: t("settingsPage.nav.socialMedia"), icon: Share2 },
+    { id: "team-members", label: t("settingsPage.nav.team"), icon: Users },
+    { id: "whatsapp-business", label: t("settingsPage.nav.whatsapp"), icon: Phone },
+    { id: "shipping-providers", label: t("settingsPage.nav.shipping"), icon: Package },
+    { id: "crm-documents", label: t("settingsPage.nav.crm"), icon: FileText },
+    { id: "api-secrets", label: t("settingsPage.nav.apiKeys"), icon: KeyRound },
+    { id: "subscription", label: t("settingsPage.nav.subscription"), icon: CreditCard },
+    { id: "image-credits", label: t("settingsPage.nav.imageCredits"), icon: Sparkles },
+    { id: "security", label: t("settingsPage.nav.security"), icon: Shield },
   ];
 
   const scrollToSection = (sectionId: string) => {
@@ -851,8 +853,8 @@ export default function Settings() {
               </Button>
             </Link>
             <div>
-              <h1 className="text-xl sm:text-2xl font-bold text-foreground" data-testid="text-settings-title">Settings</h1>
-              <p className="text-muted-foreground text-xs sm:text-sm mt-0.5">Manage your account and preferences</p>
+              <h1 className="text-xl sm:text-2xl font-bold text-foreground" data-testid="text-settings-title">{t("settingsPage.title")}</h1>
+              <p className="text-muted-foreground text-xs sm:text-sm mt-0.5">{t("settingsPage.subtitle")}</p>
             </div>
           </div>
         </div>
@@ -907,22 +909,22 @@ export default function Settings() {
         <Card className="p-4 sm:p-6 bg-card border-border/50" data-testid="card-profile">
           <div className="flex items-center gap-2 mb-5">
             <User className="w-5 h-5 text-blue-400" />
-            <h2 className="text-lg font-semibold text-foreground">Profile</h2>
+            <h2 className="text-lg font-semibold text-foreground">{t("settingsPage.profile.title")}</h2>
           </div>
           <div className="space-y-4">
             <div>
-              <Label htmlFor="fullName" className="text-sm text-muted-foreground">Full Name</Label>
+              <Label htmlFor="fullName" className="text-sm text-muted-foreground">{t("settingsPage.profile.fullName")}</Label>
               <Input
                 id="fullName"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
-                placeholder="Your full name"
+                placeholder={t("settingsPage.profile.fullNamePlaceholder")}
                 className="mt-1.5"
                 data-testid="input-fullname"
               />
             </div>
             <div>
-              <Label htmlFor="email" className="text-sm text-muted-foreground">Email</Label>
+              <Label htmlFor="email" className="text-sm text-muted-foreground">{t("settingsPage.profile.email")}</Label>
               <Input
                 id="email"
                 value={user.email}
@@ -930,15 +932,15 @@ export default function Settings() {
                 className="mt-1.5 opacity-60"
                 data-testid="input-email"
               />
-              <p className="text-xs text-muted-foreground mt-1">Email cannot be changed</p>
+              <p className="text-xs text-muted-foreground mt-1">{t("settingsPage.profile.emailCannotChange")}</p>
             </div>
             <div>
-              <Label htmlFor="company" className="text-sm text-muted-foreground">Company</Label>
+              <Label htmlFor="company" className="text-sm text-muted-foreground">{t("settingsPage.profile.company")}</Label>
               <Input
                 id="company"
                 value={company}
                 onChange={(e) => setCompany(e.target.value)}
-                placeholder="Your company name (optional)"
+                placeholder={t("settingsPage.profile.companyPlaceholder")}
                 className="mt-1.5"
                 data-testid="input-company"
               />
@@ -950,9 +952,9 @@ export default function Settings() {
               data-testid="button-save-profile"
             >
               {profileMutation.isPending ? (
-                <><Loader2 className="w-4 h-4 mr-1.5 animate-spin" />Saving...</>
+                <><Loader2 className="w-4 h-4 mr-1.5 animate-spin" />{t("settingsPage.profile.saving")}</>
               ) : (
-                <><Save className="w-4 h-4 mr-1.5" />Save Changes</>
+                <><Save className="w-4 h-4 mr-1.5" />{t("settingsPage.profile.saveChanges")}</>
               )}
             </Button>
           </div>
@@ -963,7 +965,7 @@ export default function Settings() {
         <Card className="p-4 sm:p-6 bg-card border-border/50" data-testid="card-integrations">
           <div className="flex items-center gap-2 mb-5">
             <Link2 className="w-5 h-5 text-violet-400" />
-            <h2 className="text-lg font-semibold text-foreground">Integrations</h2>
+            <h2 className="text-lg font-semibold text-foreground">{t("settingsPage.integrations.title")}</h2>
           </div>
           <div className="space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-lg bg-muted/30 border border-border/50 gap-3">
@@ -972,19 +974,19 @@ export default function Settings() {
                   <Mail className="w-4 h-4 text-blue-400" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-foreground">Gmail</p>
+                  <p className="text-sm font-medium text-foreground">{t("settingsPage.gmail.title")}</p>
                   <p className="text-xs text-muted-foreground truncate">
                     {emailStatus?.provider === "gmail"
-                      ? (emailStatus.address && emailStatus.address !== "Connected" ? emailStatus.address : "Connected via Google")
-                      : "Connect your Google account for email"}
+                      ? (emailStatus.address && emailStatus.address !== "Connected" ? emailStatus.address : t("settingsPage.integrations.connectedViaGoogle"))
+                      : t("settingsPage.integrations.connectGoogleForEmail")}
                   </p>
                   {emailStatus?.provider === "gmail" && (
                     <div className="flex gap-2 mt-1">
                       <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400">
-                        {"✓ Send"}
+                        {"✓ "}{t("settingsPage.integrations.send")}
                       </span>
                       <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400">
-                        {"✓ Read Inbox"}
+                        {"✓ "}{t("settingsPage.integrations.readInbox")}
                       </span>
                     </div>
                   )}
@@ -995,7 +997,7 @@ export default function Settings() {
                   <>
                     <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/30 gap-1" data-testid="badge-gmail-connected">
                       <CheckCircle2 className="w-3 h-3" />
-                      Connected
+                      {t("settingsPage.integrations.connected")}
                     </Badge>
                     <Button
                       size="sm"
@@ -1008,23 +1010,23 @@ export default function Settings() {
                           await apiRequest("DELETE", "/api/settings/gmail");
                           queryClient.invalidateQueries({ queryKey: ["/api/email-status"] });
                           queryClient.invalidateQueries({ queryKey: ["/api/settings/gmail"] });
-                          toast({ title: "Gmail disconnected", description: "Your Google account has been disconnected." });
+                          toast({ title: t("settingsPage.toast.gmailDisconnected"), description: t("settingsPage.toast.gmailDisconnectedDesc") });
                         } catch {
-                          toast({ title: "Error", description: "Failed to disconnect Gmail.", variant: "destructive" });
+                          toast({ title: t("settingsPage.toast.error"), description: t("settingsPage.toast.failedDisconnectGmail"), variant: "destructive" });
                         } finally {
                           setGmailDisconnecting(false);
                         }
                       }}
                       data-testid="button-disconnect-gmail"
                     >
-                      {gmailDisconnecting ? <><Loader2 className="w-3 h-3 animate-spin mr-1" />Disconnecting...</> : "Disconnect"}
+                      {gmailDisconnecting ? <><Loader2 className="w-3 h-3 animate-spin mr-1" />{t("settingsPage.integrations.disconnecting")}</> : t("settingsPage.integrations.disconnect")}
                     </Button>
                   </>
                 ) : (
                   <>
                     <Badge variant="secondary" className="bg-muted text-muted-foreground gap-1" data-testid="badge-gmail-disconnected">
                       <XCircle className="w-3 h-3" />
-                      Not Connected
+                      {t("settingsPage.integrations.notConnected")}
                     </Badge>
                     <Button
                       size="sm"
@@ -1039,17 +1041,17 @@ export default function Settings() {
                           if (data.url) {
                             window.location.href = data.url;
                           } else {
-                            toast({ title: "Error", description: "Could not generate Google auth URL", variant: "destructive" });
+                            toast({ title: t("settingsPage.toast.error"), description: t("settingsPage.toast.couldNotGenerateGoogleUrl"), variant: "destructive" });
                           }
                         } catch {
-                          toast({ title: "Error", description: "Failed to start Google authentication.", variant: "destructive" });
+                          toast({ title: t("settingsPage.toast.error"), description: t("settingsPage.toast.failedStartGoogleAuth"), variant: "destructive" });
                         } finally {
                           setGmailReconnecting(false);
                         }
                       }}
                       data-testid="button-connect-gmail"
                     >
-                      {gmailReconnecting ? <><Loader2 className="w-3 h-3 animate-spin mr-1" />Connecting...</> : "Connect Gmail"}
+                      {gmailReconnecting ? <><Loader2 className="w-3 h-3 animate-spin mr-1" />{t("settingsPage.integrations.connecting")}</> : t("settingsPage.integrations.connectGmail")}
                     </Button>
                   </>
                 )}
@@ -1061,25 +1063,25 @@ export default function Settings() {
                   <Mail className="w-4 h-4 text-violet-400" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-foreground">Platform Email</p>
-                  <p className="text-xs text-muted-foreground">Fallback email service for agent communications</p>
+                  <p className="text-sm font-medium text-foreground">{t("settingsPage.integrations.platformEmail")}</p>
+                  <p className="text-xs text-muted-foreground">{t("settingsPage.integrations.platformEmailDesc")}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
                 <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/30 gap-1" data-testid="badge-platform-email">
                   <CheckCircle2 className="w-3 h-3" />
-                  Active
+                  {t("settingsPage.integrations.active")}
                 </Badge>
                 <Button
                   size="sm"
                   variant="outline"
                   className="h-7 text-xs text-red-400 border-red-500/30 hover:bg-red-500/10 hover:text-red-300"
                   onClick={async () => {
-                    toast({ title: "Cannot deactivate", description: "Platform email is the default fallback and cannot be disabled.", variant: "destructive" });
+                    toast({ title: t("settingsPage.toast.cannotDeactivate"), description: t("settingsPage.toast.platformEmailDefault"), variant: "destructive" });
                   }}
                   data-testid="button-deactivate-platform-email"
                 >
-                  Deactivate
+                  {t("settingsPage.integrations.deactivate")}
                 </Button>
               </div>
             </div>
@@ -1089,10 +1091,10 @@ export default function Settings() {
         <Card className="p-4 sm:p-6 bg-card border-border/50" data-testid="card-personal-gmail">
           <div className="flex items-center gap-2 mb-5">
             <Mail className="w-5 h-5 text-emerald-400" />
-            <h2 className="text-lg font-semibold text-foreground">Gmail Account</h2>
+            <h2 className="text-lg font-semibold text-foreground">{t("settingsPage.gmail.title")}</h2>
           </div>
           <p className="text-xs text-muted-foreground mb-4">
-            Connect your Google account to let AI agents send and receive emails on your behalf.
+            {t("settingsPage.gmail.description")}
           </p>
           {gmailSettings?.gmailAddress && (gmailSettings?.hasOAuth || gmailSettings?.hasAppPassword) ? (
             <div className="space-y-3">
@@ -1103,7 +1105,7 @@ export default function Settings() {
                   </div>
                   <div>
                     <p className="text-sm font-medium text-foreground" data-testid="text-user-gmail">{gmailSettings.gmailAddress}</p>
-                    <p className="text-xs text-emerald-400">Connected via {gmailSettings.hasOAuth ? "Google OAuth" : "App Password"}</p>
+                    <p className="text-xs text-emerald-400">{t("settingsPage.gmail.connectedVia", { method: gmailSettings.hasOAuth ? t("settingsPage.gmail.googleOAuth") : t("settingsPage.gmail.appPassword") })}</p>
                   </div>
                 </div>
                 <div className="flex gap-2">
@@ -1116,17 +1118,17 @@ export default function Settings() {
                         const res = await apiRequest("GET", "/api/settings/gmail/status");
                         const status = await res.json();
                         if (status.connected) {
-                          toast({ title: "Connection OK", description: `Gmail (${status.email}) is connected via ${status.method === "oauth" ? "Google OAuth" : "App Password"}.` });
+                          toast({ title: t("settingsPage.toast.connectionOk"), description: t("settingsPage.toast.gmailConnectionStatus", { email: status.email, method: status.method === "oauth" ? t("settingsPage.gmail.googleOAuth") : t("settingsPage.gmail.appPassword") }) });
                         } else {
-                          toast({ title: "Not connected", description: "Gmail is not connected.", variant: "destructive" });
+                          toast({ title: t("settingsPage.toast.notConnectedGmail"), description: t("settingsPage.toast.gmailNotConnected"), variant: "destructive" });
                         }
                       } catch {
-                        toast({ title: "Error", description: "Failed to test Gmail connection.", variant: "destructive" });
+                        toast({ title: t("settingsPage.toast.error"), description: t("settingsPage.toast.failedTestGmail"), variant: "destructive" });
                       }
                     }}
                     data-testid="button-test-gmail"
                   >
-                    <RefreshCw className="w-3 h-3 mr-1" />Test
+                    <RefreshCw className="w-3 h-3 mr-1" />{t("settingsPage.gmail.test")}
                   </Button>
                   <Button
                     size="sm"
@@ -1137,14 +1139,14 @@ export default function Settings() {
                         await apiRequest("DELETE", "/api/settings/gmail");
                         queryClient.invalidateQueries({ queryKey: ["/api/settings/gmail"] });
                         queryClient.invalidateQueries({ queryKey: ["/api/email-status"] });
-                        toast({ title: "Gmail disconnected", description: "Your Google account has been disconnected." });
+                        toast({ title: t("settingsPage.toast.gmailDisconnected"), description: t("settingsPage.toast.gmailDisconnectedDesc") });
                       } catch {
-                        toast({ title: "Error", description: "Failed to disconnect Gmail.", variant: "destructive" });
+                        toast({ title: t("settingsPage.toast.error"), description: t("settingsPage.toast.failedDisconnectGmail"), variant: "destructive" });
                       }
                     }}
                     data-testid="button-remove-gmail"
                   >
-                    Disconnect
+                    {t("settingsPage.integrations.disconnect")}
                   </Button>
                 </div>
               </div>
@@ -1160,10 +1162,10 @@ export default function Settings() {
                     if (data.url) {
                       window.location.href = data.url;
                     } else {
-                      toast({ title: "Error", description: "Could not start Google authentication", variant: "destructive" });
+                      toast({ title: t("settingsPage.toast.error"), description: t("settingsPage.toast.couldNotStartGoogleAuth"), variant: "destructive" });
                     }
                   } catch {
-                    toast({ title: "Error", description: "Failed to start Google authentication.", variant: "destructive" });
+                    toast({ title: t("settingsPage.toast.error"), description: t("settingsPage.toast.failedStartGoogleAuth"), variant: "destructive" });
                   } finally {
                     setGmailReconnecting(false);
                   }
@@ -1173,13 +1175,13 @@ export default function Settings() {
                 data-testid="button-connect-gmail-oauth"
               >
                 {gmailReconnecting ? (
-                  <><Loader2 className="w-4 h-4 mr-1.5 animate-spin" />Connecting...</>
+                  <><Loader2 className="w-4 h-4 mr-1.5 animate-spin" />{t("settingsPage.integrations.connecting")}</>
                 ) : (
-                  <><Mail className="w-4 h-4 mr-1.5" />Connect with Google</>
+                  <><Mail className="w-4 h-4 mr-1.5" />{t("settingsPage.gmail.connectWithGoogle")}</>
                 )}
               </Button>
               <p className="text-[10px] text-muted-foreground">
-                You will be redirected to Google to authorize access to your Gmail account.
+                {t("settingsPage.gmail.googleRedirect")}
               </p>
               <Separator className="my-3" />
               <button
@@ -1188,20 +1190,20 @@ export default function Settings() {
                 data-testid="button-toggle-app-password"
               >
                 <KeyRound className="w-3 h-3" />
-                {showAppPassword ? "Hide" : "Or use"} App Password
+                {showAppPassword ? t("settingsPage.gmail.hideAppPassword") : t("settingsPage.gmail.orUseAppPassword")} {t("settingsPage.gmail.appPasswordLabel")}
                 <ChevronDown className={`w-3 h-3 transition-transform ${showAppPassword ? "rotate-180" : ""}`} />
               </button>
               {showAppPassword && (
                 <div className="mt-3 space-y-3 p-3 rounded-lg border border-border/50 bg-muted/30">
                   <p className="text-[10px] text-muted-foreground">
-                    Use a Gmail App Password if you cannot connect via Google OAuth. Generate one at myaccount.google.com &gt; Security &gt; App passwords.
+                    {t("settingsPage.gmail.appPasswordHelp")}
                   </p>
                   <div className="space-y-2">
                     <div>
-                      <Label className="text-xs text-muted-foreground">Gmail Address</Label>
+                      <Label className="text-xs text-muted-foreground">{t("settingsPage.gmail.gmailAddress")}</Label>
                       <Input
                         type="email"
-                        placeholder="your@gmail.com"
+                        placeholder={t("settingsPage.gmail.gmailAddressPlaceholder")}
                         value={appPasswordForm.gmailAddress}
                         onChange={(e) => setAppPasswordForm(f => ({ ...f, gmailAddress: e.target.value }))}
                         className="h-8 text-xs"
@@ -1209,10 +1211,10 @@ export default function Settings() {
                       />
                     </div>
                     <div className="relative">
-                      <Label className="text-xs text-muted-foreground">App Password</Label>
+                      <Label className="text-xs text-muted-foreground">{t("settingsPage.gmail.appPassword")}</Label>
                       <Input
                         type={showAppPass ? "text" : "password"}
-                        placeholder="xxxx xxxx xxxx xxxx"
+                        placeholder={t("settingsPage.gmail.appPasswordPlaceholder")}
                         value={appPasswordForm.gmailAppPassword}
                         onChange={(e) => setAppPasswordForm(f => ({ ...f, gmailAppPassword: e.target.value }))}
                         className="h-8 text-xs pr-8"
@@ -1239,16 +1241,16 @@ export default function Settings() {
                         queryClient.invalidateQueries({ queryKey: ["/api/email-status"] });
                         setAppPasswordForm({ gmailAddress: "", gmailAppPassword: "" });
                         setShowAppPassword(false);
-                        toast({ title: "Gmail connected", description: "Your Gmail App Password has been saved." });
+                        toast({ title: t("settingsPage.toast.gmailConnectedToast"), description: t("settingsPage.toast.gmailAppPasswordSaved") });
                       } catch (err: any) {
-                        toast({ title: "Error", description: err.message || "Failed to save Gmail settings", variant: "destructive" });
+                        toast({ title: t("settingsPage.toast.error"), description: err.message || t("settingsPage.toast.failedSaveGmail"), variant: "destructive" });
                       } finally {
                         setAppPasswordSaving(false);
                       }
                     }}
                     data-testid="button-save-app-password"
                   >
-                    {appPasswordSaving ? <><Loader2 className="w-3 h-3 animate-spin mr-1" />Saving...</> : <><Save className="w-3 h-3 mr-1" />Save App Password</>}
+                    {appPasswordSaving ? <><Loader2 className="w-3 h-3 animate-spin mr-1" />{t("settingsPage.gmail.savingAppPassword")}</> : <><Save className="w-3 h-3 mr-1" />{t("settingsPage.gmail.saveAppPassword")}</>}
                   </Button>
                 </div>
               )}
@@ -1260,7 +1262,7 @@ export default function Settings() {
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-2">
               <Sparkles className="w-5 h-5 text-pink-400" />
-              <h2 className="text-lg font-semibold text-foreground">Social Media Accounts</h2>
+              <h2 className="text-lg font-semibold text-foreground">{t("settingsPage.social.title")}</h2>
               {socialAccountsData && socialAccountsData.length > 0 && (
                 <Badge variant="secondary" className="ml-1" data-testid="badge-social-count">{socialAccountsData.length}</Badge>
               )}
@@ -1272,18 +1274,18 @@ export default function Settings() {
               onClick={() => { setSocialForm({ platform: "", username: "", profileUrl: "", accountType: "personal", apiKey: "", apiSecret: "", accessToken: "", accessTokenSecret: "", pageId: "", businessAccountId: "" }); setShowAddSocial(true); }}
               data-testid="button-add-social"
             >
-              <Plus className="w-3.5 h-3.5 mr-1" />Connect Account
+              <Plus className="w-3.5 h-3.5 mr-1" />{t("settingsPage.social.connectAccount")}
             </Button>
           </div>
           <p className="text-xs text-muted-foreground mb-4">
-            Connect your social media accounts so Maya (Social Media AI) can create content tailored to your profiles and audiences.
+            {t("settingsPage.social.description")}
           </p>
 
           {showAddSocial && (
             <div className="mb-4 p-4 rounded-lg bg-muted/30 border border-pink-500/20 space-y-3">
-              <p className="text-sm font-medium text-foreground">Connect New Account</p>
+              <p className="text-sm font-medium text-foreground">{t("settingsPage.social.connectNew")}</p>
               <div>
-                <Label className="text-xs text-muted-foreground">Platform *</Label>
+                <Label className="text-xs text-muted-foreground">{t("settingsPage.social.platform")}</Label>
                 <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 mt-1.5">
                   {Object.entries(platformConfig).map(([key, cfg]) => (
                     <button
@@ -1303,7 +1305,7 @@ export default function Settings() {
                 </div>
               </div>
               <div>
-                <Label className="text-xs text-muted-foreground">Account Type</Label>
+                <Label className="text-xs text-muted-foreground">{t("settingsPage.social.accountType")}</Label>
                 <div className="flex gap-2 mt-1.5">
                   <button
                     onClick={() => setSocialForm(p => ({ ...p, accountType: "personal" }))}
@@ -1315,7 +1317,7 @@ export default function Settings() {
                     data-testid="button-account-type-personal"
                   >
                     <span className="text-sm">👤</span>
-                    <p className="text-[10px] text-muted-foreground mt-0.5">Personal</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">{t("settingsPage.social.personal")}</p>
                   </button>
                   <button
                     onClick={() => setSocialForm(p => ({ ...p, accountType: "business" }))}
@@ -1327,32 +1329,32 @@ export default function Settings() {
                     data-testid="button-account-type-business"
                   >
                     <span className="text-sm">🔗</span>
-                    <p className="text-[10px] text-muted-foreground mt-0.5">Business / API</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">{t("settingsPage.social.businessApi")}</p>
                   </button>
                 </div>
                 <p className="text-[10px] text-muted-foreground mt-1">
                   {socialForm.accountType === "personal"
-                    ? "Manual sharing — Maya will prepare content for you to copy & paste"
-                    : "Auto-publish — Maya can post directly via API"}
+                    ? t("settingsPage.social.personalDesc")
+                    : t("settingsPage.social.businessDesc")}
                 </p>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <Label className="text-xs text-muted-foreground">Username *</Label>
+                  <Label className="text-xs text-muted-foreground">{t("settingsPage.social.username")}</Label>
                   <Input
                     value={socialForm.username}
                     onChange={(e) => setSocialForm(p => ({ ...p, username: e.target.value }))}
-                    placeholder="@yourusername"
+                    placeholder={t("settingsPage.social.usernamePlaceholder")}
                     className="mt-1 h-8 text-sm"
                     data-testid="input-social-username"
                   />
                 </div>
                 <div>
-                  <Label className="text-xs text-muted-foreground">Profile URL (optional)</Label>
+                  <Label className="text-xs text-muted-foreground">{t("settingsPage.social.profileUrl")}</Label>
                   <Input
                     value={socialForm.profileUrl}
                     onChange={(e) => setSocialForm(p => ({ ...p, profileUrl: e.target.value }))}
-                    placeholder="https://instagram.com/yourusername"
+                    placeholder={t("settingsPage.social.profileUrlPlaceholder")}
                     className="mt-1 h-8 text-sm"
                     data-testid="input-social-url"
                   />
@@ -1361,27 +1363,27 @@ export default function Settings() {
 
               {socialForm.accountType === "business" && (
                 <div className="p-3 rounded-lg bg-blue-500/5 border border-blue-500/20 space-y-3">
-                  <p className="text-xs font-medium text-blue-400">API Credentials</p>
+                  <p className="text-xs font-medium text-blue-400">{t("settingsPage.social.apiCredentials")}</p>
                   {(socialForm.platform === "twitter" || socialForm.platform === "tiktok" || socialForm.platform === "youtube" || !socialForm.platform) && (
                     <>
                       <div className="grid grid-cols-2 gap-2">
                         <div>
-                          <Label className="text-[10px] text-muted-foreground">API Key</Label>
-                          <Input value={socialForm.apiKey} onChange={(e) => setSocialForm(p => ({ ...p, apiKey: e.target.value }))} placeholder="API Key" className="mt-0.5 h-7 text-xs" data-testid="input-api-key" />
+                          <Label className="text-[10px] text-muted-foreground">{t("settingsPage.social.apiKey")}</Label>
+                          <Input value={socialForm.apiKey} onChange={(e) => setSocialForm(p => ({ ...p, apiKey: e.target.value }))} placeholder={t("settingsPage.social.apiKey")} className="mt-0.5 h-7 text-xs" data-testid="input-api-key" />
                         </div>
                         <div>
-                          <Label className="text-[10px] text-muted-foreground">API Secret</Label>
-                          <Input value={socialForm.apiSecret} onChange={(e) => setSocialForm(p => ({ ...p, apiSecret: e.target.value }))} placeholder="API Secret" className="mt-0.5 h-7 text-xs" type="password" data-testid="input-api-secret" />
+                          <Label className="text-[10px] text-muted-foreground">{t("settingsPage.social.apiSecret")}</Label>
+                          <Input value={socialForm.apiSecret} onChange={(e) => setSocialForm(p => ({ ...p, apiSecret: e.target.value }))} placeholder={t("settingsPage.social.apiSecret")} className="mt-0.5 h-7 text-xs" type="password" data-testid="input-api-secret" />
                         </div>
                       </div>
                       <div className="grid grid-cols-2 gap-2">
                         <div>
-                          <Label className="text-[10px] text-muted-foreground">Access Token</Label>
-                          <Input value={socialForm.accessToken} onChange={(e) => setSocialForm(p => ({ ...p, accessToken: e.target.value }))} placeholder="Access Token" className="mt-0.5 h-7 text-xs" data-testid="input-access-token" />
+                          <Label className="text-[10px] text-muted-foreground">{t("settingsPage.social.accessToken")}</Label>
+                          <Input value={socialForm.accessToken} onChange={(e) => setSocialForm(p => ({ ...p, accessToken: e.target.value }))} placeholder={t("settingsPage.social.accessToken")} className="mt-0.5 h-7 text-xs" data-testid="input-access-token" />
                         </div>
                         <div>
-                          <Label className="text-[10px] text-muted-foreground">Access Token Secret</Label>
-                          <Input value={socialForm.accessTokenSecret} onChange={(e) => setSocialForm(p => ({ ...p, accessTokenSecret: e.target.value }))} placeholder="Token Secret" className="mt-0.5 h-7 text-xs" type="password" data-testid="input-access-token-secret" />
+                          <Label className="text-[10px] text-muted-foreground">{t("settingsPage.social.accessTokenSecret")}</Label>
+                          <Input value={socialForm.accessTokenSecret} onChange={(e) => setSocialForm(p => ({ ...p, accessTokenSecret: e.target.value }))} placeholder={t("settingsPage.social.accessTokenSecret")} className="mt-0.5 h-7 text-xs" type="password" data-testid="input-access-token-secret" />
                         </div>
                       </div>
                     </>
@@ -1389,11 +1391,11 @@ export default function Settings() {
                   {(socialForm.platform === "instagram" || socialForm.platform === "facebook") && (
                     <div className="grid grid-cols-2 gap-2">
                       <div>
-                        <Label className="text-[10px] text-muted-foreground">{socialForm.platform === "instagram" ? "Meta Access Token" : "Page Access Token"}</Label>
-                        <Input value={socialForm.accessToken} onChange={(e) => setSocialForm(p => ({ ...p, accessToken: e.target.value }))} placeholder="Access Token" className="mt-0.5 h-7 text-xs" type="password" data-testid="input-access-token" />
+                        <Label className="text-[10px] text-muted-foreground">{socialForm.platform === "instagram" ? t("settingsPage.social.metaAccessToken") : t("settingsPage.social.pageAccessToken")}</Label>
+                        <Input value={socialForm.accessToken} onChange={(e) => setSocialForm(p => ({ ...p, accessToken: e.target.value }))} placeholder={t("settingsPage.social.accessToken")} className="mt-0.5 h-7 text-xs" type="password" data-testid="input-access-token" />
                       </div>
                       <div>
-                        <Label className="text-[10px] text-muted-foreground">{socialForm.platform === "instagram" ? "Business Account ID" : "Page ID"}</Label>
+                        <Label className="text-[10px] text-muted-foreground">{socialForm.platform === "instagram" ? t("settingsPage.social.businessAccountId") : t("settingsPage.social.pageId")}</Label>
                         <Input
                           value={socialForm.platform === "instagram" ? socialForm.businessAccountId : socialForm.pageId}
                           onChange={(e) => setSocialForm(p => ({ ...p, [socialForm.platform === "instagram" ? "businessAccountId" : "pageId"]: e.target.value }))}
@@ -1406,12 +1408,12 @@ export default function Settings() {
                   {socialForm.platform === "linkedin" && (
                     <div className="grid grid-cols-2 gap-2">
                       <div>
-                        <Label className="text-[10px] text-muted-foreground">Access Token</Label>
-                        <Input value={socialForm.accessToken} onChange={(e) => setSocialForm(p => ({ ...p, accessToken: e.target.value }))} placeholder="LinkedIn Access Token" className="mt-0.5 h-7 text-xs" type="password" data-testid="input-access-token" />
+                        <Label className="text-[10px] text-muted-foreground">{t("settingsPage.social.linkedinAccessToken")}</Label>
+                        <Input value={socialForm.accessToken} onChange={(e) => setSocialForm(p => ({ ...p, accessToken: e.target.value }))} placeholder={t("settingsPage.social.linkedinAccessToken")} className="mt-0.5 h-7 text-xs" type="password" data-testid="input-access-token" />
                       </div>
                       <div>
-                        <Label className="text-[10px] text-muted-foreground">Organization ID (optional)</Label>
-                        <Input value={socialForm.businessAccountId} onChange={(e) => setSocialForm(p => ({ ...p, businessAccountId: e.target.value }))} placeholder="Company Page ID" className="mt-0.5 h-7 text-xs" data-testid="input-business-id" />
+                        <Label className="text-[10px] text-muted-foreground">{t("settingsPage.social.organizationId")}</Label>
+                        <Input value={socialForm.businessAccountId} onChange={(e) => setSocialForm(p => ({ ...p, businessAccountId: e.target.value }))} placeholder={t("settingsPage.social.companyPageIdPlaceholder")} className="mt-0.5 h-7 text-xs" data-testid="input-business-id" />
                       </div>
                     </div>
                   )}
@@ -1426,7 +1428,7 @@ export default function Settings() {
                   className="bg-gradient-to-r from-pink-500 to-rose-500 text-white border-0"
                   data-testid="button-save-social"
                 >
-                  <Link2 className="w-3.5 h-3.5 mr-1" />Connect
+                  <Link2 className="w-3.5 h-3.5 mr-1" />{t("settingsPage.social.connect")}
                 </Button>
                 <Button
                   size="sm"
@@ -1434,7 +1436,7 @@ export default function Settings() {
                   onClick={() => setShowAddSocial(false)}
                   data-testid="button-cancel-social"
                 >
-                  Cancel
+                  {t("settingsPage.social.cancel")}
                 </Button>
               </div>
             </div>
@@ -1468,7 +1470,7 @@ export default function Settings() {
                     </div>
                     <div className="flex items-center gap-2">
                       <Badge className={`text-[10px] ${(account as any).accountType === "business" ? "bg-blue-500/10 text-blue-400 border-blue-500/30" : "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"}`}>
-                        {(account as any).accountType === "business" ? "🔗 API" : "👤 Personal"}
+                        {(account as any).accountType === "business" ? `🔗 ${t("settingsPage.social.apiLabel")}` : `👤 ${t("settingsPage.social.personalLabel")}`}
                       </Badge>
                       <button
                         onClick={() => handleDeleteSocialAccount(account.id, account.platform, account.username)}
@@ -1487,8 +1489,8 @@ export default function Settings() {
               <div className="flex justify-center gap-2 mb-2 opacity-30 text-2xl">
                 <span>📸</span><span>𝕏</span><span>💼</span><span>🎵</span><span>▶️</span>
               </div>
-              <p className="text-sm">No social accounts connected</p>
-              <p className="text-xs mt-1">Connect your accounts so Maya can create tailored content for your profiles</p>
+              <p className="text-sm">{t("settingsPage.social.noAccounts")}</p>
+              <p className="text-xs mt-1">{t("settingsPage.social.noAccountsDesc")}</p>
             </div>
           )}
         </Card>
@@ -1497,7 +1499,7 @@ export default function Settings() {
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-2">
               <Users className="w-5 h-5 text-violet-400" />
-              <h2 className="text-lg font-semibold text-foreground">Team Members</h2>
+              <h2 className="text-lg font-semibold text-foreground">{t("settingsPage.team.title")}</h2>
               {teamMembers && teamMembers.length > 0 && (
                 <Badge variant="secondary" className="ml-1" data-testid="badge-team-count">{teamMembers.length}</Badge>
               )}
@@ -1518,75 +1520,75 @@ export default function Settings() {
 
           {showAddMember && (
             <div className="mb-4 p-4 rounded-lg bg-muted/30 border border-violet-500/20 space-y-3">
-              <p className="text-sm font-medium text-foreground">{editingMember ? "Edit Member" : "Add New Member"}</p>
+              <p className="text-sm font-medium text-foreground">{editingMember ? t("settingsPage.team.editMember") : t("settingsPage.team.addNewMember")}</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <Label className="text-xs text-muted-foreground">Name *</Label>
+                  <Label className="text-xs text-muted-foreground">{t("settingsPage.team.name")} *</Label>
                   <Input
                     value={memberForm.name}
                     onChange={(e) => setMemberForm(p => ({ ...p, name: e.target.value }))}
-                    placeholder="John Doe"
+                    placeholder={t("settingsPage.team.namePlaceholder")}
                     className="mt-1 h-8 text-sm"
                     data-testid="input-member-name"
                   />
                 </div>
                 <div>
-                  <Label className="text-xs text-muted-foreground">Email *</Label>
+                  <Label className="text-xs text-muted-foreground">{t("settingsPage.team.email")} *</Label>
                   <Input
                     value={memberForm.email}
                     onChange={(e) => setMemberForm(p => ({ ...p, email: e.target.value }))}
-                    placeholder="john@company.com"
+                    placeholder={t("settingsPage.team.emailPlaceholder")}
                     className="mt-1 h-8 text-sm"
                     data-testid="input-member-email"
                   />
                 </div>
                 <div>
-                  <Label className="text-xs text-muted-foreground">Position</Label>
+                  <Label className="text-xs text-muted-foreground">{t("settingsPage.team.position")}</Label>
                   <Input
                     value={memberForm.position}
                     onChange={(e) => setMemberForm(p => ({ ...p, position: e.target.value }))}
-                    placeholder="Software Engineer"
+                    placeholder={t("settingsPage.team.positionPlaceholder")}
                     className="mt-1 h-8 text-sm"
                     data-testid="input-member-position"
                   />
                 </div>
                 <div>
-                  <Label className="text-xs text-muted-foreground">Department</Label>
+                  <Label className="text-xs text-muted-foreground">{t("settingsPage.team.department")}</Label>
                   <Input
                     value={memberForm.department}
                     onChange={(e) => setMemberForm(p => ({ ...p, department: e.target.value }))}
-                    placeholder="Engineering"
+                    placeholder={t("settingsPage.team.departmentPlaceholder")}
                     className="mt-1 h-8 text-sm"
                     data-testid="input-member-department"
                   />
                 </div>
                 <div>
-                  <Label className="text-xs text-muted-foreground">Phone</Label>
+                  <Label className="text-xs text-muted-foreground">{t("settingsPage.team.phone")}</Label>
                   <Input
                     value={memberForm.phone}
                     onChange={(e) => setMemberForm(p => ({ ...p, phone: e.target.value }))}
-                    placeholder="+1 555 0123"
+                    placeholder={t("settingsPage.team.phonePlaceholder")}
                     className="mt-1 h-8 text-sm"
                     data-testid="input-member-phone"
                   />
                 </div>
                 <div>
-                  <Label className="text-xs text-muted-foreground">Skills</Label>
+                  <Label className="text-xs text-muted-foreground">{t("settingsPage.team.skills")}</Label>
                   <Input
                     value={memberForm.skills}
                     onChange={(e) => setMemberForm(p => ({ ...p, skills: e.target.value }))}
-                    placeholder="React, Node.js, Python"
+                    placeholder={t("settingsPage.team.skillsPlaceholder")}
                     className="mt-1 h-8 text-sm"
                     data-testid="input-member-skills"
                   />
                 </div>
               </div>
               <div>
-                <Label className="text-xs text-muted-foreground">Responsibilities</Label>
+                <Label className="text-xs text-muted-foreground">{t("settingsPage.team.responsibilities")}</Label>
                 <Input
                   value={memberForm.responsibilities}
                   onChange={(e) => setMemberForm(p => ({ ...p, responsibilities: e.target.value }))}
-                  placeholder="Frontend development, code reviews"
+                  placeholder={t("settingsPage.team.responsibilitiesPlaceholder")}
                   className="mt-1 h-8 text-sm"
                   data-testid="input-member-responsibilities"
                 />
@@ -1645,7 +1647,7 @@ export default function Settings() {
                         )}
                       </div>
                       {member.skills && (
-                        <p className="text-[10px] text-muted-foreground mt-1 truncate">Skills: {member.skills}</p>
+                        <p className="text-[10px] text-muted-foreground mt-1 truncate">{t("settingsPage.team.skillsPrefix")}: {member.skills}</p>
                       )}
                     </div>
                   </div>
@@ -1671,8 +1673,8 @@ export default function Settings() {
           ) : (
             <div className="text-center py-6 text-muted-foreground">
               <Users className="w-8 h-8 mx-auto mb-2 opacity-30" />
-              <p className="text-sm">No team members yet</p>
-              <p className="text-xs mt-1">Add your team so AI agents can collaborate effectively</p>
+              <p className="text-sm">{t("settingsPage.team.noMembers")}</p>
+              <p className="text-xs mt-1">{t("settingsPage.team.noMembersDesc")}</p>
             </div>
           )}
         </Card>
@@ -1681,10 +1683,10 @@ export default function Settings() {
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-2">
               <Smartphone className="w-5 h-5 text-green-400" />
-              <h2 className="text-lg font-semibold text-foreground">WhatsApp Business</h2>
+              <h2 className="text-lg font-semibold text-foreground">{t("settingsPage.whatsapp.title")}</h2>
               {whatsappData?.connected && (
                 <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/30 text-[10px] ml-1">
-                  <CheckCircle2 className="w-2.5 h-2.5 mr-0.5" />Connected
+                  <CheckCircle2 className="w-2.5 h-2.5 mr-0.5" />{t("settingsPage.integrations.connected")}
                 </Badge>
               )}
             </div>
@@ -1696,12 +1698,12 @@ export default function Settings() {
                 onClick={() => setShowWhatsappSetup(true)}
                 data-testid="button-connect-whatsapp"
               >
-                <Plus className="w-3.5 h-3.5 mr-1" />Connect WhatsApp
+                <Plus className="w-3.5 h-3.5 mr-1" />{t("settingsPage.whatsapp.connectWhatsapp")}
               </Button>
             )}
           </div>
           <p className="text-xs text-muted-foreground mb-4">
-            Connect your Meta WhatsApp Business API so all AI agents can send WhatsApp messages to your customers — invoices, reminders, follow-ups, and more.
+            {t("settingsPage.whatsapp.description")}
           </p>
 
           {whatsappLoading ? (
@@ -1713,29 +1715,29 @@ export default function Settings() {
               <div className="p-4 rounded-lg bg-muted/30 border border-green-500/20">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Phone Number ID</p>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{t("settingsPage.whatsapp.phoneNumberIdLabel")}</p>
                     <p className="text-sm font-medium text-foreground" data-testid="text-wa-phone-id">{whatsappData.phoneNumberId}</p>
                   </div>
                   {whatsappData.displayName && (
                     <div>
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Display Name</p>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{t("settingsPage.whatsapp.displayNameLabel")}</p>
                       <p className="text-sm font-medium text-foreground" data-testid="text-wa-display-name">{whatsappData.displayName}</p>
                     </div>
                   )}
                   {whatsappData.businessAccountId && (
                     <div>
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Business Account ID</p>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{t("settingsPage.whatsapp.businessAccountIdLabel")}</p>
                       <p className="text-sm font-medium text-foreground">{whatsappData.businessAccountId}</p>
                     </div>
                   )}
                   <div>
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Access Token</p>
-                    <p className="text-sm font-medium text-foreground">****configured</p>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{t("settingsPage.whatsapp.accessTokenLabel")}</p>
+                    <p className="text-sm font-medium text-foreground">{t("settingsPage.whatsapp.accessTokenConfigured")}</p>
                   </div>
                 </div>
 
                 <div className="mt-3 pt-3 border-t border-border/50">
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Webhook URL</p>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">{t("settingsPage.whatsapp.webhookUrl")}</p>
                   <div className="flex items-center gap-2">
                     <code className="text-xs bg-muted/50 px-2 py-1 rounded flex-1 truncate text-foreground" data-testid="text-wa-webhook-url">
                       {typeof window !== "undefined" ? `${window.location.origin}/api/whatsapp/webhook` : "/api/whatsapp/webhook"}
@@ -1745,7 +1747,7 @@ export default function Settings() {
                     </Button>
                   </div>
                   <p className="text-[10px] text-muted-foreground mt-1">
-                    Paste this URL in Meta Business Manager &gt; WhatsApp &gt; Configuration &gt; Webhook URL
+                    {t("settingsPage.whatsapp.webhookPasteHint")}
                   </p>
                 </div>
               </div>
@@ -1760,7 +1762,7 @@ export default function Settings() {
                   data-testid="button-test-whatsapp"
                 >
                   {whatsappTesting ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Zap className="w-3.5 h-3.5 mr-1" />}
-                  Test Connection
+                  {t("settingsPage.whatsapp.testConnection")}
                 </Button>
                 <Button
                   size="sm"
@@ -1769,7 +1771,7 @@ export default function Settings() {
                   onClick={() => { setShowWhatsappSetup(true); setWhatsappForm({ phoneNumberId: whatsappData.phoneNumberId || "", businessAccountId: whatsappData.businessAccountId || "", accessToken: "", verifyToken: "", displayName: whatsappData.displayName || "" }); }}
                   data-testid="button-edit-whatsapp"
                 >
-                  <Pencil className="w-3.5 h-3.5 mr-1" />Update
+                  <Pencil className="w-3.5 h-3.5 mr-1" />{t("settingsPage.whatsapp.updateBtn")}
                 </Button>
                 <Button
                   size="sm"
@@ -1778,7 +1780,7 @@ export default function Settings() {
                   onClick={handleDisconnectWhatsapp}
                   data-testid="button-disconnect-whatsapp"
                 >
-                  <Trash2 className="w-3.5 h-3.5 mr-1" />Disconnect
+                  <Trash2 className="w-3.5 h-3.5 mr-1" />{t("settingsPage.whatsapp.disconnectBtn")}
                 </Button>
               </div>
             </div>
@@ -1786,46 +1788,44 @@ export default function Settings() {
             <div className="p-4 rounded-lg bg-muted/30 border border-green-500/20 space-y-3">
               <div className="flex items-center gap-2 mb-1">
                 <Smartphone className="w-4 h-4 text-green-400" />
-                <p className="text-sm font-medium text-foreground">Connect WhatsApp Business API</p>
+                <p className="text-sm font-medium text-foreground">{t("settingsPage.whatsapp.connectApi")}</p>
               </div>
 
               <div className="p-2 rounded bg-green-500/5 border border-green-500/10">
                 <p className="text-[10px] text-green-400 leading-relaxed">
-                  You need a Meta Business Manager account with WhatsApp Business API enabled.
-                  Go to <span className="font-medium">developers.facebook.com</span> &gt; My Apps &gt; Create App &gt; Business &gt; Add WhatsApp.
-                  Get your Phone Number ID and generate a permanent Access Token.
+                  {t("settingsPage.whatsapp.metaRequirement")}
                 </p>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <Label className="text-xs text-muted-foreground">Phone Number ID *</Label>
+                  <Label className="text-xs text-muted-foreground">{t("settingsPage.whatsapp.phoneNumberIdLabel")} *</Label>
                   <Input
                     value={whatsappForm.phoneNumberId}
                     onChange={(e) => setWhatsappForm(p => ({ ...p, phoneNumberId: e.target.value }))}
-                    placeholder="e.g. 1234567890"
+                    placeholder={t("settingsPage.whatsapp.phoneNumberId")}
                     className="mt-1 h-8 text-sm"
                     data-testid="input-wa-phone-number-id"
                   />
                 </div>
                 <div>
-                  <Label className="text-xs text-muted-foreground">Business Account ID</Label>
+                  <Label className="text-xs text-muted-foreground">{t("settingsPage.whatsapp.businessAccountIdLabel")}</Label>
                   <Input
                     value={whatsappForm.businessAccountId}
                     onChange={(e) => setWhatsappForm(p => ({ ...p, businessAccountId: e.target.value }))}
-                    placeholder="Optional"
+                    placeholder={t("settingsPage.whatsapp.optional")}
                     className="mt-1 h-8 text-sm"
                     data-testid="input-wa-business-id"
                   />
                 </div>
                 <div>
-                  <Label className="text-xs text-muted-foreground">Access Token *</Label>
+                  <Label className="text-xs text-muted-foreground">{t("settingsPage.whatsapp.accessTokenLabel")} *</Label>
                   <div className="relative">
                     <Input
                       type={showWhatsappToken ? "text" : "password"}
                       value={whatsappForm.accessToken}
                       onChange={(e) => setWhatsappForm(p => ({ ...p, accessToken: e.target.value }))}
-                      placeholder="Permanent or long-lived token"
+                      placeholder={t("settingsPage.whatsapp.accessTokenPlaceholder")}
                       className="mt-1 h-8 text-sm pr-8"
                       data-testid="input-wa-access-token"
                     />
@@ -1839,21 +1839,21 @@ export default function Settings() {
                   </div>
                 </div>
                 <div>
-                  <Label className="text-xs text-muted-foreground">Verify Token *</Label>
+                  <Label className="text-xs text-muted-foreground">{t("settingsPage.whatsapp.verifyTokenLabel")} *</Label>
                   <Input
                     value={whatsappForm.verifyToken}
                     onChange={(e) => setWhatsappForm(p => ({ ...p, verifyToken: e.target.value }))}
-                    placeholder="Your chosen webhook verify token"
+                    placeholder={t("settingsPage.whatsapp.verifyTokenPlaceholder")}
                     className="mt-1 h-8 text-sm"
                     data-testid="input-wa-verify-token"
                   />
                 </div>
                 <div className="sm:col-span-2">
-                  <Label className="text-xs text-muted-foreground">Display Name</Label>
+                  <Label className="text-xs text-muted-foreground">{t("settingsPage.whatsapp.displayNameLabel")}</Label>
                   <Input
                     value={whatsappForm.displayName}
                     onChange={(e) => setWhatsappForm(p => ({ ...p, displayName: e.target.value }))}
-                    placeholder="Your business name on WhatsApp"
+                    placeholder={t("settingsPage.whatsapp.displayNamePlaceholder")}
                     className="mt-1 h-8 text-sm"
                     data-testid="input-wa-display-name"
                   />
@@ -1861,7 +1861,7 @@ export default function Settings() {
               </div>
 
               <div className="pt-2 border-t border-border/50">
-                <p className="text-[10px] text-muted-foreground mb-2">Webhook URL (use this in Meta Business Manager):</p>
+                <p className="text-[10px] text-muted-foreground mb-2">{t("settingsPage.whatsapp.webhookForMeta")}</p>
                 <div className="flex items-center gap-2">
                   <code className="text-xs bg-muted/50 px-2 py-1 rounded flex-1 truncate text-foreground">
                     {typeof window !== "undefined" ? `${window.location.origin}/api/whatsapp/webhook` : "/api/whatsapp/webhook"}
@@ -1893,8 +1893,8 @@ export default function Settings() {
               <div className="flex justify-center gap-2 mb-2 opacity-30 text-2xl">
                 <span>📱</span><span>💬</span><span>🟢</span>
               </div>
-              <p className="text-sm">WhatsApp Business not connected</p>
-              <p className="text-xs mt-1">Connect your Meta WhatsApp API to let AI agents message your customers</p>
+              <p className="text-sm">{t("settingsPage.whatsapp.notConnected")}</p>
+              <p className="text-xs mt-1">{t("settingsPage.whatsapp.notConnectedDesc")}</p>
               <a
                 href="https://developers.facebook.com/docs/whatsapp/cloud-api/get-started"
                 target="_blank"
@@ -1903,7 +1903,7 @@ export default function Settings() {
                 data-testid="link-whatsapp-docs"
               >
                 <ExternalLink className="w-3 h-3" />
-                WhatsApp Cloud API Setup Guide
+                {t("settingsPage.whatsapp.setupGuide")}
               </a>
             </div>
           )}
@@ -1913,7 +1913,7 @@ export default function Settings() {
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-2">
               <Package className="w-5 h-5 text-orange-400" />
-              <h2 className="text-lg font-semibold text-foreground">Shipping Providers</h2>
+              <h2 className="text-lg font-semibold text-foreground">{t("settingsPage.shipping.title")}</h2>
               {shippingProvidersData && shippingProvidersData.length > 0 && (
                 <Badge variant="secondary" className="ml-1" data-testid="badge-shipping-count">{shippingProvidersData.length}</Badge>
               )}
@@ -1925,18 +1925,18 @@ export default function Settings() {
               onClick={() => { setShippingForm({ provider: "", apiKey: "", customerCode: "", username: "", password: "", accountNumber: "", siteId: "" }); setShowAddShipping(true); setShowShippingApiKey(false); }}
               data-testid="button-add-shipping"
             >
-              <Plus className="w-3.5 h-3.5 mr-1" />Connect Provider
+              <Plus className="w-3.5 h-3.5 mr-1" />{t("settingsPage.shipping.connectProvider")}
             </Button>
           </div>
           <p className="text-xs text-muted-foreground mb-4">
-            Connect your cargo/shipping provider API so ShopBot (E-Commerce AI) can help with tracking, logistics, and shipping management.
+            {t("settingsPage.shipping.description")}
           </p>
 
           {showAddShipping && (
             <div className="mb-4 p-4 rounded-lg bg-muted/30 border border-orange-500/20 space-y-3">
-              <p className="text-sm font-medium text-foreground">Connect Shipping Provider</p>
+              <p className="text-sm font-medium text-foreground">{t("settingsPage.shipping.connectShippingProvider")}</p>
               <div>
-                <Label className="text-xs text-muted-foreground">Provider *</Label>
+                <Label className="text-xs text-muted-foreground">{t("settingsPage.shipping.provider")} *</Label>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-1.5">
                   {Object.entries(shippingProviderConfig).map(([key, cfg]) => (
                     <button
@@ -2030,7 +2030,7 @@ export default function Settings() {
                         <p className={`text-sm font-medium ${cfg.color} truncate`} data-testid={`text-shipping-name-${sp.id}`}>
                           {cfg.name}
                         </p>
-                        <p className="text-xs text-muted-foreground truncate">API Key: ****{sp.apiKey.slice(-4)}</p>
+                        <p className="text-xs text-muted-foreground truncate">{t("settingsPage.shipping.apiKeyLabel")}: ****{sp.apiKey.slice(-4)}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
@@ -2055,8 +2055,8 @@ export default function Settings() {
               <div className="flex justify-center gap-2 mb-2 opacity-30 text-2xl">
                 <span>📦</span><span>🚛</span><span>📮</span><span>✈️</span>
               </div>
-              <p className="text-sm">No shipping providers connected</p>
-              <p className="text-xs mt-1">Connect your cargo API so ShopBot can help with shipping and logistics</p>
+              <p className="text-sm">{t("settingsPage.shipping.noProviders")}</p>
+              <p className="text-xs mt-1">{t("settingsPage.shipping.noProvidersDesc")}</p>
             </div>
           )}
         </Card>
@@ -2206,20 +2206,20 @@ export default function Settings() {
         <Card className="p-4 sm:p-6 bg-card border-border/50" data-testid="card-subscription">
           <div className="flex items-center gap-2 mb-5">
             <CreditCard className="w-5 h-5 text-emerald-400" />
-            <h2 className="text-lg font-semibold text-foreground">Subscription</h2>
+            <h2 className="text-lg font-semibold text-foreground">{t("settingsPage.subscription.title")}</h2>
           </div>
           <div className="space-y-4">
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               <div className="p-3 rounded-lg bg-muted/30 border border-border/50 text-center">
-                <p className="text-xs text-muted-foreground mb-1">Plan</p>
+                <p className="text-xs text-muted-foreground mb-1">{t("settingsPage.subscription.plan")}</p>
                 <p className="text-lg font-bold text-foreground" data-testid="text-plan-name">
-                  {planName || (user.hasSubscription ? "Active" : "None")}
+                  {planName || (user.hasSubscription ? t("settingsPage.subscription.activeLabel") : t("settingsPage.subscription.none"))}
                 </p>
               </div>
               <div className="p-3 rounded-lg bg-muted/30 border border-border/50 text-center">
                 <div className="flex items-center justify-center gap-1.5 mb-1">
                   <Bot className="w-3 h-3 text-muted-foreground" />
-                  <p className="text-xs text-muted-foreground">Active Workers</p>
+                  <p className="text-xs text-muted-foreground">{t("settingsPage.subscription.activeWorkers")}</p>
                 </div>
                 <p className="text-lg font-bold text-foreground" data-testid="text-active-workers-count">
                   {activeRentals.length}
@@ -2228,7 +2228,7 @@ export default function Settings() {
               <div className="p-3 rounded-lg bg-muted/30 border border-border/50 text-center">
                 <div className="flex items-center justify-center gap-1.5 mb-1">
                   <MessageSquare className="w-3 h-3 text-muted-foreground" />
-                  <p className="text-xs text-muted-foreground">Messages Used</p>
+                  <p className="text-xs text-muted-foreground">{t("settingsPage.subscription.messagesUsed")}</p>
                 </div>
                 <p className="text-lg font-bold text-foreground" data-testid="text-messages-used">
                   {totalMessages}
@@ -2237,7 +2237,7 @@ export default function Settings() {
               <div className="p-3 rounded-lg bg-muted/30 border border-border/50 text-center">
                 <div className="flex items-center justify-center gap-1.5 mb-1">
                   <MessageSquare className="w-3 h-3 text-muted-foreground" />
-                  <p className="text-xs text-muted-foreground">Remaining</p>
+                  <p className="text-xs text-muted-foreground">{t("settingsPage.subscription.remaining")}</p>
                 </div>
                 <p className="text-lg font-bold text-foreground" data-testid="text-messages-remaining">
                   {totalLimit ? totalLimit - totalMessages : 0}
@@ -2247,7 +2247,7 @@ export default function Settings() {
             {totalLimit > 0 && (
               <div>
                 <div className="flex justify-between text-xs text-muted-foreground mb-1.5">
-                  <span>Usage</span>
+                  <span>{t("settingsPage.subscription.usage")}</span>
                   <span>{Math.round((totalMessages / totalLimit) * 100)}%</span>
                 </div>
                 <div className="h-2 bg-muted rounded-full overflow-hidden">
@@ -2264,13 +2264,13 @@ export default function Settings() {
         <Card className="p-4 sm:p-6 bg-card border-border/50" data-testid="card-image-credits">
           <div className="flex items-center gap-2 mb-5">
             <Sparkles className="w-5 h-5 text-yellow-400" />
-            <h2 className="text-lg font-semibold text-foreground">Image Credits</h2>
+            <h2 className="text-lg font-semibold text-foreground">{t("settingsPage.imageCredits.title")}</h2>
           </div>
           <div className="space-y-4">
             <div className="bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border border-yellow-500/20 rounded-lg p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">Available Credits</p>
+                  <p className="text-sm text-muted-foreground">{t("settingsPage.imageCredits.availableCredits")}</p>
                   <p className="text-3xl font-bold text-yellow-400" data-testid="text-image-credits">{creditsData?.credits ?? 0}</p>
                 </div>
                 <div className="w-12 h-12 rounded-full bg-yellow-500/20 flex items-center justify-center">
@@ -2278,12 +2278,12 @@ export default function Settings() {
                 </div>
               </div>
               <p className="text-xs text-muted-foreground mt-2">
-                1 credit = 1 AI image generation or stock photo search (used by Maya - Social Media agent)
+                {t("settingsPage.imageCredits.creditDescription")}
               </p>
             </div>
 
             <div>
-              <p className="text-sm font-medium text-foreground mb-3">Purchase Credits</p>
+              <p className="text-sm font-medium text-foreground mb-3">{t("settingsPage.imageCredits.purchaseCredits")}</p>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {(creditPrices || []).map((price) => (
                   <button
@@ -2297,7 +2297,7 @@ export default function Settings() {
                     data-testid={`button-settings-credits-${price.credits}`}
                   >
                     <p className="text-lg font-bold text-foreground">{price.credits}</p>
-                    <p className="text-[10px] text-muted-foreground">credits</p>
+                    <p className="text-[10px] text-muted-foreground">{t("settingsPage.imageCredits.credits")}</p>
                     <p className="text-sm font-semibold text-yellow-400 mt-1">${(price.amount / 100).toFixed(2)}</p>
                     {price.credits > 1 && (
                       <p className="text-[9px] text-muted-foreground">${(price.amount / price.credits / 100).toFixed(2)}/ea</p>
@@ -2309,9 +2309,9 @@ export default function Settings() {
 
             {selectedCreditPkg && (
               <div className="space-y-3 pt-2 border-t border-border/50">
-                <p className="text-sm font-medium text-foreground">Payment Details</p>
+                <p className="text-sm font-medium text-foreground">{t("settingsPage.imageCredits.paymentDetails")}</p>
                 <div>
-                  <Label className="text-xs text-muted-foreground">Card Number</Label>
+                  <Label className="text-xs text-muted-foreground">{t("settingsPage.imageCredits.cardNumber")}</Label>
                   <Input
                     placeholder="4242 4242 4242 4242"
                     value={creditCard.number}
@@ -2326,7 +2326,7 @@ export default function Settings() {
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <Label className="text-xs text-muted-foreground">Expiry</Label>
+                    <Label className="text-xs text-muted-foreground">{t("settingsPage.imageCredits.expiry")}</Label>
                     <Input
                       placeholder="MM/YY"
                       value={creditCard.expiry}
@@ -2340,7 +2340,7 @@ export default function Settings() {
                     />
                   </div>
                   <div>
-                    <Label className="text-xs text-muted-foreground">CVC</Label>
+                    <Label className="text-xs text-muted-foreground">{t("settingsPage.imageCredits.cvc")}</Label>
                     <Input
                       placeholder="123"
                       value={creditCard.cvc}
@@ -2360,10 +2360,10 @@ export default function Settings() {
                   data-testid="button-settings-purchase-credits"
                 >
                   {creditPurchasing ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <ShoppingCart className="w-4 h-4 mr-2" />}
-                  Purchase {creditPrices?.find(p => p.id === selectedCreditPkg)?.credits} Credits — ${((creditPrices?.find(p => p.id === selectedCreditPkg)?.amount || 0) / 100).toFixed(2)}
+                  {t("settingsPage.imageCredits.purchase", { credits: creditPrices?.find(p => p.id === selectedCreditPkg)?.credits, amount: ((creditPrices?.find(p => p.id === selectedCreditPkg)?.amount || 0) / 100).toFixed(2) })}
                 </Button>
                 <p className="text-[10px] text-muted-foreground text-center">
-                  Test cards: 4242 4242 4242 4242
+                  {t("settingsPage.imageCredits.testCards")}
                 </p>
               </div>
             )}
@@ -2373,18 +2373,18 @@ export default function Settings() {
         <Card className="p-4 sm:p-6 bg-card border-border/50" data-testid="card-security">
           <div className="flex items-center gap-2 mb-5">
             <Shield className="w-5 h-5 text-orange-400" />
-            <h2 className="text-lg font-semibold text-foreground">Security</h2>
+            <h2 className="text-lg font-semibold text-foreground">{t("settingsPage.security.title")}</h2>
           </div>
           <div className="space-y-4">
             <div>
-              <Label htmlFor="currentPassword" className="text-sm text-muted-foreground">Current Password</Label>
+              <Label htmlFor="currentPassword" className="text-sm text-muted-foreground">{t("settingsPage.security.currentPassword")}</Label>
               <div className="relative mt-1.5">
                 <Input
                   id="currentPassword"
                   type={showCurrentPassword ? "text" : "password"}
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
-                  placeholder="Enter current password"
+                  placeholder={t("settingsPage.security.currentPasswordPlaceholder")}
                   data-testid="input-current-password"
                 />
                 <button
@@ -2398,14 +2398,14 @@ export default function Settings() {
               </div>
             </div>
             <div>
-              <Label htmlFor="newPassword" className="text-sm text-muted-foreground">New Password</Label>
+              <Label htmlFor="newPassword" className="text-sm text-muted-foreground">{t("settingsPage.security.newPassword")}</Label>
               <div className="relative mt-1.5">
                 <Input
                   id="newPassword"
                   type={showNewPassword ? "text" : "password"}
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="Enter new password (min 6 characters)"
+                  placeholder={t("settingsPage.security.newPasswordPlaceholder")}
                   data-testid="input-new-password"
                 />
                 <button
@@ -2419,13 +2419,13 @@ export default function Settings() {
               </div>
             </div>
             <div>
-              <Label htmlFor="confirmPassword" className="text-sm text-muted-foreground">Confirm New Password</Label>
+              <Label htmlFor="confirmPassword" className="text-sm text-muted-foreground">{t("settingsPage.security.confirmPassword")}</Label>
               <Input
                 id="confirmPassword"
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Confirm new password"
+                placeholder={t("settingsPage.security.confirmPasswordPlaceholder")}
                 className="mt-1.5"
                 data-testid="input-confirm-password"
               />
@@ -2438,9 +2438,9 @@ export default function Settings() {
               data-testid="button-change-password"
             >
               {passwordMutation.isPending ? (
-                <><Loader2 className="w-4 h-4 mr-1.5 animate-spin" />Changing...</>
+                <><Loader2 className="w-4 h-4 mr-1.5 animate-spin" />{t("settingsPage.security.changing")}</>
               ) : (
-                <><Lock className="w-4 h-4 mr-1.5" />Change Password</>
+                <><Lock className="w-4 h-4 mr-1.5" />{t("settingsPage.security.changePassword")}</>
               )}
             </Button>
           </div>

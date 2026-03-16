@@ -5,7 +5,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import bcrypt from "bcrypt";
 import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
-import { chatMessageSchema, contactFormSchema, registerSchema, loginSchema, newsletterSchema, bossConversations, collaborationSessions, rentals, conversations, chatMessages, insertPageViewSchema, insertUserEventSchema, type User, type AgentTask } from "@shared/schema";
+import { chatMessageSchema, contactFormSchema, registerSchema, loginSchema, newsletterSchema, bossConversations, collaborationSessions, rentals, conversations, chatMessages, type User, type AgentTask } from "@shared/schema";
 import { z } from "zod";
 import { storage } from "./storage";
 import { requireAuth } from "./auth";

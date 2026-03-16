@@ -37,8 +37,10 @@ async function checkAgent(agentId: string): Promise<HeartbeatStatus> {
   }
 
   try {
-    const hasTools = agentToolRegistry[agentId] !== undefined;
-    if (hasTools) {
+    const registeredTools = agentToolRegistry[agentId];
+    if (registeredTools === undefined) {
+      errors.push(`No tool registry entry for ${agentId}`);
+    } else {
       getRelevantToolsForMessage(agentId, "test heartbeat");
     }
   } catch (e: any) {
@@ -77,7 +79,6 @@ export async function runHeartbeatCheck(): Promise<void> {
 
       if (result.status === "healthy") {
         healthyCount++;
-        circuitBreaker.recordSuccess(agentId);
       } else {
         issues.push(`${agentId}: ${result.status} (${result.lastError})`);
         circuitBreaker.forceOpen(agentId);

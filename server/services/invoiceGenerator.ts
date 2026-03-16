@@ -1,12 +1,8 @@
-import puppeteer from "puppeteer";
+import PDFDocument from "pdfkit";
 import type { Invoice, InvoiceItem } from "@shared/schema";
 
 function formatTR(n: number): string {
   return n.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-
-function escapeHtml(str: string): string {
-  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
 }
 
 export function numberToWords(amount: number): string {
@@ -51,131 +47,201 @@ export function numberToWords(amount: number): string {
   return result.trim();
 }
 
-function buildInvoiceHTML(invoice: Invoice, items: InvoiceItem[]): string {
-  const subtotal = parseFloat(invoice.subtotal || "0");
-  const kdvAmount = parseFloat(invoice.kdvAmount || "0");
-  const tevkifatAmount = parseFloat(invoice.tevkifatAmount || "0");
-  const total = parseFloat(invoice.total || "0");
+function toAscii(text: string): string {
+  const map: Record<string, string> = {
+    "ç": "c", "Ç": "C", "ğ": "g", "Ğ": "G", "ı": "i", "İ": "I",
+    "ö": "o", "Ö": "O", "ş": "s", "Ş": "S", "ü": "u", "Ü": "U",
+    "â": "a", "Â": "A", "î": "i", "Î": "I", "û": "u", "Û": "U",
+    "₺": "TL",
+  };
+  return text.replace(/[çÇğĞıİöÖşŞüÜâÂîÎûÛ₺]/g, (ch) => map[ch] || ch);
+}
 
-  const typeLabel = invoice.invoiceType === "iade" ? "İADE FATURASI" : invoice.invoiceType === "tevkifat" ? "TEVKİFATLI FATURA" : "SATIŞ FATURASI";
+const BLUE = "#2563EB";
+const LIGHT_BLUE = "#F0F5FF";
+const DARK = "#333333";
+const GRAY = "#666666";
+const LIGHT_GRAY = "#999999";
 
-  const itemRows = items.map((item, i) => `
-    <tr style="background:${i % 2 === 0 ? "#fff" : "#F0F5FF"}">
-      <td style="padding:8px;border:1px solid #ddd;text-align:center">${i + 1}</td>
-      <td style="padding:8px;border:1px solid #ddd">${escapeHtml(item.description)}</td>
-      <td style="padding:8px;border:1px solid #ddd;text-align:center">${formatTR(parseFloat(item.quantity))}</td>
-      <td style="padding:8px;border:1px solid #ddd;text-align:center">${item.unit || "Adet"}</td>
-      <td style="padding:8px;border:1px solid #ddd;text-align:right">${formatTR(parseFloat(item.unitPrice))} ₺</td>
-      <td style="padding:8px;border:1px solid #ddd;text-align:center">%${item.kdvRate || 20}</td>
-      <td style="padding:8px;border:1px solid #ddd;text-align:right">${formatTR(parseFloat(item.amount))} ₺</td>
-    </tr>
-  `).join("");
-
-  return `<!DOCTYPE html>
-<html><head><meta charset="utf-8">
-<style>
-  body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; padding: 30px; color: #333; font-size: 13px; }
-  .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 25px; border-bottom: 3px solid #2563EB; padding-bottom: 15px; }
-  .header h1 { color: #2563EB; margin: 0; font-size: 22px; }
-  .header .meta { text-align: right; }
-  .parties { display: flex; gap: 30px; margin-bottom: 25px; }
-  .party { flex: 1; padding: 15px; border: 1px solid #ddd; border-radius: 6px; background: #FAFBFF; }
-  .party h3 { margin: 0 0 8px; color: #2563EB; font-size: 13px; text-transform: uppercase; }
-  .party p { margin: 3px 0; font-size: 12px; }
-  table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-  thead th { background: #2563EB; color: white; padding: 10px 8px; font-size: 12px; border: 1px solid #2563EB; }
-  .totals { float: right; width: 300px; }
-  .totals table { margin-bottom: 0; }
-  .totals td { padding: 6px 10px; border: 1px solid #ddd; font-size: 12px; }
-  .totals tr:last-child { background: #2563EB; color: white; font-weight: bold; }
-  .words { clear: both; margin-top: 15px; padding: 10px; background: #F0F5FF; border-radius: 4px; font-size: 12px; }
-  .footer { margin-top: 30px; padding-top: 15px; border-top: 1px solid #ddd; font-size: 10px; color: #888; text-align: center; }
-  .notes { margin-top: 15px; padding: 10px; border-left: 3px solid #2563EB; background: #F8F9FE; font-size: 12px; }
-</style>
-</head><body>
-  <div class="header">
-    <div>
-      <h1>${typeLabel}</h1>
-      <p style="color:#666;margin:5px 0 0">rentai24.com</p>
-    </div>
-    <div class="meta">
-      <p><strong>Fatura No:</strong> ${escapeHtml(invoice.invoiceNo)}</p>
-      <p><strong>Fatura Tarihi:</strong> ${escapeHtml(invoice.invoiceDate)}</p>
-      ${invoice.dueDate ? `<p><strong>Vade Tarihi:</strong> ${escapeHtml(invoice.dueDate)}</p>` : ""}
-    </div>
-  </div>
-
-  <div class="parties">
-    <div class="party">
-      <h3>Satıcı</h3>
-      <p><strong>${escapeHtml(invoice.sellerName || "—")}</strong></p>
-      ${invoice.sellerTaxOffice ? `<p>Vergi Dairesi: ${escapeHtml(invoice.sellerTaxOffice)}</p>` : ""}
-      ${invoice.sellerTaxNo ? `<p>VKN/TCKN: ${escapeHtml(invoice.sellerTaxNo)}</p>` : ""}
-      ${invoice.sellerAddress ? `<p>${escapeHtml(invoice.sellerAddress)}</p>` : ""}
-    </div>
-    <div class="party">
-      <h3>Alıcı</h3>
-      <p><strong>${escapeHtml(invoice.buyerName)}</strong></p>
-      ${invoice.buyerTaxOffice ? `<p>Vergi Dairesi: ${escapeHtml(invoice.buyerTaxOffice)}</p>` : ""}
-      ${invoice.buyerTaxNo ? `<p>VKN/TCKN: ${escapeHtml(invoice.buyerTaxNo)}</p>` : ""}
-      ${invoice.buyerAddress ? `<p>${escapeHtml(invoice.buyerAddress)}</p>` : ""}
-    </div>
-  </div>
-
-  <table>
-    <thead>
-      <tr>
-        <th style="width:40px">#</th>
-        <th>Açıklama</th>
-        <th style="width:70px">Miktar</th>
-        <th style="width:60px">Birim</th>
-        <th style="width:100px">Birim Fiyat</th>
-        <th style="width:60px">KDV</th>
-        <th style="width:110px">Tutar</th>
-      </tr>
-    </thead>
-    <tbody>
-      ${itemRows}
-    </tbody>
-  </table>
-
-  <div class="totals">
-    <table>
-      <tr><td>Ara Toplam</td><td style="text-align:right">${formatTR(subtotal)} ₺</td></tr>
-      <tr><td>KDV (%${invoice.kdvRate || 20})</td><td style="text-align:right">${formatTR(kdvAmount)} ₺</td></tr>
-      ${tevkifatAmount > 0 ? `<tr><td>Tevkifat (${invoice.tevkifatRate})</td><td style="text-align:right">-${formatTR(tevkifatAmount)} ₺</td></tr>` : ""}
-      <tr><td>GENEL TOPLAM</td><td style="text-align:right">${formatTR(total)} ₺</td></tr>
-    </table>
-  </div>
-
-  <div class="words">
-    <strong>Yalnız:</strong> ${numberToWords(total)}
-  </div>
-
-  ${invoice.notes ? `<div class="notes"><strong>Notlar:</strong> ${escapeHtml(invoice.notes)}</div>` : ""}
-
-  <div class="footer">
-    Bu fatura bilgilendirme amaçlıdır. E-Fatura mükellefiyetiniz varsa GİB portalı üzerinden resmi e-fatura düzenlemeniz gerekmektedir.
-  </div>
-</body></html>`;
+function drawLine(doc: InstanceType<typeof PDFDocument>, y: number, x1: number, x2: number, color = "#DDDDDD") {
+  doc.moveTo(x1, y).lineTo(x2, y).strokeColor(color).lineWidth(0.5).stroke();
 }
 
 export async function generateInvoicePDF(invoice: Invoice, items: InvoiceItem[]): Promise<Buffer> {
-  const html = buildInvoiceHTML(invoice, items);
-  const browser = await puppeteer.launch({
-    headless: true,
-    args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"],
+  return new Promise((resolve, reject) => {
+    try {
+      const doc = new PDFDocument({ size: "A4", margin: 40 });
+      const chunks: Buffer[] = [];
+
+      doc.on("data", (chunk: Buffer) => chunks.push(chunk));
+      doc.on("end", () => resolve(Buffer.concat(chunks)));
+      doc.on("error", reject);
+
+      const pageW = doc.page.width - 80;
+      const leftM = 40;
+      const rightEdge = leftM + pageW;
+
+      const subtotal = parseFloat(invoice.subtotal || "0");
+      const kdvAmount = parseFloat(invoice.kdvAmount || "0");
+      const tevkifatAmount = parseFloat(invoice.tevkifatAmount || "0");
+      const total = parseFloat(invoice.total || "0");
+      const typeLabel = invoice.invoiceType === "iade" ? "IADE FATURASI" : invoice.invoiceType === "tevkifat" ? "TEVKIFATLI FATURA" : "SATIS FATURASI";
+
+      doc.fillColor(BLUE).fontSize(20).font("Helvetica-Bold").text(typeLabel, leftM, 40);
+      doc.fillColor(GRAY).fontSize(9).font("Helvetica").text("rentai24.com", leftM, 62);
+
+      doc.fillColor(DARK).fontSize(9).font("Helvetica");
+      const metaX = rightEdge - 180;
+      let metaY = 40;
+      doc.font("Helvetica-Bold").text("Fatura No:", metaX, metaY, { width: 80 });
+      doc.font("Helvetica").text(invoice.invoiceNo, metaX + 82, metaY);
+      metaY += 14;
+      doc.font("Helvetica-Bold").text("Fatura Tarihi:", metaX, metaY, { width: 80 });
+      doc.font("Helvetica").text(invoice.invoiceDate, metaX + 82, metaY);
+      if (invoice.dueDate) {
+        metaY += 14;
+        doc.font("Helvetica-Bold").text("Vade Tarihi:", metaX, metaY, { width: 80 });
+        doc.font("Helvetica").text(invoice.dueDate, metaX + 82, metaY);
+      }
+
+      const headerBottomY = metaY + 22;
+      doc.moveTo(leftM, headerBottomY).lineTo(rightEdge, headerBottomY).strokeColor(BLUE).lineWidth(2).stroke();
+
+      let y = headerBottomY + 15;
+      const partyW = (pageW - 20) / 2;
+
+      doc.fillColor(BLUE).fontSize(10).font("Helvetica-Bold").text("SATICI", leftM + 10, y);
+      doc.fillColor(BLUE).text("ALICI", leftM + partyW + 20 + 10, y);
+      y += 16;
+
+      doc.fillColor(DARK).fontSize(9).font("Helvetica-Bold");
+      doc.text(toAscii(invoice.sellerName || "—"), leftM + 10, y, { width: partyW - 20 });
+      doc.text(toAscii(invoice.buyerName), leftM + partyW + 30, y, { width: partyW - 20 });
+      y += 13;
+
+      doc.font("Helvetica").fontSize(8).fillColor(GRAY);
+      const sellerLines: string[] = [];
+      if (invoice.sellerTaxOffice) sellerLines.push(toAscii(`Vergi Dairesi: ${invoice.sellerTaxOffice}`));
+      if (invoice.sellerTaxNo) sellerLines.push(`VKN/TCKN: ${invoice.sellerTaxNo}`);
+      if (invoice.sellerAddress) sellerLines.push(toAscii(invoice.sellerAddress));
+
+      const buyerLines: string[] = [];
+      if (invoice.buyerTaxOffice) buyerLines.push(toAscii(`Vergi Dairesi: ${invoice.buyerTaxOffice}`));
+      if (invoice.buyerTaxNo) buyerLines.push(`VKN/TCKN: ${invoice.buyerTaxNo}`);
+      if (invoice.buyerAddress) buyerLines.push(toAscii(invoice.buyerAddress));
+
+      const maxLines = Math.max(sellerLines.length, buyerLines.length);
+      for (let i = 0; i < maxLines; i++) {
+        if (sellerLines[i]) doc.text(sellerLines[i], leftM + 10, y, { width: partyW - 20 });
+        if (buyerLines[i]) doc.text(buyerLines[i], leftM + partyW + 30, y, { width: partyW - 20 });
+        y += 12;
+      }
+
+      y += 10;
+
+      const colWidths = [30, pageW - 30 - 50 - 50 - 80 - 45 - 80, 50, 50, 80, 45, 80];
+      const colStarts: number[] = [];
+      let cx = leftM;
+      for (const w of colWidths) { colStarts.push(cx); cx += w; }
+      const colHeaders = ["#", "Aciklama", "Miktar", "Birim", "Birim Fiyat", "KDV", "Tutar"];
+      const colAligns: ("left" | "center" | "right")[] = ["center", "left", "center", "center", "right", "center", "right"];
+
+      doc.rect(leftM, y, pageW, 20).fill(BLUE);
+      doc.fillColor("white").fontSize(8).font("Helvetica-Bold");
+      for (let i = 0; i < colHeaders.length; i++) {
+        const align = colAligns[i];
+        const textX = align === "right" ? colStarts[i] : colStarts[i] + 4;
+        const textW = align === "right" ? colWidths[i] - 8 : colWidths[i] - 8;
+        doc.text(colHeaders[i], textX, y + 5, { width: textW, align });
+      }
+      y += 20;
+
+      doc.font("Helvetica").fontSize(8).fillColor(DARK);
+      items.forEach((item, idx) => {
+        if (y > doc.page.height - 120) {
+          doc.addPage();
+          y = 40;
+        }
+
+        if (idx % 2 === 0) {
+          doc.rect(leftM, y, pageW, 18).fill(LIGHT_BLUE);
+        }
+
+        doc.fillColor(DARK).fontSize(8).font("Helvetica");
+        const rowY = y + 4;
+        const rowData = [
+          String(idx + 1),
+          toAscii(item.description),
+          formatTR(parseFloat(item.quantity)),
+          toAscii(item.unit || "Adet"),
+          formatTR(parseFloat(item.unitPrice)) + " TL",
+          `%${item.kdvRate || 20}`,
+          formatTR(parseFloat(item.amount)) + " TL",
+        ];
+
+        for (let i = 0; i < rowData.length; i++) {
+          const align = colAligns[i];
+          const textX = align === "right" ? colStarts[i] : colStarts[i] + 4;
+          const textW = align === "right" ? colWidths[i] - 8 : colWidths[i] - 8;
+          doc.text(rowData[i], textX, rowY, { width: textW, align });
+        }
+        y += 18;
+      });
+
+      drawLine(doc, y, leftM, rightEdge);
+      y += 15;
+
+      const totalsX = rightEdge - 200;
+      const totalsLabelW = 110;
+      const totalsValW = 80;
+
+      const totalRows: [string, string][] = [
+        ["Ara Toplam:", formatTR(subtotal) + " TL"],
+        [`KDV (%${invoice.kdvRate || 20}):`, formatTR(kdvAmount) + " TL"],
+      ];
+      if (tevkifatAmount > 0) {
+        totalRows.push([`Tevkifat (${invoice.tevkifatRate}):`, "-" + formatTR(tevkifatAmount) + " TL"]);
+      }
+
+      doc.font("Helvetica").fontSize(9).fillColor(DARK);
+      for (const [label, val] of totalRows) {
+        doc.text(label, totalsX, y, { width: totalsLabelW, align: "right" });
+        doc.text(val, totalsX + totalsLabelW + 5, y, { width: totalsValW, align: "right" });
+        y += 14;
+      }
+
+      y += 2;
+      doc.rect(totalsX - 5, y - 2, totalsLabelW + totalsValW + 15, 20).fill(BLUE);
+      doc.fillColor("white").font("Helvetica-Bold").fontSize(10);
+      doc.text("GENEL TOPLAM:", totalsX, y + 3, { width: totalsLabelW, align: "right" });
+      doc.text(formatTR(total) + " TL", totalsX + totalsLabelW + 5, y + 3, { width: totalsValW, align: "right" });
+      y += 30;
+
+      doc.fillColor(DARK).font("Helvetica").fontSize(8);
+      doc.rect(leftM, y, pageW, 18).fill(LIGHT_BLUE);
+      doc.fillColor(GRAY).text(`Yalniz: ${toAscii(numberToWords(total))}`, leftM + 8, y + 4, { width: pageW - 16 });
+      y += 28;
+
+      if (invoice.notes) {
+        doc.moveTo(leftM, y).lineTo(leftM, y + 30).strokeColor(BLUE).lineWidth(2).stroke();
+        doc.fillColor(DARK).font("Helvetica-Bold").fontSize(8).text("Notlar:", leftM + 8, y + 2);
+        doc.font("Helvetica").fillColor(GRAY).text(toAscii(invoice.notes), leftM + 8, y + 13, { width: pageW - 20 });
+        y += 40;
+      }
+
+      const footerY = doc.page.height - 50;
+      drawLine(doc, footerY, leftM, rightEdge);
+      doc.fillColor(LIGHT_GRAY).fontSize(7).font("Helvetica");
+      doc.text(
+        "Bu fatura bilgilendirme amaclidir. E-Fatura mukellefiyetiniz varsa GIB portali uzerinden resmi e-fatura duzenlemeniz gerekmektedir.",
+        leftM,
+        footerY + 5,
+        { width: pageW, align: "center" }
+      );
+
+      doc.end();
+    } catch (err) {
+      reject(err);
+    }
   });
-  try {
-    const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: "networkidle0" });
-    const pdf = await page.pdf({
-      format: "A4",
-      printBackground: true,
-      margin: { top: "15mm", bottom: "15mm", left: "10mm", right: "10mm" },
-    });
-    return Buffer.from(pdf);
-  } finally {
-    await browser.close();
-  }
 }

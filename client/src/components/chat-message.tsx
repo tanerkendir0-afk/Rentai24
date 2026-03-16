@@ -187,16 +187,60 @@ const createComponents = (isUser: boolean): Components => ({
     <blockquote className="border-l-2 border-current/20 pl-3 my-2 opacity-80 italic">{children}</blockquote>
   ),
   hr: () => <hr className="my-3 border-current/10" />,
-  a: ({ href, children }) => (
-    <a
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
-      className={`underline underline-offset-2 decoration-1 ${isUser ? "text-blue-100 hover:text-white" : "text-blue-400 hover:text-blue-300"}`}
-    >
-      {children}
-    </a>
-  ),
+  a: ({ href, children }) => {
+    const isDownloadLink = href && (href.match(/^\/api\/invoices\/\d+\/(pdf|excel)/) || href.match(/^\/api\/reports\/[^/]+\/download/));
+    if (isDownloadLink) {
+      return (
+        <button
+          type="button"
+          onClick={async () => {
+            try {
+              const res = await fetch(href, { credentials: "include" });
+              if (!res.ok) throw new Error("Download failed");
+              const blob = await res.blob();
+              const disposition = res.headers.get("Content-Disposition");
+              let filename = "download";
+              if (disposition) {
+                const match = disposition.match(/filename="?([^";\n]+)"?/);
+                if (match) filename = match[1];
+              } else if (href.endsWith("/pdf")) {
+                filename = "Fatura.pdf";
+              } else if (href.endsWith("/excel")) {
+                filename = "Fatura.xlsx";
+              } else {
+                filename = "Rapor.xlsx";
+              }
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url;
+              a.download = filename;
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+              URL.revokeObjectURL(url);
+            } catch {
+              alert("Dosya indirilemedi. Lütfen tekrar deneyin.");
+            }
+          }}
+          className={`inline-flex items-center gap-1 underline underline-offset-2 decoration-1 cursor-pointer ${isUser ? "text-blue-100 hover:text-white" : "text-blue-400 hover:text-blue-300"}`}
+          data-testid="button-download-file"
+        >
+          <Download className="w-3 h-3" />
+          {children}
+        </button>
+      );
+    }
+    return (
+      <a
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={`underline underline-offset-2 decoration-1 ${isUser ? "text-blue-100 hover:text-white" : "text-blue-400 hover:text-blue-300"}`}
+      >
+        {children}
+      </a>
+    );
+  },
   img: ({ src, alt }) => <ChatImage src={src} alt={alt} isUser={isUser} />,
   table: ({ children }) => (
     <div className={`my-2 overflow-x-auto rounded-lg border ${isUser ? "border-white/15" : "border-border/30"}`}>

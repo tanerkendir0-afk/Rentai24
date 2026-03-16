@@ -29,7 +29,7 @@ import {
   Zap,
   Loader2,
 } from "lucide-react";
-import { agents } from "@/data/agents";
+import { useLocalizedAgents } from "@/hooks/use-localized-agents";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -51,6 +51,7 @@ const agentIcons: Record<string, any> = {
 
 export default function WorkerProfile() {
   const { t } = useTranslation("pages");
+  const agents = useLocalizedAgents();
   const { slug } = useParams<{ slug: string }>();
   const agent = agents.find((a) => a.slug === slug);
   const { user } = useAuth();

@@ -1141,6 +1141,12 @@
       "finn": "Finans",
       "cal": "Planlama",
       "harper": "İK"
+    },
+    "chat": {
+      "msg1": "Hey Rex, yeni ürün lansmanımız için soğuk e-posta taslağı hazırlayabilir misin?",
+      "msg2": "Tabii! Teknoloji CTO'larını hedefleyen kişiselleştirilmiş bir soğuk e-posta hazırladım. Potansiyel müşteri listenize göndereyim mi?",
+      "msg3": "Mükemmel, en iyi 50 müşteriye gönder!",
+      "msg4": "Tamamlandı! 50 e-posta gönderildi. Açılma oranlarını takip edip 3 gün içinde otomatik takip yapacağım."
     }
   },
   "settingsPage": {

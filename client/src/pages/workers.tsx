@@ -40,7 +40,7 @@ import {
   MessageSquare,
   SlidersHorizontal,
 } from "lucide-react";
-import { agents, categories } from "@/data/agents";
+import { useLocalizedAgents, useLocalizedCategories } from "@/hooks/use-localized-agents";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -68,6 +68,8 @@ const stagger = {
 
 export default function Workers() {
   const { t } = useTranslation("pages");
+  const agents = useLocalizedAgents();
+  const categories = useLocalizedCategories();
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("All");
   const [priceFilter, setPriceFilter] = useState("all");

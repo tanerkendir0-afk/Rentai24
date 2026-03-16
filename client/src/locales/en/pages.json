@@ -1141,6 +1141,12 @@
       "finn": "Finance",
       "cal": "Schedule",
       "harper": "HR"
+    },
+    "chat": {
+      "msg1": "Hey Rex, can you draft a cold outreach email for our new product launch?",
+      "msg2": "Sure! I've drafted a personalized cold email targeting tech CTOs. Shall I send it to your leads list?",
+      "msg3": "Perfect, send it out to the top 50 leads!",
+      "msg4": "Done! 50 emails sent. I'll track open rates and follow up in 3 days automatically."
     }
   },
   "settingsPage": {

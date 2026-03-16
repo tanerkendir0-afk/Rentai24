@@ -126,12 +126,12 @@ function ChatAnimation({ active }: { active: boolean }) {
   useEffect(() => {
     if (!active) { setMessages([]); return; }
     const msgs = [
-      { from: "user", text: "Hey Rex, can you draft a cold outreach email for our new product launch?" },
+      { from: "user", text: t("platformGuide.chat.msg1") },
       { from: "agent", text: "", typing: true },
-      { from: "agent", text: "Sure! I've drafted a personalized cold email targeting tech CTOs. Shall I send it to your leads list?" },
-      { from: "user", text: "Perfect, send it out to the top 50 leads!" },
+      { from: "agent", text: t("platformGuide.chat.msg2") },
+      { from: "user", text: t("platformGuide.chat.msg3") },
       { from: "agent", text: "", typing: true },
-      { from: "agent", text: "Done! 50 emails sent. I'll track open rates and follow up in 3 days automatically." },
+      { from: "agent", text: t("platformGuide.chat.msg4") },
     ];
     const timers: ReturnType<typeof setTimeout>[] = [];
     let delay = 300;

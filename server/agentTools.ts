@@ -11,6 +11,7 @@ import { computeLeadScore } from "./leadScoring";
 import { generateInvoicePDF } from "./services/invoiceGenerator";
 import { generateInvoiceExcel } from "./services/invoiceExcelGenerator";
 import { generateMizan, generateBordro, generateGelirTablosu, generateKdvOzet } from "./services/reportGenerator";
+import { hesaplaKDV, hesaplaBordro, hesaplaAmortisman, hesaplaKurDegerlemesi, hesaplaStopaj, formatYevmiyeKaydi, yevmiyeToMarkdown, formatTL } from "./services/calculationService";
 import { db } from "./db";
 import { invoices, invoiceItems } from "@shared/schema";
 
@@ -1064,6 +1065,121 @@ export const bookkeepingTools: OpenAI.ChatCompletionTool[] = [
   {
     type: "function",
     function: {
+      name: "calculate_kdv",
+      description: "KDV hesaplama yapar. KDV dahil/hariç ayırma, tevkifat hesaplama. Kullanıcı herhangi bir KDV hesaplaması istediğinde MUTLAKA bu tool'u kullan, kendin hesaplama.",
+      parameters: {
+        type: "object",
+        properties: {
+          tutar: { type: "number", description: "Tutar" },
+          kdvOrani: { type: "number", enum: [1, 10, 20], description: "KDV oranı, default 20" },
+          dahilMi: { type: "boolean", description: "true: KDV dahil fiyattan ayır, false: KDV hariç fiyata ekle" },
+          tevkifatOrani: { type: "string", enum: ["9/10", "7/10", "5/10", "3/10", "2/10"], description: "Tevkifat oranı (varsa)" }
+        },
+        required: ["tutar"]
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "calculate_bordro",
+      description: "Brüt maaştan net maaş ve tüm kesintileri hesaplar (SGK, GV, damga vergisi, AGİ, BES). Bordro sorusu geldiğinde MUTLAKA bu tool'u kullan, kendin hesaplama.",
+      parameters: {
+        type: "object",
+        properties: {
+          brutUcret: { type: "number", description: "Brüt ücret (TL)" },
+          cocukSayisi: { type: "number", description: "Çocuk sayısı (AGİ için)" },
+          medeniDurum: { type: "string", enum: ["bekar", "evli"], description: "Medeni durum" },
+          besOrani: { type: "number", description: "BES kesinti oranı (yüzde, örn: 3)" },
+          kumulatifGvMatrahi: { type: "number", description: "Önceki aylardan kümülatif GV matrahı" }
+        },
+        required: ["brutUcret"]
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "calculate_amortisman",
+      description: "Sabit kıymet amortisman hesaplama ve tablo oluşturma. Normal veya azalan bakiyeler yöntemi.",
+      parameters: {
+        type: "object",
+        properties: {
+          maliyet: { type: "number", description: "Sabit kıymet maliyeti (TL)" },
+          faydaliOmur: { type: "number", description: "Faydalı ömür (yıl)" },
+          yontem: { type: "string", enum: ["normal", "azalan"], description: "Normal (doğrusal) veya azalan bakiyeler" }
+        },
+        required: ["maliyet"]
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "calculate_kur_degerleme",
+      description: "Dönem sonu döviz kur değerlemesi hesaplama ve yevmiye kaydı. VUK md. 280 kurallarına göre.",
+      parameters: {
+        type: "object",
+        properties: {
+          dovizTutar: { type: "number", description: "Döviz tutarı" },
+          dovizCinsi: { type: "string", description: "USD, EUR vb." },
+          kayitKuru: { type: "number", description: "İlk kayıt kuru" },
+          degerlemeKuru: { type: "number", description: "Değerleme günü TCMB kuru" },
+          hesapTuru: { type: "string", enum: ["alacak", "borc"], description: "Alacak mı borç mu?" }
+        },
+        required: ["dovizTutar", "dovizCinsi", "kayitKuru", "degerlemeKuru", "hesapTuru"]
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "calculate_stopaj",
+      description: "Serbest meslek, kira, royalty vb. ödemeler için stopaj ve KDV tevkifat hesaplama. Yevmiye kaydı dahil.",
+      parameters: {
+        type: "object",
+        properties: {
+          brutTutar: { type: "number", description: "Brüt ödeme tutarı" },
+          gelirTuru: { type: "string", enum: ["serbest_meslek", "kira", "royalty", "insaat", "diger"], description: "Gelir türü" },
+          kdvOrani: { type: "number", enum: [1, 10, 20], description: "KDV oranı" },
+          kdvTevkifatOrani: { type: "string", enum: ["9/10", "7/10", "5/10", "3/10", "2/10"], description: "KDV tevkifat oranı (varsa)" }
+        },
+        required: ["brutTutar", "gelirTuru"]
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "format_yevmiye",
+      description: "Muhasebe yevmiye kaydı oluşturur. Borç/alacak tablosu formatında. Herhangi bir muhasebe kaydı istendiğinde bu tool'u kullan.",
+      parameters: {
+        type: "object",
+        properties: {
+          tarih: { type: "string", description: "Kayıt tarihi (GG.AA.YYYY)" },
+          aciklama: { type: "string", description: "İşlem açıklaması" },
+          satirlar: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                hesapKodu: { type: "string", description: "Tekdüzen hesap kodu (örn: 120)" },
+                hesapAdi: { type: "string", description: "Hesap adı (örn: Alıcılar)" },
+                borc: { type: "number", description: "Borç tutarı (0 ise alacak)" },
+                alacak: { type: "number", description: "Alacak tutarı (0 ise borç)" }
+              },
+              required: ["hesapKodu", "hesapAdi", "borc", "alacak"]
+            },
+            description: "Yevmiye satırları"
+          }
+        },
+        required: ["tarih", "aciklama", "satirlar"]
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "generate_mizan",
       description: "Geçici mizan raporu oluşturur (Excel). Hesap kodları, borç/alacak toplamları ve kalanlarıyla Excel çıktısı üretir.",
       parameters: {
@@ -1536,6 +1652,12 @@ const TOOL_KEYWORD_MAP: Record<string, string[]> = {
   generate_income_statement: ["income statement", "gelir tablosu", "kâr zarar"],
   calculate_payroll: ["payroll", "bordro", "maaş", "brüt", "net", "SGK"],
   calculate_withholding: ["withholding", "stopaj", "tevkifat", "kesinti"],
+  calculate_kdv: ["KDV", "kdv", "katma değer", "vergi", "tevkifat", "dahil", "hariç"],
+  calculate_bordro: ["bordro", "maaş", "brüt", "net", "SGK", "AGİ", "BES", "kesinti"],
+  calculate_amortisman: ["amortisman", "sabit kıymet", "depreciation", "faydalı ömür", "azalan"],
+  calculate_kur_degerleme: ["kur", "döviz", "değerleme", "kambiyo", "VUK 280"],
+  calculate_stopaj: ["stopaj", "serbest meslek", "kira", "royalty", "tevkifat"],
+  format_yevmiye: ["yevmiye", "muhasebe kaydı", "borç alacak", "journal entry", "hesap"],
   generate_mizan: ["mizan", "hesap planı", "trial balance", "borç alacak"],
   generate_bordro: ["bordro", "maaş bordro", "payroll report", "ücret bordro"],
   generate_gelir_tablosu: ["gelir tablosu", "income statement", "kâr zarar", "kar zarar", "brüt kâr"],
@@ -4185,6 +4307,105 @@ ${activeRentals.map(r => `  ${r.agentType}: ${r.messagesUsed}/${r.messagesLimit}
         result: `📋 STOPAJ HESAPLAMA\n══════════════════════════════════\n\nTür: ${config.label}\nYasal Dayanak: ${config.law}\nOran: %${(config.rate * 100).toFixed(0)}\n\nBrüt Tutar: ₺${formatNum(grossAmount)}\nStopaj (${isGross ? "kesilen" : "hesaplanan"}): ₺${formatNum(withholdingAmount)}\nNet Tutar: ₺${formatNum(netAmount)}\n\n══════════════════════════════════\nMuhasebe Kaydı:\n  Borç: 770 GYG / 740 Hizmet Üretim — ₺${formatNum(grossAmount)}\n  Alacak: 360 Ödenecek Vergi — ₺${formatNum(withholdingAmount)}\n  Alacak: 320 Satıcılar / 102 Banka — ₺${formatNum(netAmount)}`,
         actionType: "withholding_calculated",
         actionDescription: `📋 Stopaj: ${config.label} — ₺${formatNum(withholdingAmount)}`,
+      };
+    }
+
+    case "calculate_kdv": {
+      const result = hesaplaKDV(args.tutar, args.kdvOrani, args.dahilMi, args.tevkifatOrani);
+      await storage.createAgentAction({
+        userId, agentType,
+        actionType: "kdv_calculated",
+        description: `🧮 KDV hesaplama: ${formatTL(result.netTutar)} + KDV %${result.kdvOrani} = ${formatTL(result.toplamTutar)}`,
+        metadata: result,
+      });
+      return {
+        result: JSON.stringify(result),
+        actionType: "kdv_calculated",
+        actionDescription: `🧮 KDV: ${formatTL(result.toplamTutar)}`,
+      };
+    }
+
+    case "calculate_bordro": {
+      const result = hesaplaBordro({
+        brutUcret: args.brutUcret,
+        cocukSayisi: args.cocukSayisi,
+        medeniDurum: args.medeniDurum,
+        besOrani: args.besOrani,
+        kumulatifGvMatrahi: args.kumulatifGvMatrahi
+      });
+      await storage.createAgentAction({
+        userId, agentType,
+        actionType: "bordro_calculated",
+        description: `🧮 Bordro: Brüt ${formatTL(result.brutUcret)} → Net ${formatTL(result.netUcret)}`,
+        metadata: result,
+      });
+      return {
+        result: JSON.stringify(result),
+        actionType: "bordro_calculated",
+        actionDescription: `🧮 Bordro: Net ${formatTL(result.netUcret)}`,
+      };
+    }
+
+    case "calculate_amortisman": {
+      const result = hesaplaAmortisman(args.maliyet, args.faydaliOmur, args.yontem);
+      await storage.createAgentAction({
+        userId, agentType,
+        actionType: "amortisman_calculated",
+        description: `🧮 Amortisman (${result.yontem}): ${formatTL(args.maliyet)} — ${result.faydaliOmur} yıl — yıllık ${formatTL(result.yillikAmortisman)}`,
+        metadata: result,
+      });
+      return {
+        result: JSON.stringify(result),
+        actionType: "amortisman_calculated",
+        actionDescription: `🧮 Amortisman: ${formatTL(result.yillikAmortisman)}/yıl`,
+      };
+    }
+
+    case "calculate_kur_degerleme": {
+      const result = hesaplaKurDegerlemesi(
+        args.dovizTutar, args.dovizCinsi, args.kayitKuru, args.degerlemeKuru, args.hesapTuru
+      );
+      await storage.createAgentAction({
+        userId, agentType,
+        actionType: "kur_degerleme_calculated",
+        description: `🧮 Kur değerleme: ${result.dovizTutar} ${result.dovizCinsi} — ${result.kurFarkiTuru === 'kambiyo_kari' ? 'Kambiyo Kârı' : 'Kambiyo Zararı'} ${formatTL(result.kurFarki)}`,
+        metadata: result,
+      });
+      return {
+        result: JSON.stringify(result),
+        actionType: "kur_degerleme_calculated",
+        actionDescription: `🧮 Kur: ${formatTL(result.kurFarki)} ${result.kurFarkiTuru === 'kambiyo_kari' ? 'kâr' : 'zarar'}`,
+      };
+    }
+
+    case "calculate_stopaj": {
+      const result = hesaplaStopaj(args.brutTutar, args.gelirTuru, args.kdvOrani, args.kdvTevkifatOrani);
+      await storage.createAgentAction({
+        userId, agentType,
+        actionType: "stopaj_calculated",
+        description: `🧮 Stopaj: ${formatTL(result.brutTutar)} brüt — %${result.stopajOrani} stopaj = ${formatTL(result.stopajTutari)}`,
+        metadata: result,
+      });
+      return {
+        result: JSON.stringify(result),
+        actionType: "stopaj_calculated",
+        actionDescription: `🧮 Stopaj: ${formatTL(result.stopajTutari)}`,
+      };
+    }
+
+    case "format_yevmiye": {
+      const kayit = formatYevmiyeKaydi(args.tarih, args.aciklama, args.satirlar);
+      const md = yevmiyeToMarkdown(kayit);
+      await storage.createAgentAction({
+        userId, agentType,
+        actionType: "yevmiye_formatted",
+        description: `📋 Yevmiye kaydı: ${args.aciklama} — ${kayit.satirlar.length} satır — ${kayit.dengeli ? 'Dengeli' : 'DENGESİZ!'}`,
+        metadata: kayit,
+      });
+      return {
+        result: md,
+        actionType: "yevmiye_formatted",
+        actionDescription: `📋 Yevmiye: ${args.aciklama}`,
       };
     }
 

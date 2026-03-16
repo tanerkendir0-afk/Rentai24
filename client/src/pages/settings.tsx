@@ -1074,12 +1074,13 @@ export default function Settings() {
                 onClick={async () => {
                   setEnrichmentSaving(true);
                   try {
-                    const payload: Record<string, unknown> = {};
-                    if (profileIndustry) payload.industry = profileIndustry;
-                    if (profileCompanySize) payload.companySize = profileCompanySize;
-                    if (profileCountry) payload.country = profileCountry;
-                    if (profileIntendedAgents.length > 0) payload.intendedAgents = profileIntendedAgents;
-                    if (profileReferralSource) payload.referralSource = profileReferralSource;
+                    const payload = {
+                      industry: profileIndustry || null,
+                      companySize: profileCompanySize || null,
+                      country: profileCountry || null,
+                      intendedAgents: profileIntendedAgents.length > 0 ? profileIntendedAgents : null,
+                      referralSource: profileReferralSource || null,
+                    };
                     const res = await apiRequest("PATCH", "/api/auth/onboarding", payload);
                     const data = await res.json();
                     queryClient.setQueryData(["/api/auth/me"], { user: data.user });

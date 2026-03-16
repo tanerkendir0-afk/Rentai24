@@ -5,7 +5,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import bcrypt from "bcrypt";
 import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
-import { chatMessageSchema, contactFormSchema, registerSchema, loginSchema, newsletterSchema, bossConversations, collaborationSessions, rentals, type User, type AgentTask } from "@shared/schema";
+import { chatMessageSchema, contactFormSchema, registerSchema, loginSchema, newsletterSchema, bossConversations, collaborationSessions, rentals, conversations, chatMessages, type User, type AgentTask } from "@shared/schema";
 import { z } from "zod";
 import { storage } from "./storage";
 import { requireAuth } from "./auth";
@@ -642,11 +642,11 @@ export async function registerRoutes(
       dataProcessingConsent: true,
     });
 
-    const ip = req.headers["x-forwarded-for"]?.toString().split(",")[0]?.trim() || req.socket.remoteAddress || "unknown";
+    const ipAddress = req.headers["x-forwarded-for"]?.toString().split(",")[0]?.trim() || req.socket.remoteAddress || "unknown";
     const userAgent = req.headers["user-agent"] || "unknown";
     try {
-      await storage.createConsentLog({ userId: user.id, consentType: "kvkk", granted: true, ip, userAgent });
-      await storage.createConsentLog({ userId: user.id, consentType: "dataProcessing", granted: true, ip, userAgent });
+      await storage.createConsentLog({ userId: user.id, consentType: "kvkk", granted: true, ipAddress, userAgent });
+      await storage.createConsentLog({ userId: user.id, consentType: "dataProcessing", granted: true, ipAddress, userAgent });
       await storage.updateUserConsent(user.id, { dataProcessingConsent: true });
     } catch (e) {
       console.error("Failed to persist registration consent logs:", e);
@@ -5043,6 +5043,8 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
       const socialData = await storage.getSocialAccounts(userId);
       const consentData = await storage.getConsentLogs(userId);
       const crmDocs = await storage.getCrmDocuments(userId);
+      const conversationsData = await db.select().from(conversations).where(eq(conversations.userId, userId)).orderBy(desc(conversations.createdAt));
+      const chatMessagesData = await db.select().from(chatMessages).where(eq(chatMessages.userId, userId)).orderBy(desc(chatMessages.createdAt));
       const exportData = {
         exportDate: new Date().toISOString(),
         profile: {
@@ -5062,6 +5064,8 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
         leads: leadsData.map(l => ({ ...l })),
         supportTickets: ticketsData,
         agentTasks: tasksData,
+        conversations: conversationsData,
+        chatHistory: chatMessagesData,
         socialAccounts: socialData.map(s => ({ id: s.id, platform: s.platform, username: s.username, status: s.status, connectedAt: s.connectedAt })),
         consentHistory: consentData,
         crmDocuments: crmDocs.map(d => ({ id: d.id, originalName: d.originalName, fileType: d.fileType, fileSize: d.fileSize, uploadedAt: d.uploadedAt })),

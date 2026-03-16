@@ -3,11 +3,13 @@ import { Button } from "@/components/ui/button";
 import { Cookie, Shield, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { apiRequest } from "@/lib/queryClient";
+import { useAuth } from "@/lib/auth";
 import { Link } from "wouter";
 
 export default function CookieConsent() {
   const { t } = useTranslation("common");
   const [visible, setVisible] = useState(false);
+  const { user } = useAuth();
 
   useEffect(() => {
     const consent = localStorage.getItem("cookie_consent");
@@ -16,6 +18,15 @@ export default function CookieConsent() {
       return () => clearTimeout(timer);
     }
   }, []);
+
+  useEffect(() => {
+    if (user) {
+      const consent = localStorage.getItem("cookie_consent");
+      if (consent === "accepted") {
+        apiRequest("POST", "/api/consent", { consentType: "cookie", granted: true }).catch(() => {});
+      }
+    }
+  }, [user]);
 
   const handleConsent = async (granted: boolean) => {
     localStorage.setItem("cookie_consent", granted ? "accepted" : "rejected");

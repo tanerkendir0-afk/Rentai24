@@ -2020,11 +2020,18 @@
     "namePlaceholder": "Ad Soyad",
     "cardPlaceholder": "4242 4242 4242 4242",
     "expiryPlaceholder": "AA/YY",
-    "cvcPlaceholder": "123"
+    "cvcPlaceholder": "123",
+    "custom": "Özel"
   },
   "homePage": {
     "stats": {
       "hrsMo": "sa/ay"
+    },
+    "testimonials": {
+      "at": "-",
+      "prevAriaLabel": "Önceki referans",
+      "nextAriaLabel": "Sonraki referans",
+      "testimonial": "Referans"
     }
   }
 }

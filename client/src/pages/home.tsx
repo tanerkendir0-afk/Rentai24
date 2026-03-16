@@ -320,7 +320,7 @@ function AgentsScene({ active }: { active: boolean }) {
                 transition={{ delay: 0.8 + i * 0.1 }}
               >
                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                <span className="text-[8px] text-emerald-400">{ta("heroRoles.ready", "Ready")}</span>
+                <span className="text-[8px] text-emerald-400">{ta("heroRoles.ready")}</span>
               </motion.div>
             </motion.div>
           );
@@ -1300,7 +1300,7 @@ export default function Home() {
                     <div>
                       <div className="font-semibold text-foreground text-sm sm:text-base">{testimonials[testimonialIdx].name}</div>
                       <div className="text-xs sm:text-sm text-muted-foreground">
-                        {testimonials[testimonialIdx].role} at {testimonials[testimonialIdx].company}
+                        {testimonials[testimonialIdx].role} {t("homePage.testimonials.at")} {testimonials[testimonialIdx].company}
                       </div>
                     </div>
                   </div>
@@ -1314,18 +1314,18 @@ export default function Home() {
             </Card>
 
             <div className="flex items-center justify-center gap-2 mt-4 sm:mt-6">
-              <Button size="icon" variant="ghost" className="h-8 w-8 sm:h-9 sm:w-9" aria-label="Previous testimonial" onClick={() => setTestimonialIdx((p) => (p === 0 ? testimonials.length - 1 : p - 1))} data-testid="button-testimonial-prev">
+              <Button size="icon" variant="ghost" className="h-8 w-8 sm:h-9 sm:w-9" aria-label={t("homePage.testimonials.prevAriaLabel")} onClick={() => setTestimonialIdx((p) => (p === 0 ? testimonials.length - 1 : p - 1))} data-testid="button-testimonial-prev">
                 <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
               </Button>
               <div className="flex gap-2">
                 {testimonials.map((_, i) => (
-                  <button key={i} onClick={() => setTestimonialIdx(i)} aria-label={`Testimonial ${i + 1}`}
+                  <button key={i} onClick={() => setTestimonialIdx(i)} aria-label={`${t("homePage.testimonials.testimonial")} ${i + 1}`}
                     className={`w-2 h-2 rounded-full transition-all duration-300 ${i === testimonialIdx ? "bg-blue-500 scale-125" : "bg-muted hover:bg-muted-foreground/30"}`}
                     data-testid={`button-testimonial-dot-${i}`}
                   />
                 ))}
               </div>
-              <Button size="icon" variant="ghost" className="h-8 w-8 sm:h-9 sm:w-9" aria-label="Next testimonial" onClick={() => setTestimonialIdx((p) => (p === testimonials.length - 1 ? 0 : p + 1))} data-testid="button-testimonial-next">
+              <Button size="icon" variant="ghost" className="h-8 w-8 sm:h-9 sm:w-9" aria-label={t("homePage.testimonials.nextAriaLabel")} onClick={() => setTestimonialIdx((p) => (p === testimonials.length - 1 ? 0 : p + 1))} data-testid="button-testimonial-next">
                 <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
               </Button>
             </div>

@@ -115,7 +115,7 @@ export default function Pricing() {
 
                   <div className="mb-8">
                     <span className="text-4xl font-bold bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent">
-                      {plan.price}
+                      {plan.price === "custom" ? t("pricingPage.custom") : plan.price}
                     </span>
                     {plan.per && <span className="text-muted-foreground text-sm">{plan.per}</span>}
                   </div>

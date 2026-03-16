@@ -2020,11 +2020,18 @@
     "namePlaceholder": "John Doe",
     "cardPlaceholder": "4242 4242 4242 4242",
     "expiryPlaceholder": "MM/YY",
-    "cvcPlaceholder": "123"
+    "cvcPlaceholder": "123",
+    "custom": "Custom"
   },
   "homePage": {
     "stats": {
       "hrsMo": "hrs/mo"
+    },
+    "testimonials": {
+      "at": "at",
+      "prevAriaLabel": "Previous testimonial",
+      "nextAriaLabel": "Next testimonial",
+      "testimonial": "Testimonial"
     }
   }
 }

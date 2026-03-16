@@ -1,4 +1,81 @@
 {
+  "onboarding": {
+    "title": "Welcome! Tell us about yourself",
+    "description": "Help us personalize your experience. All fields are optional — you can skip this anytime.",
+    "industry": "Industry",
+    "companySize": "Company Size",
+    "country": "Country",
+    "intendedAgents": "Which AI agents interest you?",
+    "intendedAgentsHint": "Select the agents you plan to use",
+    "referralSource": "How did you hear about us?",
+    "selectPlaceholder": "Select...",
+    "skip": "Skip for now",
+    "submit": "Continue",
+    "successTitle": "Profile updated!",
+    "successDescription": "Thanks for sharing. We'll tailor your experience.",
+    "errorTitle": "Update failed",
+    "errorDescription": "Something went wrong. You can update this later in Settings.",
+    "industries": {
+      "technology": "Technology",
+      "finance": "Finance / Accounting",
+      "healthcare": "Healthcare",
+      "ecommerce": "E-commerce / Retail",
+      "realEstate": "Real Estate",
+      "marketing": "Marketing / Agency",
+      "manufacturing": "Manufacturing",
+      "education": "Education",
+      "consulting": "Consulting",
+      "other": "Other"
+    },
+    "companySizes": {
+      "1-10": "1-10 employees",
+      "11-50": "11-50 employees",
+      "51-200": "51-200 employees",
+      "201-1000": "201-1000 employees",
+      "1000+": "1000+ employees"
+    },
+    "countries": {
+      "TR": "Turkey",
+      "US": "United States",
+      "GB": "United Kingdom",
+      "DE": "Germany",
+      "FR": "France",
+      "NL": "Netherlands",
+      "AE": "UAE",
+      "SA": "Saudi Arabia",
+      "JP": "Japan",
+      "KR": "South Korea",
+      "IN": "India",
+      "BR": "Brazil",
+      "CA": "Canada",
+      "AU": "Australia",
+      "ES": "Spain",
+      "IT": "Italy",
+      "SE": "Sweden",
+      "NO": "Norway",
+      "DK": "Denmark",
+      "FI": "Finland",
+      "PL": "Poland",
+      "CZ": "Czech Republic",
+      "AT": "Austria",
+      "CH": "Switzerland",
+      "BE": "Belgium",
+      "PT": "Portugal",
+      "GR": "Greece",
+      "RO": "Romania",
+      "BG": "Bulgaria",
+      "HR": "Croatia",
+      "other": "Other"
+    },
+    "referralSources": {
+      "socialMedia": "Social Media",
+      "searchEngine": "Search Engine",
+      "friendColleague": "Friend / Colleague",
+      "blogArticle": "Blog / Article",
+      "advertisement": "Advertisement",
+      "other": "Other"
+    }
+  },
   "notFound": {
     "title": "404",
     "heading": "Page Not Found",
@@ -1185,8 +1262,15 @@
       "emailCannotChange": "Email cannot be changed",
       "company": "Company",
       "companyPlaceholder": "Your company name (optional)",
+      "industry": "Industry",
+      "companySize": "Company Size",
+      "country": "Country",
+      "intendedAgents": "Intended Agents",
+      "referralSource": "Referral Source",
       "saving": "Saving...",
-      "saveChanges": "Save Changes"
+      "saveChanges": "Save Changes",
+      "profileSaved": "Profile enrichment saved",
+      "profileSavedDesc": "Your profile details have been updated."
     },
     "integrations": {
       "title": "Integrations",
@@ -1610,7 +1694,8 @@
       "escalations": "Escalations",
       "collaboration": "Collaboration",
       "consentStats": "KVKK/GDPR",
-      "behaviorAnalytics": "User Behavior"
+      "behaviorAnalytics": "User Behavior",
+      "demographics": "Demographics"
     },
     "login": {
       "passwordPlaceholder": "Admin Password",
@@ -1618,6 +1703,18 @@
       "accessPanel": "Access Admin Panel",
       "title": "RentAI 24 Admin",
       "subtitle": "Enter admin password to continue"
+    },
+    "demographics": {
+      "title": "User Demographics",
+      "onboardingCompleted": "Onboarding Completed",
+      "onboardingPending": "Onboarding Pending",
+      "totalUsers": "Total Users",
+      "industryDistribution": "Industry Distribution",
+      "companySizeDistribution": "Company Size Distribution",
+      "countryDistribution": "Country Distribution",
+      "referralDistribution": "Referral Source Distribution",
+      "intendedAgentsDistribution": "Intended Agents",
+      "noData": "No data yet"
     },
     "users": {
       "searchPlaceholder": "Search by name, email, or company...",

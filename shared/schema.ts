@@ -34,6 +34,12 @@ export const users = pgTable("users", {
   language: text("language").notNull().default("en"),
   cookieConsent: boolean("cookie_consent").notNull().default(false),
   dataProcessingConsent: boolean("data_processing_consent").notNull().default(false),
+  industry: text("industry"),
+  companySize: text("company_size"),
+  country: text("country"),
+  intendedAgents: text("intended_agents").array(),
+  referralSource: text("referral_source"),
+  onboardingCompleted: boolean("onboarding_completed").notNull().default(false),
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
 });
 

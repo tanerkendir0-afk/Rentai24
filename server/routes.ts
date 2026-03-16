@@ -655,7 +655,7 @@ export async function registerRoutes(
     req.session.userId = user.id;
     req.session.save(() => {
       res.json({
-        user: { id: user.id, username: user.username, email: user.email, fullName: user.fullName, company: user.company, role: user.role, language: user.language },
+        user: { id: user.id, username: user.username, email: user.email, fullName: user.fullName, company: user.company, role: user.role, language: user.language, onboardingCompleted: user.onboardingCompleted, industry: user.industry, companySize: user.companySize, country: user.country, intendedAgents: user.intendedAgents, referralSource: user.referralSource },
       });
     });
   });
@@ -690,7 +690,7 @@ export async function registerRoutes(
       req.session.userId = user.id;
       req.session.save(() => {
         res.json({
-          user: { id: user.id, username: user.username, email: user.email, fullName: user.fullName, company: user.company, role: user.role, language: user.language },
+          user: { id: user.id, username: user.username, email: user.email, fullName: user.fullName, company: user.company, role: user.role, language: user.language, onboardingCompleted: user.onboardingCompleted, industry: user.industry, companySize: user.companySize, country: user.country, intendedAgents: user.intendedAgents, referralSource: user.referralSource },
         });
       });
     });
@@ -725,6 +725,12 @@ export async function registerRoutes(
         role: user.role,
         language: user.language,
         hasSubscription: !!user.stripeSubscriptionId,
+        onboardingCompleted: user.onboardingCompleted,
+        industry: user.industry,
+        companySize: user.companySize,
+        country: user.country,
+        intendedAgents: user.intendedAgents,
+        referralSource: user.referralSource,
       },
     });
   });
@@ -827,6 +833,57 @@ export async function registerRoutes(
         role: updated.role,
         language: updated.language,
         hasSubscription: !!updated.stripeSubscriptionId,
+        onboardingCompleted: updated.onboardingCompleted,
+        industry: updated.industry,
+        companySize: updated.companySize,
+        country: updated.country,
+        intendedAgents: updated.intendedAgents,
+        referralSource: updated.referralSource,
+      },
+    });
+  });
+
+  const ALLOWED_INDUSTRIES = ["technology", "finance", "healthcare", "ecommerce", "realEstate", "marketing", "manufacturing", "education", "consulting", "other"] as const;
+  const ALLOWED_COMPANY_SIZES = ["1-10", "11-50", "51-200", "201-1000", "1000+"] as const;
+  const ALLOWED_COUNTRIES = ["TR", "US", "GB", "DE", "FR", "NL", "AE", "SA", "JP", "KR", "IN", "BR", "CA", "AU", "ES", "IT", "SE", "NO", "DK", "FI", "PL", "CZ", "AT", "CH", "BE", "PT", "GR", "RO", "BG", "HR", "other"] as const;
+  const ALLOWED_REFERRAL_SOURCES = ["socialMedia", "searchEngine", "friendColleague", "blogArticle", "advertisement", "other"] as const;
+  const ALLOWED_AGENT_SLUGS = ["customer-support", "sales-sdr", "social-media", "bookkeeping", "scheduling", "hr-recruiting", "data-analyst", "ecommerce-ops", "real-estate"] as const;
+
+  const onboardingUpdateSchema = z.object({
+    industry: z.enum(ALLOWED_INDUSTRIES).nullable().optional(),
+    companySize: z.enum(ALLOWED_COMPANY_SIZES).nullable().optional(),
+    country: z.enum(ALLOWED_COUNTRIES).nullable().optional(),
+    intendedAgents: z.array(z.enum(ALLOWED_AGENT_SLUGS)).max(9).nullable().optional(),
+    referralSource: z.enum(ALLOWED_REFERRAL_SOURCES).nullable().optional(),
+  });
+
+  app.patch("/api/auth/onboarding", requireAuth, async (req, res) => {
+    const lang = await resolveUserLang(req);
+    const parsed = onboardingUpdateSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: msg("invalidInput", lang) });
+    }
+    const updates: any = { ...parsed.data, onboardingCompleted: true };
+    const updated = await storage.updateUserOnboarding(req.session.userId!, updates);
+    if (!updated) {
+      return res.status(404).json({ error: msg("userNotFound", lang) });
+    }
+    res.json({
+      user: {
+        id: updated.id,
+        username: updated.username,
+        email: updated.email,
+        fullName: updated.fullName,
+        company: updated.company,
+        role: updated.role,
+        language: updated.language,
+        hasSubscription: !!updated.stripeSubscriptionId,
+        onboardingCompleted: updated.onboardingCompleted,
+        industry: updated.industry,
+        companySize: updated.companySize,
+        country: updated.country,
+        intendedAgents: updated.intendedAgents,
+        referralSource: updated.referralSource,
       },
     });
   });
@@ -3573,6 +3630,64 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
       res.json(result.rows);
     } catch (error: any) {
       console.error(error); res.status(500).json({ error: msg("internalServerError", req.lang!) });
+    }
+  });
+
+  app.get(`/api/${ADMIN_PATH}/user-demographics`, requireAdmin, async (req, res) => {
+    try {
+      const industryResult = await db.execute(sql`
+        SELECT industry, COUNT(*)::int as count
+        FROM users
+        WHERE industry IS NOT NULL AND industry != ''
+        GROUP BY industry
+        ORDER BY count DESC
+      `);
+      const companySizeResult = await db.execute(sql`
+        SELECT company_size, COUNT(*)::int as count
+        FROM users
+        WHERE company_size IS NOT NULL AND company_size != ''
+        GROUP BY company_size
+        ORDER BY count DESC
+      `);
+      const countryResult = await db.execute(sql`
+        SELECT country, COUNT(*)::int as count
+        FROM users
+        WHERE country IS NOT NULL AND country != ''
+        GROUP BY country
+        ORDER BY count DESC
+      `);
+      const referralResult = await db.execute(sql`
+        SELECT referral_source, COUNT(*)::int as count
+        FROM users
+        WHERE referral_source IS NOT NULL AND referral_source != ''
+        GROUP BY referral_source
+        ORDER BY count DESC
+      `);
+      const agentResult = await db.execute(sql`
+        SELECT unnest(intended_agents) as agent, COUNT(*)::int as count
+        FROM users
+        WHERE intended_agents IS NOT NULL AND array_length(intended_agents, 1) > 0
+        GROUP BY agent
+        ORDER BY count DESC
+      `);
+      const onboardingResult = await db.execute(sql`
+        SELECT
+          COUNT(*) FILTER (WHERE onboarding_completed = true)::int as completed,
+          COUNT(*) FILTER (WHERE onboarding_completed = false)::int as pending,
+          COUNT(*)::int as total
+        FROM users
+      `);
+      res.json({
+        industry: industryResult.rows,
+        companySize: companySizeResult.rows,
+        country: countryResult.rows,
+        referralSource: referralResult.rows,
+        intendedAgents: agentResult.rows,
+        onboarding: onboardingResult.rows[0],
+      });
+    } catch (error: any) {
+      console.error(error);
+      res.status(500).json({ error: msg("internalServerError", req.lang!) });
     }
   });
 

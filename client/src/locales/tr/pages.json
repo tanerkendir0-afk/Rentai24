@@ -1,4 +1,81 @@
 {
+  "onboarding": {
+    "title": "Hoş geldiniz! Kendinizi tanıtın",
+    "description": "Deneyiminizi kişiselleştirmemize yardımcı olun. Tüm alanlar isteğe bağlıdır — istediğiniz zaman atlayabilirsiniz.",
+    "industry": "Sektör",
+    "companySize": "Şirket Büyüklüğü",
+    "country": "Ülke",
+    "intendedAgents": "Hangi AI ajanları ilginizi çekiyor?",
+    "intendedAgentsHint": "Kullanmayı planladığınız ajanları seçin",
+    "referralSource": "Bizi nereden duydunuz?",
+    "selectPlaceholder": "Seçin...",
+    "skip": "Şimdilik atla",
+    "submit": "Devam Et",
+    "successTitle": "Profil güncellendi!",
+    "successDescription": "Paylaştığınız için teşekkürler. Deneyiminizi buna göre düzenleyeceğiz.",
+    "errorTitle": "Güncelleme başarısız",
+    "errorDescription": "Bir hata oluştu. Bunu daha sonra Ayarlar'dan güncelleyebilirsiniz.",
+    "industries": {
+      "technology": "Teknoloji",
+      "finance": "Finans / Muhasebe",
+      "healthcare": "Sağlık",
+      "ecommerce": "E-ticaret / Perakende",
+      "realEstate": "Gayrimenkul",
+      "marketing": "Pazarlama / Ajans",
+      "manufacturing": "Üretim",
+      "education": "Eğitim",
+      "consulting": "Danışmanlık",
+      "other": "Diğer"
+    },
+    "companySizes": {
+      "1-10": "1-10 çalışan",
+      "11-50": "11-50 çalışan",
+      "51-200": "51-200 çalışan",
+      "201-1000": "201-1000 çalışan",
+      "1000+": "1000+ çalışan"
+    },
+    "countries": {
+      "TR": "Türkiye",
+      "US": "Amerika Birleşik Devletleri",
+      "GB": "Birleşik Krallık",
+      "DE": "Almanya",
+      "FR": "Fransa",
+      "NL": "Hollanda",
+      "AE": "BAE",
+      "SA": "Suudi Arabistan",
+      "JP": "Japonya",
+      "KR": "Güney Kore",
+      "IN": "Hindistan",
+      "BR": "Brezilya",
+      "CA": "Kanada",
+      "AU": "Avustralya",
+      "ES": "İspanya",
+      "IT": "İtalya",
+      "SE": "İsveç",
+      "NO": "Norveç",
+      "DK": "Danimarka",
+      "FI": "Finlandiya",
+      "PL": "Polonya",
+      "CZ": "Çek Cumhuriyeti",
+      "AT": "Avusturya",
+      "CH": "İsviçre",
+      "BE": "Belçika",
+      "PT": "Portekiz",
+      "GR": "Yunanistan",
+      "RO": "Romanya",
+      "BG": "Bulgaristan",
+      "HR": "Hırvatistan",
+      "other": "Diğer"
+    },
+    "referralSources": {
+      "socialMedia": "Sosyal Medya",
+      "searchEngine": "Arama Motoru",
+      "friendColleague": "Arkadaş / İş Arkadaşı",
+      "blogArticle": "Blog / Makale",
+      "advertisement": "Reklam",
+      "other": "Diğer"
+    }
+  },
   "notFound": {
     "title": "404",
     "heading": "Sayfa Bulunamadı",
@@ -1185,8 +1262,15 @@
       "emailCannotChange": "E-posta değiştirilemez",
       "company": "Şirket",
       "companyPlaceholder": "Şirket adınız (isteğe bağlı)",
+      "industry": "Sektör",
+      "companySize": "Şirket Büyüklüğü",
+      "country": "Ülke",
+      "intendedAgents": "Planlanan Ajanlar",
+      "referralSource": "Yönlendirme Kaynağı",
       "saving": "Kaydediliyor...",
-      "saveChanges": "Değişiklikleri Kaydet"
+      "saveChanges": "Değişiklikleri Kaydet",
+      "profileSaved": "Profil bilgileri kaydedildi",
+      "profileSavedDesc": "Profil detaylarınız güncellendi."
     },
     "integrations": {
       "title": "Entegrasyonlar",
@@ -1610,7 +1694,8 @@
       "escalations": "Eskalasyonlar",
       "collaboration": "İş Birliği",
       "consentStats": "KVKK/GDPR",
-      "behaviorAnalytics": "Kullanıcı Davranışı"
+      "behaviorAnalytics": "Kullanıcı Davranışı",
+      "demographics": "Demografikler"
     },
     "login": {
       "passwordPlaceholder": "Admin Şifresi",
@@ -1618,6 +1703,18 @@
       "accessPanel": "Admin Paneline Eriş",
       "title": "RentAI 24 Admin",
       "subtitle": "Devam etmek için admin şifresini girin"
+    },
+    "demographics": {
+      "title": "Kullanıcı Demografikleri",
+      "onboardingCompleted": "Katılım Tamamlandı",
+      "onboardingPending": "Katılım Bekliyor",
+      "totalUsers": "Toplam Kullanıcı",
+      "industryDistribution": "Sektör Dağılımı",
+      "companySizeDistribution": "Şirket Büyüklüğü Dağılımı",
+      "countryDistribution": "Ülke Dağılımı",
+      "referralDistribution": "Yönlendirme Kaynağı Dağılımı",
+      "intendedAgentsDistribution": "Planlanan Ajanlar",
+      "noData": "Henüz veri yok"
     },
     "users": {
       "searchPlaceholder": "Ad, e-posta veya şirket ile ara...",

@@ -306,6 +306,164 @@ function UsersPanel({ token }: { token: string }) {
   );
 }
 
+interface DemographicsData {
+  industry: { industry: string; count: number }[];
+  companySize: { company_size: string; count: number }[];
+  country: { country: string; count: number }[];
+  referralSource: { referral_source: string; count: number }[];
+  intendedAgents: { agent: string; count: number }[];
+  onboarding: { completed: number; pending: number; total: number };
+}
+
+function DemographicsPanel({ token }: { token: string }) {
+  const { t } = useTranslation("pages");
+  const [data, setData] = useState<DemographicsData | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const headers = { Authorization: `Bearer ${token}` };
+
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${ADMIN_API}/user-demographics`, { headers });
+      const d = await res.json();
+      setData(d);
+    } catch {
+    } finally {
+      setLoading(false);
+    }
+  }, [token]);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
+
+  const agentLabel = (slug: string) => AGENTS_DATA.find(a => a.slug === slug)?.persona || slug;
+
+  const DistributionBar = ({ label, count, total }: { label: string; count: number; total: number }) => {
+    const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+    return (
+      <div className="flex items-center gap-3">
+        <span className="text-sm text-gray-300 w-36 truncate">{label}</span>
+        <div className="flex-1 h-5 bg-[#111633] rounded-full overflow-hidden">
+          <div className="h-full bg-gradient-to-r from-blue-500 to-violet-500 rounded-full transition-all" style={{ width: `${pct}%` }} />
+        </div>
+        <span className="text-xs text-gray-400 w-16 text-right">{count} ({pct}%)</span>
+      </div>
+    );
+  };
+
+  if (!data) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <Loader2 className="w-6 h-6 animate-spin text-blue-400" />
+      </div>
+    );
+  }
+
+  const sumCounts = (rows: { count: number }[]) => rows.reduce((s, r) => s + r.count, 0) || 1;
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+          <BarChart3 className="w-5 h-5 text-emerald-400" />
+          {t("adminPage.demographics.title")}
+        </h3>
+        <Button variant="ghost" size="sm" onClick={fetchData} disabled={loading} data-testid="button-refresh-demographics">
+          <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+        </Button>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <Card className="bg-[#0A0E27] border-[#1E2448]">
+          <CardContent className="p-4 text-center">
+            <p className="text-xs text-gray-400">{t("adminPage.demographics.onboardingCompleted")}</p>
+            <p className="text-2xl font-bold text-emerald-400">{data.onboarding?.completed || 0}</p>
+          </CardContent>
+        </Card>
+        <Card className="bg-[#0A0E27] border-[#1E2448]">
+          <CardContent className="p-4 text-center">
+            <p className="text-xs text-gray-400">{t("adminPage.demographics.onboardingPending")}</p>
+            <p className="text-2xl font-bold text-yellow-400">{data.onboarding?.pending || 0}</p>
+          </CardContent>
+        </Card>
+        <Card className="bg-[#0A0E27] border-[#1E2448]">
+          <CardContent className="p-4 text-center">
+            <p className="text-xs text-gray-400">{t("adminPage.demographics.totalUsers")}</p>
+            <p className="text-2xl font-bold text-blue-400">{data.onboarding?.total || 0}</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card className="bg-[#0A0E27] border-[#1E2448]">
+          <CardHeader>
+            <CardTitle className="text-base text-white">{t("adminPage.demographics.industryDistribution")}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {data.industry.length === 0 ? (
+              <p className="text-gray-500 text-sm text-center py-4">{t("adminPage.demographics.noData")}</p>
+            ) : data.industry.map((row) => (
+              <DistributionBar key={row.industry} label={t(`onboarding.industries.${row.industry}`, row.industry)} count={row.count} total={sumCounts(data.industry)} />
+            ))}
+          </CardContent>
+        </Card>
+
+        <Card className="bg-[#0A0E27] border-[#1E2448]">
+          <CardHeader>
+            <CardTitle className="text-base text-white">{t("adminPage.demographics.companySizeDistribution")}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {data.companySize.length === 0 ? (
+              <p className="text-gray-500 text-sm text-center py-4">{t("adminPage.demographics.noData")}</p>
+            ) : data.companySize.map((row) => (
+              <DistributionBar key={row.company_size} label={t(`onboarding.companySizes.${row.company_size}`, row.company_size)} count={row.count} total={sumCounts(data.companySize)} />
+            ))}
+          </CardContent>
+        </Card>
+
+        <Card className="bg-[#0A0E27] border-[#1E2448]">
+          <CardHeader>
+            <CardTitle className="text-base text-white">{t("adminPage.demographics.countryDistribution")}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {data.country.length === 0 ? (
+              <p className="text-gray-500 text-sm text-center py-4">{t("adminPage.demographics.noData")}</p>
+            ) : data.country.map((row) => (
+              <DistributionBar key={row.country} label={t(`onboarding.countries.${row.country}`, row.country)} count={row.count} total={sumCounts(data.country)} />
+            ))}
+          </CardContent>
+        </Card>
+
+        <Card className="bg-[#0A0E27] border-[#1E2448]">
+          <CardHeader>
+            <CardTitle className="text-base text-white">{t("adminPage.demographics.referralDistribution")}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {data.referralSource.length === 0 ? (
+              <p className="text-gray-500 text-sm text-center py-4">{t("adminPage.demographics.noData")}</p>
+            ) : data.referralSource.map((row) => (
+              <DistributionBar key={row.referral_source} label={t(`onboarding.referralSources.${row.referral_source}`, row.referral_source)} count={row.count} total={sumCounts(data.referralSource)} />
+            ))}
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card className="bg-[#0A0E27] border-[#1E2448]">
+        <CardHeader>
+          <CardTitle className="text-base text-white">{t("adminPage.demographics.intendedAgentsDistribution")}</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {data.intendedAgents.length === 0 ? (
+            <p className="text-gray-500 text-sm text-center py-4">{t("adminPage.demographics.noData")}</p>
+          ) : data.intendedAgents.map((row) => (
+            <DistributionBar key={row.agent} label={agentLabel(row.agent)} count={row.count} total={sumCounts(data.intendedAgents)} />
+          ))}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 function DocumentsPanel({ agentType, token }: { agentType: string; token: string }) {
   const { t } = useTranslation("pages");
   const [documents, setDocuments] = useState<AgentDocument[]>([]);
@@ -5909,6 +6067,10 @@ export default function AdminPage() {
                     <Users className="w-3.5 h-3.5 mr-1" />
                     {t("adminPage.tabs.users")}
                   </TabsTrigger>
+                  <TabsTrigger value="demographics" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-500 data-[state=active]:to-cyan-600 data-[state=active]:text-white" data-testid="tab-demographics">
+                    <BarChart3 className="w-3.5 h-3.5 mr-1" />
+                    {t("adminPage.tabs.demographics")}
+                  </TabsTrigger>
                 </>
               )}
               {activeCategory === "ai-training" && (
@@ -6032,6 +6194,10 @@ export default function AdminPage() {
 
           <TabsContent value="users">
             <UsersPanel token={token} />
+          </TabsContent>
+
+          <TabsContent value="demographics">
+            <DemographicsPanel token={token} />
           </TabsContent>
 
           <TabsContent value="rag">

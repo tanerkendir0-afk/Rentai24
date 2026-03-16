@@ -57,6 +57,8 @@ import { Link } from "wouter";
 import { useLanguage } from "@/lib/language";
 import { useTranslation } from "react-i18next";
 import { Languages } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface Rental {
   id: number;
@@ -374,6 +376,12 @@ export default function Settings() {
 
   const [fullName, setFullName] = useState("");
   const [company, setCompany] = useState("");
+  const [profileIndustry, setProfileIndustry] = useState("");
+  const [profileCompanySize, setProfileCompanySize] = useState("");
+  const [profileCountry, setProfileCountry] = useState("");
+  const [profileIntendedAgents, setProfileIntendedAgents] = useState<string[]>([]);
+  const [profileReferralSource, setProfileReferralSource] = useState("");
+  const [enrichmentSaving, setEnrichmentSaving] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -416,6 +424,11 @@ export default function Settings() {
     if (user) {
       setFullName(user.fullName || "");
       setCompany(user.company || "");
+      setProfileIndustry(user.industry || "");
+      setProfileCompanySize(user.companySize || "");
+      setProfileCountry(user.country || "");
+      setProfileIntendedAgents(user.intendedAgents || []);
+      setProfileReferralSource(user.referralSource || "");
     }
   }, [user]);
 
@@ -973,6 +986,121 @@ export default function Settings() {
                 <><Save className="w-4 h-4 mr-1.5" />{t("settingsPage.profile.saveChanges")}</>
               )}
             </Button>
+
+            <Separator className="my-4" />
+
+            <div className="space-y-4">
+              <div>
+                <Label className="text-sm text-muted-foreground">{t("settingsPage.profile.industry")}</Label>
+                <Select value={profileIndustry} onValueChange={setProfileIndustry}>
+                  <SelectTrigger className="mt-1.5" data-testid="select-settings-industry">
+                    <SelectValue placeholder={t("onboarding.selectPlaceholder")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {["technology", "finance", "healthcare", "ecommerce", "realEstate", "marketing", "manufacturing", "education", "consulting", "other"].map((ind) => (
+                      <SelectItem key={ind} value={ind}>{t(`onboarding.industries.${ind}`)}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-sm text-muted-foreground">{t("settingsPage.profile.companySize")}</Label>
+                <Select value={profileCompanySize} onValueChange={setProfileCompanySize}>
+                  <SelectTrigger className="mt-1.5" data-testid="select-settings-company-size">
+                    <SelectValue placeholder={t("onboarding.selectPlaceholder")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {["1-10", "11-50", "51-200", "201-1000", "1000+"].map((size) => (
+                      <SelectItem key={size} value={size}>{t(`onboarding.companySizes.${size}`)}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-sm text-muted-foreground">{t("settingsPage.profile.country")}</Label>
+                <Select value={profileCountry} onValueChange={setProfileCountry}>
+                  <SelectTrigger className="mt-1.5" data-testid="select-settings-country">
+                    <SelectValue placeholder={t("onboarding.selectPlaceholder")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {["TR", "US", "GB", "DE", "FR", "NL", "AE", "SA", "JP", "KR", "IN", "BR", "CA", "AU", "ES", "IT", "SE", "NO", "DK", "FI", "PL", "CZ", "AT", "CH", "BE", "PT", "GR", "RO", "BG", "HR", "other"].map((c) => (
+                      <SelectItem key={c} value={c}>{t(`onboarding.countries.${c}`)}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-sm text-muted-foreground">{t("settingsPage.profile.intendedAgents")}</Label>
+                <div className="grid grid-cols-2 gap-2 mt-1.5">
+                  {[
+                    { slug: "customer-support", persona: "Ava" },
+                    { slug: "sales-sdr", persona: "Rex" },
+                    { slug: "social-media", persona: "Maya" },
+                    { slug: "bookkeeping", persona: "Finn" },
+                    { slug: "scheduling", persona: "Cal" },
+                    { slug: "hr-recruiting", persona: "Harper" },
+                    { slug: "data-analyst", persona: "DataBot" },
+                    { slug: "ecommerce-ops", persona: "ShopBot" },
+                    { slug: "real-estate", persona: "Reno" },
+                  ].map((agent) => (
+                    <label
+                      key={agent.slug}
+                      className="flex items-center gap-2 p-2 rounded-lg border border-border/50 hover:bg-accent/30 cursor-pointer transition-colors"
+                      data-testid={`checkbox-settings-agent-${agent.slug}`}
+                    >
+                      <Checkbox
+                        checked={profileIntendedAgents.includes(agent.slug)}
+                        onCheckedChange={() => setProfileIntendedAgents((prev) => prev.includes(agent.slug) ? prev.filter((s) => s !== agent.slug) : [...prev, agent.slug])}
+                      />
+                      <span className="text-sm">{agent.persona}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <Label className="text-sm text-muted-foreground">{t("settingsPage.profile.referralSource")}</Label>
+                <Select value={profileReferralSource} onValueChange={setProfileReferralSource}>
+                  <SelectTrigger className="mt-1.5" data-testid="select-settings-referral">
+                    <SelectValue placeholder={t("onboarding.selectPlaceholder")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {["socialMedia", "searchEngine", "friendColleague", "blogArticle", "advertisement", "other"].map((src) => (
+                      <SelectItem key={src} value={src}>{t(`onboarding.referralSources.${src}`)}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button
+                onClick={async () => {
+                  setEnrichmentSaving(true);
+                  try {
+                    const payload: Record<string, unknown> = {};
+                    if (profileIndustry) payload.industry = profileIndustry;
+                    if (profileCompanySize) payload.companySize = profileCompanySize;
+                    if (profileCountry) payload.country = profileCountry;
+                    if (profileIntendedAgents.length > 0) payload.intendedAgents = profileIntendedAgents;
+                    if (profileReferralSource) payload.referralSource = profileReferralSource;
+                    const res = await apiRequest("PATCH", "/api/auth/onboarding", payload);
+                    const data = await res.json();
+                    queryClient.setQueryData(["/api/auth/me"], { user: data.user });
+                    trackEvent("profile_enrichment_updated", "settings");
+                    toast({ title: t("settingsPage.profile.profileSaved"), description: t("settingsPage.profile.profileSavedDesc") });
+                  } catch {
+                    toast({ title: t("settingsPage.toast.error"), variant: "destructive" });
+                  }
+                  setEnrichmentSaving(false);
+                }}
+                disabled={enrichmentSaving}
+                className="bg-gradient-to-r from-blue-500 to-violet-500 text-white border-0"
+                data-testid="button-save-enrichment"
+              >
+                {enrichmentSaving ? (
+                  <><Loader2 className="w-4 h-4 mr-1.5 animate-spin" />{t("settingsPage.profile.saving")}</>
+                ) : (
+                  <><Save className="w-4 h-4 mr-1.5" />{t("settingsPage.profile.saveChanges")}</>
+                )}
+              </Button>
+            </div>
           </div>
         </Card>
 

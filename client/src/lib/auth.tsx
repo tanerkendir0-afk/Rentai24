@@ -11,6 +11,12 @@ interface AuthUser {
   role: "user" | "agent_manager" | "admin";
   hasSubscription: boolean;
   language: string;
+  onboardingCompleted: boolean;
+  industry: string | null;
+  companySize: string | null;
+  country: string | null;
+  intendedAgents: string[] | null;
+  referralSource: string | null;
 }
 
 interface AuthContextType {

@@ -1279,7 +1279,7 @@ function FineTuningPanel({ agentType, token }: { agentType: string; token: strin
                       <p className="text-gray-400"><span className="text-gray-500">{t("adminPage.fineTuning.model")}:</span> <span className="text-green-400 font-mono text-xs">{job.fineTunedModel}</span></p>
                     )}
                     {job.error && <p className="text-red-400 text-xs mt-1">{job.error}</p>}
-                    <p className="text-gray-500 text-xs">Created: {new Date(job.createdAt).toLocaleString()}</p>
+                    <p className="text-gray-500 text-xs">{t("adminPage.fineTuning.created")}: {new Date(job.createdAt).toLocaleString()}</p>
                   </div>
                 </div>
               ))}
@@ -1342,7 +1342,7 @@ function MessagesPanel({ token }: { token: string }) {
           <div>
             <CardTitle className="text-lg text-white flex items-center gap-2">
               <MessageSquare className="w-5 h-5 text-blue-400" />
-              Contact Messages ({messages.length})
+              {t("adminPage.contactMessages.title")} ({messages.length})
             </CardTitle>
           </div>
           <Button variant="ghost" size="sm" onClick={fetchData} disabled={loading} data-testid="button-refresh-messages">
@@ -1364,7 +1364,7 @@ function MessagesPanel({ token }: { token: string }) {
                     <span className="text-gray-500 text-xs">{new Date(msg.createdAt).toLocaleString()}</span>
                   </div>
                   {msg.aiWorkerInterest && (
-                    <Badge className="mb-2 bg-blue-900/30 text-blue-400 border-blue-800 text-xs">Interest: {msg.aiWorkerInterest}</Badge>
+                    <Badge className="mb-2 bg-blue-900/30 text-blue-400 border-blue-800 text-xs">{t("adminPage.contactMessages.interest")}: {msg.aiWorkerInterest}</Badge>
                   )}
                   <p className="text-gray-300 text-sm leading-relaxed">{msg.message}</p>
                 </div>
@@ -1378,7 +1378,7 @@ function MessagesPanel({ token }: { token: string }) {
         <CardHeader>
           <CardTitle className="text-lg text-white flex items-center gap-2">
             <Mail className="w-5 h-5 text-violet-400" />
-            Newsletter Subscribers ({subscribers.length})
+            {t("adminPage.newsletter.title")} ({subscribers.length})
           </CardTitle>
         </CardHeader>
         <CardContent>

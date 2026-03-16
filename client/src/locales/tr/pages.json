@@ -1994,7 +1994,8 @@
       "jobs": "İnce Ayar İşleri ({{count}})",
       "resetToBase": "Temel Modele Sıfırla",
       "sync": "Senkronize Et",
-      "activate": "Aktifleştir"
+      "activate": "Aktifleştir",
+      "created": "Oluşturuldu"
     },
     "costs": {
       "totalCost": "Toplam Maliyet",
@@ -2096,6 +2097,13 @@
       "manager": "Yönetici",
       "smartRouter": "Akıllı Yönlendirici",
       "customInstructions": "{{agent}} için özel talimatlar yazın..."
+    },
+    "contactMessages": {
+      "title": "İletişim Mesajları",
+      "interest": "İlgi Alanı"
+    },
+    "newsletter": {
+      "title": "Bülten Aboneleri"
     }
   },
   "pricingPage": {

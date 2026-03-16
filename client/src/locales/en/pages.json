@@ -1994,7 +1994,8 @@
       "jobs": "Fine-Tuning Jobs ({{count}})",
       "resetToBase": "Reset to Base Model",
       "sync": "Sync",
-      "activate": "Activate"
+      "activate": "Activate",
+      "created": "Created"
     },
     "costs": {
       "totalCost": "Total Cost",
@@ -2096,6 +2097,13 @@
       "manager": "Manager",
       "smartRouter": "Smart Router",
       "customInstructions": "Write custom instructions for {{agent}}..."
+    },
+    "contactMessages": {
+      "title": "Contact Messages",
+      "interest": "Interest"
+    },
+    "newsletter": {
+      "title": "Newsletter Subscribers"
     }
   },
   "pricingPage": {

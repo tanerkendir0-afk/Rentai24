@@ -2214,7 +2214,7 @@ function CollaborationPanel({ token }: { token: string }) {
                       <span className={`w-8 h-8 rounded-full bg-gradient-to-r ${agentColors[agent.slug]} flex items-center justify-center text-lg`}>
                         {agentIcons[agent.slug]}
                       </span>
-                      {`${agent.persona} — ${t("adminPage.agents." + agent.roleKey)}`}
+                      {(() => { const a = AGENTS_DATA.find(x => x.slug === agent.slug); return a ? `${a.persona} — ${t("adminPage.agents." + a.roleKey)}` : agent.name; })()}
                     </CardTitle>
                     {!agent.error && (
                       <Badge className="bg-[#1E2448] text-gray-400 text-xs">
@@ -3758,7 +3758,7 @@ function PackageManagementPanel({ token }: { token: string }) {
                 <div className="mt-3 pt-3 border-t border-[#1E2448]">
                   <p className="text-xs text-gray-500">{t("adminPage.limits.planRules")}:</p>
                   <ul className="text-xs text-gray-400 mt-1 space-y-0.5">
-                    <li>• {t("adminPage.limits.monthlyMsgLimit", { count: plan.messages.toLocaleString() })}</li>
+                    <li>• {t("adminPage.limits.monthlyMsgLimit", { count: plan.messages.toLocaleString() } as Record<string, string>)}</li>
                     <li>• {t("adminPage.limits.limitExceeded")}</li>
                     <li>• {t("adminPage.limits.monthlyReset")}</li>
                     {plan.id === "professional" && <li>• {t("adminPage.limits.allAgentToolsActive")}</li>}
@@ -5331,7 +5331,7 @@ function AdminGuidePanel() {
                     {agent.icon}
                   </div>
                   <div>
-                    <p className="text-white font-medium text-sm">{`${agent.persona} — ${t("adminPage.agents." + agent.roleKey)}`}</p>
+                    <p className="text-white font-medium text-sm">{agent.name} — {agent.role}</p>
                     <p className="text-gray-500 text-xs">{agent.role}</p>
                   </div>
                 </div>

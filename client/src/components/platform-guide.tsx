@@ -361,7 +361,7 @@ export default function PlatformGuide({ variant = "home" }: PlatformGuideProps) 
     if (!isInView) return;
     const timer = setInterval(() => {
       setActiveStep(prev => {
-        const next = (prev + 1) % steps.length;
+        const next = (prev + 1) % stepsConfig.length;
         setAnimKey(k => k + 1);
         return next;
       });

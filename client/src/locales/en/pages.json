@@ -1070,7 +1070,8 @@
     "step1Ready": "Ready!",
     "step2": "Copy caption 📋",
     "step3": "Open app 📱",
-    "step4": "Paste & share ✓"
+    "step4": "Paste & share ✓",
+    "postImageAlt": "Post image"
   },
   "platformGuide": {
     "stepOf": "Step {{current}} of {{total}}",

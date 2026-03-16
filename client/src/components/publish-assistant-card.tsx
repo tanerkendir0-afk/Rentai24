@@ -95,7 +95,7 @@ export default function PublishAssistantCard({ data }: { data: PublishAssistantD
           <div className="relative rounded-lg overflow-hidden border border-border/30 bg-black/20">
             <img
               src={data.imageUrl}
-              alt="Post image"
+              alt={t("publishCard.postImageAlt")}
               className="w-full max-h-48 object-cover"
               data-testid="img-publish-preview"
             />

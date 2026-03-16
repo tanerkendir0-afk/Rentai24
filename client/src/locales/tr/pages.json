@@ -1070,7 +1070,8 @@
     "step1Ready": "Hazır!",
     "step2": "Açıklamayı kopyala 📋",
     "step3": "Uygulamayı aç 📱",
-    "step4": "Yapıştır & paylaş ✓"
+    "step4": "Yapıştır & paylaş ✓",
+    "postImageAlt": "Paylaşım görseli"
   },
   "platformGuide": {
     "stepOf": "Adım {{current}} / {{total}}",

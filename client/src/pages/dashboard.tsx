@@ -7,7 +7,7 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { agents as allAgents } from "@/data/agents";
+import { useLocalizedAgents } from "@/hooks/use-localized-agents";
 import {
   Bot,
   Headphones,
@@ -95,6 +95,7 @@ const agentPersonas: Record<string, string> = {
 
 export default function Dashboard() {
   const { t } = useTranslation("pages");
+  const allAgents = useLocalizedAgents();
   const { user, logout, isLoading: authLoading } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();

@@ -5686,5 +5686,33 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
     }
   });
 
+  app.get("/api/diagnostics/health", (_req: Request, res: Response) => {
+    const mem = process.memoryUsage();
+    const connectionCount = new Promise<number | null>((resolve) => {
+      httpServer.getConnections((err, count) => {
+        resolve(err ? null : count);
+      });
+    });
+
+    connectionCount.then(connections => {
+      res.json({
+        status: "ok",
+        uptime: process.uptime(),
+        memoryUsage: {
+          rss: mem.rss,
+          heapUsed: mem.heapUsed,
+          heapTotal: mem.heapTotal,
+          external: mem.external,
+          rssMB: +(mem.rss / 1024 / 1024).toFixed(2),
+          heapUsedMB: +(mem.heapUsed / 1024 / 1024).toFixed(2),
+          heapTotalMB: +(mem.heapTotal / 1024 / 1024).toFixed(2),
+          externalMB: +(mem.external / 1024 / 1024).toFixed(2),
+        },
+        activeConnections: connections,
+        timestamp: new Date().toISOString(),
+      });
+    });
+  });
+
   return httpServer;
 }

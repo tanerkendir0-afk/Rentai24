@@ -12,13 +12,18 @@ import { getStripeSync } from "./stripeClient";
 import { WebhookHandlers } from "./webhookHandlers";
 import { pool } from "./db";
 
-process.on('uncaughtException', (error) => {
-  console.error('[CRITICAL] Uncaught Exception:', error);
+process.on('uncaughtException', (err: Error) => {
+  console.error('[FATAL] Uncaught Exception:', err.message, err.stack);
+  console.error('[FATAL] Process will exit in 5 seconds...');
+  setTimeout(() => process.exit(1), 5000);
 });
 
-process.on('unhandledRejection', (reason) => {
-  console.error('[CRITICAL] Unhandled Rejection:', reason);
+process.on('unhandledRejection', (reason: unknown) => {
+  console.error('[FATAL] Unhandled Rejection:', reason instanceof Error ? `${(reason as Error).message}\n${(reason as Error).stack}` : reason);
 });
+
+const startupMemory = process.memoryUsage();
+console.log(`[Memory] Startup — RSS: ${(startupMemory.rss / 1024 / 1024).toFixed(1)}MB, HeapUsed: ${(startupMemory.heapUsed / 1024 / 1024).toFixed(1)}MB, HeapTotal: ${(startupMemory.heapTotal / 1024 / 1024).toFixed(1)}MB, External: ${(startupMemory.external / 1024 / 1024).toFixed(1)}MB`);
 
 const ADMIN_PATH = process.env.ADMIN_PATH;
 if (!ADMIN_PATH) {

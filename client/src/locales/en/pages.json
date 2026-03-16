@@ -2134,5 +2134,152 @@
       "nextAriaLabel": "Next testimonial",
       "testimonial": "Testimonial"
     }
+  },
+  "privacy": {
+    "title": "Privacy Policy",
+    "lastUpdated": "Last updated: January 1, 2025",
+    "sections": {
+      "introduction": {
+        "title": "1. Introduction",
+        "content": "RentAI 24 (\"we\", \"our\", or \"us\") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you visit our website and use our AI staffing services."
+      },
+      "informationCollected": {
+        "title": "2. Information We Collect",
+        "intro": "We collect information that you voluntarily provide to us when you:",
+        "items": [
+          "Register for an account (name, email, company, username)",
+          "Subscribe to a plan (payment information processed by Stripe)",
+          "Use our AI agents (conversation data)",
+          "Contact us through our contact form",
+          "Subscribe to our newsletter"
+        ]
+      },
+      "howWeUse": {
+        "title": "3. How We Use Your Information",
+        "items": [
+          "To provide and maintain our AI staffing services",
+          "To process your transactions securely via Stripe",
+          "To send you service-related communications",
+          "To improve our AI agents and platform",
+          "To respond to your inquiries and support requests",
+          "To send newsletter updates (only if you opted in)"
+        ]
+      },
+      "dataSecurity": {
+        "title": "4. Data Security",
+        "content": "We implement industry-standard security measures to protect your personal information. All data is encrypted in transit using TLS/SSL. Payment processing is handled entirely by Stripe and we never store your credit card details on our servers. Passwords are hashed using bcrypt with a cost factor of 12."
+      },
+      "aiConversation": {
+        "title": "5. AI Conversation Data",
+        "content": "Conversations with our AI agents are processed through OpenAI's API. We do not permanently store your conversation history on our servers. Conversation data is used solely to provide real-time responses and is not used to train our base models. If you upload documents for RAG (Retrieval-Augmented Generation), those documents are stored securely and used only to enhance your specific agent's responses."
+      },
+      "thirdParty": {
+        "title": "6. Third-Party Services",
+        "intro": "We use the following third-party services:",
+        "items": [
+          "<strong>Stripe</strong> — Payment processing and subscription management",
+          "<strong>OpenAI</strong> — AI agent conversation processing"
+        ],
+        "outro": "Each third-party service has its own privacy policy governing the use of your information."
+      },
+      "cookies": {
+        "title": "7. Cookies",
+        "content": "We use essential session cookies to maintain your login state. We do not use advertising or tracking cookies. Our service worker may cache static assets locally for improved performance (PWA functionality)."
+      },
+      "gdpr": {
+        "title": "8. Your Rights (GDPR)",
+        "intro": "If you are located in the European Economic Area, you have the right to:",
+        "items": [
+          "Access, correct, or delete your personal data",
+          "Restrict or object to our processing of your data",
+          "Data portability",
+          "Withdraw consent at any time"
+        ],
+        "outro": "To exercise these rights, contact us at hello@rentai24.com."
+      },
+      "dataRetention": {
+        "title": "9. Data Retention",
+        "content": "We retain your account information for as long as your account is active. If you delete your account, we will remove your personal data within 30 days, except where retention is required by law. Contact form messages and newsletter subscriptions are retained until you request deletion."
+      },
+      "contact": {
+        "title": "10. Contact Us",
+        "content": "If you have any questions about this Privacy Policy, please contact us at"
+      }
+    }
+  },
+  "terms": {
+    "title": "Terms of Service",
+    "lastUpdated": "Last updated: January 1, 2025",
+    "sections": {
+      "agreement": {
+        "title": "1. Agreement to Terms",
+        "content": "By accessing or using RentAI 24's website and services, you agree to be bound by these Terms of Service. If you do not agree with any part of these terms, you may not access the service. These terms apply to all visitors, users, and subscribers of the platform."
+      },
+      "description": {
+        "title": "2. Description of Service",
+        "content": "RentAI 24 provides an AI staffing platform where businesses can rent pre-trained AI agents for specific roles including customer support, sales, social media management, bookkeeping, scheduling, HR & recruiting, data analysis, and e-commerce operations. Our AI agents are powered by large language models and are designed to assist with, not replace, human decision-making."
+      },
+      "userAccounts": {
+        "title": "3. User Accounts",
+        "items": [
+          "You must provide accurate and complete registration information",
+          "You are responsible for maintaining the security of your account credentials",
+          "You must be at least 18 years old to create an account",
+          "One person or legal entity may not maintain more than one account",
+          "You are responsible for all activities that occur under your account"
+        ]
+      },
+      "billing": {
+        "title": "4. Subscriptions & Billing",
+        "intro": "Paid features are billed on a recurring monthly basis through Stripe. By subscribing to a plan:",
+        "items": [
+          "You authorize us to charge your payment method on a recurring basis",
+          "Subscription fees are non-refundable except as required by law",
+          "You may cancel your subscription at any time through the billing portal",
+          "Upon cancellation, you retain access until the end of your current billing period",
+          "We reserve the right to modify pricing with 30 days' notice"
+        ]
+      },
+      "acceptableUse": {
+        "title": "5. Acceptable Use",
+        "intro": "You agree not to use RentAI 24's services to:",
+        "items": [
+          "Generate harmful, abusive, or illegal content",
+          "Impersonate individuals or organizations",
+          "Attempt to bypass usage limits or security measures",
+          "Use AI agents for automated decision-making in high-stakes domains (medical, legal, financial) without human oversight",
+          "Resell or redistribute access to AI agents without authorization",
+          "Upload malicious files or content to the platform"
+        ]
+      },
+      "aiLimitations": {
+        "title": "6. AI Agent Limitations",
+        "content": "Our AI agents provide assistance and guidance based on their training. They are not certified professionals and their outputs should not be considered as professional advice (legal, financial, medical, etc.). Users are responsible for verifying AI-generated content before acting on it. We do not guarantee the accuracy, completeness, or reliability of AI agent responses."
+      },
+      "intellectualProperty": {
+        "title": "7. Intellectual Property",
+        "content": "The RentAI 24 platform, including its design, features, and content, is owned by RentAI 24 and protected by intellectual property laws. Content generated by AI agents during your subscription is yours to use, subject to OpenAI's usage policies. You retain ownership of any documents or data you upload to the platform."
+      },
+      "serviceAvailability": {
+        "title": "8. Service Availability",
+        "content": "We strive to maintain 99.9% uptime but do not guarantee uninterrupted service. We may temporarily suspend access for maintenance, updates, or security reasons. We are not liable for any losses arising from service interruptions."
+      },
+      "liability": {
+        "title": "9. Limitation of Liability",
+        "content": "To the maximum extent permitted by law, RentAI 24 shall not be liable for any indirect, incidental, special, consequential, or punitive damages resulting from your use of or inability to use the service. Our total liability shall not exceed the amount you paid us in the 12 months preceding the claim."
+      },
+      "termination": {
+        "title": "10. Termination",
+        "content": "We may suspend or terminate your account if you violate these terms. You may close your account at any time by contacting us. Upon termination, your right to use the service ceases immediately, and we may delete your account data after a 30-day grace period."
+      },
+      "changes": {
+        "title": "11. Changes to Terms",
+        "content": "We reserve the right to modify these terms at any time. We will notify users of material changes via email or through the platform. Continued use of the service after changes constitutes acceptance of the new terms."
+      },
+      "contact": {
+        "title": "12. Contact",
+        "content": "For questions about these Terms of Service, please contact us at"
+      }
+    }
   }
 }

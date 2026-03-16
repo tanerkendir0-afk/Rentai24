@@ -1,6 +1,7 @@
 import { storage } from "./storage";
 import { sendEmail } from "./emailService";
 import { getTemplate, fillTemplate } from "./emailTemplates";
+import type { SupportedLang } from "./i18n";
 
 const CAMPAIGN_CHECK_INTERVAL = 60 * 60 * 1000;
 
@@ -28,9 +29,10 @@ async function processPendingCampaigns() {
   const allUsers = await storage.getAllUsers();
   for (const user of allUsers) {
     const campaigns = await storage.getActiveCampaigns(user.id);
+    const lang = (user.language === "tr" ? "tr" : "en") as SupportedLang;
     for (const campaign of campaigns) {
       try {
-        await processOneCampaign(campaign, user.id);
+        await processOneCampaign(campaign, user.id, lang);
       } catch (err) {
         console.error(`[CampaignRunner] Error processing campaign #${campaign.id}:`, err);
       }
@@ -38,7 +40,7 @@ async function processPendingCampaigns() {
   }
 }
 
-async function processOneCampaign(campaign: { id: number; userId: number; leadId: number; steps: unknown; currentStep: number; status: string; createdAt: Date }, userId: number) {
+async function processOneCampaign(campaign: { id: number; userId: number; leadId: number; steps: unknown; currentStep: number; status: string; createdAt: Date }, userId: number, lang: SupportedLang = "en") {
   const steps = campaign.steps as Array<{ delayDays: number; templateId: string; stepName: string; sentAt?: string }>;
   const currentStepIndex = campaign.currentStep;
 
@@ -60,7 +62,7 @@ async function processOneCampaign(campaign: { id: number; userId: number; leadId
     return;
   }
 
-  const template = getTemplate(step.templateId);
+  const template = getTemplate(step.templateId, lang);
   if (!template) {
     await storage.updateCampaignStep(campaign.id, userId, currentStepIndex, "failed");
     return;

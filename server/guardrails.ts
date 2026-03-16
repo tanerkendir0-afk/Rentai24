@@ -2,6 +2,8 @@ import { db } from "./db";
 import { tokenUsage, guardrailLogs, agentLimits } from "@shared/schema";
 import { eq, and, gte, sql } from "drizzle-orm";
 import { storage } from "./storage";
+import type { SupportedLang } from "./i18n";
+import { msg } from "./messages";
 
 interface GuardrailConfig {
   maxInputTokens: number;
@@ -152,30 +154,32 @@ export async function checkInput(
   input: string,
   agentType: string,
   userId: number | null,
-  clientIp?: string
+  clientIp?: string,
+  lang: SupportedLang = "en"
 ): Promise<GuardrailCheckResult> {
   const config = AGENT_CONFIGS[agentType] || DEFAULT_CONFIG;
 
   const rateLimitKey = userId ? `user:${userId}` : `ip:${clientIp || "unknown"}`;
   if (!checkRateLimit(rateLimitKey)) {
-    return { allowed: false, reason: "Too many messages. Please wait a moment before sending again.", ruleType: "rate_limit" };
+    return { allowed: false, reason: msg("rateLimitExceeded", lang), ruleType: "rate_limit" };
   }
 
   const inputTokens = estimateTokens(input);
   if (inputTokens > config.maxInputTokens) {
-    return { allowed: false, reason: `Message too long. Maximum ${config.maxInputTokens * 4} characters allowed.`, ruleType: "input_length" };
+    const maxChars = config.maxInputTokens * 4;
+    return { allowed: false, reason: `${msg("messageTooLong", lang)} (max ${maxChars})`, ruleType: "input_length" };
   }
 
   for (const pattern of INJECTION_PATTERNS) {
     if (pattern.test(input)) {
-      return { allowed: false, reason: "Invalid request format.", ruleType: "prompt_injection" };
+      return { allowed: false, reason: msg("invalidRequest", lang), ruleType: "prompt_injection" };
     }
   }
 
   const lowerInput = input.toLowerCase();
   for (const topic of config.blockedTopics) {
     if (lowerInput.includes(topic.toLowerCase())) {
-      return { allowed: false, reason: "I cannot provide information on this topic.", ruleType: "blocked_topic" };
+      return { allowed: false, reason: msg("blockedTopic", lang), ruleType: "blocked_topic" };
     }
   }
 
@@ -187,20 +191,12 @@ export async function checkInput(
         if (limit.tokenLimit > 0 || limit.messageLimit > 0) {
           const usage = await storage.getTokenUsageByPeriod(userId, agentType, period);
           if (limit.tokenLimit > 0 && usage.tokens >= limit.tokenLimit) {
-            const periodMessages: Record<string, { en: string; tr: string }> = {
-              daily: { en: "You have reached your daily token limit. Please try again tomorrow.", tr: "Günlük token limitinize ulaştınız. Lütfen yarın tekrar deneyin." },
-              weekly: { en: "You have reached your weekly token limit. Please try again next week.", tr: "Haftalık token limitinize ulaştınız. Lütfen gelecek hafta tekrar deneyin." },
-              monthly: { en: "You have reached your monthly token limit. Please try again next month.", tr: "Aylık token limitinize ulaştınız. Lütfen gelecek ay tekrar deneyin." },
-            };
-            return { allowed: false, reason: `${periodMessages[period].tr} / ${periodMessages[period].en}`, ruleType: `${period}_token_limit` };
+            const key = `${period}TokenLimit` as const;
+            return { allowed: false, reason: msg(key, lang), ruleType: `${period}_token_limit` };
           }
           if (limit.messageLimit > 0 && usage.messages >= limit.messageLimit) {
-            const periodMessages: Record<string, { en: string; tr: string }> = {
-              daily: { en: "You have reached your daily message limit. Please try again tomorrow.", tr: "Günlük mesaj limitinize ulaştınız. Lütfen yarın tekrar deneyin." },
-              weekly: { en: "You have reached your weekly message limit. Please try again next week.", tr: "Haftalık mesaj limitinize ulaştınız. Lütfen gelecek hafta tekrar deneyin." },
-              monthly: { en: "You have reached your monthly message limit. Please try again next month.", tr: "Aylık mesaj limitinize ulaştınız. Lütfen gelecek ay tekrar deneyin." },
-            };
-            return { allowed: false, reason: `${periodMessages[period].tr} / ${periodMessages[period].en}`, ruleType: `${period}_message_limit` };
+            const key = `${period}MessageLimit` as const;
+            return { allowed: false, reason: msg(key, lang), ruleType: `${period}_message_limit` };
           }
         }
       }
@@ -260,9 +256,9 @@ async function getDynamicLimit(agentType: string, period: "daily" | "weekly" | "
   }
 }
 
-export function sanitizeOutput(output: string, agentType: string): string {
+export function sanitizeOutput(output: string, agentType: string, lang: SupportedLang = "en"): string {
   if (!output || typeof output !== "string") {
-    return "Üzgünüm, şu anda yanıt oluşturamadım. Lütfen tekrar deneyin.";
+    return msg("noResponseGenerated", lang);
   }
   const config = AGENT_CONFIGS[agentType] || DEFAULT_CONFIG;
   let sanitized = output;
@@ -273,7 +269,7 @@ export function sanitizeOutput(output: string, agentType: string): string {
 
   const outputTokens = estimateTokens(sanitized);
   if (outputTokens > config.maxOutputTokens) {
-    sanitized = sanitized.substring(0, config.maxOutputTokens * 4) + "\n\n[Response truncated.]";
+    sanitized = sanitized.substring(0, config.maxOutputTokens * 4) + "\n\n" + msg("responseTruncated", lang);
   }
 
   return sanitized;

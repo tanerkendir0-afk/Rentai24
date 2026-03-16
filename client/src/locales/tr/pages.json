@@ -2134,5 +2134,152 @@
       "nextAriaLabel": "Sonraki referans",
       "testimonial": "Referans"
     }
+  },
+  "privacy": {
+    "title": "Gizlilik Politikası",
+    "lastUpdated": "Son güncelleme: 1 Ocak 2025",
+    "sections": {
+      "introduction": {
+        "title": "1. Giriş",
+        "content": "RentAI 24 (\"biz\", \"bizim\" veya \"bize\") gizliliğinizi korumaya kararlıdır. Bu Gizlilik Politikası, web sitemizi ziyaret ettiğinizde ve AI kadrolama hizmetlerimizi kullandığınızda bilgilerinizi nasıl topladığımızı, kullandığımızı, ifşa ettiğimizi ve koruduğumuzu açıklar."
+      },
+      "informationCollected": {
+        "title": "2. Topladığımız Bilgiler",
+        "intro": "Aşağıdaki durumlarda gönüllü olarak sağladığınız bilgileri topluyoruz:",
+        "items": [
+          "Hesap oluşturma (ad, e-posta, şirket, kullanıcı adı)",
+          "Plan aboneliği (Stripe üzerinden işlenen ödeme bilgileri)",
+          "AI ajanlarımızı kullanma (konuşma verileri)",
+          "İletişim formu aracılığıyla bizimle iletişime geçme",
+          "Bültenimize abone olma"
+        ]
+      },
+      "howWeUse": {
+        "title": "3. Bilgilerinizi Nasıl Kullanıyoruz",
+        "items": [
+          "AI kadrolama hizmetlerimizi sağlamak ve sürdürmek",
+          "İşlemlerinizi Stripe aracılığıyla güvenli bir şekilde işlemek",
+          "Hizmetle ilgili iletişimler göndermek",
+          "AI ajanlarımızı ve platformumuzu iyileştirmek",
+          "Sorularınıza ve destek taleplerinize yanıt vermek",
+          "Bülten güncellemeleri göndermek (yalnızca kabul ettiyseniz)"
+        ]
+      },
+      "dataSecurity": {
+        "title": "4. Veri Güvenliği",
+        "content": "Kişisel bilgilerinizi korumak için endüstri standardı güvenlik önlemleri uyguluyoruz. Tüm veriler TLS/SSL kullanılarak aktarım sırasında şifrelenir. Ödeme işlemleri tamamen Stripe tarafından gerçekleştirilir ve kredi kartı bilgilerinizi sunucularımızda asla saklamayız. Şifreler, maliyet faktörü 12 olan bcrypt ile hashlenir."
+      },
+      "aiConversation": {
+        "title": "5. AI Konuşma Verileri",
+        "content": "AI ajanlarımızla yapılan konuşmalar OpenAI'nin API'si aracılığıyla işlenir. Konuşma geçmişinizi sunucularımızda kalıcı olarak saklamayız. Konuşma verileri yalnızca gerçek zamanlı yanıtlar sağlamak için kullanılır ve temel modellerimizi eğitmek için kullanılmaz. RAG (Retrieval-Augmented Generation) için belge yüklerseniz, bu belgeler güvenli bir şekilde saklanır ve yalnızca belirli ajanınızın yanıtlarını iyileştirmek için kullanılır."
+      },
+      "thirdParty": {
+        "title": "6. Üçüncü Taraf Hizmetler",
+        "intro": "Aşağıdaki üçüncü taraf hizmetlerini kullanıyoruz:",
+        "items": [
+          "<strong>Stripe</strong> — Ödeme işleme ve abonelik yönetimi",
+          "<strong>OpenAI</strong> — AI ajan konuşma işleme"
+        ],
+        "outro": "Her üçüncü taraf hizmetin, bilgilerinizin kullanımını yöneten kendi gizlilik politikası vardır."
+      },
+      "cookies": {
+        "title": "7. Çerezler",
+        "content": "Giriş durumunuzu korumak için temel oturum çerezleri kullanıyoruz. Reklam veya izleme çerezleri kullanmıyoruz. Service worker'ımız, gelişmiş performans için statik varlıkları yerel olarak önbelleğe alabilir (PWA işlevselliği)."
+      },
+      "gdpr": {
+        "title": "8. Haklarınız (KVKK / GDPR)",
+        "intro": "Avrupa Ekonomik Alanı'nda veya Türkiye'de bulunuyorsanız aşağıdaki haklara sahipsiniz:",
+        "items": [
+          "Kişisel verilerinize erişim, düzeltme veya silme",
+          "Verilerinizin işlenmesini kısıtlama veya itiraz etme",
+          "Veri taşınabilirliği",
+          "İstediğiniz zaman onayı geri çekme"
+        ],
+        "outro": "Bu haklarınızı kullanmak için hello@rentai24.com adresinden bizimle iletişime geçin."
+      },
+      "dataRetention": {
+        "title": "9. Veri Saklama",
+        "content": "Hesap bilgilerinizi hesabınız aktif olduğu sürece saklıyoruz. Hesabınızı silerseniz, yasaların gerektirdiği durumlar hariç, kişisel verilerinizi 30 gün içinde kaldırırız. İletişim formu mesajları ve bülten abonelikleri silme talebinize kadar saklanır."
+      },
+      "contact": {
+        "title": "10. Bize Ulaşın",
+        "content": "Bu Gizlilik Politikası hakkında sorularınız varsa lütfen şu adresten bizimle iletişime geçin:"
+      }
+    }
+  },
+  "terms": {
+    "title": "Kullanım Koşulları",
+    "lastUpdated": "Son güncelleme: 1 Ocak 2025",
+    "sections": {
+      "agreement": {
+        "title": "1. Koşulların Kabulü",
+        "content": "RentAI 24'ün web sitesine ve hizmetlerine erişerek veya bunları kullanarak bu Kullanım Koşulları'na bağlı olmayı kabul edersiniz. Bu koşulların herhangi bir kısmını kabul etmiyorsanız hizmete erişemezsiniz. Bu koşullar platformun tüm ziyaretçileri, kullanıcıları ve aboneleri için geçerlidir."
+      },
+      "description": {
+        "title": "2. Hizmet Tanımı",
+        "content": "RentAI 24, işletmelerin müşteri desteği, satış, sosyal medya yönetimi, muhasebe, planlama, İK ve işe alım, veri analizi ve e-ticaret operasyonları dahil belirli roller için önceden eğitilmiş AI ajanlarını kiralayabileceği bir AI kadrolama platformu sağlar. AI ajanlarımız büyük dil modelleri tarafından desteklenmektedir ve insan karar verme sürecini desteklemek için tasarlanmıştır, yerini almak için değil."
+      },
+      "userAccounts": {
+        "title": "3. Kullanıcı Hesapları",
+        "items": [
+          "Doğru ve eksiksiz kayıt bilgileri sağlamalısınız",
+          "Hesap kimlik bilgilerinizin güvenliğini korumaktan siz sorumlusunuz",
+          "Hesap oluşturmak için en az 18 yaşında olmalısınız",
+          "Bir kişi veya tüzel kişi birden fazla hesap oluşturamaz",
+          "Hesabınız altında gerçekleşen tüm faaliyetlerden siz sorumlusunuz"
+        ]
+      },
+      "billing": {
+        "title": "4. Abonelikler ve Faturalama",
+        "intro": "Ücretli özellikler Stripe aracılığıyla aylık yinelenen bazda faturalanır. Bir plana abone olarak:",
+        "items": [
+          "Ödeme yönteminizin yinelenen bazda ücretlendirilmesine izin verirsiniz",
+          "Abonelik ücretleri yasal gereklilikler hariç iade edilmez",
+          "Aboneliğinizi istediğiniz zaman faturalama portalı üzerinden iptal edebilirsiniz",
+          "İptal durumunda mevcut fatura döneminizin sonuna kadar erişiminiz devam eder",
+          "30 gün önceden bildirimle fiyatlandırmayı değiştirme hakkımızı saklı tutarız"
+        ]
+      },
+      "acceptableUse": {
+        "title": "5. Kabul Edilebilir Kullanım",
+        "intro": "RentAI 24 hizmetlerini aşağıdaki amaçlarla kullanmamayı kabul edersiniz:",
+        "items": [
+          "Zararlı, kötü niyetli veya yasa dışı içerik üretmek",
+          "Bireyleri veya kuruluşları taklit etmek",
+          "Kullanım limitlerini veya güvenlik önlemlerini atlamaya çalışmak",
+          "İnsan gözetimi olmadan yüksek riskli alanlarda (tıbbi, hukuki, finansal) otomatik karar verme için AI ajanlarını kullanmak",
+          "AI ajanlarına erişimi izinsiz yeniden satmak veya dağıtmak",
+          "Platforma kötü amaçlı dosyalar veya içerik yüklemek"
+        ]
+      },
+      "aiLimitations": {
+        "title": "6. AI Ajan Sınırlamaları",
+        "content": "AI ajanlarımız eğitimlerine dayalı yardım ve rehberlik sağlar. Sertifikalı profesyoneller değildir ve çıktıları profesyonel tavsiye (hukuki, finansal, tıbbi vb.) olarak değerlendirilmemelidir. Kullanıcılar, AI tarafından üretilen içeriği uygulamadan önce doğrulamaktan sorumludur. AI ajan yanıtlarının doğruluğunu, eksiksizliğini veya güvenilirliğini garanti etmiyoruz."
+      },
+      "intellectualProperty": {
+        "title": "7. Fikri Mülkiyet",
+        "content": "Tasarımı, özellikleri ve içeriği dahil olmak üzere RentAI 24 platformu RentAI 24'e aittir ve fikri mülkiyet yasalarıyla korunmaktadır. Aboneliğiniz süresince AI ajanları tarafından üretilen içerik, OpenAI'nin kullanım politikalarına tabi olarak kullanımınıza açıktır. Platforma yüklediğiniz belge veya verilerin mülkiyeti sizde kalır."
+      },
+      "serviceAvailability": {
+        "title": "8. Hizmet Erişilebilirliği",
+        "content": "%99,9 çalışma süresi sağlamaya çalışıyoruz ancak kesintisiz hizmet garanti etmiyoruz. Bakım, güncelleme veya güvenlik nedenleriyle erişimi geçici olarak askıya alabiliriz. Hizmet kesintilerinden kaynaklanan kayıplardan sorumlu değiliz."
+      },
+      "liability": {
+        "title": "9. Sorumluluk Sınırlaması",
+        "content": "Yasaların izin verdiği azami ölçüde, RentAI 24 hizmeti kullanımınızdan veya kullanamamanızdan kaynaklanan dolaylı, arızi, özel, sonuç niteliğinde veya cezai tazminatlardan sorumlu olmayacaktır. Toplam sorumluluğumuz talep öncesi 12 ay içinde bize ödediğiniz tutarı aşmayacaktır."
+      },
+      "termination": {
+        "title": "10. Fesih",
+        "content": "Bu koşulları ihlal ederseniz hesabınızı askıya alabilir veya sonlandırabiliriz. İstediğiniz zaman bizimle iletişime geçerek hesabınızı kapatabilirsiniz. Fesih durumunda hizmeti kullanma hakkınız derhal sona erer ve 30 günlük süre sonunda hesap verilerinizi silebiliriz."
+      },
+      "changes": {
+        "title": "11. Koşullarda Değişiklikler",
+        "content": "Bu koşulları istediğimiz zaman değiştirme hakkını saklı tutarız. Önemli değişiklikleri e-posta veya platform aracılığıyla kullanıcılara bildireceğiz. Değişikliklerden sonra hizmeti kullanmaya devam etmeniz yeni koşulları kabul ettiğiniz anlamına gelir."
+      },
+      "contact": {
+        "title": "12. İletişim",
+        "content": "Bu Kullanım Koşulları hakkında sorularınız için lütfen şu adresten bizimle iletişime geçin:"
+      }
+    }
   }
 }

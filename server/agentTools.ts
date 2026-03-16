@@ -4,6 +4,7 @@ import { sendEmail } from "./emailService";
 import { scheduleFollowup } from "./followupScheduler";
 import { createCalendarEvent } from "./calendarService";
 import { getTemplate, fillTemplate, listTemplates, DRIP_SEQUENCES } from "./emailTemplates";
+import type { SupportedLang } from "./i18n";
 import { generateAIImage, findStockImages } from "./imageService";
 import { isUserGmailReady, listInbox, readEmail, replyToEmail } from "./gmailService";
 import { computeLeadScore } from "./leadScoring";
@@ -1534,6 +1535,12 @@ export async function executeToolCall(
   agentType: string
 ): Promise<{ result: string; actionType?: string; actionDescription?: string }> {
   const displayName = agentDisplayNames[agentType] || agentType;
+  let userLang: SupportedLang = "en";
+  try {
+    const u = await storage.getUserById(userId);
+    if (u?.language === "tr") userLang = "tr";
+  } catch {}
+
   switch (toolName) {
     case "web_search": {
       const query = args.query as string;
@@ -1984,7 +1991,7 @@ Respond in the same language as the query.`;
     case "bulk_email": {
       const statusFilter = String(args.status_filter);
       const templateId = String(args.template_id);
-      const template = getTemplate(templateId);
+      const template = getTemplate(templateId, userLang);
       if (!template) {
         return { result: `Template "${templateId}" not found. Available: cold_outreach, follow_up, value_proposition, meeting_request, proposal` };
       }
@@ -2027,7 +2034,7 @@ Respond in the same language as the query.`;
 
     case "use_template": {
       const templateId = String(args.template_id);
-      const template = getTemplate(templateId);
+      const template = getTemplate(templateId, userLang);
       if (!template) {
         return { result: `Template "${templateId}" not found. Available: cold_outreach, follow_up, value_proposition, meeting_request, proposal` };
       }
@@ -2153,7 +2160,7 @@ Respond in the same language as the query.`;
     }
 
     case "list_templates": {
-      const templates = listTemplates();
+      const templates = listTemplates(userLang);
       const templateList = templates.map(t => `- ${t.id}: ${t.name} — Subject: "${t.subject}"`).join("\n");
       return { result: `Available email templates:\n${templateList}\n\nUse use_template to send any of these to a specific lead.` };
     }

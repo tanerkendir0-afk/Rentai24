@@ -19,6 +19,8 @@ import { getRelevantToolsForMessage, executeToolCall } from "./agentTools";
 import { getMuhasebeContext } from "./muhasebeRetriever";
 import { computeLeadScore } from "./leadScoring";
 import { checkInput, sanitizeOutput, logGuardrailBlock } from "./guardrails";
+import { resolveUserLang, type SupportedLang } from "./i18n";
+import { msg } from "./messages";
 import { checkDistillation, addWatermark } from "./distillationProtection";
 import { getImagePath, chatImageDir } from "./imageService";
 import { db } from "./db";
@@ -610,21 +612,22 @@ export async function registerRoutes(
   })();
 
   app.post("/api/auth/register", async (req, res) => {
+    const lang = await resolveUserLang(req);
     const parsed = registerSchema.safeParse(req.body);
     if (!parsed.success) {
-      return res.status(400).json({ error: "Invalid data", details: parsed.error.flatten() });
+      return res.status(400).json({ error: msg("invalidData", lang), details: parsed.error.flatten() });
     }
 
     const { username, email, password, fullName, company } = parsed.data;
 
     const existingEmail = await storage.getUserByEmail(email);
     if (existingEmail) {
-      return res.status(409).json({ error: "An account with this email already exists" });
+      return res.status(409).json({ error: msg("emailExists", lang) });
     }
 
     const existingUsername = await storage.getUserByUsername(username);
     if (existingUsername) {
-      return res.status(409).json({ error: "This username is already taken" });
+      return res.status(409).json({ error: msg("usernameTaken", lang) });
     }
 
     const hashedPassword = await bcrypt.hash(password, 12);
@@ -645,30 +648,31 @@ export async function registerRoutes(
   });
 
   app.post("/api/auth/login", async (req, res) => {
+    const lang = await resolveUserLang(req);
     const parsed = loginSchema.safeParse(req.body);
     if (!parsed.success) {
-      return res.status(400).json({ error: "Invalid credentials" });
+      return res.status(400).json({ error: msg("invalidCredentials", lang) });
     }
 
     const { email, password } = parsed.data;
 
     const user = await storage.getUserByEmail(email);
     if (!user) {
-      return res.status(401).json({ error: "Invalid email or password" });
+      return res.status(401).json({ error: msg("invalidEmailOrPassword", lang) });
     }
 
     if (!user.password) {
-      return res.status(401).json({ error: "This account uses Google sign-in. Please sign in with Google instead." });
+      return res.status(401).json({ error: msg("googleSignIn", lang) });
     }
 
     const valid = await bcrypt.compare(password, user.password);
     if (!valid) {
-      return res.status(401).json({ error: "Invalid email or password" });
+      return res.status(401).json({ error: msg("invalidEmailOrPassword", lang) });
     }
 
     req.session.regenerate((err) => {
       if (err) {
-        return res.status(500).json({ error: "Session error" });
+        return res.status(500).json({ error: msg("sessionError", lang) });
       }
       req.session.userId = user.id;
       req.session.save(() => {
@@ -679,22 +683,24 @@ export async function registerRoutes(
     });
   });
 
-  app.post("/api/auth/logout", (req, res) => {
+  app.post("/api/auth/logout", async (req, res) => {
+    const lang = await resolveUserLang(req);
     req.session.destroy((err) => {
       if (err) {
-        return res.status(500).json({ error: "Failed to log out" });
+        return res.status(500).json({ error: msg("logoutFailed", lang) });
       }
       res.json({ success: true });
     });
   });
 
   app.get("/api/auth/me", async (req, res) => {
+    const lang = await resolveUserLang(req);
     if (!req.session.userId) {
-      return res.status(401).json({ error: "Not authenticated" });
+      return res.status(401).json({ error: msg("notAuthenticated", lang) });
     }
     const user = await storage.getUserById(req.session.userId);
     if (!user) {
-      return res.status(401).json({ error: "User not found" });
+      return res.status(401).json({ error: msg("userNotFound", lang) });
     }
     res.json({
       user: {
@@ -775,26 +781,28 @@ export async function registerRoutes(
   });
 
   app.patch("/api/auth/language", requireAuth, async (req, res) => {
+    const lang = await resolveUserLang(req);
     const { language } = req.body;
     if (!language || !["en", "tr"].includes(language)) {
-      return res.status(400).json({ error: "Invalid language. Must be 'en' or 'tr'." });
+      return res.status(400).json({ error: msg("invalidLanguage", lang) });
     }
     const updated = await storage.updateUserLanguage(req.session.userId!, language);
     if (!updated) {
-      return res.status(404).json({ error: "User not found" });
+      return res.status(404).json({ error: msg("userNotFound", lang) });
     }
     res.json({ language: updated.language });
   });
 
   app.patch("/api/auth/profile", requireAuth, async (req, res) => {
+    const lang = await resolveUserLang(req);
     const parsed = profileUpdateSchema.safeParse(req.body);
     if (!parsed.success) {
-      return res.status(400).json({ error: parsed.error.errors[0]?.message || "Invalid input" });
+      return res.status(400).json({ error: parsed.error.errors[0]?.message || msg("invalidInput", lang) });
     }
     const { fullName, company } = parsed.data;
     const updated = await storage.updateUserProfile(req.session.userId!, { fullName, company });
     if (!updated) {
-      return res.status(404).json({ error: "User not found" });
+      return res.status(404).json({ error: msg("userNotFound", lang) });
     }
     res.json({
       user: {
@@ -816,21 +824,22 @@ export async function registerRoutes(
   });
 
   app.patch("/api/auth/password", requireAuth, async (req, res) => {
+    const lang = await resolveUserLang(req);
     const parsed = passwordUpdateSchema.safeParse(req.body);
     if (!parsed.success) {
-      return res.status(400).json({ error: parsed.error.errors[0]?.message || "Invalid input" });
+      return res.status(400).json({ error: parsed.error.errors[0]?.message || msg("invalidInput", lang) });
     }
     const { currentPassword, newPassword } = parsed.data;
     const user = await storage.getUserById(req.session.userId!);
     if (!user) {
-      return res.status(404).json({ error: "User not found" });
+      return res.status(404).json({ error: msg("userNotFound", lang) });
     }
     if (!user.password) {
-      return res.status(400).json({ error: "This account uses Google sign-in and has no password set. Please sign in with Google." });
+      return res.status(400).json({ error: msg("googleNoPassword", lang) });
     }
     const valid = await bcrypt.compare(currentPassword, user.password);
     if (!valid) {
-      return res.status(401).json({ error: "Current password is incorrect" });
+      return res.status(401).json({ error: msg("currentPasswordIncorrect", lang) });
     }
     const hashedPassword = await bcrypt.hash(newPassword, 12);
     await storage.updateUserPassword(req.session.userId!, hashedPassword);
@@ -1654,7 +1663,8 @@ export async function registerRoutes(
     }
 
     const clientIp = (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() || req.socket.remoteAddress || "unknown";
-    const guardrailResult = await checkInput(message, agentType, req.session.userId || null, clientIp);
+    const userLang = await resolveUserLang(req);
+    const guardrailResult = await checkInput(message, agentType, req.session.userId || null, clientIp, userLang);
     if (!guardrailResult.allowed) {
       logGuardrailBlock(
         req.session.userId || null,
@@ -2293,8 +2303,8 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
         aiProvider: useAnthropic ? "anthropic" : "openai",
       }).catch(err => console.error("Token usage log error:", err.message));
 
-      const rawReply = assistantMessageContent ?? "Üzgünüm, şu anda yanıt oluşturamadım. Lütfen tekrar deneyin.";
-      const sanitized = sanitizeOutput(rawReply, resolvedAgentType);
+      const rawReply = assistantMessageContent ?? msg("noResponseGenerated", userLang);
+      const sanitized = sanitizeOutput(rawReply, resolvedAgentType, userLang);
       let reply = addWatermark(sanitized, req.session.userId || null, clientIp);
 
       const usedTool = operationType === "tool_call";

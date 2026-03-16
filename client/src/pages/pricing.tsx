@@ -50,7 +50,7 @@ export default function Pricing() {
     },
     {
       name: t("pricing.plans.enterprise.name"),
-      price: "Custom",
+      price: "custom",
       per: "",
       desc: t("pricing.plans.enterprise.desc"),
       featured: false,

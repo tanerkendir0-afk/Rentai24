@@ -979,7 +979,24 @@
       "suggestion": "Suggestion",
       "other": "Other"
     },
-    "manager": "Manager"
+    "manager": "Manager",
+    "roles": {
+      "customerSupport": "Customer Support",
+      "salesSdr": "Sales SDR",
+      "socialMedia": "Social Media",
+      "bookkeeping": "Bookkeeping",
+      "scheduling": "Scheduling",
+      "hrRecruiting": "HR & Recruiting",
+      "dataAnalyst": "Data Analyst",
+      "ecommerceOps": "E-Commerce Ops",
+      "realEstate": "Real Estate",
+      "manager": "Manager"
+    },
+    "agentResponse": "Agent response",
+    "providerRemoved": "Provider removed",
+    "providerDisconnected": "{{name}} has been disconnected.",
+    "providerRemoveFailed": "Failed to remove provider.",
+    "error": "Error"
   },
   "tasksPanel": {
     "projectsTasks": "Projects & Tasks",
@@ -999,7 +1016,36 @@
     "createFirst": "Create your first task",
     "noTasksInGroup": "No tasks",
     "clearDate": "Clear date",
-    "markAs": "Mark as {{status}}"
+    "markAs": "Mark as {{status}}",
+    "months": {
+      "jan": "Jan",
+      "feb": "Feb",
+      "mar": "Mar",
+      "apr": "Apr",
+      "may": "May",
+      "jun": "Jun",
+      "jul": "Jul",
+      "aug": "Aug",
+      "sep": "Sep",
+      "oct": "Oct",
+      "nov": "Nov",
+      "dec": "Dec"
+    },
+    "days": {
+      "su": "Su",
+      "mo": "Mo",
+      "tu": "Tu",
+      "we": "We",
+      "th": "Th",
+      "fr": "Fr",
+      "sa": "Sa"
+    },
+    "priorities": {
+      "low": "low",
+      "medium": "medium",
+      "high": "high",
+      "urgent": "urgent"
+    }
   },
   "chatMessage": {
     "imageLoadError": "Image could not be loaded",
@@ -2013,6 +2059,20 @@
       "loadingStats": "Loading stats...",
       "refresh": "Refresh",
       "cancel": "Cancel"
+    },
+    "agents": {
+      "customerSupport": "Customer Support",
+      "salesSdr": "Sales SDR",
+      "socialMedia": "Social Media",
+      "bookkeeping": "Bookkeeping",
+      "scheduling": "Scheduling",
+      "hrRecruiting": "HR & Recruiting",
+      "dataAnalyst": "Data Analyst",
+      "ecommerceOps": "E-Commerce",
+      "realEstate": "Real Estate",
+      "manager": "Manager",
+      "smartRouter": "Smart Router",
+      "customInstructions": "Write custom instructions for {{agent}}..."
     }
   },
   "pricingPage": {

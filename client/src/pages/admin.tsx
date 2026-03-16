@@ -17,17 +17,17 @@ import {
 
 const ADMIN_API = `/api/${import.meta.env.VITE_ADMIN_PATH}`;
 
-const AGENTS = [
-  { slug: "customer-support", name: "Ava — Customer Support" },
-  { slug: "sales-sdr", name: "Rex — Sales SDR" },
-  { slug: "social-media", name: "Maya — Social Media" },
-  { slug: "bookkeeping", name: "Finn — Bookkeeping" },
-  { slug: "scheduling", name: "Cal — Scheduling" },
-  { slug: "hr-recruiting", name: "Harper — HR & Recruiting" },
-  { slug: "data-analyst", name: "DataBot — Data Analyst" },
-  { slug: "ecommerce-ops", name: "ShopBot — E-Commerce" },
-  { slug: "real-estate", name: "Reno — Real Estate" },
-  { slug: "manager", name: "Manager — Smart Router" },
+const AGENTS_DATA = [
+  { slug: "customer-support", persona: "Ava", roleKey: "customerSupport" },
+  { slug: "sales-sdr", persona: "Rex", roleKey: "salesSdr" },
+  { slug: "social-media", persona: "Maya", roleKey: "socialMedia" },
+  { slug: "bookkeeping", persona: "Finn", roleKey: "bookkeeping" },
+  { slug: "scheduling", persona: "Cal", roleKey: "scheduling" },
+  { slug: "hr-recruiting", persona: "Harper", roleKey: "hrRecruiting" },
+  { slug: "data-analyst", persona: "DataBot", roleKey: "dataAnalyst" },
+  { slug: "ecommerce-ops", persona: "ShopBot", roleKey: "ecommerceOps" },
+  { slug: "real-estate", persona: "Reno", roleKey: "realEstate" },
+  { slug: "manager", persona: "Manager", roleKey: "manager" },
 ];
 
 interface AgentDocument {
@@ -224,7 +224,7 @@ function UsersPanel({ token }: { token: string }) {
 
   useEffect(() => { fetchUsers(); }, [fetchUsers]);
 
-  const agentLabel = (slug: string) => AGENTS.find(a => a.slug === slug)?.name?.split(" — ")[0] || slug;
+  const agentLabel = (slug: string) => AGENTS_DATA.find(a => a.slug === slug)?.persona || slug;
 
   const filtered = users.filter(u =>
     !search || u.email?.toLowerCase().includes(search.toLowerCase()) ||
@@ -552,7 +552,7 @@ function PerformancePanel({ token }: { token: string }) {
   useEffect(() => { fetchData(); }, [fetchData]);
 
   const agentNameMap: Record<string, string> = {};
-  AGENTS.forEach(a => { agentNameMap[a.slug] = a.name; });
+  AGENTS_DATA.forEach(a => { agentNameMap[a.slug] = `${a.persona} — ${t("adminPage.agents." + a.roleKey)}`; });
 
   return (
     <div className="space-y-6">
@@ -715,7 +715,7 @@ function ConversationReviewPanel({ token }: { token: string }) {
   const headers = { Authorization: `Bearer ${token}` };
 
   const agentNameMap: Record<string, string> = {};
-  AGENTS.forEach(a => { agentNameMap[a.slug] = a.name; });
+  AGENTS_DATA.forEach(a => { agentNameMap[a.slug] = `${a.persona} — ${t("adminPage.agents." + a.roleKey)}`; });
 
   const fetchConversations = useCallback(async () => {
     setLoading(true);
@@ -842,8 +842,8 @@ function ConversationReviewPanel({ token }: { token: string }) {
               </SelectTrigger>
               <SelectContent className="bg-[#111633] border-[#1E2448]">
                 <SelectItem value="all" className="text-white">{t("adminPage.select.allAgents")}</SelectItem>
-                {AGENTS.map(a => (
-                  <SelectItem key={a.slug} value={a.slug} className="text-white">{a.name}</SelectItem>
+                {AGENTS_DATA.map(a => (
+                  <SelectItem key={a.slug} value={a.slug} className="text-white">{`${a.persona} — ${t("adminPage.agents." + a.roleKey)}`}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -982,7 +982,7 @@ function TrainingDataPanel({ agentType, token }: { agentType: string; token: str
     }
   };
 
-  const agentName = AGENTS.find(a => a.slug === agentType)?.name || agentType;
+  const agentName = (() => { const a = AGENTS_DATA.find(x => x.slug === agentType); return a ? `${a.persona} — ${t("adminPage.agents." + a.roleKey)}` : agentType; })();
 
   return (
     <div className="space-y-6">
@@ -1686,7 +1686,7 @@ function CostTrackerPanel({ token }: { token: string }) {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  const agentLabel = (slug: string) => AGENTS.find(a => a.slug === slug)?.name || slug;
+  const agentLabel = (slug: string) => { const a = AGENTS_DATA.find(x => x.slug === slug); return a ? `${a.persona} — ${t("adminPage.agents." + a.roleKey)}` : slug; };
 
   return (
     <div className="space-y-6">
@@ -1890,7 +1890,7 @@ function CollaborationPanel({ token }: { token: string }) {
   const [topic, setTopic] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<CollaborationResult | null>(null);
-  const [selectedAgents, setSelectedAgents] = useState<string[]>(AGENTS.map(a => a.slug));
+  const [selectedAgents, setSelectedAgents] = useState<string[]>(AGENTS_DATA.map(a => a.slug));
   const [progress, setProgress] = useState(0);
   const [sessions, setSessions] = useState<SavedCollabSession[]>([]);
   const [showHistory, setShowHistory] = useState(false);
@@ -2048,7 +2048,7 @@ function CollaborationPanel({ token }: { token: string }) {
           <div>
             <label className="text-sm text-gray-400 mb-2 block">{t("adminPage.collaboration.selectAgents")}</label>
             <div className="flex flex-wrap gap-2">
-              {AGENTS.map(agent => (
+              {AGENTS_DATA.map(agent => (
                 <button
                   key={agent.slug}
                   onClick={() => toggleAgent(agent.slug)}
@@ -2059,15 +2059,15 @@ function CollaborationPanel({ token }: { token: string }) {
                   }`}
                   data-testid={`toggle-agent-${agent.slug}`}
                 >
-                  {agentIcons[agent.slug]} {agent.name.split(" — ")[0]}
+                  {agentIcons[agent.slug]} {agent.persona}
                 </button>
               ))}
               <button
-                onClick={() => setSelectedAgents(selectedAgents.length === AGENTS.length ? [] : AGENTS.map(a => a.slug))}
+                onClick={() => setSelectedAgents(selectedAgents.length === AGENTS_DATA.length ? [] : AGENTS_DATA.map(a => a.slug))}
                 className="px-3 py-1.5 rounded-full text-sm font-medium bg-[#0A0E27] text-gray-400 hover:text-white border border-[#1E2448]"
                 data-testid="toggle-all-agents"
               >
-                {selectedAgents.length === AGENTS.length ? t("adminPage.collaboration.deselectAll") : t("adminPage.collaboration.selectAll")}
+                {selectedAgents.length === AGENTS_DATA.length ? t("adminPage.collaboration.deselectAll") : t("adminPage.collaboration.selectAll")}
               </button>
             </div>
           </div>
@@ -2214,7 +2214,7 @@ function CollaborationPanel({ token }: { token: string }) {
                       <span className={`w-8 h-8 rounded-full bg-gradient-to-r ${agentColors[agent.slug]} flex items-center justify-center text-lg`}>
                         {agentIcons[agent.slug]}
                       </span>
-                      {agent.name}
+                      {`${agent.persona} — ${t("adminPage.agents." + agent.roleKey)}`}
                     </CardTitle>
                     {!agent.error && (
                       <Badge className="bg-[#1E2448] text-gray-400 text-xs">
@@ -2341,7 +2341,7 @@ function SpendAnalysisPanel({ token }: { token: string }) {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  const agentLabel = (slug: string) => AGENTS.find(a => a.slug === slug)?.name || slug;
+  const agentLabel = (slug: string) => { const a = AGENTS_DATA.find(x => x.slug === slug); return a ? `${a.persona} — ${t("adminPage.agents." + a.roleKey)}` : slug; };
 
   const maxAgentCost = data?.perAgent.length
     ? Math.max(...data.perAgent.map(a => parseFloat(a.total_cost)))
@@ -3174,8 +3174,8 @@ function GuardrailsPanel({ token }: { token: string }) {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">{t("adminPage.select.allAgents")}</SelectItem>
-                  {AGENTS.map(a => (
-                    <SelectItem key={a.slug} value={a.slug}>{a.name}</SelectItem>
+                  {AGENTS_DATA.map(a => (
+                    <SelectItem key={a.slug} value={a.slug}>{`${a.persona} — ${t("adminPage.agents." + a.roleKey)}`}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -3232,7 +3232,7 @@ function GuardrailsPanel({ token }: { token: string }) {
                         {log.ruleType?.replace("_", " ")}
                       </Badge>
                       <Badge variant="outline" className="text-xs border-[#1E2448] text-slate-300" data-testid={`badge-agent-${log.id}`}>
-                        {AGENTS.find(a => a.slug === log.agentType)?.name || log.agentType}
+                        {(() => { const a = AGENTS_DATA.find(x => x.slug === log.agentType); return a ? `${a.persona} — ${t("adminPage.agents." + a.roleKey)}` : log.agentType; })()}
                       </Badge>
                       {log.userId && (
                         <span className="text-xs text-slate-500">User #{log.userId}</span>
@@ -3952,7 +3952,7 @@ function LimitManagementPanel({ token }: { token: string }) {
 
   useEffect(() => {
     const agentsToFetch = selectedAgentFilter === "all"
-      ? AGENTS.filter(a => a.slug !== "manager").map(a => a.slug)
+      ? AGENTS_DATA.filter(a => a.slug !== "manager").map(a => a.slug)
       : [selectedAgentFilter];
     const periods = ["daily", "weekly", "monthly"] as const;
     agentsToFetch.forEach(agent => {
@@ -4040,8 +4040,8 @@ function LimitManagementPanel({ token }: { token: string }) {
   };
 
   const agentsToShow = selectedAgentFilter === "all"
-    ? AGENTS.filter(a => a.slug !== "manager")
-    : AGENTS.filter(a => a.slug === selectedAgentFilter);
+    ? AGENTS_DATA.filter(a => a.slug !== "manager")
+    : AGENTS_DATA.filter(a => a.slug === selectedAgentFilter);
 
   const periods = ["daily", "weekly", "monthly"] as const;
   const periodLabels: Record<string, string> = { daily: t("adminPage.limits.daily"), weekly: t("adminPage.limits.weekly"), monthly: t("adminPage.limits.monthly") };
@@ -4066,8 +4066,8 @@ function LimitManagementPanel({ token }: { token: string }) {
               </SelectTrigger>
               <SelectContent className="bg-[#111633] border-[#1E2448]">
                 <SelectItem value="all" className="text-white">{t("adminPage.limits.allAgents")}</SelectItem>
-                {AGENTS.filter(a => a.slug !== "manager").map(a => (
-                  <SelectItem key={a.slug} value={a.slug} className="text-white">{a.name}</SelectItem>
+                {AGENTS_DATA.filter(a => a.slug !== "manager").map(a => (
+                  <SelectItem key={a.slug} value={a.slug} className="text-white">{`${a.persona} — ${t("adminPage.agents." + a.roleKey)}`}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -4082,7 +4082,7 @@ function LimitManagementPanel({ token }: { token: string }) {
               <div key={agent.slug} className="p-4 bg-[#111633] rounded-lg border border-[#1E2448]" data-testid={`limit-agent-${agent.slug}`}>
                 <div className="flex items-center gap-2 mb-4">
                   <Bot className="w-5 h-5 text-blue-400" />
-                  <h4 className="text-white font-medium">{agent.name}</h4>
+                  <h4 className="text-white font-medium">{`${agent.persona} — ${t("adminPage.agents." + agent.roleKey)}`}</h4>
                   <Badge variant="outline" className="border-[#1E2448] text-gray-400 text-xs ml-auto">
                     {t("adminPage.limits.default")}: {getDefaultTokenLimit(agent.slug).toLocaleString()} token/{t("adminPage.limits.day")}
                   </Badge>
@@ -4208,8 +4208,8 @@ function LimitManagementPanel({ token }: { token: string }) {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="bg-[#111633] border-[#1E2448]">
-                  {AGENTS.filter(a => a.slug !== "manager").map(a => (
-                    <SelectItem key={a.slug} value={a.slug} className="text-white">{a.name}</SelectItem>
+                  {AGENTS_DATA.filter(a => a.slug !== "manager").map(a => (
+                    <SelectItem key={a.slug} value={a.slug} className="text-white">{`${a.persona} — ${t("adminPage.agents." + a.roleKey)}`}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -4267,7 +4267,7 @@ function LimitManagementPanel({ token }: { token: string }) {
               <h4 className="text-sm font-medium text-gray-400 mb-2">{t("adminPage.limits.existingOverrides")}</h4>
               {userOverrides.map(override => {
                 const user = users.find(u => u.id === override.userId);
-                const agentName = AGENTS.find(a => a.slug === override.agentType)?.name || override.agentType;
+                const agentName = (() => { const a = AGENTS_DATA.find(x => x.slug === override.agentType); return a ? `${a.persona} — ${t("adminPage.agents." + a.roleKey)}` : override.agentType; })();
                 return (
                   <div key={override.id} className="flex items-center justify-between p-3 bg-[#111633] rounded-lg border border-[#1E2448]" data-testid={`override-row-${override.id}`}>
                     <div className="flex items-center gap-3">
@@ -4397,15 +4397,15 @@ function AgentInstructionsPanel({ token }: { token: string }) {
       </Card>
 
       <div className="grid gap-4">
-        {AGENTS.filter(a => a.slug !== "manager").map((agent) => (
+        {AGENTS_DATA.filter(a => a.slug !== "manager").map((agent) => (
           <Card key={agent.slug}>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">{agent.name}</CardTitle>
+              <CardTitle className="text-sm font-medium">{`${agent.persona} — ${t("adminPage.agents." + agent.roleKey)}`}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <textarea
                 className="w-full min-h-[100px] p-3 rounded-lg border bg-background text-sm font-mono resize-y"
-                placeholder={`${agent.name} için özel talimatlar yazın...`}
+                placeholder={t("adminPage.agents.customInstructions", { agent: agent.persona })}
                 value={instructions[agent.slug] || ""}
                 onChange={(e) => setInstructions(prev => ({ ...prev, [agent.slug]: e.target.value }))}
                 data-testid={`input-instructions-${agent.slug}`}
@@ -4905,7 +4905,7 @@ function ABTestPanel({ token }: { token: string }) {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="general">{t("adminPage.abTest.generalNoAgent")}</SelectItem>
-                {AGENTS.map(a => <SelectItem key={a.slug} value={a.slug}>{a.name}</SelectItem>)}
+                {AGENTS_DATA.map(a => <SelectItem key={a.slug} value={a.slug}>{`${a.persona} — ${t("adminPage.agents." + a.roleKey)}`}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
@@ -5149,9 +5149,9 @@ function AIProviderPanel({ token }: { token: string }) {
               {t("adminPage.aiProvider.perAgentDesc")}
             </p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {AGENTS.map(agent => (
+              {AGENTS_DATA.map(agent => (
                 <div key={agent.slug} className="flex items-center justify-between p-3 bg-[#0A0E27] rounded-lg border border-[#1E2448]" data-testid={`agent-provider-${agent.slug}`}>
-                  <span className="text-white text-sm font-medium">{agent.name}</span>
+                  <span className="text-white text-sm font-medium">{`${agent.persona} — ${t("adminPage.agents." + agent.roleKey)}`}</span>
                   <Select
                     value={agentProviders[agent.slug] || "default"}
                     onValueChange={(val) => handleAgentProviderChange(agent.slug, val)}
@@ -5331,7 +5331,7 @@ function AdminGuidePanel() {
                     {agent.icon}
                   </div>
                   <div>
-                    <p className="text-white font-medium text-sm">{agent.name}</p>
+                    <p className="text-white font-medium text-sm">{`${agent.persona} — ${t("adminPage.agents." + agent.roleKey)}`}</p>
                     <p className="text-gray-500 text-xs">{agent.role}</p>
                   </div>
                 </div>
@@ -5348,7 +5348,7 @@ function AdminGuidePanel() {
 export default function AdminPage() {
   const { t } = useTranslation("pages");
   const [token, setToken] = useState<string | null>(null);
-  const [selectedAgent, setSelectedAgent] = useState(AGENTS[0].slug);
+  const [selectedAgent, setSelectedAgent] = useState(AGENTS_DATA[0].slug);
   const [stats, setStats] = useState<AgentStats | null>(null);
   const [activeTab, setActiveTab] = useState("overview");
   const [activeCategory, setActiveCategory] = useState("dashboard");
@@ -5435,9 +5435,9 @@ export default function AdminPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="bg-[#111633] border-[#1E2448]">
-                  {AGENTS.map((agent) => (
+                  {AGENTS_DATA.map((agent) => (
                     <SelectItem key={agent.slug} value={agent.slug} className="text-white">
-                      {agent.name}
+                      {`${agent.persona} — ${t("adminPage.agents." + agent.roleKey)}`}
                     </SelectItem>
                   ))}
                 </SelectContent>

@@ -49,8 +49,8 @@ function MiniCalendar({ selectedDate, onSelect, taskDates, t }: {
   const today = new Date();
   const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
 
-  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-  const dayNames = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+  const monthNames = [t("tasksPanel.months.jan"), t("tasksPanel.months.feb"), t("tasksPanel.months.mar"), t("tasksPanel.months.apr"), t("tasksPanel.months.may"), t("tasksPanel.months.jun"), t("tasksPanel.months.jul"), t("tasksPanel.months.aug"), t("tasksPanel.months.sep"), t("tasksPanel.months.oct"), t("tasksPanel.months.nov"), t("tasksPanel.months.dec")];
+  const dayNames = [t("tasksPanel.days.su"), t("tasksPanel.days.mo"), t("tasksPanel.days.tu"), t("tasksPanel.days.we"), t("tasksPanel.days.th"), t("tasksPanel.days.fr"), t("tasksPanel.days.sa")];
 
   const prevMonth = () => {
     setViewMonth(prev => prev.month === 0 ? { year: prev.year - 1, month: 11 } : { year: prev.year, month: prev.month - 1 });
@@ -266,7 +266,7 @@ export default function TasksPanel({ agentType, agentColor, onClose }: {
                   }`}
                   data-testid={`priority-${p}`}
                 >
-                  {p}
+                  {t("tasksPanel.priorities." + p)}
                 </button>
               ))}
             </div>
@@ -392,7 +392,7 @@ export default function TasksPanel({ agentType, agentColor, onClose }: {
                                   )}
                                   <span className={`text-[10px] flex items-center gap-0.5 ${PRIORITY_COLORS[task.priority]}`}>
                                     <Flag className="w-2.5 h-2.5" />
-                                    {task.priority}
+                                    {t("tasksPanel.priorities." + task.priority)}
                                   </span>
                                   {dueDateStr && (
                                     <span className={`text-[10px] flex items-center gap-0.5 ${isOverdue ? "text-red-400" : "text-muted-foreground"}`}>

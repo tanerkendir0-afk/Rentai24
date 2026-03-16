@@ -979,7 +979,24 @@
       "suggestion": "Öneri",
       "other": "Diğer"
     },
-    "manager": "Yönetici"
+    "manager": "Yönetici",
+    "roles": {
+      "customerSupport": "Müşteri Destek",
+      "salesSdr": "Satış Temsilcisi",
+      "socialMedia": "Sosyal Medya",
+      "bookkeeping": "Muhasebe",
+      "scheduling": "Planlama",
+      "hrRecruiting": "İK & İşe Alım",
+      "dataAnalyst": "Veri Analisti",
+      "ecommerceOps": "E-Ticaret Operasyonları",
+      "realEstate": "Gayrimenkul",
+      "manager": "Yönetici"
+    },
+    "agentResponse": "Ajan yanıtı",
+    "providerRemoved": "Sağlayıcı kaldırıldı",
+    "providerDisconnected": "{{name}} bağlantısı kesildi.",
+    "providerRemoveFailed": "Sağlayıcı kaldırılamadı.",
+    "error": "Hata"
   },
   "tasksPanel": {
     "projectsTasks": "Projeler & Görevler",
@@ -999,7 +1016,36 @@
     "createFirst": "İlk görevinizi oluşturun",
     "noTasksInGroup": "Görev yok",
     "clearDate": "Tarihi temizle",
-    "markAs": "{{status}} olarak işaretle"
+    "markAs": "{{status}} olarak işaretle",
+    "months": {
+      "jan": "Oca",
+      "feb": "Şub",
+      "mar": "Mar",
+      "apr": "Nis",
+      "may": "May",
+      "jun": "Haz",
+      "jul": "Tem",
+      "aug": "Ağu",
+      "sep": "Eyl",
+      "oct": "Eki",
+      "nov": "Kas",
+      "dec": "Ara"
+    },
+    "days": {
+      "su": "Pz",
+      "mo": "Pt",
+      "tu": "Sa",
+      "we": "Ça",
+      "th": "Pe",
+      "fr": "Cu",
+      "sa": "Ct"
+    },
+    "priorities": {
+      "low": "düşük",
+      "medium": "orta",
+      "high": "yüksek",
+      "urgent": "acil"
+    }
   },
   "chatMessage": {
     "imageLoadError": "Görsel yüklenemedi",
@@ -2013,6 +2059,20 @@
       "loadingStats": "İstatistikler yükleniyor...",
       "refresh": "Yenile",
       "cancel": "İptal"
+    },
+    "agents": {
+      "customerSupport": "Müşteri Destek",
+      "salesSdr": "Satış Temsilcisi",
+      "socialMedia": "Sosyal Medya",
+      "bookkeeping": "Muhasebe",
+      "scheduling": "Planlama",
+      "hrRecruiting": "İK & İşe Alım",
+      "dataAnalyst": "Veri Analisti",
+      "ecommerceOps": "E-Ticaret",
+      "realEstate": "Gayrimenkul",
+      "manager": "Yönetici",
+      "smartRouter": "Akıllı Yönlendirici",
+      "customInstructions": "{{agent}} için özel talimatlar yazın..."
     }
   },
   "pricingPage": {

@@ -88,15 +88,15 @@ interface Conversation {
 }
 
 const agentOptions = [
-  { id: "customer-support", name: "Customer Support", persona: "Ava", icon: Headphones, color: "from-pink-500 to-rose-500", accent: "text-pink-400", bg: "bg-pink-500/10" },
-  { id: "sales-sdr", name: "Sales SDR", persona: "Rex", icon: TrendingUp, color: "from-blue-500 to-cyan-500", accent: "text-blue-400", bg: "bg-blue-500/10" },
-  { id: "social-media", name: "Social Media", persona: "Maya", icon: Share2, color: "from-violet-500 to-purple-500", accent: "text-violet-400", bg: "bg-violet-500/10" },
-  { id: "bookkeeping", name: "Bookkeeping", persona: "Finn", icon: Calculator, color: "from-emerald-500 to-green-500", accent: "text-emerald-400", bg: "bg-emerald-500/10" },
-  { id: "scheduling", name: "Scheduling", persona: "Cal", icon: CalendarCheck, color: "from-orange-500 to-amber-500", accent: "text-orange-400", bg: "bg-orange-500/10" },
-  { id: "hr-recruiting", name: "HR & Recruiting", persona: "Harper", icon: Users, color: "from-teal-500 to-cyan-500", accent: "text-teal-400", bg: "bg-teal-500/10" },
-  { id: "data-analyst", name: "Data Analyst", persona: "DataBot", icon: BarChart3, color: "from-indigo-500 to-blue-500", accent: "text-indigo-400", bg: "bg-indigo-500/10" },
-  { id: "ecommerce-ops", name: "E-Commerce Ops", persona: "ShopBot", icon: Package, color: "from-amber-500 to-yellow-500", accent: "text-amber-400", bg: "bg-amber-500/10" },
-  { id: "real-estate", name: "Real Estate", persona: "Reno", icon: Building2, color: "from-rose-500 to-red-500", accent: "text-rose-400", bg: "bg-rose-500/10" },
+  { id: "customer-support", roleKey: "customerSupport", persona: "Ava", icon: Headphones, color: "from-pink-500 to-rose-500", accent: "text-pink-400", bg: "bg-pink-500/10" },
+  { id: "sales-sdr", roleKey: "salesSdr", persona: "Rex", icon: TrendingUp, color: "from-blue-500 to-cyan-500", accent: "text-blue-400", bg: "bg-blue-500/10" },
+  { id: "social-media", roleKey: "socialMedia", persona: "Maya", icon: Share2, color: "from-violet-500 to-purple-500", accent: "text-violet-400", bg: "bg-violet-500/10" },
+  { id: "bookkeeping", roleKey: "bookkeeping", persona: "Finn", icon: Calculator, color: "from-emerald-500 to-green-500", accent: "text-emerald-400", bg: "bg-emerald-500/10" },
+  { id: "scheduling", roleKey: "scheduling", persona: "Cal", icon: CalendarCheck, color: "from-orange-500 to-amber-500", accent: "text-orange-400", bg: "bg-orange-500/10" },
+  { id: "hr-recruiting", roleKey: "hrRecruiting", persona: "Harper", icon: Users, color: "from-teal-500 to-cyan-500", accent: "text-teal-400", bg: "bg-teal-500/10" },
+  { id: "data-analyst", roleKey: "dataAnalyst", persona: "DataBot", icon: BarChart3, color: "from-indigo-500 to-blue-500", accent: "text-indigo-400", bg: "bg-indigo-500/10" },
+  { id: "ecommerce-ops", roleKey: "ecommerceOps", persona: "ShopBot", icon: Package, color: "from-amber-500 to-yellow-500", accent: "text-amber-400", bg: "bg-amber-500/10" },
+  { id: "real-estate", roleKey: "realEstate", persona: "Reno", icon: Building2, color: "from-rose-500 to-red-500", accent: "text-rose-400", bg: "bg-rose-500/10" },
 ];
 
 interface RentalData {
@@ -443,7 +443,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
     if (lastUserMsg) descParts.push(lastUserMsg);
     if (lastAssistantMsg) {
       const shortAssistant = lastAssistantMsg.length > 200 ? lastAssistantMsg.substring(0, 200) + "..." : lastAssistantMsg;
-      descParts.push(`Ajan yanıtı: ${shortAssistant}`);
+      descParts.push(`${t("demoPage.agentResponse")}: ${shortAssistant}`);
     }
     if (descParts.length > 0) setQuickTaskDescription(descParts.join("\n\n"));
 
@@ -657,7 +657,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
     }
   };
 
-  const managerOption = { id: "manager", name: "Manager", persona: "Manager", icon: BrainCircuit, color: "from-amber-500 to-orange-500", accent: "text-amber-400", bg: "bg-amber-500/10" };
+  const managerOption = { id: "manager", roleKey: "manager", persona: "Manager", icon: BrainCircuit, color: "from-amber-500 to-orange-500", accent: "text-amber-400", bg: "bg-amber-500/10" };
   const currentAgent = selectedAgent === "manager" ? managerOption : agentOptions.find((a) => a.id === selectedAgent)!;
   const CurrentIcon = currentAgent.icon;
 
@@ -786,7 +786,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                         <span className="font-medium truncate text-[13px]">{agent.persona}</span>
                       </div>
                       <span className={`text-[10px] truncate block ${isActive ? "text-white/70" : "text-muted-foreground/60"}`}>
-                        {agent.name}
+                        {t("demoPage.roles." + agent.roleKey)}
                       </span>
                     </div>
                     {isLocked && <Lock className="w-3.5 h-3.5 shrink-0 opacity-30" />}
@@ -895,7 +895,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
               </span>
-              <span className="text-[11px] text-emerald-400">{currentAgent.name}</span>
+              <span className="text-[11px] text-emerald-400">{t("demoPage.roles." + currentAgent.roleKey)}</span>
             </div>
           </div>
 
@@ -1241,8 +1241,8 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                                     try {
                                       await apiRequest("DELETE", `/api/shipping-providers/${sp.id}`);
                                       queryClient.invalidateQueries({ queryKey: ["/api/shipping-providers"] });
-                                      toast({ title: "Provider removed", description: `${cfg.name} has been disconnected.` });
-                                    } catch { toast({ title: "Error", description: "Failed to remove provider.", variant: "destructive" }); }
+                                      toast({ title: t("demoPage.providerRemoved"), description: t("demoPage.providerDisconnected", { name: cfg.name }) });
+                                    } catch { toast({ title: t("demoPage.error"), description: t("demoPage.providerRemoveFailed"), variant: "destructive" }); }
                                   }}
                                   data-testid={`button-cargo-remove-${sp.id}`}
                                 >
@@ -1633,7 +1633,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                 <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-2" data-testid="text-chat-empty">
                   {currentAgent.persona}
                 </h2>
-                <p className="text-muted-foreground mb-1 text-xs sm:text-sm">{currentAgent.name} {t("demoPage.agent")}</p>
+                <p className="text-muted-foreground mb-1 text-xs sm:text-sm">{t("demoPage.roles." + currentAgent.roleKey)} {t("demoPage.agent")}</p>
                 <p className="text-muted-foreground/60 text-xs mb-6 sm:mb-8">
                   {isWorkspace ? t("demoPage.workerReady") : t("demoPage.previewMode")}
                 </p>

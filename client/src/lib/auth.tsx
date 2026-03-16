@@ -27,6 +27,8 @@ interface RegisterData {
   password: string;
   fullName: string;
   company?: string;
+  kvkkConsent: boolean;
+  dataProcessingConsent: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);

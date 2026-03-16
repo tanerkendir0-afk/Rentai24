@@ -243,6 +243,27 @@ function CrmDocumentsSection() {
     }
   };
 
+  const handleDownload = async (id: number, name: string) => {
+    try {
+      const res = await fetch(`/api/crm-documents/${id}/download`, { credentials: "include" });
+      if (!res.ok) {
+        toast({ title: t("settingsPage.crmDocuments.downloadError"), description: t("settingsPage.crmDocuments.downloadErrorDesc"), variant: "destructive" });
+        return;
+      }
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = name;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      toast({ title: t("settingsPage.crmDocuments.downloadError"), description: t("settingsPage.crmDocuments.downloadErrorDesc"), variant: "destructive" });
+    }
+  };
+
   const formatSize = (bytes: number) => {
     if (bytes < 1024) return `${bytes} B`;
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -299,15 +320,26 @@ function CrmDocumentsSection() {
                     </p>
                   </div>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleDelete(doc.id, doc.originalName)}
-                  className="text-red-400 hover:text-red-300 flex-shrink-0"
-                  data-testid={`button-delete-crm-document-${doc.id}`}
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleDownload(doc.id, doc.originalName)}
+                    className="text-blue-400 hover:text-blue-300"
+                    data-testid={`button-download-crm-document-${doc.id}`}
+                  >
+                    <Download className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleDelete(doc.id, doc.originalName)}
+                    className="text-red-400 hover:text-red-300"
+                    data-testid={`button-delete-crm-document-${doc.id}`}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
               </div>
             ))}
           </div>
@@ -2208,8 +2240,7 @@ export default function Settings() {
 
         <CrmDocumentsSection />
 
-        {shippingProvidersData && shippingProvidersData.length > 0 && (
-          <Card className="p-4 sm:p-6 bg-card border-border/50" data-testid="card-api-secrets">
+        <Card className="p-4 sm:p-6 bg-card border-border/50" data-testid="card-api-secrets">
             <div className="flex items-center gap-2 mb-2">
               <KeyRound className="w-5 h-5 text-red-400" />
               <h2 className="text-lg font-semibold text-foreground">{t("settingsPage.secrets.title")}</h2>
@@ -2219,6 +2250,12 @@ export default function Settings() {
               {t("settingsPage.secrets.description")}
             </p>
 
+            {!shippingProvidersData || shippingProvidersData.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <Package className="w-10 h-10 mx-auto mb-2 opacity-30" />
+                <p className="text-sm">{t("settingsPage.secrets.noProviders")}</p>
+              </div>
+            ) : (
             <div className="space-y-2">
               {shippingProvidersData.map((sp) => {
                 const cfg = shippingProviderConfig[sp.provider] || { icon: "📦", name: sp.provider, color: "text-gray-400", bgColor: "bg-gray-500/10", fields: ["apiKey"], guide: "" };
@@ -2346,8 +2383,8 @@ export default function Settings() {
                 );
               })}
             </div>
+            )}
           </Card>
-        )}
 
         <Card className="p-4 sm:p-6 bg-card border-border/50" data-testid="card-subscription">
           <div className="flex items-center gap-2 mb-5">

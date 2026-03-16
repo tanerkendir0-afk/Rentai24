@@ -5349,6 +5349,41 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
     }
   });
 
+  app.get("/api/crm-documents/:id/download", requireAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ error: msg("invalidId", req.lang!) });
+      const doc = await storage.getCrmDocumentById(id, req.session.userId!);
+      if (!doc) return res.status(404).json({ error: msg("documentNotFound", req.lang!) });
+      if (!doc.content) return res.status(404).json({ error: msg("documentNotFound", req.lang!) });
+
+      const mimeType = doc.fileType || "application/octet-stream";
+      const isBase64 = doc.content.startsWith("data:");
+
+      const encodedName = encodeURIComponent(doc.originalName);
+      const disposition = `attachment; filename="${encodedName}"; filename*=UTF-8''${encodedName}`;
+
+      if (isBase64) {
+        const matches = doc.content.match(/^data:([^;]+);base64,(.+)$/);
+        if (!matches) return res.status(500).json({ error: msg("internalServerError", req.lang!) });
+        const buffer = Buffer.from(matches[2], "base64");
+        res.setHeader("Content-Type", matches[1]);
+        res.setHeader("Content-Disposition", disposition);
+        res.setHeader("Content-Length", buffer.length);
+        res.send(buffer);
+      } else {
+        const buffer = Buffer.from(doc.content, "utf-8");
+        res.setHeader("Content-Type", mimeType);
+        res.setHeader("Content-Disposition", disposition);
+        res.setHeader("Content-Length", buffer.length);
+        res.send(buffer);
+      }
+    } catch (error: unknown) {
+      console.error("Download CRM document error:", error);
+      res.status(500).json({ error: msg("internalServerError", req.lang!) });
+    }
+  });
+
   app.delete("/api/crm-documents/:id", requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);

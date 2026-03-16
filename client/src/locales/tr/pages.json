@@ -1446,7 +1446,9 @@
       "uploading": "Yükleniyor...",
       "uploadDocument": "Doküman Yükle",
       "fileTypes": "PDF, TXT, CSV, Excel, Word — Maks. 5MB",
-      "noDocuments": "Henüz doküman yüklenmemiş"
+      "noDocuments": "Henüz doküman yüklenmemiş",
+      "downloadError": "Hata",
+      "downloadErrorDesc": "Doküman indirilemedi."
     },
     "apiSecrets": {
       "title": "API Gizli Anahtarları",
@@ -1606,7 +1608,8 @@
       "enter": "Girin",
       "updateSecrets": "Gizli Anahtarları Güncelle",
       "leaveEmpty": "Mevcut değerleri korumak için alanları boş bırakın. Yalnızca doldurulan alanlar güncellenecektir.",
-      "credentialsStored": "kimlik bilgisi kayıtlı"
+      "credentialsStored": "kimlik bilgisi kayıtlı",
+      "noProviders": "Henüz kargo sağlayıcısı eklenmemiş. API anahtarlarını yönetmek için önce bir kargo sağlayıcısı ekleyin."
     }
   },
   "adminPage": {

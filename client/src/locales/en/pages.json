@@ -1446,7 +1446,9 @@
       "uploading": "Uploading...",
       "uploadDocument": "Upload Document",
       "fileTypes": "PDF, TXT, CSV, Excel, Word — Max. 5MB",
-      "noDocuments": "No documents uploaded yet"
+      "noDocuments": "No documents uploaded yet",
+      "downloadError": "Error",
+      "downloadErrorDesc": "Failed to download the document."
     },
     "apiSecrets": {
       "title": "API Secrets",
@@ -1606,7 +1608,8 @@
       "enter": "Enter",
       "updateSecrets": "Update Secrets",
       "leaveEmpty": "Leave fields empty to keep current values. Only filled fields will be updated.",
-      "credentialsStored": "credential(s) stored"
+      "credentialsStored": "credential(s) stored",
+      "noProviders": "No shipping providers added yet. Add a shipping provider first to manage API keys."
     }
   },
   "adminPage": {

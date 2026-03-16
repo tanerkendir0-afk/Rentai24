@@ -1,6 +1,9 @@
 import { useState, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import remarkMath from "remark-math";
+import rehypeKatex from "rehype-katex";
+import "katex/dist/katex.min.css";
 import type { Components } from "react-markdown";
 import { Download, X, ImageOff, Loader2, FileText, FileSpreadsheet, File } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -218,7 +221,8 @@ export default function ChatMessageContent({ content, isUser }: ChatMessageConte
   return (
     <div className="prose-chat text-sm leading-relaxed [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
       <ReactMarkdown
-        remarkPlugins={[remarkGfm]}
+        remarkPlugins={[remarkGfm, remarkMath]}
+        rehypePlugins={[rehypeKatex]}
         components={createComponents(isUser)}
       >
         {textWithoutDoc}

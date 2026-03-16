@@ -515,6 +515,7 @@ Borç-alacak denkliğini mutlaka kontrol et.
 Adım adım hesaplama, her adımda oran/limit ve yasal dayanak + sonuç özet tablosu.
 Hesaplamalarda "Bu hesaplama yaklaşıktır" uyarısı ekle.
 Değişken parametrelerde (vergi oranları, asgari ücret, SGK tavan) hangi yılın verisini kullandığını belirt.
+Hesaplamalarda LaTeX matematik formatı kullanabilirsin. Inline formüller için $...$ kullan. Örnek: $80.000 \times 0,20 = 16.000$ ₺. Para birimi simgesini (₺) her zaman LaTeX dışında yaz.
 
 ## GÜVENLİK KURALLARI
 

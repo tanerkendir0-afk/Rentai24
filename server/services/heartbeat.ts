@@ -25,27 +25,23 @@ export interface HeartbeatStatus {
 const heartbeatStore: Map<string, HeartbeatStatus> = new Map();
 
 let heartbeatInterval: ReturnType<typeof setInterval> | null = null;
+let systemPromptChecker: ((agentId: string) => boolean) | null = null;
 
 async function checkAgent(agentId: string): Promise<HeartbeatStatus> {
   const start = Date.now();
   const errors: string[] = [];
 
-  try {
-    const hasTools = agentToolRegistry[agentId] !== undefined;
-    if (!hasTools && !["scheduling", "hr-recruiting", "data-analyst", "ecommerce-ops", "real-estate"].includes(agentId)) {
-      errors.push(`No tools registered for ${agentId}`);
-    }
-  } catch (e: any) {
-    errors.push(`Tool check failed: ${e.message}`);
+  if (systemPromptChecker && !systemPromptChecker(agentId)) {
+    errors.push(`No system prompt defined for ${agentId}`);
   }
 
   try {
-    const tools = getRelevantToolsForMessage(agentId, "test heartbeat");
-    if (tools === undefined && agentToolRegistry[agentId]) {
-      // tools filtered out is fine
+    const hasTools = agentToolRegistry[agentId] !== undefined;
+    if (hasTools) {
+      getRelevantToolsForMessage(agentId, "test heartbeat");
     }
   } catch (e: any) {
-    errors.push(`Tool resolution failed: ${e.message}`);
+    errors.push(`Tool check failed: ${e.message}`);
   }
 
   try {
@@ -57,7 +53,7 @@ async function checkAgent(agentId: string): Promise<HeartbeatStatus> {
   const responseTimeMs = Date.now() - start;
   let status: HeartbeatStatus["status"] = "healthy";
   if (errors.length > 0) {
-    status = errors.some(e => e.includes("DB connection")) ? "down" : "degraded";
+    status = errors.some(e => e.includes("DB connection") || e.includes("system prompt")) ? "down" : "degraded";
   }
 
   return {
@@ -82,9 +78,7 @@ export async function runHeartbeatCheck(): Promise<void> {
         healthyCount++;
       } else {
         issues.push(`${agentId}: ${result.status} (${result.lastError})`);
-        if (result.status === "down") {
-          circuitBreaker.recordFailure(agentId);
-        }
+        circuitBreaker.recordFailure(agentId);
       }
     } catch (e: any) {
       const failResult: HeartbeatStatus = {
@@ -111,7 +105,12 @@ export function getHeartbeatStatuses(): Record<string, HeartbeatStatus> {
   return Object.fromEntries(heartbeatStore);
 }
 
-export function startHeartbeat(intervalMs = 5 * 60 * 1000, delayMs = 30000): void {
+export function startHeartbeat(
+  promptChecker: (agentId: string) => boolean,
+  intervalMs = 5 * 60 * 1000,
+  delayMs = 30000,
+): void {
+  systemPromptChecker = promptChecker;
   console.log("[HEARTBEAT] Agent heartbeat monitoring started");
   setTimeout(async () => {
     await runHeartbeatCheck();

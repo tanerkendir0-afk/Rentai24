@@ -12,6 +12,7 @@ import { getStripeSync } from "./stripeClient";
 import { WebhookHandlers } from "./webhookHandlers";
 import { pool } from "./db";
 import { startHeartbeat, stopHeartbeat } from "./services/heartbeat";
+import { agentSystemPrompts } from "./routes";
 
 process.on('uncaughtException', (err: Error) => {
   console.error('[FATAL] Uncaught Exception:', err.message, err.stack);
@@ -314,7 +315,7 @@ app.use((req, res, next) => {
     },
     () => {
       log(`serving on port ${port}`);
-      startHeartbeat();
+      startHeartbeat((agentId) => !!agentSystemPrompts[agentId]);
     },
   );
 

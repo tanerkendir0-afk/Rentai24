@@ -414,7 +414,7 @@ async function summarizeConversationHistory(
   return result;
 }
 
-const agentSystemPrompts: Record<string, string> = {
+export const agentSystemPrompts: Record<string, string> = {
   "customer-support": `You are "Ava", Customer Support AI for RentAI 24.
 ROLE: Customer service only — live chat, email, complaints, tickets, FAQs. Redirect non-support topics to appropriate agents.
 TOOLS: web_search, create_ticket, list_tickets, update_ticket, close_ticket, email_customer, list_inbox, read_email, reply_email. ALWAYS create tickets for reported issues. Use inbox/email tools when asked about emails. Use web_search to research solutions for customer issues.
@@ -713,10 +713,10 @@ export async function registerRoutes(
 
     const agentStatuses = circuitBreaker.getStatus();
     const heartbeatStatuses = getHeartbeatStatuses();
-    const anyAgentDown = Object.values(heartbeatStatuses).some(h => h.status === "down");
+    const anyAgentUnhealthy = Object.values(heartbeatStatuses).some(h => h.status !== "healthy");
     const overallStatus = dbStatus !== "healthy" ? "down"
-      : anyAgentDown ? "degraded"
-      : dbStatus === "healthy" && openaiStatus === "healthy" ? "healthy" : "degraded";
+      : anyAgentUnhealthy ? "degraded"
+      : openaiStatus === "healthy" ? "healthy" : "degraded";
 
     res.json({
       status: overallStatus,

@@ -53,6 +53,7 @@ import { agents, testimonials, faqItems, industries } from "@/data/agents";
 import SectionCTA from "@/components/section-cta";
 import PlatformGuide from "@/components/platform-guide";
 import { useAuth } from "@/lib/auth";
+import { useTranslation } from "react-i18next";
 
 const agentIcons: Record<string, any> = {
   "customer-support": Headphones,
@@ -72,15 +73,15 @@ const industryIcons: Record<string, any> = {
 };
 
 const heroWorkers = [
-  { name: "Ava", role: "Customer Support", icon: Headphones, color: "from-blue-400 to-blue-600", delay: 0 },
-  { name: "Rex", role: "Sales Dev Rep", icon: TrendingUp, color: "from-violet-400 to-purple-600", delay: 0.05 },
-  { name: "Maya", role: "Social Media", icon: Share2, color: "from-fuchsia-400 to-pink-600", delay: 0.1 },
-  { name: "Finn", role: "Bookkeeping", icon: Calculator, color: "from-cyan-400 to-blue-500", delay: 0.15 },
-  { name: "Cal", role: "Scheduling", icon: CalendarCheck, color: "from-indigo-400 to-violet-500", delay: 0.2 },
-  { name: "Harper", role: "HR & Recruiting", icon: Users, color: "from-purple-400 to-fuchsia-500", delay: 0.25 },
-  { name: "DataBot", role: "Data Analyst", icon: BarChart3, color: "from-emerald-400 to-teal-600", delay: 0.3 },
-  { name: "ShopBot", role: "E-Commerce Ops", icon: Package, color: "from-amber-400 to-orange-500", delay: 0.35 },
-  { name: "Reno", role: "Real Estate", icon: Building2, color: "from-rose-400 to-red-500", delay: 0.4 },
+  { name: "Ava", roleKey: "customerSupport", icon: Headphones, color: "from-blue-400 to-blue-600", delay: 0 },
+  { name: "Rex", roleKey: "salesDevRep", icon: TrendingUp, color: "from-violet-400 to-purple-600", delay: 0.05 },
+  { name: "Maya", roleKey: "socialMedia", icon: Share2, color: "from-fuchsia-400 to-pink-600", delay: 0.1 },
+  { name: "Finn", roleKey: "bookkeeping", icon: Calculator, color: "from-cyan-400 to-blue-500", delay: 0.15 },
+  { name: "Cal", roleKey: "scheduling", icon: CalendarCheck, color: "from-indigo-400 to-violet-500", delay: 0.2 },
+  { name: "Harper", roleKey: "hrRecruiting", icon: Users, color: "from-purple-400 to-fuchsia-500", delay: 0.25 },
+  { name: "DataBot", roleKey: "dataAnalyst", icon: BarChart3, color: "from-emerald-400 to-teal-600", delay: 0.3 },
+  { name: "ShopBot", roleKey: "ecommerceOps", icon: Package, color: "from-amber-400 to-orange-500", delay: 0.35 },
+  { name: "Reno", roleKey: "realEstate", icon: Building2, color: "from-rose-400 to-red-500", delay: 0.4 },
 ];
 
 function AnimatedCounter({ target, suffix = "" }: { target: number; suffix?: string }) {
@@ -121,16 +122,10 @@ const stagger = {
   viewport: { once: true },
 };
 
-const comparisonData = [
-  { old: "Weeks to hire", new: "Deploy in minutes" },
-  { old: "Sick days, vacations, turnover", new: "24/7, never misses a day" },
-  { old: "Training costs $$$", new: "Pre-trained & ready" },
-  { old: "One language", new: "Multilingual" },
-  { old: "Hard to scale", new: "Instant scaling" },
-  { old: "$3,000-5,000+/month", new: "From $49/month" },
-];
+const comparisonKeys = ["1", "2", "3", "4", "5", "6"];
 
 function HeroCarousel() {
+  const { t: ta } = useTranslation("agents");
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
@@ -222,7 +217,7 @@ function HeroCarousel() {
                 </div>
 
                 <h3 className="text-base sm:text-lg font-bold text-white mb-1 tracking-tight">{worker.name}</h3>
-                <p className="text-[11px] sm:text-xs text-blue-200/60 font-medium leading-relaxed">{worker.role}</p>
+                <p className="text-[11px] sm:text-xs text-blue-200/60 font-medium leading-relaxed">{ta(`heroRoles.${worker.roleKey}`)}</p>
 
                 <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                 <div className="absolute bottom-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-blue-500/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
@@ -242,49 +237,23 @@ function HeroCarousel() {
 }
 
 const showcaseScenes = [
-  {
-    id: "office",
-    title: "Your AI-Powered Office",
-    subtitle: "A team that never sleeps",
-    icon: Monitor,
-    color: "from-blue-500 to-indigo-600",
-    duration: 8000,
-  },
-  {
-    id: "agents",
-    title: "Meet Your Agents",
-    subtitle: "Specialized for every role",
-    icon: Users,
-    color: "from-violet-500 to-purple-600",
-    duration: 8000,
-  },
-  {
-    id: "tasks",
-    title: "Watch Them Work",
-    subtitle: "Tasks completed in real-time",
-    icon: Zap,
-    color: "from-emerald-500 to-teal-600",
-    duration: 8000,
-  },
-  {
-    id: "results",
-    title: "See the Results",
-    subtitle: "Measurable impact from day one",
-    icon: TrendingUp,
-    color: "from-amber-500 to-orange-600",
-    duration: 8000,
-  },
-  {
-    id: "scale",
-    title: "Scale Without Limits",
-    subtitle: "From startup to enterprise",
-    icon: Globe,
-    color: "from-rose-500 to-pink-600",
-    duration: 8000,
-  },
+  { id: "office", titleKey: "office", icon: Monitor, color: "from-blue-500 to-indigo-600", duration: 8000 },
+  { id: "agents", titleKey: "agents", icon: Users, color: "from-violet-500 to-purple-600", duration: 8000 },
+  { id: "tasks", titleKey: "tasks", icon: Zap, color: "from-emerald-500 to-teal-600", duration: 8000 },
+  { id: "results", titleKey: "results", icon: TrendingUp, color: "from-amber-500 to-orange-600", duration: 8000 },
+  { id: "scale", titleKey: "scale", icon: Globe, color: "from-rose-500 to-pink-600", duration: 8000 },
 ];
 
 function OfficeScene({ active }: { active: boolean }) {
+  const { t } = useTranslation("pages");
+  const officeItems = [
+    { icon: Monitor, labelKey: "workspace", color: "text-blue-400" },
+    { icon: MessageSquare, labelKey: "liveChat", color: "text-violet-400" },
+    { icon: Mail, labelKey: "emails", color: "text-cyan-400" },
+    { icon: BarChart3, labelKey: "analytics", color: "text-emerald-400" },
+    { icon: CalendarCheck, labelKey: "calendar", color: "text-amber-400" },
+    { icon: Shield, labelKey: "security", color: "text-rose-400" },
+  ];
   return (
     <div className="relative w-full h-full flex items-center justify-center">
       <div className="relative w-full max-w-md">
@@ -294,23 +263,16 @@ function OfficeScene({ active }: { active: boolean }) {
           transition={{ duration: 3, repeat: Infinity }}
         />
         <div className="relative grid grid-cols-3 gap-3 p-4">
-          {[
-            { icon: Monitor, label: "Workspace", color: "text-blue-400" },
-            { icon: MessageSquare, label: "Live Chat", color: "text-violet-400" },
-            { icon: Mail, label: "Emails", color: "text-cyan-400" },
-            { icon: BarChart3, label: "Analytics", color: "text-emerald-400" },
-            { icon: CalendarCheck, label: "Calendar", color: "text-amber-400" },
-            { icon: Shield, label: "Security", color: "text-rose-400" },
-          ].map((item, i) => (
+          {officeItems.map((item, i) => (
             <motion.div
-              key={item.label}
+              key={item.labelKey}
               initial={{ opacity: 0, scale: 0.5, y: 20 }}
               animate={active ? { opacity: 1, scale: 1, y: 0 } : { opacity: 0, scale: 0.5, y: 20 }}
               transition={{ duration: 0.5, delay: i * 0.15 }}
               className="flex flex-col items-center gap-2 p-3 rounded-xl bg-card/50 border border-border/30"
             >
               <item.icon className={`w-6 h-6 ${item.color}`} />
-              <span className="text-[10px] text-muted-foreground font-medium">{item.label}</span>
+              <span className="text-[10px] text-muted-foreground font-medium">{t(`home.officeLabels.${item.labelKey}`)}</span>
             </motion.div>
           ))}
         </div>
@@ -327,6 +289,7 @@ function OfficeScene({ active }: { active: boolean }) {
 }
 
 function AgentsScene({ active }: { active: boolean }) {
+  const { t: ta } = useTranslation("agents");
   const agentsToShow = heroWorkers.slice(0, 6);
   return (
     <div className="relative w-full h-full flex items-center justify-center">
@@ -349,7 +312,7 @@ function AgentsScene({ active }: { active: boolean }) {
                 <Icon className="w-5 h-5 text-white" />
               </motion.div>
               <span className="text-xs font-semibold text-foreground">{agent.name}</span>
-              <span className="text-[9px] text-muted-foreground">{agent.role}</span>
+              <span className="text-[9px] text-muted-foreground">{ta(`heroRoles.${agent.roleKey}`)}</span>
               <motion.div
                 className="mt-1.5 flex items-center gap-1"
                 initial={{ opacity: 0 }}
@@ -357,7 +320,7 @@ function AgentsScene({ active }: { active: boolean }) {
                 transition={{ delay: 0.8 + i * 0.1 }}
               >
                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                <span className="text-[8px] text-emerald-400">Ready</span>
+                <span className="text-[8px] text-emerald-400">{ta("heroRoles.ready", "Ready")}</span>
               </motion.div>
             </motion.div>
           );
@@ -368,12 +331,13 @@ function AgentsScene({ active }: { active: boolean }) {
 }
 
 function TasksScene({ active }: { active: boolean }) {
+  const { t } = useTranslation("pages");
   const tasks = [
-    { label: "Sending 50 cold outreach emails", agent: "Rex", done: false },
-    { label: "Resolving 12 support tickets", agent: "Ava", done: false },
-    { label: "Scheduling 8 client meetings", agent: "Cal", done: false },
-    { label: "Generating weekly analytics", agent: "DataBot", done: false },
-    { label: "Processing 15 invoices", agent: "Finn", done: false },
+    { labelKey: "task1", agent: "Rex", done: false },
+    { labelKey: "task2", agent: "Ava", done: false },
+    { labelKey: "task3", agent: "Cal", done: false },
+    { labelKey: "task4", agent: "DataBot", done: false },
+    { labelKey: "task5", agent: "Finn", done: false },
   ];
   const [completedTasks, setCompletedTasks] = useState<number[]>([]);
 
@@ -395,7 +359,7 @@ function TasksScene({ active }: { active: boolean }) {
           const isDone = completedTasks.includes(i);
           return (
             <motion.div
-              key={task.label}
+              key={task.labelKey}
               initial={{ opacity: 0, x: 40 }}
               animate={active ? { opacity: 1, x: 0 } : { opacity: 0, x: 40 }}
               transition={{ duration: 0.4, delay: i * 0.15 }}
@@ -417,9 +381,9 @@ function TasksScene({ active }: { active: boolean }) {
                 )}
               </motion.div>
               <div className="flex-1 min-w-0">
-                <div className="text-[11px] font-medium text-foreground truncate">{task.label}</div>
+                <div className="text-[11px] font-medium text-foreground truncate">{t(`home.taskLabels.${task.labelKey}`)}</div>
                 <div className={`text-[9px] ${isDone ? "text-emerald-400" : "text-blue-400/70"}`}>
-                  {isDone ? "Completed" : `${task.agent} working...`}
+                  {isDone ? t("home.taskLabels.completed") : t("home.taskLabels.working", { agent: task.agent })}
                 </div>
               </div>
             </motion.div>
@@ -431,6 +395,7 @@ function TasksScene({ active }: { active: boolean }) {
 }
 
 function ResultsScene({ active }: { active: boolean }) {
+  const { t } = useTranslation("pages");
   const [counts, setCounts] = useState({ revenue: 0, time: 0, satisfaction: 0, tasks: 0 });
 
   useEffect(() => {
@@ -455,13 +420,13 @@ function ResultsScene({ active }: { active: boolean }) {
     <div className="relative w-full h-full flex items-center justify-center">
       <div className="grid grid-cols-2 gap-3 w-full max-w-sm">
         {[
-          { label: "Cost Savings", value: `${counts.revenue}%`, icon: TrendingUp, color: "text-emerald-400", bg: "bg-emerald-500/10" },
-          { label: "Time Saved", value: `${counts.time}hrs/mo`, icon: CalendarCheck, color: "text-blue-400", bg: "bg-blue-500/10" },
-          { label: "Satisfaction", value: `${counts.satisfaction}%`, icon: Star, color: "text-amber-400", bg: "bg-amber-500/10" },
-          { label: "Tasks Done", value: counts.tasks.toLocaleString(), icon: CheckCircle2, color: "text-violet-400", bg: "bg-violet-500/10" },
+          { labelKey: "costSavings", value: `${counts.revenue}%`, icon: TrendingUp, color: "text-emerald-400", bg: "bg-emerald-500/10" },
+          { labelKey: "timeSaved", value: `${counts.time}hrs/mo`, icon: CalendarCheck, color: "text-blue-400", bg: "bg-blue-500/10" },
+          { labelKey: "satisfaction", value: `${counts.satisfaction}%`, icon: Star, color: "text-amber-400", bg: "bg-amber-500/10" },
+          { labelKey: "tasksDone", value: counts.tasks.toLocaleString(), icon: CheckCircle2, color: "text-violet-400", bg: "bg-violet-500/10" },
         ].map((stat, i) => (
           <motion.div
-            key={stat.label}
+            key={stat.labelKey}
             initial={{ opacity: 0, scale: 0.8 }}
             animate={active ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.8 }}
             transition={{ duration: 0.5, delay: i * 0.15, type: "spring" }}
@@ -469,7 +434,7 @@ function ResultsScene({ active }: { active: boolean }) {
           >
             <stat.icon className={`w-5 h-5 ${stat.color} mx-auto mb-2`} />
             <div className={`text-xl font-bold ${stat.color}`}>{stat.value}</div>
-            <div className="text-[10px] text-muted-foreground mt-1">{stat.label}</div>
+            <div className="text-[10px] text-muted-foreground mt-1">{t(`home.resultLabels.${stat.labelKey}`)}</div>
           </motion.div>
         ))}
       </div>
@@ -478,6 +443,7 @@ function ResultsScene({ active }: { active: boolean }) {
 }
 
 function ScaleScene({ active }: { active: boolean }) {
+  const { t } = useTranslation("pages");
   return (
     <div className="relative w-full h-full flex items-center justify-center">
       <div className="w-full max-w-sm">
@@ -487,7 +453,7 @@ function ScaleScene({ active }: { active: boolean }) {
           animate={active ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
           transition={{ duration: 0.5 }}
         >
-          <span className="text-xs text-muted-foreground">Team size growing...</span>
+          <span className="text-xs text-muted-foreground">{t("home.scaleLabels.teamGrowing")}</span>
         </motion.div>
         <div className="flex items-end justify-center gap-2">
           {[1, 3, 5, 7, 9].map((count, i) => (
@@ -506,7 +472,7 @@ function ScaleScene({ active }: { active: boolean }) {
                 <span className="text-xs font-bold text-foreground">{count}</span>
               </div>
               <span className="text-[8px] text-muted-foreground">
-                {["Week 1", "Month 1", "Month 3", "Month 6", "Year 1"][i]}
+                {[t("home.scaleLabels.week1"), t("home.scaleLabels.month1"), t("home.scaleLabels.month3"), t("home.scaleLabels.month6"), t("home.scaleLabels.year1")][i]}
               </span>
             </motion.div>
           ))}
@@ -518,7 +484,7 @@ function ScaleScene({ active }: { active: boolean }) {
           transition={{ delay: 1.5, duration: 0.5 }}
         >
           <Badge className="bg-gradient-to-r from-blue-500/10 to-violet-500/10 text-blue-400 border-blue-500/20">
-            Scale to any size, instantly
+            {t("home.scaleLabels.scaleInstantly")}
           </Badge>
         </motion.div>
       </div>
@@ -535,6 +501,7 @@ const sceneComponents: Record<string, (props: { active: boolean }) => JSX.Elemen
 };
 
 function AnimatedShowcase() {
+  const { t } = useTranslation("pages");
   const [activeScene, setActiveScene] = useState(0);
   const containerRef = useRef(null);
   const isInView = useInView(containerRef, { once: false, amount: 0.3 });
@@ -568,16 +535,13 @@ function AnimatedShowcase() {
       <div ref={containerRef} className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <motion.div className="text-center mb-10 sm:mb-14" {...fadeUp}>
           <Badge className="mb-4 bg-gradient-to-r from-blue-500/10 to-violet-500/10 text-blue-400 border-blue-500/20" data-testid="badge-showcase">
-            <Sparkles className="w-3 h-3 mr-1" /> Platform Showcase
+            <Sparkles className="w-3 h-3 mr-1" /> {t("home.showcase.badge")}
           </Badge>
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-3 sm:mb-4" data-testid="text-showcase-title">
-            Experience the{" "}
-            <span className="bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent">
-              Future of Work
-            </span>
+            {t("home.showcase.title")}
           </h2>
           <p className="text-muted-foreground text-sm sm:text-lg max-w-2xl mx-auto">
-            See how AI agents transform your business operations in real-time
+            {t("home.showcase.subtitle")}
           </p>
         </motion.div>
 
@@ -605,8 +569,8 @@ function AnimatedShowcase() {
                     <Icon className="w-5 h-5 text-white" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className={`text-sm font-semibold ${isActive ? "text-foreground" : "text-muted-foreground"}`}>{s.title}</div>
-                    <div className="text-xs text-muted-foreground/70">{s.subtitle}</div>
+                    <div className={`text-sm font-semibold ${isActive ? "text-foreground" : "text-muted-foreground"}`}>{t(`home.showcaseScenes.${s.titleKey}.title`)}</div>
+                    <div className="text-xs text-muted-foreground/70">{t(`home.showcaseScenes.${s.titleKey}.subtitle`)}</div>
                   </div>
                   {isActive && (
                     <motion.div
@@ -664,14 +628,15 @@ function AnimatedShowcase() {
 }
 
 const quickActions = [
-  { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard", color: "from-blue-500 to-indigo-500", desc: "View your overview" },
-  { icon: MessageSquare, label: "Chat", href: "/chat", color: "from-violet-500 to-purple-500", desc: "Talk to your agents" },
-  { icon: Users, label: "AI Workers", href: "/workers", color: "from-fuchsia-500 to-pink-500", desc: "Browse & hire agents" },
-  { icon: Settings, label: "Settings", href: "/settings", color: "from-amber-500 to-orange-500", desc: "Configure your account" },
-  { icon: BookOpen, label: "Guide", href: "/guide", color: "from-emerald-500 to-teal-500", desc: "Learn the platform" },
+  { icon: LayoutDashboard, labelKey: "dashboard", descKey: "dashboardDesc", href: "/dashboard", color: "from-blue-500 to-indigo-500" },
+  { icon: MessageSquare, labelKey: "chat", descKey: "chatDesc", href: "/chat", color: "from-violet-500 to-purple-500" },
+  { icon: Users, labelKey: "aiWorkers", descKey: "aiWorkersDesc", href: "/workers", color: "from-fuchsia-500 to-pink-500" },
+  { icon: Settings, labelKey: "settings", descKey: "settingsDesc", href: "/settings", color: "from-amber-500 to-orange-500" },
+  { icon: BookOpen, labelKey: "guide", descKey: "guideDesc", href: "/guide", color: "from-emerald-500 to-teal-500" },
 ];
 
 function LoggedInHome({ userName }: { userName: string }) {
+  const { t } = useTranslation("pages");
   const firstName = userName.split(" ")[0];
 
   return (
@@ -698,18 +663,15 @@ function LoggedInHome({ userName }: { userName: string }) {
               transition={{ delay: 0.2 }}
             >
               <span className="flex h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)] animate-pulse" />
-              <span className="text-sm font-medium text-white/90">Your AI team is online</span>
+              <span className="text-sm font-medium text-white/90">{t("home.loggedIn.teamOnline")}</span>
             </motion.div>
 
             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight" data-testid="text-welcome-title">
-              Welcome back,{" "}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-400 to-violet-400">
-                {firstName}
-              </span>
+              {t("home.loggedIn.welcomeBack", { name: firstName })}
             </h1>
 
             <p className="text-base sm:text-lg text-white/50 max-w-lg mx-auto" data-testid="text-welcome-subtitle">
-              Your AI workforce is ready. What would you like to do today?
+              {t("home.loggedIn.subtitle")}
             </p>
           </motion.div>
         </div>
@@ -722,14 +684,14 @@ function LoggedInHome({ userName }: { userName: string }) {
             {...fadeUp}
             data-testid="text-quick-actions"
           >
-            Quick Actions
+            {t("home.loggedIn.quickActions")}
           </motion.h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
             {quickActions.map((action, i) => {
               const Icon = action.icon;
               return (
                 <motion.div
-                  key={action.label}
+                  key={action.labelKey}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.4, delay: i * 0.08 }}
@@ -737,13 +699,13 @@ function LoggedInHome({ userName }: { userName: string }) {
                   <Link href={action.href}>
                     <Card
                       className="p-4 sm:p-5 bg-card border-border/50 hover:border-blue-500/30 hover:-translate-y-1 transition-all duration-300 cursor-pointer text-center group"
-                      data-testid={`quick-action-${action.label.toLowerCase()}`}
+                      data-testid={`quick-action-${action.labelKey}`}
                     >
                       <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br ${action.color} flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform duration-300`}>
                         <Icon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                       </div>
-                      <h3 className="font-semibold text-foreground text-sm mb-0.5">{action.label}</h3>
-                      <p className="text-[10px] sm:text-xs text-muted-foreground">{action.desc}</p>
+                      <h3 className="font-semibold text-foreground text-sm mb-0.5">{t(`home.loggedIn.${action.labelKey}`)}</h3>
+                      <p className="text-[10px] sm:text-xs text-muted-foreground">{t(`home.loggedIn.${action.descKey}`)}</p>
                     </Card>
                   </Link>
                 </motion.div>
@@ -757,11 +719,11 @@ function LoggedInHome({ userName }: { userName: string }) {
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div className="flex items-center justify-between mb-6 sm:mb-8" {...fadeUp}>
             <h2 className="text-xl sm:text-2xl font-bold text-foreground" data-testid="text-active-agents">
-              Your AI Team
+              {t("home.loggedIn.yourTeam")}
             </h2>
             <Link href="/workers">
               <Button variant="ghost" size="sm" className="text-xs text-muted-foreground hover:text-foreground" data-testid="link-view-all-agents">
-                View All <ArrowRight className="w-3 h-3 ml-1" />
+                {t("home.loggedIn.viewAll")} <ArrowRight className="w-3 h-3 ml-1" />
               </Button>
             </Link>
           </motion.div>
@@ -787,7 +749,7 @@ function LoggedInHome({ userName }: { userName: string }) {
                           <h3 className="font-semibold text-foreground text-sm truncate">{agent.name}</h3>
                           <div className="flex items-center gap-1 shrink-0">
                             <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                            <span className="text-[9px] text-emerald-400">Active</span>
+                            <span className="text-[9px] text-emerald-400">{t("home.loggedIn.active")}</span>
                           </div>
                         </div>
                         <p className="text-xs text-muted-foreground truncate">{agent.role}</p>
@@ -813,16 +775,16 @@ function LoggedInHome({ userName }: { userName: string }) {
             {...fadeUp}
             data-testid="text-recent-activity"
           >
-            Recent Activity
+            {t("home.loggedIn.recentActivity")}
           </motion.h2>
           <Card className="p-4 sm:p-6 bg-card border-border/50" data-testid="card-recent-activity">
             <div className="space-y-4">
               {[
-                { icon: Mail, text: "Rex sent 50 outreach emails to your leads list", time: "2 hours ago", color: "text-violet-400", bg: "bg-violet-500/10" },
-                { icon: MessageSquare, text: "Ava resolved 12 support tickets with 98% satisfaction", time: "4 hours ago", color: "text-blue-400", bg: "bg-blue-500/10" },
-                { icon: BarChart3, text: "DataBot generated your weekly analytics report", time: "6 hours ago", color: "text-emerald-400", bg: "bg-emerald-500/10" },
-                { icon: CalendarCheck, text: "Cal scheduled 8 client meetings for this week", time: "Yesterday", color: "text-amber-400", bg: "bg-amber-500/10" },
-                { icon: Share2, text: "Maya posted 5 social media updates across platforms", time: "Yesterday", color: "text-pink-400", bg: "bg-pink-500/10" },
+                { icon: Mail, textKey: "activity1", timeKey: "time2h", color: "text-violet-400", bg: "bg-violet-500/10" },
+                { icon: MessageSquare, textKey: "activity2", timeKey: "time4h", color: "text-blue-400", bg: "bg-blue-500/10" },
+                { icon: BarChart3, textKey: "activity3", timeKey: "time6h", color: "text-emerald-400", bg: "bg-emerald-500/10" },
+                { icon: CalendarCheck, textKey: "activity4", timeKey: "timeYesterday", color: "text-amber-400", bg: "bg-amber-500/10" },
+                { icon: Share2, textKey: "activity5", timeKey: "timeYesterday", color: "text-pink-400", bg: "bg-pink-500/10" },
               ].map((item, i) => (
                 <motion.div
                   key={i}
@@ -837,8 +799,8 @@ function LoggedInHome({ userName }: { userName: string }) {
                     <item.icon className={`w-4 h-4 ${item.color}`} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm text-foreground">{item.text}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">{item.time}</p>
+                    <p className="text-sm text-foreground">{t(`home.loggedIn.${item.textKey}`)}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{t(`home.loggedIn.${item.timeKey}`)}</p>
                   </div>
                 </motion.div>
               ))}
@@ -851,21 +813,21 @@ function LoggedInHome({ userName }: { userName: string }) {
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <motion.div {...fadeUp}>
             <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-3" data-testid="text-explore-more">
-              Explore More
+              {t("home.loggedIn.exploreMore")}
             </h2>
             <p className="text-muted-foreground text-sm mb-6 max-w-md mx-auto">
-              Get the most out of your AI workforce
+              {t("home.loggedIn.exploreSubtitle")}
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
               <Link href="/guide">
                 <Button className="bg-gradient-to-r from-blue-500 to-violet-500 text-white border-0 px-6" data-testid="button-explore-guide">
                   <BookOpen className="w-4 h-4 mr-2" />
-                  Platform Guide
+                  {t("home.loggedIn.platformGuide")}
                 </Button>
               </Link>
               <Link href="/how-it-works">
                 <Button variant="outline" className="px-6 border-border/30" data-testid="button-explore-how">
-                  How It Works
+                  {t("home.loggedIn.howItWorks")}
                   <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>
               </Link>
@@ -878,6 +840,7 @@ function LoggedInHome({ userName }: { userName: string }) {
 }
 
 export default function Home() {
+  const { t } = useTranslation("pages");
   const { user, isLoading } = useAuth();
   const [testimonialIdx, setTestimonialIdx] = useState(0);
   const [dragStartX, setDragStartX] = useState<number | null>(null);
@@ -967,16 +930,16 @@ export default function Home() {
             >
               <div className="inline-flex items-center space-x-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 backdrop-blur-sm shadow-[0_0_15px_rgba(255,255,255,0.05)]">
                 <span className="flex h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)] animate-pulse" />
-                <span className="text-sm font-medium text-white/90 tracking-wide">9 agents standing by</span>
+                <span className="text-sm font-medium text-white/90 tracking-wide">{t("home.hero.agentsStandingBy")}</span>
               </div>
 
               <h1
                 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.15]"
                 data-testid="text-hero-title"
               >
-                Meet your new <br className="hidden sm:block" />
+                {t("home.hero.titleLine1")} <br className="hidden sm:block" />
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-400 to-violet-400 drop-shadow-sm">
-                  AI workforce.
+                  {t("home.hero.titleLine2")}
                 </span>
               </h1>
 
@@ -984,7 +947,7 @@ export default function Home() {
                 className="text-base sm:text-lg text-white/60 leading-relaxed max-w-md font-medium"
                 data-testid="text-hero-subtitle"
               >
-                Step into the lobby of the future. Rent pre-trained, specialized AI agents that seamlessly integrate into your team from day one.
+                {t("home.hero.subtitle")}
               </p>
 
               <div className="pt-2 flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
@@ -995,7 +958,7 @@ export default function Home() {
                   >
                     <div className="absolute inset-0 bg-white/20 translate-y-[100%] group-hover:translate-y-0 transition-transform duration-300 ease-out" />
                     <span className="relative flex items-center justify-center gap-2 text-sm sm:text-base">
-                      Hire your first agent
+                      {t("home.hero.startFree")}
                       <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-x-1 transition-transform" />
                     </span>
                   </button>
@@ -1007,7 +970,7 @@ export default function Home() {
                     data-testid="button-hero-demo"
                   >
                     <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-violet-400" />
-                    View Roster
+                    {t("home.hero.viewRoster")}
                   </button>
                 </Link>
               </div>
@@ -1022,7 +985,7 @@ export default function Home() {
 
       <section className="py-8 sm:py-12 border-y border-border/30 overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <p className="text-center text-xs sm:text-sm text-muted-foreground mb-6 sm:mb-8">Trusted by teams at</p>
+          <p className="text-center text-xs sm:text-sm text-muted-foreground mb-6 sm:mb-8">{t("home.trustedBy")}</p>
           <div className="flex items-center justify-center gap-6 sm:gap-12 overflow-x-auto scrollbar-hide pb-2" style={{ scrollbarWidth: "none" }}>
             {["Synthera", "VoltAI", "NeuralPath", "Cerulean Labs", "Stratosphere", "Apex Dynamics"].map((name) => (
               <span key={name} className="text-muted-foreground/30 font-bold text-base sm:text-xl tracking-wider whitespace-nowrap shrink-0">{name}</span>
@@ -1037,18 +1000,18 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div className="text-center mb-10 sm:mb-16" {...fadeUp}>
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-3 sm:mb-4" data-testid="text-how-title">
-              How It Works
+              {t("home.howItWorks.title")}
             </h2>
             <p className="text-muted-foreground text-sm sm:text-lg max-w-2xl mx-auto">
-              Three simple steps to your first AI team member
+              {t("home.howItWorks.subtitle")}
             </p>
           </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
             {[
-              { icon: Search, step: "01", title: "Tell Us What You Need", desc: "Describe the role. Customer support? Sales? Accounting? We'll match you with the perfect AI worker." },
-              { icon: ClipboardCheck, step: "02", title: "Pick Your AI Worker", desc: "Browse our catalog of pre-trained agents, each specialized for specific roles and industries." },
-              { icon: Zap, step: "03", title: "Deploy in Minutes", desc: "We handle integration with your existing tools. You just start working. It's that simple." },
+              { icon: Search, step: "01", titleKey: "step1Title", descKey: "step1Desc" },
+              { icon: ClipboardCheck, step: "02", titleKey: "step2Title", descKey: "step2Desc" },
+              { icon: Zap, step: "03", titleKey: "step3Title", descKey: "step3Desc" },
             ].map((item, i) => (
               <motion.div
                 key={item.step}
@@ -1062,8 +1025,8 @@ export default function Home() {
                   <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-md bg-gradient-to-br from-blue-500/20 to-violet-500/20 flex items-center justify-center mb-4 sm:mb-5">
                     <item.icon className="w-5 h-5 sm:w-6 sm:h-6 text-blue-400" />
                   </div>
-                  <h3 className="text-lg sm:text-xl font-semibold text-foreground mb-2 sm:mb-3">{item.title}</h3>
-                  <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">{item.desc}</p>
+                  <h3 className="text-lg sm:text-xl font-semibold text-foreground mb-2 sm:mb-3">{t(`home.howItWorks.${item.titleKey}`)}</h3>
+                  <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">{t(`home.howItWorks.${item.descKey}`)}</p>
                 </Card>
               </motion.div>
             ))}
@@ -1079,13 +1042,10 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <motion.div className="text-center mb-10 sm:mb-16" {...fadeUp}>
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-3 sm:mb-4" data-testid="text-demo-title">
-              See It in{" "}
-              <span className="bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent">
-                Action
-              </span>
+              {t("home.demo.title")}
             </h2>
             <p className="text-muted-foreground text-sm sm:text-lg max-w-2xl mx-auto">
-              Watch how businesses use RentAI 24 to automate their operations
+              {t("home.demo.subtitle")}
             </p>
           </motion.div>
           <PlatformGuide variant="home" />
@@ -1096,10 +1056,10 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div className="text-center mb-10 sm:mb-16" {...fadeUp}>
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-3 sm:mb-4" data-testid="text-catalog-title">
-              Meet Your Next Team Members
+              {t("home.catalog.title")}
             </h2>
             <p className="text-muted-foreground text-sm sm:text-lg max-w-2xl mx-auto">
-              Pre-trained, battle-tested, and ready to deploy today
+              {t("home.catalog.subtitle")}
             </p>
           </motion.div>
 
@@ -1127,7 +1087,7 @@ export default function Home() {
                       </div>
                       <div className="flex items-center gap-1.5 shrink-0">
                         <div className="w-2 h-2 rounded-full bg-emerald-400" />
-                        <span className="text-xs text-emerald-400">Online</span>
+                        <span className="text-xs text-emerald-400">{t("home.catalog.online")}</span>
                       </div>
                     </div>
                     <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed mb-3 sm:mb-4">{agent.shortDescription}</p>
@@ -1149,7 +1109,7 @@ export default function Home() {
                       </div>
                       <Link href={`/workers/${agent.slug}`}>
                         <Button size="sm" variant="secondary" className="text-xs sm:text-sm" data-testid={`button-profile-${agent.id}`}>
-                          View Profile
+                          {t("home.catalog.viewProfile")}
                           <ArrowRight className="w-3 h-3 sm:w-3.5 sm:h-3.5 ml-1" />
                         </Button>
                       </Link>
@@ -1163,7 +1123,7 @@ export default function Home() {
           <motion.div className="text-center mt-8 sm:mt-12" {...fadeUp}>
             <Link href="/workers">
               <Button size="lg" className="bg-gradient-to-r from-blue-500 to-violet-500 text-white border-0 text-sm sm:text-base" data-testid="button-view-all">
-                View All AI Workers
+                {t("home.catalog.viewAll")}
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
             </Link>
@@ -1180,24 +1140,24 @@ export default function Home() {
           <motion.div style={{ y: statsY }}>
             <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-8">
               {[
-                { value: 150, suffix: "+", label: "AI Workers Available", color: "text-blue-400" },
-                { value: 500, suffix: "+", label: "Businesses Served", color: "text-violet-400" },
-                { value: 247, suffix: "", label: "24/7 Uptime, Zero Downtime", color: "text-blue-400", display: "24/7" },
-                { value: 40, suffix: "%", label: "Average Cost Savings", color: "text-violet-400" },
+                { value: 150, suffix: "+", labelKey: "aiWorkers", color: "text-blue-400" },
+                { value: 500, suffix: "+", labelKey: "businesses", color: "text-violet-400" },
+                { value: 247, suffix: "", labelKey: "uptime", color: "text-blue-400", display: "24/7" },
+                { value: 40, suffix: "%", labelKey: "savings", color: "text-violet-400" },
               ].map((stat, i) => (
                 <motion.div
-                  key={stat.label}
+                  key={stat.labelKey}
                   className="text-center p-4 sm:p-6 rounded-2xl bg-card/50 border border-border/30 backdrop-blur-sm"
                   initial={{ opacity: 0, y: 30 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ duration: 0.5, delay: i * 0.1 }}
-                  data-testid={`stat-${stat.label}`}
+                  data-testid={`stat-${stat.labelKey}`}
                 >
                   <div className={`text-3xl sm:text-4xl md:text-5xl font-bold ${stat.color} mb-1 sm:mb-2`}>
                     {stat.display ? stat.display : <AnimatedCounter target={stat.value} suffix={stat.suffix} />}
                   </div>
-                  <p className="text-xs sm:text-sm text-muted-foreground">{stat.label}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">{t(`home.stats.${stat.labelKey}`)}</p>
                 </motion.div>
               ))}
             </div>
@@ -1209,7 +1169,7 @@ export default function Home() {
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div className="text-center mb-10 sm:mb-16" {...fadeUp}>
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-3 sm:mb-4" data-testid="text-comparison-title">
-              The Old Way vs. The Rent<span className="bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent">AI</span> Way
+              {t("home.comparison.title")}
             </h2>
           </motion.div>
 
@@ -1218,20 +1178,20 @@ export default function Home() {
               <Card className="bg-card border-border/50 overflow-visible">
                 <div className="grid grid-cols-[1fr,1fr] gap-0">
                   <div className="px-6 sm:px-8 py-3 sm:py-4 border-b border-r border-border/50 text-center">
-                    <h3 className="font-semibold text-muted-foreground text-sm sm:text-base">Traditional Hiring</h3>
+                    <h3 className="font-semibold text-muted-foreground text-sm sm:text-base">{t("home.comparison.traditional")}</h3>
                   </div>
                   <div className="px-6 sm:px-8 py-3 sm:py-4 border-b border-border/50 text-center">
-                    <h3 className="font-semibold bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent text-sm sm:text-base">RentAI 24</h3>
+                    <h3 className="font-semibold bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent text-sm sm:text-base">{t("home.comparison.rentai")}</h3>
                   </div>
-                  {comparisonData.map((row, i) => (
+                  {comparisonKeys.map((k, i) => (
                     <div key={i} className="contents">
-                      <div className={`px-6 sm:px-8 py-3 sm:py-4 ${i < comparisonData.length - 1 ? "border-b" : ""} border-r border-border/50 flex items-center gap-2 sm:gap-3`}>
+                      <div className={`px-6 sm:px-8 py-3 sm:py-4 ${i < comparisonKeys.length - 1 ? "border-b" : ""} border-r border-border/50 flex items-center gap-2 sm:gap-3`}>
                         <X className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-red-400 shrink-0" />
-                        <span className="text-xs sm:text-sm text-muted-foreground">{row.old}</span>
+                        <span className="text-xs sm:text-sm text-muted-foreground">{t(`home.comparison.old${k}`)}</span>
                       </div>
-                      <div className={`px-6 sm:px-8 py-3 sm:py-4 ${i < comparisonData.length - 1 ? "border-b" : ""} border-border/50 flex items-center gap-2 sm:gap-3`}>
+                      <div className={`px-6 sm:px-8 py-3 sm:py-4 ${i < comparisonKeys.length - 1 ? "border-b" : ""} border-border/50 flex items-center gap-2 sm:gap-3`}>
                         <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400 shrink-0" />
-                        <span className="text-xs sm:text-sm text-foreground font-medium">{row.new}</span>
+                        <span className="text-xs sm:text-sm text-foreground font-medium">{t(`home.comparison.new${k}`)}</span>
                       </div>
                     </div>
                   ))}
@@ -1240,7 +1200,7 @@ export default function Home() {
             </div>
 
             <div className="sm:hidden space-y-2.5">
-              {comparisonData.map((row, i) => (
+              {comparisonKeys.map((k, i) => (
                 <motion.div
                   key={i}
                   initial={{ opacity: 0, x: -20 }}
@@ -1251,11 +1211,11 @@ export default function Home() {
                   <Card className="p-3.5 bg-card border-border/50">
                     <div className="flex items-start gap-2 mb-1.5">
                       <X className="w-3.5 h-3.5 text-red-400 shrink-0 mt-0.5" />
-                      <span className="text-xs text-muted-foreground">{row.old}</span>
+                      <span className="text-xs text-muted-foreground">{t(`home.comparison.old${k}`)}</span>
                     </div>
                     <div className="flex items-start gap-2">
                       <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
-                      <span className="text-xs text-foreground font-medium">{row.new}</span>
+                      <span className="text-xs text-foreground font-medium">{t(`home.comparison.new${k}`)}</span>
                     </div>
                   </Card>
                 </motion.div>
@@ -1269,10 +1229,10 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div className="text-center mb-10 sm:mb-16" {...fadeUp}>
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-3 sm:mb-4" data-testid="text-industries-title">
-              AI Workers for Every Industry
+              {t("home.industries.title")}
             </h2>
             <p className="text-muted-foreground text-sm sm:text-lg max-w-2xl mx-auto">
-              Specialized AI agents trained for your specific sector
+              {t("home.industries.subtitle")}
             </p>
           </motion.div>
 
@@ -1308,7 +1268,7 @@ export default function Home() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <motion.div className="text-center mb-10 sm:mb-16" {...fadeUp}>
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-3 sm:mb-4" data-testid="text-testimonials-title">
-              What Our Clients Say
+              {t("home.testimonials.title")}
             </h2>
           </motion.div>
 
@@ -1377,7 +1337,7 @@ export default function Home() {
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div className="text-center mb-10 sm:mb-16" {...fadeUp}>
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-3 sm:mb-4" data-testid="text-faq-title">
-              Frequently Asked Questions
+              {t("home.faq.title")}
             </h2>
           </motion.div>
 

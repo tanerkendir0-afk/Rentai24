@@ -17,6 +17,7 @@ import {
   Calendar,
   ListTodo,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import type { AgentTask } from "@shared/schema";
 
 const PRIORITY_COLORS: Record<string, string> = {
@@ -26,16 +27,17 @@ const PRIORITY_COLORS: Record<string, string> = {
   urgent: "text-red-400",
 };
 
-const STATUS_CONFIG: Record<string, { icon: typeof Circle; label: string; color: string }> = {
-  todo: { icon: Circle, label: "To Do", color: "text-muted-foreground" },
-  "in-progress": { icon: Clock, label: "In Progress", color: "text-blue-400" },
-  done: { icon: Check, label: "Done", color: "text-emerald-400" },
+const STATUS_CONFIG: Record<string, { icon: typeof Circle; labelKey: string; color: string }> = {
+  todo: { icon: Circle, labelKey: "tasksPanel.toDo", color: "text-muted-foreground" },
+  "in-progress": { icon: Clock, labelKey: "tasksPanel.inProgress", color: "text-blue-400" },
+  done: { icon: Check, labelKey: "tasksPanel.done", color: "text-emerald-400" },
 };
 
-function MiniCalendar({ selectedDate, onSelect, taskDates }: {
+function MiniCalendar({ selectedDate, onSelect, taskDates, t }: {
   selectedDate: string | null;
   onSelect: (date: string | null) => void;
   taskDates: Set<string>;
+  t: (key: string, options?: any) => string;
 }) {
   const [viewMonth, setViewMonth] = useState(() => {
     const d = selectedDate ? new Date(selectedDate) : new Date();
@@ -114,7 +116,7 @@ function MiniCalendar({ selectedDate, onSelect, taskDates }: {
           className="w-full mt-2 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
           data-testid="calendar-clear"
         >
-          Clear date
+          {t("tasksPanel.clearDate")}
         </button>
       )}
     </div>
@@ -126,6 +128,7 @@ export default function TasksPanel({ agentType, agentColor, onClose }: {
   agentColor: string;
   onClose: () => void;
 }) {
+  const { t } = useTranslation("pages");
   const [showForm, setShowForm] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -201,7 +204,7 @@ export default function TasksPanel({ agentType, agentColor, onClose }: {
       <div className="p-3 border-b border-border/50 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2">
           <ListTodo className="w-4 h-4 text-muted-foreground" />
-          <h3 className="text-sm font-semibold text-foreground">Projects & Tasks</h3>
+          <h3 className="text-sm font-semibold text-foreground">{t("tasksPanel.projectsTasks")}</h3>
           <Badge variant="secondary" className="text-[10px] h-5">{tasks.length}</Badge>
         </div>
         <div className="flex items-center gap-1">
@@ -230,28 +233,28 @@ export default function TasksPanel({ agentType, agentColor, onClose }: {
         {showForm && (
           <div className="p-3 border-b border-border/50 space-y-2" data-testid="task-form">
             <Input
-              placeholder="Task title"
+              placeholder={t("tasksPanel.taskTitle")}
               value={title}
               onChange={e => setTitle(e.target.value)}
               className="h-8 text-xs"
               data-testid="input-task-title"
             />
             <Input
-              placeholder="Description (optional)"
+              placeholder={t("tasksPanel.descriptionOptional")}
               value={description}
               onChange={e => setDescription(e.target.value)}
               className="h-8 text-xs"
               data-testid="input-task-description"
             />
             <Input
-              placeholder="Project name (optional)"
+              placeholder={t("tasksPanel.projectOptional")}
               value={project}
               onChange={e => setProject(e.target.value)}
               className="h-8 text-xs"
               data-testid="input-task-project"
             />
             <div className="flex items-center gap-1.5">
-              <span className="text-[10px] text-muted-foreground">Priority:</span>
+              <span className="text-[10px] text-muted-foreground">{t("tasksPanel.priority")}</span>
               {["low", "medium", "high", "urgent"].map(p => (
                 <button
                   key={p}
@@ -272,6 +275,7 @@ export default function TasksPanel({ agentType, agentColor, onClose }: {
               selectedDate={dueDate}
               onSelect={setDueDate}
               taskDates={taskDates}
+              t={t}
             />
 
             <div className="flex gap-1.5">
@@ -282,7 +286,7 @@ export default function TasksPanel({ agentType, agentColor, onClose }: {
                 onClick={() => createMutation.mutate({ title, description, agentType, priority, project, dueDate })}
                 data-testid="button-save-task"
               >
-                {createMutation.isPending ? "Saving..." : "Add Task"}
+                {createMutation.isPending ? t("tasksPanel.saving") : t("tasksPanel.addTask")}
               </Button>
               <Button
                 size="sm"
@@ -290,7 +294,7 @@ export default function TasksPanel({ agentType, agentColor, onClose }: {
                 className="h-7 text-xs"
                 onClick={() => setShowForm(false)}
               >
-                Cancel
+                {t("tasksPanel.cancel")}
               </Button>
             </div>
           </div>
@@ -308,7 +312,7 @@ export default function TasksPanel({ agentType, agentColor, onClose }: {
               }`}
               data-testid={`filter-${f}`}
             >
-              {f === "all" ? "All" : f === "todo" ? "To Do" : f === "in-progress" ? "In Progress" : "Done"}
+              {f === "all" ? t("tasksPanel.all") : f === "todo" ? t("tasksPanel.toDo") : f === "in-progress" ? t("tasksPanel.inProgress") : t("tasksPanel.done")}
             </button>
           ))}
         </div>
@@ -322,17 +326,17 @@ export default function TasksPanel({ agentType, agentColor, onClose }: {
         )}
 
         {isLoading ? (
-          <div className="p-4 text-center text-xs text-muted-foreground">Loading tasks...</div>
+          <div className="p-4 text-center text-xs text-muted-foreground">{t("tasksPanel.loading")}</div>
         ) : filteredTasks.length === 0 ? (
           <div className="p-6 text-center">
             <ListTodo className="w-8 h-8 text-muted-foreground/30 mx-auto mb-2" />
-            <p className="text-xs text-muted-foreground">No tasks yet</p>
+            <p className="text-xs text-muted-foreground">{t("tasksPanel.noTasks")}</p>
             <button
               onClick={() => setShowForm(true)}
               className="text-xs text-blue-400 hover:text-blue-300 mt-1 transition-colors"
               data-testid="button-create-first-task"
             >
-              Create your first task
+              {t("tasksPanel.createFirst")}
             </button>
           </div>
         ) : (
@@ -348,12 +352,12 @@ export default function TasksPanel({ agentType, agentColor, onClose }: {
                   {filter === "all" && (
                     <div className="flex items-center gap-1.5 px-3 py-1.5 bg-muted/20 border-b border-border/30">
                       <GroupIcon className={`w-3 h-3 ${groupConf.color}`} />
-                      <span className={`text-[10px] font-semibold uppercase tracking-wider ${groupConf.color}`}>{groupConf.label}</span>
+                      <span className={`text-[10px] font-semibold uppercase tracking-wider ${groupConf.color}`}>{t(groupConf.labelKey)}</span>
                       <span className="text-[10px] text-muted-foreground/50">({groupTasks.length})</span>
                     </div>
                   )}
                   {groupTasks.length === 0 ? (
-                    <div className="px-3 py-2 text-[10px] text-muted-foreground/50 italic">No tasks</div>
+                    <div className="px-3 py-2 text-[10px] text-muted-foreground/50 italic">{t("tasksPanel.noTasksInGroup")}</div>
                   ) : (
                     <div className="divide-y divide-border/30">
                       {groupTasks.map(task => {
@@ -370,7 +374,7 @@ export default function TasksPanel({ agentType, agentColor, onClose }: {
                               <button
                                 onClick={() => updateMutation.mutate({ id: task.id, status: statusCycle(task.status) })}
                                 className={`mt-0.5 shrink-0 ${statusConf.color} hover:scale-110 transition-transform`}
-                                title={`Mark as ${statusCycle(task.status)}`}
+                                title={t("tasksPanel.markAs", { status: statusCycle(task.status) })}
                                 data-testid={`button-toggle-status-${task.id}`}
                               >
                                 <StatusIcon className="w-4 h-4" />

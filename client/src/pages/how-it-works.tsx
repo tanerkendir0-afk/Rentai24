@@ -1,53 +1,14 @@
 import { motion } from "framer-motion";
 import { Phone, UserCheck, Settings, Plug, TestTube, Rocket, TrendingUp } from "lucide-react";
 import SectionCTA from "@/components/section-cta";
+import { useTranslation } from "react-i18next";
 
-const steps = [
-  {
-    icon: Phone,
-    title: "Free Consultation",
-    desc: "Book a 15-min call. We analyze your workflow and identify which roles AI can fill.",
-    detail: "Our team walks through your current processes, tools, and pain points to determine where AI workers can deliver the most impact.",
-  },
-  {
-    icon: UserCheck,
-    title: "AI Worker Matching",
-    desc: "We recommend the best AI agents based on your industry, tools, and goals.",
-    detail: "From our catalog of 150+ specialized agents, we match you with workers that fit your exact needs, tech stack, and business objectives.",
-  },
-  {
-    icon: Settings,
-    title: "Customization & Fine-Tuning",
-    desc: "We tailor the agent to your brand voice, processes, and specific requirements.",
-    detail: "Your AI worker learns your products, policies, and communication style. We fine-tune responses to match your brand perfectly.",
-  },
-  {
-    icon: Plug,
-    title: "Integration",
-    desc: "We connect to your existing stack: CRM, helpdesk, email, messaging, calendars, and more.",
-    detail: "Our team handles the entire technical integration. We support 50+ tools including HubSpot, Zendesk, Slack, WhatsApp, and more.",
-  },
-  {
-    icon: TestTube,
-    title: "Testing & QA",
-    desc: "48-hour test period where we monitor performance and make adjustments.",
-    detail: "We run comprehensive tests with real scenarios, monitor response quality, and fine-tune performance before going live.",
-  },
-  {
-    icon: Rocket,
-    title: "Go Live",
-    desc: "Your AI worker starts handling real tasks. You monitor via your dashboard.",
-    detail: "Once testing is complete, your AI worker goes live. You get full visibility into performance metrics and conversation logs.",
-  },
-  {
-    icon: TrendingUp,
-    title: "Continuous Improvement",
-    desc: "We track performance, gather feedback, and optimize regularly.",
-    detail: "Our team monitors your AI worker's performance weekly, implements improvements, and ensures it gets better over time.",
-  },
-];
+const stepIcons = [Phone, UserCheck, Settings, Plug, TestTube, Rocket, TrendingUp];
+const stepKeys = ["step1", "step2", "step3", "step4", "step5", "step6", "step7"] as const;
 
 export default function HowItWorks() {
+  const { t } = useTranslation("pages");
+
   return (
     <div className="pt-16">
       <section className="py-12 sm:py-20 relative">
@@ -60,13 +21,10 @@ export default function HowItWorks() {
             transition={{ duration: 0.6 }}
           >
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-foreground mb-3 sm:mb-4" data-testid="text-how-title">
-              How It{" "}
-              <span className="bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent">
-                Works
-              </span>
+              {t("howItWorks.title")}
             </h1>
             <p className="text-muted-foreground text-sm sm:text-lg max-w-2xl mx-auto">
-              From signup to deployment in as little as 24 hours
+              {t("howItWorks.subtitle")}
             </p>
           </motion.div>
 
@@ -74,44 +32,47 @@ export default function HowItWorks() {
             <div className="absolute left-5 sm:left-8 md:left-1/2 md:-translate-x-px top-0 bottom-0 w-0.5 bg-gradient-to-b from-blue-500 to-violet-500" />
 
             <div className="space-y-8 sm:space-y-12 md:space-y-16">
-              {steps.map((step, i) => (
-                <motion.div
-                  key={i}
-                  className={`relative flex items-start gap-4 sm:gap-6 md:gap-12 ${
-                    i % 2 === 0 ? "md:flex-row" : "md:flex-row-reverse"
-                  }`}
-                  initial={{ opacity: 0, y: 30 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.5, delay: i * 0.1 }}
-                  data-testid={`step-${i + 1}`}
-                >
-                  <div className="relative z-10 shrink-0 flex md:hidden">
-                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-blue-500 to-violet-500 flex items-center justify-center ring-2 ring-background">
-                      <step.icon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+              {stepKeys.map((key, i) => {
+                const Icon = stepIcons[i];
+                return (
+                  <motion.div
+                    key={i}
+                    className={`relative flex items-start gap-4 sm:gap-6 md:gap-12 ${
+                      i % 2 === 0 ? "md:flex-row" : "md:flex-row-reverse"
+                    }`}
+                    initial={{ opacity: 0, y: 30 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.5, delay: i * 0.1 }}
+                    data-testid={`step-${i + 1}`}
+                  >
+                    <div className="relative z-10 shrink-0 flex md:hidden">
+                      <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-blue-500 to-violet-500 flex items-center justify-center ring-2 ring-background">
+                        <Icon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                      </div>
                     </div>
-                  </div>
 
-                  <div className={`flex-1 ${i % 2 === 0 ? "md:text-right" : "md:text-left"}`}>
-                    <div className={`inline-flex items-center gap-2 mb-2 sm:mb-3 ${i % 2 === 0 ? "md:flex-row-reverse" : ""}`}>
-                      <span className="text-xs font-bold text-blue-400 uppercase tracking-widest">
-                        Step {i + 1}
-                      </span>
+                    <div className={`flex-1 ${i % 2 === 0 ? "md:text-right" : "md:text-left"}`}>
+                      <div className={`inline-flex items-center gap-2 mb-2 sm:mb-3 ${i % 2 === 0 ? "md:flex-row-reverse" : ""}`}>
+                        <span className="text-xs font-bold text-blue-400 uppercase tracking-widest">
+                          {t("howItWorks.stepLabel", { num: i + 1 })}
+                        </span>
+                      </div>
+                      <h3 className="text-lg sm:text-xl font-bold text-foreground mb-2 sm:mb-3">{t(`howItWorks.steps.${key}.title`)}</h3>
+                      <p className="text-sm sm:text-base text-muted-foreground leading-relaxed mb-1 sm:mb-2">{t(`howItWorks.steps.${key}.desc`)}</p>
+                      <p className="text-xs sm:text-sm text-muted-foreground/70 leading-relaxed">{t(`howItWorks.steps.${key}.detail`)}</p>
                     </div>
-                    <h3 className="text-lg sm:text-xl font-bold text-foreground mb-2 sm:mb-3">{step.title}</h3>
-                    <p className="text-sm sm:text-base text-muted-foreground leading-relaxed mb-1 sm:mb-2">{step.desc}</p>
-                    <p className="text-xs sm:text-sm text-muted-foreground/70 leading-relaxed">{step.detail}</p>
-                  </div>
 
-                  <div className="relative z-10 shrink-0 hidden md:flex">
-                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-violet-500 flex items-center justify-center ring-4 ring-background">
-                      <step.icon className="w-7 h-7 text-white" />
+                    <div className="relative z-10 shrink-0 hidden md:flex">
+                      <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-violet-500 flex items-center justify-center ring-4 ring-background">
+                        <Icon className="w-7 h-7 text-white" />
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="flex-1 hidden md:block" />
-                </motion.div>
-              ))}
+                    <div className="flex-1 hidden md:block" />
+                  </motion.div>
+                );
+              })}
             </div>
           </div>
 
@@ -123,10 +84,10 @@ export default function HowItWorks() {
             transition={{ duration: 0.5 }}
           >
             <p className="text-base sm:text-lg text-foreground font-semibold mb-2">
-              Average time from signup to deployment:
+              {t("howItWorks.avgTimeLabel")}
             </p>
             <p className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent mb-4">
-              24 hours
+              {t("howItWorks.avgTimeValue")}
             </p>
           </motion.div>
         </div>

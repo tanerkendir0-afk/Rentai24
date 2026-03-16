@@ -27,6 +27,7 @@ import { contactFormSchema, type ContactForm } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { agents } from "@/data/agents";
 import SectionCTA from "@/components/section-cta";
+import { useTranslation } from "react-i18next";
 
 const fadeUp = {
   initial: { opacity: 0, y: 30 },
@@ -39,6 +40,8 @@ export default function Contact() {
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+  const { t } = useTranslation("pages");
+  const ta = useTranslation("agents").t;
 
   const form = useForm<ContactForm>({
     resolver: zodResolver(contactFormSchema),
@@ -57,9 +60,9 @@ export default function Contact() {
     try {
       await apiRequest("POST", "/api/contact", data);
       setSubmitted(true);
-      toast({ title: "Message sent!", description: "We'll get back to you within 2 hours." });
+      toast({ title: t("contact.toast.sent"), description: t("contact.toast.sentDesc") });
     } catch {
-      toast({ title: "Error", description: "Failed to send message. Please try again.", variant: "destructive" });
+      toast({ title: t("contact.toast.error"), description: t("contact.toast.errorDesc"), variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -77,13 +80,10 @@ export default function Contact() {
             transition={{ duration: 0.6 }}
           >
             <h1 className="text-4xl sm:text-5xl font-bold text-foreground mb-4" data-testid="text-contact-title">
-              Get in{" "}
-              <span className="bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent">
-                Touch
-              </span>
+              {t("contact.title")}
             </h1>
             <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-              Ready to hire your first AI worker? Have questions? We'd love to hear from you.
+              {t("contact.subtitle")}
             </p>
           </motion.div>
 
@@ -96,13 +96,13 @@ export default function Contact() {
                       <CheckCircle2 className="w-8 h-8 text-emerald-400" />
                     </div>
                     <h3 className="text-xl font-semibold text-foreground mb-2" data-testid="text-success">
-                      Message Sent Successfully!
+                      {t("contact.success.title")}
                     </h3>
                     <p className="text-muted-foreground max-w-sm">
-                      Our team will get back to you within 2 hours. Thank you for your interest in RentAI 24.
+                      {t("contact.success.description")}
                     </p>
                     <Button variant="outline" className="mt-6" onClick={() => { setSubmitted(false); form.reset(); }} data-testid="button-new-message">
-                      Send Another Message
+                      {t("contact.success.newMessage")}
                     </Button>
                   </div>
                 ) : (
@@ -111,15 +111,15 @@ export default function Contact() {
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                         <FormField control={form.control} name="name" render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Full Name</FormLabel>
-                            <FormControl><Input placeholder="John Smith" {...field} data-testid="input-name" /></FormControl>
+                            <FormLabel>{t("contact.form.fullName")}</FormLabel>
+                            <FormControl><Input placeholder={t("contact.form.namePlaceholder")} {...field} data-testid="input-name" /></FormControl>
                             <FormMessage />
                           </FormItem>
                         )} />
                         <FormField control={form.control} name="email" render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Business Email</FormLabel>
-                            <FormControl><Input type="email" placeholder="john@company.com" {...field} data-testid="input-email" /></FormControl>
+                            <FormLabel>{t("contact.form.businessEmail")}</FormLabel>
+                            <FormControl><Input type="email" placeholder={t("contact.form.emailPlaceholder")} {...field} data-testid="input-email" /></FormControl>
                             <FormMessage />
                           </FormItem>
                         )} />
@@ -127,25 +127,25 @@ export default function Contact() {
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                         <FormField control={form.control} name="company" render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Company Name</FormLabel>
-                            <FormControl><Input placeholder="Acme Inc." {...field} data-testid="input-company" /></FormControl>
+                            <FormLabel>{t("contact.form.companyName")}</FormLabel>
+                            <FormControl><Input placeholder={t("contact.form.companyPlaceholder")} {...field} data-testid="input-company" /></FormControl>
                             <FormMessage />
                           </FormItem>
                         )} />
                         <FormField control={form.control} name="companySize" render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Company Size</FormLabel>
+                            <FormLabel>{t("contact.form.companySize")}</FormLabel>
                             <Select onValueChange={field.onChange} value={field.value}>
                               <FormControl>
                                 <SelectTrigger data-testid="select-company-size">
-                                  <SelectValue placeholder="Select size" />
+                                  <SelectValue placeholder={t("contact.form.selectSize")} />
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>
-                                <SelectItem value="1-10">1-10 employees</SelectItem>
-                                <SelectItem value="11-50">11-50 employees</SelectItem>
-                                <SelectItem value="51-200">51-200 employees</SelectItem>
-                                <SelectItem value="200+">200+ employees</SelectItem>
+                                <SelectItem value="1-10">{t("contact.form.size1_10")}</SelectItem>
+                                <SelectItem value="11-50">{t("contact.form.size11_50")}</SelectItem>
+                                <SelectItem value="51-200">{t("contact.form.size51_200")}</SelectItem>
+                                <SelectItem value="200+">{t("contact.form.size200plus")}</SelectItem>
                               </SelectContent>
                             </Select>
                             <FormMessage />
@@ -154,17 +154,17 @@ export default function Contact() {
                       </div>
                       <FormField control={form.control} name="aiWorkerInterest" render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Which AI worker are you interested in?</FormLabel>
+                          <FormLabel>{t("contact.form.aiWorkerInterest")}</FormLabel>
                           <Select onValueChange={field.onChange} value={field.value}>
                             <FormControl>
                               <SelectTrigger data-testid="select-ai-worker">
-                                <SelectValue placeholder="Select a worker (optional)" />
+                                <SelectValue placeholder={t("contact.form.selectWorker")} />
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              <SelectItem value="not-sure">Not sure yet</SelectItem>
+                              <SelectItem value="not-sure">{t("contact.form.notSure")}</SelectItem>
                               {agents.map((a) => (
-                                <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                                <SelectItem key={a.id} value={a.id}>{ta(`${a.id}.name`)}</SelectItem>
                               ))}
                             </SelectContent>
                           </Select>
@@ -173,15 +173,15 @@ export default function Contact() {
                       )} />
                       <FormField control={form.control} name="message" render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Message</FormLabel>
+                          <FormLabel>{t("contact.form.message")}</FormLabel>
                           <FormControl>
-                            <Textarea placeholder="Tell us about your needs..." className="min-h-[120px] resize-none" {...field} data-testid="input-message" />
+                            <Textarea placeholder={t("contact.form.messagePlaceholder")} className="min-h-[120px] resize-none" {...field} data-testid="input-message" />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )} />
                       <Button type="submit" size="lg" disabled={loading} className="w-full bg-gradient-to-r from-blue-500 to-violet-500 text-white border-0" data-testid="button-submit">
-                        {loading ? (<><Loader2 className="w-4 h-4 mr-2 animate-spin" />Sending...</>) : (<><Send className="w-4 h-4 mr-2" />Send Message</>)}
+                        {loading ? (<><Loader2 className="w-4 h-4 mr-2 animate-spin" />{t("contact.form.sending")}</>) : (<><Send className="w-4 h-4 mr-2" />{t("contact.form.sendMessage")}</>)}
                       </Button>
                     </form>
                   </Form>
@@ -191,15 +191,15 @@ export default function Contact() {
 
             <motion.div className="lg:col-span-2 space-y-6" {...fadeUp}>
               <Card className="p-6 bg-card border-border/50">
-                <h3 className="font-semibold text-foreground mb-4">Contact Info</h3>
+                <h3 className="font-semibold text-foreground mb-4">{t("contact.info.title")}</h3>
                 <ul className="space-y-4">
                   <li className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-md bg-blue-500/10 flex items-center justify-center shrink-0">
                       <Mail className="w-5 h-5 text-blue-400" />
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground">Email</p>
-                      <p className="text-sm text-foreground" data-testid="text-email">hello@rentai24.com</p>
+                      <p className="text-xs text-muted-foreground">{t("contact.info.email")}</p>
+                      <p className="text-sm text-foreground" data-testid="text-email">{t("contact.info.emailAddress")}</p>
                     </div>
                   </li>
                   <li className="flex items-center gap-3">
@@ -207,8 +207,8 @@ export default function Contact() {
                       <Calendar className="w-5 h-5 text-blue-400" />
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground">Schedule a Call</p>
-                      <p className="text-sm text-foreground">Book a 15-min consultation</p>
+                      <p className="text-xs text-muted-foreground">{t("contact.info.scheduleCall")}</p>
+                      <p className="text-sm text-foreground">{t("contact.info.scheduleCallDesc")}</p>
                     </div>
                   </li>
                   <li className="flex items-center gap-3">
@@ -216,24 +216,24 @@ export default function Contact() {
                       <Clock className="w-5 h-5 text-blue-400" />
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground">Response Time</p>
-                      <p className="text-sm text-foreground" data-testid="text-response-time">Within 2 hours</p>
+                      <p className="text-xs text-muted-foreground">{t("contact.info.responseTime")}</p>
+                      <p className="text-sm text-foreground" data-testid="text-response-time">{t("contact.info.responseTimeVal")}</p>
                     </div>
                   </li>
                 </ul>
               </Card>
 
               <Card className="p-6 bg-card border-border/50">
-                <h3 className="font-semibold text-foreground mb-4">Quick Links</h3>
+                <h3 className="font-semibold text-foreground mb-4">{t("contact.quickLinks.title")}</h3>
                 <div className="space-y-3">
                   <a href="/demo" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid="contact-link-demo">
-                    Try Live Demo
+                    {t("contact.quickLinks.liveDemo")}
                   </a>
                   <a href="/pricing" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid="contact-link-pricing">
-                    View Pricing
+                    {t("contact.quickLinks.viewPricing")}
                   </a>
                   <a href="/how-it-works" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid="contact-link-how">
-                    How It Works
+                    {t("contact.quickLinks.howItWorks")}
                   </a>
                 </div>
               </Card>

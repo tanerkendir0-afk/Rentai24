@@ -2,8 +2,10 @@ import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export default function SectionCTA() {
+  const { t } = useTranslation("pages");
   return (
     <section className="relative py-16 sm:py-24 overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-violet-600/20" />
@@ -18,13 +20,13 @@ export default function SectionCTA() {
           transition={{ duration: 0.5 }}
         >
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-3 sm:mb-4" data-testid="text-cta-heading">
-            Ready to Hire Your First AI Worker?
+            {t("sectionCta.heading")}
           </h2>
           <p className="text-muted-foreground text-sm sm:text-lg mb-2 max-w-2xl mx-auto">
-            Start your 14-day free trial. No credit card required.
+            {t("sectionCta.subtitle")}
           </p>
           <p className="text-xs sm:text-sm text-muted-foreground mb-6 sm:mb-8">
-            No Setup Fee &middot; Cancel Anytime &middot; 14-Day Free Trial
+            {t("sectionCta.features")}
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link href="/pricing">
@@ -33,13 +35,13 @@ export default function SectionCTA() {
                 className="bg-gradient-to-r from-blue-500 to-violet-500 text-white border-0"
                 data-testid="button-cta-start"
               >
-                Get Started Free
+                {t("sectionCta.getStarted")}
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
             </Link>
             <Link href="/demo">
               <Button size="lg" variant="outline" data-testid="button-cta-demo">
-                Book a Demo
+                {t("sectionCta.bookDemo")}
               </Button>
             </Link>
           </div>

@@ -8,11 +8,13 @@ import { Label } from "@/components/ui/label";
 import { Bot, Loader2, Eye, EyeOff } from "lucide-react";
 import { SiGoogle } from "react-icons/si";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from "react-i18next";
 
 export default function Register() {
   const { register } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { t } = useTranslation("pages");
   const [form, setForm] = useState({
     username: "",
     email: "",
@@ -31,10 +33,10 @@ export default function Register() {
     setLoading(true);
     try {
       await register(form);
-      toast({ title: "Welcome to RentAI 24!", description: "Your account has been created." });
+      toast({ title: t("register.welcome"), description: t("register.registerSuccess") });
       setTimeout(() => setLocation("/dashboard"), 100);
     } catch (err: any) {
-      toast({ title: "Registration failed", description: err.message, variant: "destructive" });
+      toast({ title: t("register.registerFailed"), description: err.message, variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -47,57 +49,57 @@ export default function Register() {
           <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-violet-500 flex items-center justify-center mx-auto mb-4">
             <Bot className="w-7 h-7 text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-foreground" data-testid="text-register-title">Create Account</h1>
-          <p className="text-sm text-muted-foreground mt-1">Start building your AI workforce today</p>
+          <h1 className="text-2xl font-bold text-foreground" data-testid="text-register-title">{t("register.title")}</h1>
+          <p className="text-sm text-muted-foreground mt-1">{t("register.subtitle")}</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <Label htmlFor="fullName">Full Name</Label>
+            <Label htmlFor="fullName">{t("register.fullName")}</Label>
             <Input
               id="fullName"
               value={form.fullName}
               onChange={update("fullName")}
-              placeholder="John Doe"
+              placeholder={t("register.fullNamePlaceholder")}
               required
               data-testid="input-register-fullname"
             />
           </div>
 
           <div>
-            <Label htmlFor="username">Username</Label>
+            <Label htmlFor="username">{t("register.username")}</Label>
             <Input
               id="username"
               value={form.username}
               onChange={update("username")}
-              placeholder="johndoe"
+              placeholder={t("register.usernamePlaceholder")}
               required
               data-testid="input-register-username"
             />
           </div>
 
           <div>
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email">{t("register.email")}</Label>
             <Input
               id="email"
               type="email"
               value={form.email}
               onChange={update("email")}
-              placeholder="you@company.com"
+              placeholder={t("register.emailPlaceholder")}
               required
               data-testid="input-register-email"
             />
           </div>
 
           <div>
-            <Label htmlFor="password">Password</Label>
+            <Label htmlFor="password">{t("register.password")}</Label>
             <div className="relative">
               <Input
                 id="password"
                 type={showPassword ? "text" : "password"}
                 value={form.password}
                 onChange={update("password")}
-                placeholder="Min. 6 characters"
+                placeholder={t("register.passwordPlaceholder")}
                 required
                 minLength={6}
                 data-testid="input-register-password"
@@ -113,12 +115,12 @@ export default function Register() {
           </div>
 
           <div>
-            <Label htmlFor="company">Company (optional)</Label>
+            <Label htmlFor="company">{t("register.company")}</Label>
             <Input
               id="company"
               value={form.company}
               onChange={update("company")}
-              placeholder="Acme Inc."
+              placeholder={t("register.companyPlaceholder")}
               data-testid="input-register-company"
             />
           </div>
@@ -130,7 +132,7 @@ export default function Register() {
             data-testid="button-register-submit"
           >
             {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-            Create Account
+            {t("register.submit")}
           </Button>
         </form>
 
@@ -139,7 +141,7 @@ export default function Register() {
             <span className="w-full border-t border-border" />
           </div>
           <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-card px-2 text-muted-foreground">or</span>
+            <span className="bg-card px-2 text-muted-foreground">{t("register.or")}</span>
           </div>
         </div>
 
@@ -151,14 +153,14 @@ export default function Register() {
         >
           <a href="/api/auth/google">
             <SiGoogle className="w-4 h-4 mr-2" />
-            Sign in with Google
+            {t("register.google")}
           </a>
         </Button>
 
         <p className="text-center text-sm text-muted-foreground mt-6">
-          Already have an account?{" "}
+          {t("register.hasAccount")}{" "}
           <Link href="/login" className="text-blue-400 hover:text-blue-300" data-testid="link-login">
-            Sign in
+            {t("register.signIn")}
           </Link>
         </p>
       </Card>

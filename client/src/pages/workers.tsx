@@ -46,6 +46,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import SectionCTA from "@/components/section-cta";
 import { SignupFlowDialog } from "@/components/signup-flow-dialog";
+import { useTranslation } from "react-i18next";
 
 const agentIcons: Record<string, any> = {
   "customer-support": Headphones,
@@ -66,6 +67,7 @@ const stagger = {
 };
 
 export default function Workers() {
+  const { t } = useTranslation("pages");
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("All");
   const [priceFilter, setPriceFilter] = useState("all");
@@ -107,14 +109,14 @@ export default function Workers() {
   async function handleHire(agentId: string) {
     if (!user) {
       const agent = agents.find(a => a.id === agentId);
-      setSelectedAgentName(agent?.name || "this AI worker");
+      setSelectedAgentName(agent?.name || t("workers.thisAiWorker"));
       setSignupDialogOpen(true);
       return;
     }
 
     const agent = agents.find(a => a.id === agentId);
     setSelectedAgentId(agentId);
-    setSelectedAgentName(agent?.name || "this AI worker");
+    setSelectedAgentName(agent?.name || t("workers.thisAiWorker"));
     setSelectedPlan("starter");
     setPlanDialogOpen(true);
   }
@@ -132,15 +134,15 @@ export default function Workers() {
       });
       const data = await res.json();
       if (data.success) {
-        toast({ title: "Agent Hired!", description: `${selectedAgentName} is now active on the ${selectedPlan} plan.` });
+        toast({ title: t("workers.toast.agentHired"), description: t("workers.toast.agentHiredDesc", { name: selectedAgentName, plan: selectedPlan }) });
         window.location.href = "/dashboard?checkout=success";
       }
     } catch (error: any) {
-      const msg = error?.message || "Failed to hire agent.";
+      const msg = error?.message || t("workers.toast.failedToHire");
       if (msg.includes("already have")) {
-        toast({ title: "Already Active", description: "You already have this agent active.", variant: "destructive" });
+        toast({ title: t("workers.toast.alreadyActive"), description: t("workers.toast.alreadyActiveDesc"), variant: "destructive" });
       } else {
-        toast({ title: "Error", description: msg, variant: "destructive" });
+        toast({ title: t("workers.toast.error"), description: msg, variant: "destructive" });
       }
     } finally {
       setCheckingOut(null);
@@ -184,26 +186,14 @@ export default function Workers() {
             transition={{ duration: 0.6 }}
           >
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-foreground mb-3 sm:mb-4" data-testid="text-workers-title">
-              {user && hiredCount > 0 ? (
-                <>
-                  Your{" "}
-                  <span className="bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent">
-                    AI Team
-                  </span>
-                </>
-              ) : (
-                <>
-                  Browse Our{" "}
-                  <span className="bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent">
-                    AI Workforce
-                  </span>
-                </>
-              )}
+              <span className="bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent">
+                {user && hiredCount > 0 ? t("workers.titleTeam") : t("workers.titleBrowse")}
+              </span>
             </h1>
             <p className="text-muted-foreground text-sm sm:text-lg max-w-2xl mx-auto">
               {user && hiredCount > 0
-                ? `You have ${hiredCount} active agent${hiredCount > 1 ? "s" : ""}. Manage your team or discover new talent.`
-                : "Every agent is pre-trained, battle-tested, and ready to deploy."}
+                ? t("workers.subtitleTeam", { count: hiredCount })
+                : t("workers.subtitleBrowse")}
             </p>
           </motion.div>
 
@@ -216,7 +206,7 @@ export default function Workers() {
             <div className="flex items-center gap-2 max-w-3xl mx-auto">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input placeholder="Search by name or skill..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10 h-11" data-testid="input-search" />
+                <Input placeholder={t("workers.searchPlaceholder")} value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10 h-11" data-testid="input-search" />
               </div>
               <Button
                 variant="outline"
@@ -233,7 +223,7 @@ export default function Workers() {
               <div className="hidden sm:flex items-center gap-3">
                 <Select value={categoryFilter} onValueChange={setCategoryFilter}>
                   <SelectTrigger className="w-48" data-testid="select-category">
-                    <SelectValue placeholder="Category" />
+                    <SelectValue placeholder={t("workers.categoryPlaceholder")} />
                   </SelectTrigger>
                   <SelectContent>
                     {categories.map((c) => (
@@ -243,13 +233,13 @@ export default function Workers() {
                 </Select>
                 <Select value={priceFilter} onValueChange={setPriceFilter}>
                   <SelectTrigger className="w-48" data-testid="select-price">
-                    <SelectValue placeholder="Price" />
+                    <SelectValue placeholder={t("workers.pricePlaceholder")} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Prices</SelectItem>
-                    <SelectItem value="low">$99 and under</SelectItem>
-                    <SelectItem value="mid">$100 - $139</SelectItem>
-                    <SelectItem value="high">$140+</SelectItem>
+                    <SelectItem value="all">{t("workers.allPrices")}</SelectItem>
+                    <SelectItem value="low">{t("workers.priceLow")}</SelectItem>
+                    <SelectItem value="mid">{t("workers.priceMid")}</SelectItem>
+                    <SelectItem value="high">{t("workers.priceHigh")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -258,7 +248,7 @@ export default function Workers() {
               <div className="sm:hidden mt-3 flex flex-col gap-2 max-w-3xl mx-auto" data-testid="mobile-filters-panel">
                 <Select value={categoryFilter} onValueChange={setCategoryFilter}>
                   <SelectTrigger className="w-full min-h-[44px]" data-testid="select-category-mobile">
-                    <SelectValue placeholder="Category" />
+                    <SelectValue placeholder={t("workers.categoryPlaceholder")} />
                   </SelectTrigger>
                   <SelectContent>
                     {categories.map((c) => (
@@ -268,13 +258,13 @@ export default function Workers() {
                 </Select>
                 <Select value={priceFilter} onValueChange={setPriceFilter}>
                   <SelectTrigger className="w-full min-h-[44px]" data-testid="select-price-mobile">
-                    <SelectValue placeholder="Price" />
+                    <SelectValue placeholder={t("workers.pricePlaceholder")} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Prices</SelectItem>
-                    <SelectItem value="low">$99 and under</SelectItem>
-                    <SelectItem value="mid">$100 - $139</SelectItem>
-                    <SelectItem value="high">$140+</SelectItem>
+                    <SelectItem value="all">{t("workers.allPrices")}</SelectItem>
+                    <SelectItem value="low">{t("workers.priceLow")}</SelectItem>
+                    <SelectItem value="mid">{t("workers.priceMid")}</SelectItem>
+                    <SelectItem value="high">{t("workers.priceHigh")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -285,9 +275,9 @@ export default function Workers() {
             <div className="mb-6">
               <h2 className="text-lg font-semibold text-foreground flex items-center gap-2 mb-1" data-testid="text-hired-section">
                 <div className="w-2 h-2 rounded-full bg-emerald-400" />
-                Active Agents
+                {t("workers.activeAgents")}
               </h2>
-              <p className="text-xs text-muted-foreground">Your currently hired AI team members</p>
+              <p className="text-xs text-muted-foreground">{t("workers.activeAgentsDesc")}</p>
             </div>
           )}
 
@@ -306,7 +296,7 @@ export default function Workers() {
                     <div className="col-span-full my-4" data-testid="divider-available">
                       <div className="flex items-center gap-3">
                         <div className="h-px flex-1 bg-border/50" />
-                        <span className="text-sm font-medium text-muted-foreground">Discover More Agents</span>
+                        <span className="text-sm font-medium text-muted-foreground">{t("workers.discoverMore")}</span>
                         <div className="h-px flex-1 bg-border/50" />
                       </div>
                     </div>
@@ -321,12 +311,12 @@ export default function Workers() {
                       <div className="flex items-center gap-1.5">
                         {isHired ? (
                           <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 text-xs" data-testid={`badge-active-${agent.id}`}>
-                            Active
+                            {t("workers.active")}
                           </Badge>
                         ) : (
                           <>
                             <div className="w-2 h-2 rounded-full bg-emerald-400" />
-                            <span className="text-xs text-emerald-400">24/7</span>
+                            <span className="text-xs text-emerald-400">{t("workers.available247")}</span>
                           </>
                         )}
                       </div>
@@ -360,7 +350,7 @@ export default function Workers() {
                         <>
                           <div className="flex items-center justify-between gap-2 mb-3">
                             <div className="text-xs text-muted-foreground">
-                              <span className="capitalize">{rental.plan}</span> Plan
+                              {t("workers.plan", { plan: rental.plan })}
                             </div>
                             <div className="text-xs text-foreground font-medium" data-testid={`text-usage-${agent.id}`}>
                               {rental.messagesUsed} / {rental.messagesLimit}
@@ -375,7 +365,7 @@ export default function Workers() {
                           <div className="flex gap-2">
                             <Link href={`/workers/${agent.slug}`} className="flex-1">
                               <Button variant="outline" className="w-full" size="sm" data-testid={`button-profile-${agent.id}`}>
-                                View Profile
+                                {t("workers.viewProfile")}
                               </Button>
                             </Link>
                             <Link href={`/chat?agent=${agent.id}`} className="flex-1">
@@ -385,7 +375,7 @@ export default function Workers() {
                                 data-testid={`button-chat-${agent.id}`}
                               >
                                 <MessageSquare className="w-3 h-3 mr-1" />
-                                Chat
+                                {t("workers.chat")}
                               </Button>
                             </Link>
                           </div>
@@ -395,13 +385,13 @@ export default function Workers() {
                           <div className="flex items-center justify-between gap-2 mb-3">
                             <div>
                               <span className="text-xl font-bold bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent">${agent.price}</span>
-                              <span className="text-xs text-muted-foreground">/mo</span>
+                              <span className="text-xs text-muted-foreground">{t("workers.perMonth")}</span>
                             </div>
                           </div>
                           <div className="flex gap-2">
                             <Link href={`/workers/${agent.slug}`} className="flex-1">
                               <Button variant="outline" className="w-full" size="sm" data-testid={`button-profile-${agent.id}`}>
-                                View Profile
+                                {t("workers.viewProfile")}
                               </Button>
                             </Link>
                             <div className="flex-1">
@@ -413,9 +403,9 @@ export default function Workers() {
                                 data-testid={`button-hire-${agent.id}`}
                               >
                                 {checkingOut === agent.id ? (
-                                  <><Loader2 className="w-3 h-3 mr-1 animate-spin" />Processing</>
+                                  <><Loader2 className="w-3 h-3 mr-1 animate-spin" />{t("workers.processing")}</>
                                 ) : (
-                                  "Hire Now"
+                                  t("workers.hireNow")
                                 )}
                               </Button>
                             </div>
@@ -432,8 +422,8 @@ export default function Workers() {
           {filtered.length === 0 && (
             <div className="text-center py-20" data-testid="text-no-results">
               <Bot className="w-16 h-16 text-muted-foreground/30 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-foreground mb-2">No results found</h3>
-              <p className="text-muted-foreground">Try different filters or search terms.</p>
+              <h3 className="text-xl font-semibold text-foreground mb-2">{t("workers.noResults")}</h3>
+              <p className="text-muted-foreground">{t("workers.noResultsDesc")}</p>
             </div>
           )}
         </div>
@@ -445,17 +435,17 @@ export default function Workers() {
         <DialogContent className="sm:max-w-lg bg-card border-border">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold text-foreground" data-testid="text-plan-dialog-title">
-              Choose a Plan for {selectedAgentName}
+              {t("workers.planDialog.title", { name: selectedAgentName })}
             </DialogTitle>
             <DialogDescription className="text-muted-foreground">
-              Select the plan that fits your needs. You can upgrade or change anytime.
+              {t("workers.planDialog.description")}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 py-4">
             {[
-              { id: "starter", name: "Starter", price: "$49", msgs: "100 messages/mo", features: ["Basic support", "Standard response time"] },
-              { id: "professional", name: "Professional", price: "$39", msgs: "500 messages/mo", features: ["Priority support", "Faster responses", "All tools unlocked"], popular: true },
-              { id: "enterprise", name: "Enterprise", price: "Custom", msgs: "5,000 messages/mo", features: ["Dedicated support", "Custom integrations", "SLA guarantee"] },
+              { id: "starter", name: t("workers.planDialog.starter"), price: t("workers.planDialog.starterPrice"), msgs: t("workers.planDialog.starterMsgs"), features: [t("workers.planDialog.basicSupport"), t("workers.planDialog.standardResponse")] },
+              { id: "professional", name: t("workers.planDialog.professional"), price: t("workers.planDialog.professionalPrice"), msgs: t("workers.planDialog.professionalMsgs"), features: [t("workers.planDialog.prioritySupport"), t("workers.planDialog.fasterResponses"), t("workers.planDialog.allToolsUnlocked")], popular: true },
+              { id: "enterprise", name: t("workers.planDialog.enterprise"), price: t("workers.planDialog.enterprisePrice"), msgs: t("workers.planDialog.enterpriseMsgs"), features: [t("workers.planDialog.dedicatedSupport"), t("workers.planDialog.customIntegrations"), t("workers.planDialog.slaGuarantee")] },
             ].map((plan) => (
               <div
                 key={plan.id}
@@ -469,7 +459,7 @@ export default function Workers() {
               >
                 {plan.popular && (
                   <Badge className="absolute -top-2.5 right-3 bg-gradient-to-r from-blue-500 to-violet-500 text-white text-xs border-0">
-                    Most Popular
+                    {t("workers.planDialog.mostPopular")}
                   </Badge>
                 )}
                 <div className="flex items-center justify-between mb-2">
@@ -483,7 +473,7 @@ export default function Workers() {
                   </div>
                   <div>
                     <span className="text-lg font-bold text-foreground">{plan.price}</span>
-                    {plan.id !== "enterprise" && <span className="text-xs text-muted-foreground">/mo</span>}
+                    {plan.id !== "enterprise" && <span className="text-xs text-muted-foreground">{t("workers.perMonth")}</span>}
                   </div>
                 </div>
                 <p className="text-xs text-muted-foreground ml-6 mb-1">{plan.msgs}</p>
@@ -495,7 +485,7 @@ export default function Workers() {
                   ))}
                 </div>
                 {plan.id === "enterprise" && (
-                  <p className="text-xs text-muted-foreground ml-6 mt-1 italic">Contact us for enterprise pricing</p>
+                  <p className="text-xs text-muted-foreground ml-6 mt-1 italic">{t("workers.planDialog.contactEnterprise")}</p>
                 )}
               </div>
             ))}
@@ -508,10 +498,10 @@ export default function Workers() {
               data-testid="button-confirm-hire"
             >
               <Zap className="w-4 h-4 mr-1" />
-              Confirm & Hire
+              {t("workers.planDialog.confirmHire")}
             </Button>
             <Button variant="outline" onClick={() => setPlanDialogOpen(false)} data-testid="button-cancel-plan">
-              Cancel
+              {t("workers.planDialog.cancel")}
             </Button>
           </div>
         </DialogContent>

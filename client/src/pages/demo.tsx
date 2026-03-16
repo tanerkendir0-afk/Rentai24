@@ -55,6 +55,7 @@ import {
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/lib/auth";
+import { useTranslation } from "react-i18next";
 import ChatMessageContent from "@/components/chat-message";
 import PublishAssistantCard, { parsePublishAssistant } from "@/components/publish-assistant-card";
 import { useToast } from "@/hooks/use-toast";
@@ -107,6 +108,7 @@ interface RentalData {
 export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean }) {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { t } = useTranslation("pages");
   const [selectedAgent, setSelectedAgent] = useState(agentOptions[0].id);
 
   const generateVisibleId = () => Date.now().toString() + Math.random().toString(36).slice(2, 6);
@@ -163,7 +165,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
           const data = await res.json();
           if (data.status === "resolved") {
             setActiveEscalationId(null);
-            setMessages((prev: Message[]) => [...prev, { role: "system", content: "✅ Yetkilimiz konuşmayı tamamladı. Ajan tekrar hizmetinizde.", isResolved: true }]);
+            setMessages((prev: Message[]) => [...prev, { role: "system", content: `✅ ${t("demoPage.systemResolved")}`, isResolved: true }]);
             if (escalationPollRef.current) clearInterval(escalationPollRef.current);
             return;
           }
@@ -173,7 +175,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
             if (data.status === "admin_joined") {
               setMessages((prev: Message[]) => {
                 if (prev.some(m => m.isAdminJoined)) return prev;
-                return [...prev, { role: "system", content: "🟢 Yetkilimiz chat'e katıldı", isAdminJoined: true }];
+                return [...prev, { role: "system", content: `🟢 ${t("demoPage.systemAdminJoined")}`, isAdminJoined: true }];
               });
             }
             newAdminMsgs.forEach((m: any) => {
@@ -183,7 +185,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
           } else if (data.status === "admin_joined") {
             setMessages((prev: Message[]) => {
               if (prev.some(m => m.isAdminJoined)) return prev;
-              return [...prev, { role: "system", content: "🟢 Yetkilimiz chat'e katıldı", isAdminJoined: true }];
+              return [...prev, { role: "system", content: `🟢 ${t("demoPage.systemAdminJoined")}`, isAdminJoined: true }];
             });
           }
         } catch {}
@@ -216,7 +218,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
       const newMsgs = typeof msgs === 'function' ? msgs(current) : msgs;
       return { ...prev, [currentConvoId]: newMsgs };
     });
-    if (currentConvo && currentConvo.title === "New Chat") {
+    if (currentConvo && (currentConvo.title === "New Chat" || currentConvo.title === t("demoPage.newChat"))) {
       const newMsgs = typeof msgs === 'function' ? msgs(messages) : msgs;
       const firstUserMsg = newMsgs.find(m => m.role === "user")?.content.slice(0, 30);
       if (firstUserMsg && currentConvo.dbId) {
@@ -407,9 +409,9 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
       setSocialPlatform("");
       setSocialUsername("");
       setSocialAddMode(false);
-      toast({ title: "Connected", description: `${socialPlatform} account added successfully` });
+      toast({ title: t("demoPage.toast.connected"), description: t("demoPage.toast.accountAdded", { platform: socialPlatform }) });
     } catch {
-      toast({ title: "Error", description: "Failed to add account", variant: "destructive" });
+      toast({ title: t("demoPage.toast.error"), description: t("demoPage.toast.failedAddAccount"), variant: "destructive" });
     } finally {
       setSocialSaving(false);
     }
@@ -419,9 +421,9 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
     try {
       await apiRequest("DELETE", `/api/social-accounts/${id}`);
       queryClient.invalidateQueries({ queryKey: ["/api/social-accounts"] });
-      toast({ title: "Disconnected", description: "Account removed" });
+      toast({ title: t("demoPage.toast.disconnected"), description: t("demoPage.toast.accountRemoved") });
     } catch {
-      toast({ title: "Error", description: "Failed to remove account", variant: "destructive" });
+      toast({ title: t("demoPage.toast.error"), description: t("demoPage.toast.failedRemoveAccount"), variant: "destructive" });
     }
   };
 
@@ -480,9 +482,9 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
       setQuickTaskPriority("medium");
       setQuickTaskDueDate("");
       setShowQuickTaskForm(false);
-      toast({ title: "Görev Oluşturuldu", description: `"${quickTaskTitle.trim()}" başarıyla eklendi` });
+      toast({ title: t("demoPage.toast.taskCreated"), description: t("demoPage.toast.taskCreatedDesc", { title: quickTaskTitle.trim() }) });
     } catch {
-      toast({ title: "Hata", description: "Görev oluşturulamadı", variant: "destructive" });
+      toast({ title: t("demoPage.toast.taskError"), description: t("demoPage.toast.taskErrorDesc"), variant: "destructive" });
     } finally {
       setQuickTaskSaving(false);
     }
@@ -504,9 +506,9 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
       setHelpDescription("");
       setHelpCategory("bug");
       setHelpView("tickets");
-      toast({ title: "Ticket Created", description: "Your support request has been sent to admin" });
+      toast({ title: t("demoPage.toast.ticketCreated"), description: t("demoPage.toast.ticketCreatedDesc") });
     } catch {
-      toast({ title: "Error", description: "Failed to submit ticket", variant: "destructive" });
+      toast({ title: t("demoPage.toast.error"), description: t("demoPage.toast.failedSubmitTicket"), variant: "destructive" });
     } finally {
       setHelpSending(false);
     }
@@ -517,14 +519,14 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
   const handleFileUpload = async (file: File) => {
     const maxSize = 10 * 1024 * 1024;
     if (file.size > maxSize) {
-      toast({ title: "Dosya çok büyük", description: "Maksimum dosya boyutu 10MB", variant: "destructive" });
+      toast({ title: t("demoPage.toast.fileTooLarge"), description: t("demoPage.toast.fileTooLargeDesc"), variant: "destructive" });
       return;
     }
 
     const allowedExtensions = [".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg", ".pdf", ".docx", ".xlsx", ".xls", ".csv", ".txt", ".md", ".numbers", ".pages"];
     const ext = "." + file.name.split(".").pop()?.toLowerCase();
     if (!allowedExtensions.includes(ext)) {
-      toast({ title: "Desteklenmeyen dosya", description: "Desteklenen türler: JPG, PNG, GIF, WebP, SVG, PDF, DOCX, XLSX, XLS, CSV, TXT, MD, Numbers, Pages", variant: "destructive" });
+      toast({ title: t("demoPage.toast.unsupportedFile"), description: t("demoPage.toast.unsupportedFileDesc"), variant: "destructive" });
       return;
     }
 
@@ -541,10 +543,10 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
           setUploadedFile({ url: data.fileUrl, name: data.filename, type: "document", size: data.fileSize, documentContent: data.documentContent });
         }
       } else {
-        toast({ title: "Yükleme başarısız", description: data.error || "Dosya yüklenirken bir hata oluştu", variant: "destructive" });
+        toast({ title: t("demoPage.toast.uploadFailed"), description: data.error || t("demoPage.toast.uploadFailedDesc"), variant: "destructive" });
       }
     } catch {
-      toast({ title: "Yükleme başarısız", description: "Dosya yüklenirken bir hata oluştu", variant: "destructive" });
+      toast({ title: t("demoPage.toast.uploadFailed"), description: t("demoPage.toast.uploadFailedDesc"), variant: "destructive" });
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -648,7 +650,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
     } catch {
       setMessages((prev) => [
         ...prev,
-        { role: "assistant", content: "Something went wrong. Please try again." },
+        { role: "assistant", content: t("demoPage.somethingWrong") },
       ]);
     } finally {
       setLoading(false);
@@ -660,9 +662,9 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
   const CurrentIcon = currentAgent.icon;
 
   const quickPrompts = [
-    { label: "Capabilities", text: "What can you do?" },
-    { label: "Get started", text: "Help me get started" },
-    { label: "Quick task", text: "I have a quick task for you" },
+    { label: t("demoPage.promptCapabilities"), text: t("demoPage.promptCapabilitiesText") },
+    { label: t("demoPage.promptGetStarted"), text: t("demoPage.promptGetStartedText") },
+    { label: t("demoPage.promptQuickTask"), text: t("demoPage.promptQuickTaskText") },
   ];
 
   return (
@@ -685,7 +687,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
             <div className="p-3 border-b border-border/50">
               <div className="flex items-center justify-between mb-2">
                 <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground" data-testid="text-agent-select-title">
-                  {isWorkspace ? "Your Workers" : "AI Workers"}
+                  {isWorkspace ? t("demoPage.yourWorkers") : t("demoPage.aiWorkers")}
                 </h2>
                 <Button
                   variant="ghost"
@@ -701,14 +703,14 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                 <Link href="/dashboard">
                   <span className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground cursor-pointer transition-colors">
                     <ArrowLeft className="w-3 h-3" />
-                    Back to Dashboard
+                    {t("demoPage.backToDashboard")}
                   </span>
                 </Link>
               )}
               {!isWorkspace && (
                 <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-blue-500/5 border border-blue-500/10">
                   <Info className="w-3 h-3 text-blue-400 shrink-0" />
-                  <span className="text-[10px] text-blue-400/80" data-testid="text-demo-banner">Demo Mode</span>
+                  <span className="text-[10px] text-blue-400/80" data-testid="text-demo-banner">{t("demoPage.demoMode")}</span>
                 </div>
               )}
             </div>
@@ -740,7 +742,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                         <Badge variant="outline" className={`text-[8px] px-1 py-0 h-3.5 ${selectedAgent === "manager" ? "border-white/30 text-white/80" : "border-amber-500/30 text-amber-400"}`}>AI</Badge>
                       </div>
                       <span className={`text-[10px] truncate block ${selectedAgent === "manager" ? "text-white/70" : "text-muted-foreground/60"}`}>
-                        Smart Router
+                        {t("demoPage.smartRouter")}
                       </span>
                     </div>
                   </button>
@@ -796,7 +798,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                 <div className="mt-2 pt-2 border-t border-border/30">
                   <div className="flex items-center justify-between px-2 mb-1">
                     <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/70" data-testid="text-chat-history-title">
-                      Chats
+                      {t("demoPage.chats")}
                     </span>
                     <button
                       onClick={startNewConversation}
@@ -804,7 +806,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                       data-testid="button-sidebar-new-chat"
                     >
                       <MessageSquarePlus className="w-3 h-3" />
-                      <span>New</span>
+                      <span>{t("demoPage.new")}</span>
                     </button>
                   </div>
                   {conversations.length > 0 && (
@@ -822,7 +824,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                         >
                           <MessageCircle className={`w-3 h-3 shrink-0 ${convo.id === currentConvoId ? "text-foreground" : "text-muted-foreground/50"}`} />
                           <div className="flex-1 min-w-0">
-                            <span className="text-xs truncate block leading-tight">{convo.title || "New Chat"}</span>
+                            <span className="text-xs truncate block leading-tight">{convo.title || t("demoPage.newChat")}</span>
                             <span className="text-[9px] text-muted-foreground/50 leading-tight">
                               {new Date(convo.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                             </span>
@@ -847,7 +849,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
             {spendingData && (
               <div className="p-3 border-t border-border/50">
                 <div className="flex items-center justify-between text-[11px] text-muted-foreground mb-1.5">
-                  <span className="flex items-center gap-1"><Gauge className="w-3 h-3" />Token Usage</span>
+                  <span className="flex items-center gap-1"><Gauge className="w-3 h-3" />{t("demoPage.tokenUsage")}</span>
                   <span>${spendingData.spent.toFixed(2)} / ${spendingData.limit.toFixed(2)}</span>
                 </div>
                 <div className="h-1 bg-muted rounded-full overflow-hidden">
@@ -907,7 +909,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                 data-testid="button-header-new-chat"
               >
                 <MessageSquarePlus className="w-3.5 h-3.5 text-primary" />
-                <span className="hidden sm:inline">New Chat</span>
+                <span className="hidden sm:inline">{t("demoPage.newChat")}</span>
               </Button>
             )}
             {user && isSocialMediaAgent && (
@@ -920,7 +922,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                   data-testid="button-social-accounts"
                 >
                   <Share2 className="w-3.5 h-3.5 text-violet-500" />
-                  <span className="hidden sm:inline">Social</span>
+                  <span className="hidden sm:inline">{t("demoPage.social")}</span>
                   {socialAccounts.length > 0 && (
                     <Badge variant="secondary" className="h-4 px-1 text-[10px] bg-violet-500/20 text-violet-400">
                       {socialAccounts.length}
@@ -932,7 +934,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                     <div className="flex items-center justify-between mb-3">
                       <h4 className="font-semibold text-sm flex items-center gap-2">
                         <Share2 className="w-4 h-4 text-violet-500" />
-                        Connected Accounts
+                        {t("demoPage.connectedAccounts")}
                       </h4>
                       <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => { setShowSocialPanel(false); setSocialAddMode(false); }}>
                         <X className="w-3.5 h-3.5" />
@@ -942,9 +944,9 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                     {socialAccounts.length === 0 && !socialAddMode && (
                       <div className="text-center py-4">
                         <Share2 className="w-8 h-8 text-muted-foreground/30 mx-auto mb-2" />
-                        <p className="text-xs text-muted-foreground mb-3">No social accounts connected yet</p>
+                        <p className="text-xs text-muted-foreground mb-3">{t("demoPage.noSocialAccounts")}</p>
                         <Button size="sm" onClick={() => setSocialAddMode(true)} className="bg-violet-500 hover:bg-violet-600 text-white text-xs" data-testid="button-social-add-first">
-                          <Plus className="w-3 h-3 mr-1" /> Connect Account
+                          <Plus className="w-3 h-3 mr-1" /> {t("demoPage.connectAccount")}
                         </Button>
                       </div>
                     )}
@@ -976,7 +978,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
 
                     {socialAddMode ? (
                       <div className="space-y-2 border-t border-border/50 pt-3">
-                        <p className="text-xs font-medium text-muted-foreground">Select platform:</p>
+                        <p className="text-xs font-medium text-muted-foreground">{t("demoPage.selectPlatform")}</p>
                         <div className="grid grid-cols-3 gap-1.5">
                           {(["instagram", "twitter", "linkedin", "facebook", "tiktok", "youtube"] as const).map((p) => (
                             <button
@@ -1010,7 +1012,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                                 onClick={() => { setSocialAddMode(false); setSocialPlatform(""); setSocialUsername(""); }}
                                 className="flex-1 h-8 text-xs"
                               >
-                                Cancel
+                                {t("demoPage.cancel")}
                               </Button>
                               <Button
                                 size="sm"
@@ -1019,7 +1021,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                                 className="flex-1 h-8 text-xs bg-violet-500 hover:bg-violet-600 text-white"
                                 data-testid="button-social-save-chat"
                               >
-                                {socialSaving ? <Loader2 className="w-3 h-3 animate-spin" /> : "Connect"}
+                                {socialSaving ? <Loader2 className="w-3 h-3 animate-spin" /> : t("demoPage.connect")}
                               </Button>
                             </div>
                           </div>
@@ -1033,7 +1035,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                         className="w-full h-8 text-xs text-muted-foreground hover:text-violet-400 gap-1"
                         data-testid="button-social-add-more"
                       >
-                        <Plus className="w-3 h-3" /> Add Account
+                        <Plus className="w-3 h-3" /> {t("demoPage.addAccount")}
                       </Button>
                     ) : null}
                   </div>
@@ -1057,7 +1059,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                     <div className="flex items-center justify-between mb-3">
                       <h4 className="font-semibold text-sm flex items-center gap-2">
                         <Sparkles className="w-4 h-4 text-yellow-500" />
-                        Image Credits
+                        {t("demoPage.imageCredits")}
                       </h4>
                       <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => { setShowCreditsPanel(false); setSelectedCreditPkg(null); }}>
                         <X className="w-3.5 h-3.5" />
@@ -1066,16 +1068,16 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                     <div className="bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border border-yellow-500/20 rounded-lg p-3 mb-3">
                       <div className="text-center">
                         <span className="text-2xl font-bold text-yellow-400">{imageCredits}</span>
-                        <span className="text-xs text-muted-foreground ml-1">credits remaining</span>
+                        <span className="text-xs text-muted-foreground ml-1">{t("demoPage.creditsRemaining")}</span>
                       </div>
                       <p className="text-[10px] text-muted-foreground text-center mt-1">
-                        1 credit = 1 AI image generation or stock photo search
+                        {t("demoPage.creditDescription")}
                       </p>
                     </div>
 
                     {!selectedCreditPkg ? (
                       <div className="space-y-2">
-                        <p className="text-xs font-medium text-muted-foreground mb-2">Select a package:</p>
+                        <p className="text-xs font-medium text-muted-foreground mb-2">{t("demoPage.selectPackage")}</p>
                         {(creditPrices || []).map((price) => (
                           <button
                             key={price.id}
@@ -1084,7 +1086,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                             data-testid={`button-buy-credits-${price.credits}`}
                           >
                             <div>
-                              <span className="text-sm font-semibold">{price.credits} Credit{price.credits !== 1 ? "s" : ""}</span>
+                              <span className="text-sm font-semibold">{price.credits} {price.credits !== 1 ? t("demoPage.credits") : t("demoPage.credit")}</span>
                               {price.credits > 1 && (
                                 <span className="text-xs text-muted-foreground ml-1.5">
                                   (${(price.amount / price.credits / 100).toFixed(2)}/ea)
@@ -1098,7 +1100,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                     ) : (
                       <div className="space-y-3">
                         <button onClick={() => setSelectedCreditPkg(null)} className="text-xs text-blue-400 hover:underline flex items-center gap-1">
-                          <ChevronLeft className="w-3 h-3" /> Back to packages
+                          <ChevronLeft className="w-3 h-3" /> {t("demoPage.backToPackages")}
                         </button>
                         <div className="bg-muted/30 rounded-lg p-2.5 text-center">
                           <span className="text-sm font-semibold">
@@ -1106,7 +1108,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                           </span>
                         </div>
                         <div>
-                          <label className="text-xs text-muted-foreground mb-1 block">Card Number</label>
+                          <label className="text-xs text-muted-foreground mb-1 block">{t("demoPage.cardNumber")}</label>
                           <Input
                             placeholder="4242 4242 4242 4242"
                             value={creditCard.number}
@@ -1121,7 +1123,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                         </div>
                         <div className="grid grid-cols-2 gap-2">
                           <div>
-                            <label className="text-xs text-muted-foreground mb-1 block">Expiry</label>
+                            <label className="text-xs text-muted-foreground mb-1 block">{t("demoPage.expiry")}</label>
                             <Input
                               placeholder="MM/YY"
                               value={creditCard.expiry}
@@ -1135,7 +1137,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                             />
                           </div>
                           <div>
-                            <label className="text-xs text-muted-foreground mb-1 block">CVC</label>
+                            <label className="text-xs text-muted-foreground mb-1 block">{t("demoPage.cvc")}</label>
                             <Input
                               placeholder="123"
                               value={creditCard.cvc}
@@ -1155,10 +1157,10 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                           data-testid="button-confirm-credit-purchase"
                         >
                           {creditPurchasing ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <ShoppingCart className="w-4 h-4 mr-2" />}
-                          Purchase Credits
+                          {t("demoPage.purchaseCredits")}
                         </Button>
                         <p className="text-[10px] text-muted-foreground text-center">
-                          Test cards: 4242 4242 4242 4242
+                          {t("demoPage.testCards")}
                         </p>
                       </div>
                     )}
@@ -1176,7 +1178,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                 data-testid="button-toggle-tasks"
               >
                 <ListTodo className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Tasks</span>
+                <span className="hidden sm:inline">{t("demoPage.tasks")}</span>
               </Button>
             )}
             {user && isEcommerceAgent && (
@@ -1189,7 +1191,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                   data-testid="button-cargo"
                 >
                   <Package className="w-3.5 h-3.5 text-orange-500" />
-                  <span className="hidden sm:inline">Cargo</span>
+                  <span className="hidden sm:inline">{t("demoPage.cargo")}</span>
                   {shippingProviders.length > 0 && (
                     <Badge variant="secondary" className="h-4 px-1 text-[10px] bg-orange-500/20 text-orange-400">
                       {shippingProviders.length}
@@ -1201,7 +1203,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                     <div className="flex items-center justify-between mb-3">
                       <h4 className="font-semibold text-sm flex items-center gap-2">
                         <Package className="w-4 h-4 text-orange-500" />
-                        Shipping Providers
+                        {t("demoPage.shippingProviders")}
                       </h4>
                       <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => setShowCargoPanel(false)}>
                         <X className="w-3.5 h-3.5" />
@@ -1256,13 +1258,13 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                     {shippingProviders.length === 0 && !cargoQuickAdd && (
                       <div className="text-center py-4">
                         <Package className="w-8 h-8 text-muted-foreground/30 mx-auto mb-2" />
-                        <p className="text-xs text-muted-foreground mb-3">No shipping providers connected</p>
+                        <p className="text-xs text-muted-foreground mb-3">{t("demoPage.noShippingProviders")}</p>
                       </div>
                     )}
 
                     {cargoQuickAdd ? (
                       <div className="space-y-2 border border-border/50 rounded-lg p-3 mb-2">
-                        <p className="text-xs font-medium text-foreground">Quick Connect</p>
+                        <p className="text-xs font-medium text-foreground">{t("demoPage.quickConnect")}</p>
                         <div className="flex flex-wrap gap-1">
                           {[
                             { key: "aras", name: "Aras", fields: ["apiKey","customerCode"] },
@@ -1293,7 +1295,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                             ptt: ["apiKey","username"], ups: ["apiKey","username","password"],
                             fedex: ["apiKey","accountNumber"], dhl: ["apiKey","siteId"],
                           };
-                          const labels: Record<string, string> = { apiKey: "API Key", customerCode: "Customer Code", username: "Username", password: "Password", accountNumber: "Account Number", siteId: "Site ID" };
+                          const labels: Record<string, string> = { apiKey: t("demoPage.cargoLabels.apiKey"), customerCode: t("demoPage.cargoLabels.customerCode"), username: t("demoPage.cargoLabels.username"), password: t("demoPage.cargoLabels.password"), accountNumber: t("demoPage.cargoLabels.accountNumber"), siteId: t("demoPage.cargoLabels.siteId") };
                           const fields = fieldMap[cargoAddForm.provider] || ["apiKey"];
                           return (
                             <div className="space-y-1.5 mt-2">
@@ -1326,13 +1328,13 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                                       queryClient.invalidateQueries({ queryKey: ["/api/shipping-providers"] });
                                       setCargoAddForm({ provider: "", apiKey: "", customerCode: "", username: "", password: "", accountNumber: "", siteId: "" });
                                       setCargoQuickAdd(false);
-                                      toast({ title: "Provider connected", description: `${cargoAddForm.provider} has been added.` });
-                                    } catch { toast({ title: "Error", description: "Failed to connect provider.", variant: "destructive" }); }
+                                      toast({ title: t("demoPage.toast.providerConnected"), description: t("demoPage.toast.providerConnectedDesc", { provider: cargoAddForm.provider }) });
+                                    } catch { toast({ title: t("demoPage.toast.error"), description: t("demoPage.toast.providerConnectFailed"), variant: "destructive" }); }
                                     setCargoSaving(false);
                                   }}
                                   data-testid="button-cargo-save"
                                 >
-                                  {cargoSaving ? "Saving..." : "Connect"}
+                                  {cargoSaving ? t("demoPage.saving") : t("demoPage.connect")}
                                 </Button>
                                 <Button
                                   size="sm"
@@ -1341,7 +1343,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                                   onClick={() => { setCargoQuickAdd(false); setCargoAddForm({ provider: "", apiKey: "", customerCode: "", username: "", password: "", accountNumber: "", siteId: "" }); }}
                                   data-testid="button-cargo-cancel"
                                 >
-                                  Cancel
+                                  {t("demoPage.cancel")}
                                 </Button>
                               </div>
                             </div>
@@ -1349,7 +1351,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                         })()}
                         {!cargoAddForm.provider && (
                           <div className="flex justify-end mt-1">
-                            <Button size="sm" variant="ghost" className="h-6 text-[10px]" onClick={() => setCargoQuickAdd(false)} data-testid="button-cargo-cancel">Cancel</Button>
+                            <Button size="sm" variant="ghost" className="h-6 text-[10px]" onClick={() => setCargoQuickAdd(false)} data-testid="button-cargo-cancel">{t("demoPage.cancel")}</Button>
                           </div>
                         )}
                       </div>
@@ -1361,7 +1363,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                         className="w-full h-8 text-xs text-muted-foreground hover:text-orange-400 gap-1 border border-dashed border-border/50"
                         data-testid="button-cargo-add"
                       >
-                        <Plus className="w-3 h-3" /> Add Provider
+                        <Plus className="w-3 h-3" /> {t("demoPage.addProvider")}
                       </Button>
                     )}
 
@@ -1372,7 +1374,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                       className="w-full h-7 text-[10px] text-muted-foreground hover:text-orange-400 gap-1 mt-1"
                       data-testid="button-cargo-manage"
                     >
-                      <Settings2 className="w-3 h-3" /> Full Settings
+                      <Settings2 className="w-3 h-3" /> {t("demoPage.fullSettings")}
                     </Button>
                   </div>
                 )}
@@ -1400,7 +1402,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                     <div className="flex items-center justify-between mb-3">
                       <h4 className="font-semibold text-sm flex items-center gap-2">
                         <HelpCircle className="w-4 h-4 text-orange-500" />
-                        Help & Support
+                        {t("demoPage.helpAndSupport")}
                       </h4>
                       <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => { setShowHelpPanel(false); setHelpView("menu"); }}>
                         <X className="w-3.5 h-3.5" />
@@ -1418,8 +1420,8 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                             <Bug className="w-4 h-4 text-red-400" />
                           </div>
                           <div>
-                            <p className="text-sm font-medium">Report Issue</p>
-                            <p className="text-[10px] text-muted-foreground">Bug, error, or technical problem</p>
+                            <p className="text-sm font-medium">{t("demoPage.reportIssue")}</p>
+                            <p className="text-[10px] text-muted-foreground">{t("demoPage.reportIssueDesc")}</p>
                           </div>
                         </button>
                         <button
@@ -1431,8 +1433,8 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                             <MessageCircle className="w-4 h-4 text-blue-400" />
                           </div>
                           <div>
-                            <p className="text-sm font-medium">Feedback & Suggestions</p>
-                            <p className="text-[10px] text-muted-foreground">Feature request or general feedback</p>
+                            <p className="text-sm font-medium">{t("demoPage.feedbackSuggestions")}</p>
+                            <p className="text-[10px] text-muted-foreground">{t("demoPage.feedbackSuggestionsDesc")}</p>
                           </div>
                         </button>
                         <button
@@ -1445,14 +1447,14 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
-                              <p className="text-sm font-medium">My Tickets</p>
+                              <p className="text-sm font-medium">{t("demoPage.myTickets")}</p>
                               {openTicketCount > 0 && (
                                 <Badge variant="secondary" className="h-4 px-1.5 text-[10px] bg-orange-500/20 text-orange-400">
-                                  {openTicketCount} open
+                                  {openTicketCount} {t("demoPage.open")}
                                 </Badge>
                               )}
                             </div>
-                            <p className="text-[10px] text-muted-foreground">View your support requests</p>
+                            <p className="text-[10px] text-muted-foreground">{t("demoPage.viewSupportRequests")}</p>
                           </div>
                         </button>
                         <div className="border-t border-border/50 pt-2 mt-2">
@@ -1462,7 +1464,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                             data-testid="link-help-settings"
                           >
                             <ExternalLink className="w-3 h-3" />
-                            Settings & Connections
+                            {t("demoPage.settingsConnections")}
                           </a>
                         </div>
                       </div>
@@ -1471,15 +1473,15 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                     {helpView === "report" && (
                       <div className="space-y-3">
                         <button onClick={() => { setHelpView("menu"); setHelpCategory("bug"); }} className="text-xs text-blue-400 hover:underline flex items-center gap-1">
-                          <ChevronLeft className="w-3 h-3" /> Back
+                          <ChevronLeft className="w-3 h-3" /> {t("demoPage.back")}
                         </button>
                         <div className="flex gap-2">
                           {([
-                            { key: "bug", label: "Bug", icon: "🐛" },
-                            { key: "error", label: "Error", icon: "⚠️" },
-                            { key: "connection", label: "Connection", icon: "🔗" },
-                            { key: "feature", label: "Suggestion", icon: "💡" },
-                            { key: "general", label: "Other", icon: "📋" },
+                            { key: "bug", label: t("demoPage.helpCategories.bug"), icon: "🐛" },
+                            { key: "error", label: t("demoPage.helpCategories.error"), icon: "⚠️" },
+                            { key: "connection", label: t("demoPage.helpCategories.connection"), icon: "🔗" },
+                            { key: "feature", label: t("demoPage.helpCategories.suggestion"), icon: "💡" },
+                            { key: "general", label: t("demoPage.helpCategories.other"), icon: "📋" },
                           ] as const).map((cat) => (
                             <button
                               key={cat.key}
@@ -1497,9 +1499,9 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                           ))}
                         </div>
                         <div>
-                          <label className="text-xs text-muted-foreground mb-1 block">Subject</label>
+                          <label className="text-xs text-muted-foreground mb-1 block">{t("demoPage.subject")}</label>
                           <Input
-                            placeholder="Brief description of the issue"
+                            placeholder={t("demoPage.subjectPlaceholder")}
                             value={helpSubject}
                             onChange={(e) => setHelpSubject(e.target.value)}
                             className="h-8 text-xs"
@@ -1507,9 +1509,9 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                           />
                         </div>
                         <div>
-                          <label className="text-xs text-muted-foreground mb-1 block">Details</label>
+                          <label className="text-xs text-muted-foreground mb-1 block">{t("demoPage.details")}</label>
                           <textarea
-                            placeholder="Describe the issue, error message, or your suggestion..."
+                            placeholder={t("demoPage.detailsPlaceholder")}
                             value={helpDescription}
                             onChange={(e) => setHelpDescription(e.target.value)}
                             className="w-full min-h-[80px] p-2 rounded-lg border border-border bg-background text-xs resize-none focus:outline-none focus:ring-1 focus:ring-orange-500/50"
@@ -1518,7 +1520,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                         </div>
                         <div className="bg-muted/30 rounded-lg p-2 text-[10px] text-muted-foreground flex items-start gap-1.5">
                           <Info className="w-3 h-3 shrink-0 mt-0.5" />
-                          <span>This will be sent to admin with your current agent ({currentAgent.persona}) info.</span>
+                          <span>{t("demoPage.sendToAdminInfo", { agent: currentAgent.persona })}</span>
                         </div>
                         <Button
                           onClick={handleSubmitTicket}
@@ -1527,7 +1529,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                           data-testid="button-help-submit"
                         >
                           {helpSending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Send className="w-3.5 h-3.5 mr-2" />}
-                          Send to Admin
+                          {t("demoPage.sendToAdmin")}
                         </Button>
                       </div>
                     )}
@@ -1535,12 +1537,12 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                     {helpView === "tickets" && (
                       <div className="space-y-2">
                         <button onClick={() => setHelpView("menu")} className="text-xs text-blue-400 hover:underline flex items-center gap-1">
-                          <ChevronLeft className="w-3 h-3" /> Back
+                          <ChevronLeft className="w-3 h-3" /> {t("demoPage.back")}
                         </button>
                         {supportTickets.length === 0 ? (
                           <div className="text-center py-4">
                             <Check className="w-8 h-8 text-muted-foreground/30 mx-auto mb-2" />
-                            <p className="text-xs text-muted-foreground">No tickets yet</p>
+                            <p className="text-xs text-muted-foreground">{t("demoPage.noTicketsYet")}</p>
                           </div>
                         ) : (
                           <div className="space-y-1.5 max-h-[300px] overflow-y-auto">
@@ -1557,7 +1559,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                                       "bg-muted text-muted-foreground"
                                     }`}
                                   >
-                                    {ticket.status === "in_progress" ? "In Progress" : ticket.status}
+                                    {ticket.status === "in_progress" ? t("demoPage.inProgress") : ticket.status === "open" ? t("demoPage.open") : ticket.status === "resolved" ? t("demoPage.resolved") : ticket.status}
                                   </Badge>
                                 </div>
                                 <p className="text-[10px] text-muted-foreground line-clamp-2 mb-1">{ticket.description}</p>
@@ -1574,7 +1576,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                                 </div>
                                 {ticket.adminReply && (
                                   <div className="mt-2 p-2 rounded-md bg-emerald-500/10 border border-emerald-500/20">
-                                    <p className="text-[10px] font-medium text-emerald-400 mb-0.5">Admin Reply:</p>
+                                    <p className="text-[10px] font-medium text-emerald-400 mb-0.5">{t("demoPage.adminReply")}:</p>
                                     <p className="text-[10px] text-emerald-300/80">{ticket.adminReply}</p>
                                   </div>
                                 )}
@@ -1589,7 +1591,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                           variant="ghost"
                           data-testid="button-help-new-ticket"
                         >
-                          <Plus className="w-3 h-3 mr-1" /> New Ticket
+                          <Plus className="w-3 h-3 mr-1" /> {t("demoPage.newTicket")}
                         </Button>
                       </div>
                     )}
@@ -1612,8 +1614,8 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
             <div className="absolute inset-0 z-10 flex items-center justify-center bg-blue-500/10 border-2 border-dashed border-blue-500/50 rounded-lg m-2 backdrop-blur-sm" data-testid="drag-overlay">
               <div className="text-center">
                 <Paperclip className="w-10 h-10 text-blue-400 mx-auto mb-2" />
-                <p className="text-sm font-medium text-blue-400">Dosyayı buraya bırakın</p>
-                <p className="text-xs text-blue-400/60 mt-1">Görsel, PDF, Excel, DOCX, CSV, TXT</p>
+                <p className="text-sm font-medium text-blue-400">{t("demoPage.dropFilesHere")}</p>
+                <p className="text-xs text-blue-400/60 mt-1">{t("demoPage.supportedFormats")}</p>
               </div>
             </div>
           )}
@@ -1631,15 +1633,15 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                 <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-2" data-testid="text-chat-empty">
                   {currentAgent.persona}
                 </h2>
-                <p className="text-muted-foreground mb-1 text-xs sm:text-sm">{currentAgent.name} Agent</p>
+                <p className="text-muted-foreground mb-1 text-xs sm:text-sm">{currentAgent.name} {t("demoPage.agent")}</p>
                 <p className="text-muted-foreground/60 text-xs mb-6 sm:mb-8">
-                  {isWorkspace ? "Your AI worker is ready. Start a conversation below." : "Preview mode — ask what I can do!"}
+                  {isWorkspace ? t("demoPage.workerReady") : t("demoPage.previewMode")}
                 </p>
 
                 {!isWorkspace && !user && (
                   <div className="mb-4 p-3 rounded-xl bg-gradient-to-r from-blue-500/10 to-violet-500/10 border border-blue-500/20">
                     <p className="text-xs text-blue-300 text-center">
-                      This is a demo preview. <Link href="/login"><span className="font-semibold underline cursor-pointer">Create an account</span></Link> and rent this agent to unlock all features!
+                      {t("demoPage.demoPreviewText")} <Link href="/login"><span className="font-semibold underline cursor-pointer">{t("demoPage.createAnAccount")}</span></Link> {t("demoPage.andRentAgent")}
                     </p>
                   </div>
                 )}
@@ -1701,7 +1703,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                         </div>
                       </div>
                       <div className="max-w-[80%] flex flex-col gap-1.5 items-start">
-                        <span className="text-[11px] font-medium px-1 text-amber-400">Admin</span>
+                        <span className="text-[11px] font-medium px-1 text-amber-400">{t("demoPage.admin")}</span>
                         <div className="rounded-2xl px-4 py-2.5 bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-foreground rounded-tl-md border border-amber-500/30" data-testid={`admin-message-${i}`}>
                           <ChatMessageContent content={msg.content} />
                         </div>
@@ -1738,7 +1740,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                     <div className={`max-w-[80%] flex flex-col gap-1.5 ${isUser ? "items-end" : "items-start"}`}>
                       {showAvatar && (
                         <span className={`text-[11px] font-medium px-1 ${isUser ? "text-muted-foreground" : currentAgent.accent}`}>
-                          {isUser ? (user?.fullName?.split(" ")[0] || "You") : currentAgent.persona}
+                          {isUser ? (user?.fullName?.split(" ")[0] || t("demoPage.you")) : currentAgent.persona}
                         </span>
                       )}
 
@@ -1770,7 +1772,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                         {msg.isLimitWarning && (
                           <div className="flex items-center gap-2 mb-2 text-red-400 font-medium text-xs">
                             <AlertTriangle className="w-3.5 h-3.5" />
-                            Token Limit Reached
+                            {t("demoPage.tokenLimitReached")}
                           </div>
                         )}
                         {(() => {
@@ -1847,10 +1849,10 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
             )}
             {!user && messages.length >= 4 && (
               <div className="mb-2 p-3 rounded-xl bg-gradient-to-r from-blue-500/10 to-violet-500/10 border border-blue-500/20 text-center" data-testid="demo-signup-banner">
-                <p className="text-xs text-blue-300 mb-2">Want to unlock full capabilities? Create an account and rent your AI worker!</p>
+                <p className="text-xs text-blue-300 mb-2">{t("demoPage.unlockCapabilities")}</p>
                 <Link href="/login">
                   <Button size="sm" className="bg-gradient-to-r from-blue-500 to-violet-500 text-white text-xs h-8 px-4" data-testid="button-demo-signup">
-                    Get Started
+                    {t("demoPage.getStarted")}
                   </Button>
                 </Link>
               </div>
@@ -1860,7 +1862,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                 <div className="flex items-center justify-between">
                   <h4 className="text-xs font-semibold text-foreground flex items-center gap-1.5">
                     <ListTodo className="w-3.5 h-3.5 text-blue-400" />
-                    Yeni Görev Oluştur
+                    {t("demoPage.createNewTask")}
                   </h4>
                   <button
                     onClick={() => setShowQuickTaskForm(false)}
@@ -1871,14 +1873,14 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                   </button>
                 </div>
                 <Input
-                  placeholder="Görev başlığı"
+                  placeholder={t("demoPage.taskTitle")}
                   value={quickTaskTitle}
                   onChange={e => setQuickTaskTitle(e.target.value)}
                   className="h-8 text-xs"
                   data-testid="input-quick-task-title"
                 />
                 <Input
-                  placeholder="Açıklama (opsiyonel)"
+                  placeholder={t("demoPage.taskDescOptional")}
                   value={quickTaskDescription}
                   onChange={e => setQuickTaskDescription(e.target.value)}
                   className="h-8 text-xs"
@@ -1906,7 +1908,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                         }`}
                         data-testid={`quick-task-priority-${p}`}
                       >
-                        {p === "low" ? "Düşük" : p === "medium" ? "Orta" : p === "high" ? "Yüksek" : "Acil"}
+                        {p === "low" ? t("demoPage.priorityLow") : p === "medium" ? t("demoPage.priorityMedium") : p === "high" ? t("demoPage.priorityHigh") : t("demoPage.priorityUrgent")}
                       </button>
                     ))}
                   </div>
@@ -1920,7 +1922,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                     data-testid="button-save-quick-task"
                   >
                     {quickTaskSaving ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Check className="w-3 h-3 mr-1" />}
-                    {quickTaskSaving ? "Kaydediliyor..." : "Görevi Kaydet"}
+                    {quickTaskSaving ? t("demoPage.saving") : t("demoPage.saveTask")}
                   </Button>
                   <Button
                     size="sm"
@@ -1928,7 +1930,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                     className="h-7 text-xs"
                     onClick={() => setShowQuickTaskForm(false)}
                   >
-                    İptal
+                    {t("demoPage.cancel")}
                   </Button>
                 </div>
               </div>
@@ -1969,11 +1971,11 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                       ? "bg-blue-500/20 border-blue-500/50 text-blue-400"
                       : "bg-muted/50 border-border/50 text-muted-foreground hover:text-foreground hover:bg-muted"
                   }`}
-                  title="Görev Oluştur"
+                  title={t("demoPage.createTask")}
                   data-testid="button-quick-task"
                 >
                   <ListTodo className="w-4 h-4" />
-                  <span className="hidden sm:inline text-[10px]">Görev</span>
+                  <span className="hidden sm:inline text-[10px]">{t("demoPage.task")}</span>
                 </button>
               )}
               {user && (
@@ -1982,7 +1984,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                   onClick={() => fileInputRef.current?.click()}
                   disabled={loading || uploading}
                   className="min-h-[44px] min-w-[44px] h-11 w-11 rounded-full bg-muted/50 border border-border/50 flex items-center justify-center shrink-0 text-muted-foreground hover:text-foreground hover:bg-muted transition-all disabled:opacity-40 touch-manipulation"
-                  title="Dosya ekle"
+                  title={t("demoPage.attachFile")}
                   data-testid="button-upload-file"
                 >
                   {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Paperclip className="w-4 h-4" />}
@@ -1993,7 +1995,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                   ref={inputRef}
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  placeholder={!user ? `Ask ${currentAgent.persona} what it can do...` : `Message ${currentAgent.persona}...`}
+                  placeholder={!user ? t("demoPage.askPlaceholder", { agent: currentAgent.persona }) : t("demoPage.messagePlaceholder", { agent: currentAgent.persona })}
                   disabled={loading}
                   className="w-full h-11 sm:h-11 px-3 sm:px-4 pr-11 sm:pr-12 rounded-xl bg-muted/50 border border-border/50 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 transition-all disabled:opacity-50"
                   data-testid="input-chat"

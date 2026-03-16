@@ -1,1 +1,853 @@
-{}
+{
+  "notFound": {
+    "title": "404",
+    "heading": "Sayfa Bulunamadı",
+    "description": "Aradığınız sayfa mevcut değil veya taşınmış.",
+    "goHome": "Ana Sayfa"
+  },
+  "login": {
+    "title": "Giriş Yap",
+    "subtitle": "Yapay zeka iş gücü panelinize erişin",
+    "email": "E-posta",
+    "password": "Şifre",
+    "emailPlaceholder": "siz@firma.com",
+    "passwordPlaceholder": "Şifrenizi girin",
+    "submit": "Giriş Yap",
+    "or": "veya",
+    "google": "Google ile giriş yap",
+    "noAccount": "Hesabınız yok mu?",
+    "createOne": "Hesap oluştur",
+    "welcomeBack": "Tekrar hoş geldiniz!",
+    "loginSuccess": "Başarıyla giriş yaptınız.",
+    "loginFailed": "Giriş başarısız"
+  },
+  "register": {
+    "title": "Hesap Oluştur",
+    "subtitle": "Yapay zeka iş gücünüzü bugün kurmaya başlayın",
+    "fullName": "Ad Soyad",
+    "username": "Kullanıcı Adı",
+    "email": "E-posta",
+    "password": "Şifre",
+    "company": "Şirket (isteğe bağlı)",
+    "fullNamePlaceholder": "Ahmet Yılmaz",
+    "usernamePlaceholder": "ahmetyilmaz",
+    "emailPlaceholder": "siz@firma.com",
+    "passwordPlaceholder": "En az 6 karakter",
+    "companyPlaceholder": "Firma A.Ş.",
+    "submit": "Hesap Oluştur",
+    "or": "veya",
+    "google": "Google ile giriş yap",
+    "hasAccount": "Zaten hesabınız var mı?",
+    "signIn": "Giriş yap",
+    "welcome": "RentAI 24'e hoş geldiniz!",
+    "registerSuccess": "Hesabınız oluşturuldu.",
+    "registerFailed": "Kayıt başarısız"
+  },
+  "sectionCta": {
+    "heading": "İlk Yapay Zeka Çalışanınızı Kiralamaya Hazır mısınız?",
+    "subtitle": "14 günlük ücretsiz deneme başlatın. Kredi kartı gerekmez.",
+    "features": "Kurulum Ücreti Yok · İstediğiniz Zaman İptal · 14 Gün Ücretsiz Deneme",
+    "getStarted": "Ücretsiz Başla",
+    "bookDemo": "Demo Rezerve Et"
+  },
+  "signupFlow": {
+    "title": "{{agentName}} Kiralamaya Hazır mısınız?",
+    "description": "Bu yapay zeka çalışanını kiralamak için kayıt olun. Kayıt olduktan sonra bir plan seçin ve ajanınız anında panelinizde aktif olacak.",
+    "step1Title": "1. Hesabınızı oluşturun",
+    "step1Desc": "Hızlı kayıt — bir dakikadan az sürer.",
+    "step2Title": "2. Plan seçin ve ödeme yapın",
+    "step2Desc": "İhtiyaçlarınıza uygun bir plan seçin. İstediğiniz zaman iptal edin.",
+    "step3Title": "3. Ajan anında aktif olur",
+    "step3Desc": "Yapay zeka çalışanınız panelinizde canlı olarak çalışmaya ve sohbet etmeye hazır.",
+    "signUp": "Şimdi Kayıt Ol",
+    "signIn": "Giriş Yap"
+  },
+  "home": {
+    "hero": {
+      "agentsStandingBy": "9 ajan hazır bekliyor",
+      "titleLine1": "Yeni tanışın",
+      "titleLine2": "Yapay zeka iş gücünüz.",
+      "subtitle": "Müşteri desteği, satış, randevu, muhasebe ve daha fazlasını 7/24 yöneten önceden eğitilmiş yapay zeka ajanlarını kiralayın — aylık $49'dan başlayan fiyatlarla.",
+      "startFree": "Ücretsiz Başla",
+      "viewRoster": "Kadroyu Gör"
+    },
+    "trustedBy": "Güvenen ekipler",
+    "showcase": {
+      "badge": "Platform Vitrini",
+      "title": "İşin Geleceğini Deneyimleyin",
+      "subtitle": "Yapay zeka ajanlarının iş operasyonlarınızı gerçek zamanlı nasıl dönüştürdüğünü görün"
+    },
+    "showcaseScenes": {
+      "office": {
+        "title": "Yapay Zeka Destekli Ofisiniz",
+        "subtitle": "Asla uyumayan bir ekip"
+      },
+      "agents": {
+        "title": "Ajanlarınızla Tanışın",
+        "subtitle": "Her rol için uzmanlaşmış"
+      },
+      "tasks": {
+        "title": "Çalışmalarını İzleyin",
+        "subtitle": "Gerçek zamanlı tamamlanan görevler"
+      },
+      "results": {
+        "title": "Sonuçları Görün",
+        "subtitle": "İlk günden ölçülebilir etki"
+      },
+      "scale": {
+        "title": "Sınırsız Ölçeklendirin",
+        "subtitle": "Girişimden kurumsal seviyeye"
+      }
+    },
+    "officeLabels": {
+      "workspace": "Çalışma Alanı",
+      "liveChat": "Canlı Sohbet",
+      "emails": "E-postalar",
+      "analytics": "Analitik",
+      "calendar": "Takvim",
+      "security": "Güvenlik"
+    },
+    "taskLabels": {
+      "task1": "50 soğuk temas e-postası gönderiliyor",
+      "task2": "12 destek talebi çözülüyor",
+      "task3": "8 müşteri toplantısı planlanıyor",
+      "task4": "Haftalık analitik oluşturuluyor",
+      "task5": "15 fatura işleniyor",
+      "completed": "Tamamlandı",
+      "working": "{{agent}} çalışıyor..."
+    },
+    "resultLabels": {
+      "costSavings": "Maliyet Tasarrufu",
+      "timeSaved": "Kazanılan Zaman",
+      "satisfaction": "Memnuniyet",
+      "tasksDone": "Tamamlanan Görevler"
+    },
+    "scaleLabels": {
+      "teamGrowing": "Ekip büyüklüğü artıyor...",
+      "scaleInstantly": "Her boyuta anında ölçeklendirin",
+      "week1": "Hafta 1",
+      "month1": "Ay 1",
+      "month3": "Ay 3",
+      "month6": "Ay 6",
+      "year1": "Yıl 1"
+    },
+    "howItWorks": {
+      "title": "Nasıl Çalışır",
+      "subtitle": "İlk yapay zeka ekip üyenize üç basit adım",
+      "step1Title": "İhtiyacınızı Söyleyin",
+      "step1Desc": "Rolü tanımlayın. Müşteri desteği? Satış? Muhasebe? Size mükemmel yapay zeka çalışanını eşleştireceğiz.",
+      "step2Title": "Yapay Zeka Çalışanınızı Seçin",
+      "step2Desc": "Belirli roller ve sektörler için uzmanlaşmış önceden eğitilmiş ajanlarımızın kataloğuna göz atın.",
+      "step3Title": "Dakikalar İçinde Dağıtın",
+      "step3Desc": "Mevcut araçlarınızla entegrasyonu biz hallederiz. Siz sadece çalışmaya başlarsınız. Bu kadar basit."
+    },
+    "demo": {
+      "title": "Uygulamada Görün",
+      "subtitle": "İşletmelerin operasyonlarını otomatikleştirmek için RentAI 24'ü nasıl kullandığını izleyin"
+    },
+    "catalog": {
+      "title": "Bir Sonraki Ekip Üyelerinizle Tanışın",
+      "subtitle": "Önceden eğitilmiş, savaşta test edilmiş ve bugün dağıtıma hazır",
+      "online": "Çevrimiçi",
+      "viewProfile": "Profili Gör",
+      "viewAll": "Tüm Yapay Zeka Çalışanlarını Gör"
+    },
+    "stats": {
+      "aiWorkers": "Mevcut Yapay Zeka Çalışanı",
+      "businesses": "Hizmet Verilen İşletme",
+      "uptime": "7/24 Çalışma, Sıfır Kesinti",
+      "savings": "Ortalama Maliyet Tasarrufu"
+    },
+    "comparison": {
+      "title": "Eski Yöntem vs. RentAI Yöntemi",
+      "traditional": "Geleneksel İşe Alım",
+      "rentai": "RentAI 24",
+      "old1": "Haftalarca işe alım süreci",
+      "new1": "Dakikalar içinde dağıtım",
+      "old2": "Hastalık, tatil, personel devir",
+      "new2": "7/24, asla bir gün kaçırmaz",
+      "old3": "Eğitim maliyetleri $$$",
+      "new3": "Önceden eğitilmiş ve hazır",
+      "old4": "Tek dil",
+      "new4": "Çok dilli",
+      "old5": "Ölçeklendirmesi zor",
+      "new5": "Anında ölçeklendirme",
+      "old6": "Aylık $3.000-5.000+",
+      "new6": "Aylık $49'dan başlayan"
+    },
+    "industries": {
+      "title": "Her Sektör İçin Yapay Zeka Çalışanları",
+      "subtitle": "Belirli sektörünüz için eğitilmiş uzman yapay zeka ajanları"
+    },
+    "testimonials": {
+      "title": "Müşterilerimiz Ne Diyor"
+    },
+    "faq": {
+      "title": "Sıkça Sorulan Sorular"
+    },
+    "loggedIn": {
+      "teamOnline": "Yapay zeka ekibiniz çevrimiçi",
+      "welcomeBack": "Tekrar hoş geldin, {{name}}",
+      "subtitle": "Yapay zeka iş gücünüz hazır. Bugün ne yapmak istersiniz?",
+      "quickActions": "Hızlı İşlemler",
+      "dashboard": "Panel",
+      "dashboardDesc": "Genel görünümünüzü görün",
+      "chat": "Sohbet",
+      "chatDesc": "Ajanlarınızla konuşun",
+      "aiWorkers": "Yapay Zeka Çalışanları",
+      "aiWorkersDesc": "Ajanları keşfedin ve kiralayın",
+      "settings": "Ayarlar",
+      "settingsDesc": "Hesabınızı yapılandırın",
+      "guide": "Rehber",
+      "guideDesc": "Platformu öğrenin",
+      "yourTeam": "Yapay Zeka Ekibiniz",
+      "viewAll": "Tümünü Gör",
+      "active": "Aktif",
+      "recentActivity": "Son Aktiviteler",
+      "activity1": "Rex müşteri adaylarınıza 50 temas e-postası gönderdi",
+      "activity2": "Ava %98 memnuniyet ile 12 destek talebini çözdü",
+      "activity3": "DataBot haftalık analitik raporunuzu oluşturdu",
+      "activity4": "Cal bu hafta için 8 müşteri toplantısı planladı",
+      "activity5": "Maya platformlara 5 sosyal medya güncellemesi yayınladı",
+      "time2h": "2 saat önce",
+      "time4h": "4 saat önce",
+      "time6h": "6 saat önce",
+      "timeYesterday": "Dün",
+      "exploreMore": "Daha Fazlasını Keşfedin",
+      "exploreSubtitle": "Yapay zeka iş gücünüzden en iyi şekilde yararlanın",
+      "platformGuide": "Platform Rehberi",
+      "howItWorks": "Nasıl Çalışır"
+    }
+  },
+  "about": {
+    "title": "İşin Geleceğini İnşa Ediyoruz",
+    "subtitle": "RentAI 24, dünyanın ilk yapay zeka personel ajansıdır. Her işletmenin akıllı, yorulmak bilmeyen ve uygun fiyatlı ekip üyelerine erişimi hak ettiğine inanıyoruz.",
+    "storyTitle": "Hikayemiz",
+    "storyP1": "RentAI 24, basit bir gözlemden doğdu: her büyüklükteki işletme, yapay zekanın daha iyi, daha hızlı ve daha uygun fiyata yapabileceği roller için işe alma, eğitim ve personel tutma konusunda zorlanıyor.",
+    "storyP2": "Tıpkı geleneksel personel ajanslarının şirketlere nitelikli insan çalışanlar yerleştirmesi gibi, biz de önceden eğitilmiş yapay zeka ajanları yerleştiriyoruz. Misyonumuz, yapay zeka iş gücünü her işletmeye erişilebilir kılmak — yan proje yürüten solo kuruculardan binlerce müşteriyi yöneten kurumlara kadar.",
+    "missionTitle": "Misyonumuz",
+    "missionDesc": "Yapay zeka iş gücüne erişimi demokratikleştirmek, her büyüklükteki işletmenin daha verimli çalışmasını, müşterilere daha iyi hizmet vermesini ve geleneksel işe alım kısıtlamaları olmadan ölçeklenmesini sağlamak.",
+    "visionTitle": "Vizyonumuz",
+    "visionDesc": "Her işletmenin yapay zeka destekli bir ekibe sahip olduğu, insanların ve yapay zekanın birlikte her ikisinin tek başına yapabileceğinden daha fazlasını başardığı bir dünya.",
+    "valuesTitle": "Değerlerimiz",
+    "values": {
+      "accessibleAI": "Erişilebilir Yapay Zeka",
+      "accessibleAIDesc": "Girişim dostu fiyatlarla kurumsal düzeyde yapay zeka. Her işletmenin, solo girişimcilerden kurumlara kadar, akıllı otomasyona erişimi hak ettiğine inanıyoruz.",
+      "humanAI": "İnsan + Yapay Zeka",
+      "humanAIDesc": "Ekipleri güçlendiriyoruz, yerlerini almıyoruz. Yapay zeka çalışanlarımız tekrarlayan işleri üstlenir, böylece insan ekibiniz en iyi yaptıkları şeye odaklanabilir.",
+      "alwaysImproving": "Sürekli Gelişim",
+      "alwaysImprovingDesc": "Ajanlarımız zamanla öğrenir ve gelişir. Sürekli optimizasyon, yapay zeka iş gücünüzün her ay artan değer sunmasını sağlar.",
+      "trustTransparency": "Güven ve Şeffaflık",
+      "trustTransparencyDesc": "Verileriniz her zaman sizindir. SOC 2 uyumlu, GDPR uyumlu ve yapay zekamızın nasıl çalıştığı konusunda tamamen şeffafız."
+    },
+    "stats": {
+      "founded": "Kuruluş",
+      "foundedVal": "2023",
+      "teamMembers": "Ekip Üyesi",
+      "teamMembersVal": "45+",
+      "countries": "Hizmet Verilen Ülke",
+      "countriesVal": "30+",
+      "deployed": "Dağıtılan Yapay Zeka Çalışanı",
+      "deployedVal": "2.500+"
+    },
+    "founder": {
+      "name": "Daniel Reeves",
+      "role": "Kurucu & CEO",
+      "bio": "Yapay zeka altyapısında derin köklere sahip seri bir girişimci olan Daniel, küçük ve orta ölçekli işletmelerin büyük kurumlarla aynı yapay zeka yeteneklerine erişmekte nasıl zorlandığını bizzat gördükten sonra RentAI 24'ü kurdu. Misyonu: yapay zeka iş gücünü demokratikleştirmek ve akıllı otomasyonu her yerde her ekip için erişilebilir kılmak."
+    }
+  },
+  "contact": {
+    "title": "İletişime Geçin",
+    "subtitle": "İlk yapay zeka çalışanınızı kiralamaya hazır mısınız? Sorularınız mı var? Sizden haber almayı çok isteriz.",
+    "form": {
+      "fullName": "Ad Soyad",
+      "businessEmail": "İş E-postası",
+      "companyName": "Şirket Adı",
+      "companySize": "Şirket Büyüklüğü",
+      "selectSize": "Boyut seçin",
+      "size1_10": "1-10 çalışan",
+      "size11_50": "11-50 çalışan",
+      "size51_200": "51-200 çalışan",
+      "size200plus": "200+ çalışan",
+      "aiWorkerInterest": "Hangi yapay zeka çalışanıyla ilgileniyorsunuz?",
+      "selectWorker": "Bir çalışan seçin (isteğe bağlı)",
+      "notSure": "Henüz emin değilim",
+      "message": "Mesaj",
+      "messagePlaceholder": "İhtiyaçlarınızı bize anlatın...",
+      "sending": "Gönderiliyor...",
+      "sendMessage": "Mesaj Gönder",
+      "namePlaceholder": "Ahmet Yılmaz",
+      "emailPlaceholder": "ahmet@firma.com",
+      "companyPlaceholder": "Firma A.Ş."
+    },
+    "success": {
+      "title": "Mesaj Başarıyla Gönderildi!",
+      "description": "Ekibimiz 2 saat içinde size dönecek. RentAI 24'e olan ilginiz için teşekkür ederiz.",
+      "newMessage": "Başka Bir Mesaj Gönder"
+    },
+    "toast": {
+      "sent": "Mesaj gönderildi!",
+      "sentDesc": "2 saat içinde size döneceğiz.",
+      "error": "Hata",
+      "errorDesc": "Mesaj gönderilemedi. Lütfen tekrar deneyin."
+    },
+    "info": {
+      "title": "İletişim Bilgileri",
+      "email": "E-posta",
+      "emailAddress": "hello@rentai24.com",
+      "scheduleCall": "Görüşme Planla",
+      "scheduleCallDesc": "15 dakikalık danışmanlık rezerve edin",
+      "responseTime": "Yanıt Süresi",
+      "responseTimeVal": "2 saat içinde"
+    },
+    "quickLinks": {
+      "title": "Hızlı Bağlantılar",
+      "liveDemo": "Canlı Demo Dene",
+      "viewPricing": "Fiyatlandırmayı Gör",
+      "howItWorks": "Nasıl Çalışır"
+    }
+  },
+  "howItWorks": {
+    "title": "Nasıl Çalışır",
+    "subtitle": "Kayıttan dağıtıma 24 saat kadar kısa sürede",
+    "stepLabel": "Adım {{num}}",
+    "steps": {
+      "step1": {
+        "title": "Ücretsiz Danışmanlık",
+        "desc": "15 dakikalık bir görüşme planlayın. İş akışınızı analiz eder ve yapay zekanın hangi rolleri doldurabileceğini belirleriz.",
+        "detail": "Ekibimiz mevcut süreçlerinizi, araçlarınızı ve sorunlu noktalarınızı inceleyerek yapay zeka çalışanlarının en fazla etkiyi nerede sağlayabileceğini belirler."
+      },
+      "step2": {
+        "title": "Yapay Zeka Çalışanı Eşleştirme",
+        "desc": "Sektörünüze, araçlarınıza ve hedeflerinize göre en iyi yapay zeka ajanlarını öneriyoruz.",
+        "detail": "150'den fazla uzman ajan kataloğumuzdan, tam ihtiyaçlarınıza, teknoloji altyapınıza ve iş hedeflerinize uygun çalışanlarla sizi eşleştiriyoruz."
+      },
+      "step3": {
+        "title": "Özelleştirme ve İnce Ayar",
+        "desc": "Ajanı marka sesinize, süreçlerinize ve özel gereksinimlerinize göre uyarlıyoruz.",
+        "detail": "Yapay zeka çalışanınız ürünlerinizi, politikalarınızı ve iletişim tarzınızı öğrenir. Yanıtları markanıza mükemmel uyacak şekilde ince ayar yapıyoruz."
+      },
+      "step4": {
+        "title": "Entegrasyon",
+        "desc": "Mevcut altyapınıza bağlanıyoruz: CRM, yardım masası, e-posta, mesajlaşma, takvimler ve daha fazlası.",
+        "detail": "Ekibimiz tüm teknik entegrasyonu üstlenir. HubSpot, Zendesk, Slack, WhatsApp ve daha fazlası dahil 50'den fazla aracı destekliyoruz."
+      },
+      "step5": {
+        "title": "Test ve Kalite Kontrol",
+        "desc": "Performansı izlediğimiz ve ayarlamalar yaptığımız 48 saatlik test süresi.",
+        "detail": "Gerçek senaryolarla kapsamlı testler yapıyor, yanıt kalitesini izliyor ve canlıya almadan önce performansı ince ayarlıyoruz."
+      },
+      "step6": {
+        "title": "Canlıya Al",
+        "desc": "Yapay zeka çalışanınız gerçek görevleri üstlenmeye başlar. Panelinizden izlersiniz.",
+        "detail": "Test tamamlandığında yapay zeka çalışanınız canlıya alınır. Performans metrikleri ve konuşma kayıtlarına tam görünürlük elde edersiniz."
+      },
+      "step7": {
+        "title": "Sürekli İyileştirme",
+        "desc": "Performansı takip ediyor, geri bildirim topluyor ve düzenli olarak optimize ediyoruz.",
+        "detail": "Ekibimiz yapay zeka çalışanınızın performansını haftalık izler, iyileştirmeler uygular ve zamanla daha iyi olmasını sağlar."
+      }
+    },
+    "avgTimeLabel": "Kayıttan dağıtıma ortalama süre:",
+    "avgTimeValue": "24 saat"
+  },
+  "pricing": {
+    "title": "Basit, Şeffaf Fiyatlandırma",
+    "subtitle": "Esnek planlarla yapay zeka iş gücünüzü ölçeklendirin. İstediğiniz zaman iptal edin.",
+    "guarantee": "İstediğiniz Zaman İptal · Güvenli Ödeme · Para İade Garantisi",
+    "plans": {
+      "starter": {
+        "name": "Başlangıç",
+        "per": "/ay çalışan başı",
+        "desc": "Yapay zeka ile başlamak isteyen küçük işletmeler için ideal",
+        "features": [
+          "1 Yapay Zeka Çalışanı",
+          "Temel entegrasyonlar (3'e kadar)",
+          "Aylık 100 mesaj",
+          "E-posta desteği",
+          "Topluluk erişimi"
+        ]
+      },
+      "professional": {
+        "name": "Profesyonel",
+        "per": "/ay çalışan başı",
+        "desc": "Yapay zeka ile ölçeklenen büyüyen ekipler için en iyi değer",
+        "features": [
+          "5'e kadar Yapay Zeka Çalışanı",
+          "Gelişmiş entegrasyonlar (sınırsız)",
+          "Çalışan başı aylık 500 mesaj",
+          "Öncelikli destek (sohbet + e-posta)",
+          "Özel ince ayar",
+          "API erişimi",
+          "Çok dilli destek"
+        ]
+      },
+      "enterprise": {
+        "name": "Kurumsal",
+        "desc": "Özel gereksinimleri olan büyük ölçekli operasyonlar için",
+        "features": [
+          "Sınırsız Yapay Zeka Çalışanı",
+          "Tüm entegrasyonlar + özel",
+          "Çalışan başı aylık 5.000 mesaj",
+          "7/24 özel destek",
+          "Verileriniz üzerinde özel yapay zeka eğitimi",
+          "SLA garantisi",
+          "Beyaz etiket seçeneği",
+          "Özel hesap yöneticisi"
+        ]
+      }
+    },
+    "mostPopular": "En Popüler",
+    "contactSales": "Satışla İletişim",
+    "subscribeNow": "Şimdi Abone Ol",
+    "getStarted": "Başla",
+    "addonsTitle": "Eklentiler",
+    "addons": {
+      "languagePack": {
+        "name": "Ek Dil Paketi",
+        "price": "Aylık $19",
+        "desc": "Herhangi bir çalışana ek dil desteği ekleyin"
+      },
+      "customIntegration": {
+        "name": "Özel Entegrasyon",
+        "price": "Tek seferlik $99",
+        "desc": "Herhangi bir araç veya platforma bağlanın"
+      },
+      "priorityOnboarding": {
+        "name": "Öncelikli Başlangıç",
+        "price": "Tek seferlik $199",
+        "desc": "Özel başlangıç uzmanı"
+      },
+      "accountManager": {
+        "name": "Özel Hesap Yöneticisi",
+        "price": "Aylık $299",
+        "desc": "Kişisel yapay zeka iş gücü danışmanınız"
+      }
+    },
+    "checkout": {
+      "title": "Ödeme",
+      "planInfo": "{{name}} Planı — {{price}}{{per}}",
+      "cardholderName": "Kart Sahibinin Adı",
+      "cardNumber": "Kart Numarası",
+      "expiry": "Son Kullanma",
+      "cvc": "CVC",
+      "processing": "İşleniyor...",
+      "pay": "{{price}}/ay Öde",
+      "securePayment": "Güvenli ödeme — Test modu aktif",
+      "testCard": "Test kartı:",
+      "testCardHint": "Herhangi bir gelecek tarih · Herhangi bir 3 haneli CVC",
+      "paymentSuccess": "Ödeme Başarılı!",
+      "paymentSuccessDesc": "{{plan}} planınız artık aktif.",
+      "paymentFailed": "Ödeme Başarısız",
+      "invalidCard": "Geçersiz Kart",
+      "invalidCardDesc": "Lütfen geçerli bir kart numarası girin.",
+      "invalidExpiry": "Geçersiz Son Kullanma",
+      "invalidExpiryDesc": "Lütfen geçerli bir son kullanma tarihi girin (AA/YY).",
+      "invalidCvc": "Geçersiz CVC",
+      "invalidCvcDesc": "Lütfen geçerli bir CVC girin."
+    }
+  },
+  "workers": {
+    "titleTeam": "Yapay Zeka Ekibiniz",
+    "titleBrowse": "Yapay Zeka İş Gücümüze Göz Atın",
+    "subtitleTeam": "{{count}} aktif ajanınız var. Ekibinizi yönetin veya yeni yetenekler keşfedin.",
+    "subtitleBrowse": "Her ajan önceden eğitilmiş, savaşta test edilmiş ve dağıtıma hazır.",
+    "searchPlaceholder": "İsim veya beceriye göre arayın...",
+    "categoryPlaceholder": "Kategori",
+    "pricePlaceholder": "Fiyat",
+    "allPrices": "Tüm Fiyatlar",
+    "priceLow": "$99 ve altı",
+    "priceMid": "$100 - $139",
+    "priceHigh": "$140+",
+    "activeAgents": "Aktif Ajanlar",
+    "activeAgentsDesc": "Şu anda kiralanan yapay zeka ekip üyeleriniz",
+    "discoverMore": "Daha Fazla Ajan Keşfet",
+    "active": "Aktif",
+    "available247": "7/24",
+    "viewProfile": "Profili Gör",
+    "chat": "Sohbet",
+    "plan": "{{plan}} Planı",
+    "perMonth": "/ay",
+    "hireNow": "Şimdi Kirala",
+    "processing": "İşleniyor",
+    "noResults": "Sonuç bulunamadı",
+    "noResultsDesc": "Farklı filtreler veya arama terimleri deneyin.",
+    "planDialog": {
+      "title": "{{name}} İçin Plan Seçin",
+      "description": "İhtiyaçlarınıza uygun planı seçin. İstediğiniz zaman yükseltebilir veya değiştirebilirsiniz.",
+      "starter": "Başlangıç",
+      "starterPrice": "$49",
+      "starterMsgs": "Aylık 100 mesaj",
+      "professional": "Profesyonel",
+      "professionalPrice": "$39",
+      "professionalMsgs": "Aylık 500 mesaj",
+      "enterprise": "Kurumsal",
+      "enterprisePrice": "Özel",
+      "enterpriseMsgs": "Aylık 5.000 mesaj",
+      "basicSupport": "Temel destek",
+      "standardResponse": "Standart yanıt süresi",
+      "prioritySupport": "Öncelikli destek",
+      "fasterResponses": "Daha hızlı yanıtlar",
+      "allToolsUnlocked": "Tüm araçlar açık",
+      "dedicatedSupport": "Özel destek",
+      "customIntegrations": "Özel entegrasyonlar",
+      "slaGuarantee": "SLA garantisi",
+      "mostPopular": "En Popüler",
+      "contactEnterprise": "Kurumsal fiyatlandırma için bizimle iletişime geçin",
+      "confirmHire": "Onayla ve Kirala",
+      "cancel": "İptal"
+    },
+    "toast": {
+      "agentHired": "Ajan Kiralandı!",
+      "agentHiredDesc": "{{name}} artık {{plan}} planında aktif.",
+      "alreadyActive": "Zaten Aktif",
+      "alreadyActiveDesc": "Bu ajan zaten aktif durumda.",
+      "error": "Hata",
+      "failedToHire": "Ajan kiralanırken hata oluştu."
+    },
+    "thisAiWorker": "bu yapay zeka çalışan"
+  },
+  "workerProfile": {
+    "notFound": {
+      "title": "Çalışan Bulunamadı",
+      "description": "Bu yapay zeka çalışan profili mevcut değil.",
+      "browseAll": "Tüm Çalışanlara Göz At"
+    },
+    "online247": "7/24 Çevrimiçi",
+    "hireNow": "Şimdi Kirala",
+    "tryDemo": "Demo Dene",
+    "skillsTitle": "Beceriler ve Yetenekler",
+    "integrationsTitle": "Entegrasyonlar",
+    "languagesTitle": "Diller",
+    "pricingTitle": "Fiyatlandırma",
+    "perMonth": "/ay",
+    "pricingDesc": "Tüm özellikler, entegrasyonlar ve 7/24 kullanılabilirlik dahil. 14 günlük ücretsiz deneme, kredi kartı gerekmez.",
+    "useCasesTitle": "Kullanım Alanları",
+    "relatedWorkers": "İlgili Çalışanlar",
+    "planDialog": {
+      "title": "{{name}} İçin Plan Seçin",
+      "description": "İhtiyaçlarınıza uygun planı seçin. İstediğiniz zaman yükseltebilir veya değiştirebilirsiniz.",
+      "confirmHire": "Onayla ve Kirala",
+      "cancel": "İptal"
+    },
+    "toast": {
+      "workerHired": "Çalışan Kiralandı!",
+      "workerHiredDesc": "{{name}} artık {{plan}} planında aktif.",
+      "error": "Hata",
+      "somethingWrong": "Bir şeyler ters gitti."
+    }
+  },
+  "dashboard": {
+    "welcome": "Hoş geldiniz, {{name}}",
+    "manageSubtitle": "Yapay zeka iş gücünüzü buradan yönetin",
+    "planLabel": "{{plan}} Planı",
+    "activeSubscription": "Aktif Abonelik",
+    "renewsOn": "{{date}} tarihinde yenilenir",
+    "noSubscription": "Abonelik Yok",
+    "gmailConnected": "Gmail: {{address}}",
+    "platformEmail": "Platform E-postası",
+    "rentWorker": "Yapay Zeka Çalışanı Kirala",
+    "settings": "Ayarlar",
+    "signOut": "Çıkış Yap",
+    "stats": {
+      "activeWorkers": "Aktif Çalışanlar",
+      "messagesUsed": "Kullanılan Mesajlar",
+      "msgsRemaining": "Kalan Mesajlar",
+      "activeCampaigns": "Aktif Kampanyalar"
+    },
+    "yourWorkers": "Yapay Zeka Çalışanlarınız",
+    "noWorkersTitle": "Henüz Yapay Zeka Çalışanı Yok",
+    "noWorkersDesc": "Kataloğumuza göz atın ve başlamak için ilk yapay zeka çalışanınızı kiralayın.",
+    "browseWorkers": "Yapay Zeka Çalışanlarına Göz At",
+    "active": "Aktif",
+    "usage": "Kullanım",
+    "chat": "Sohbet",
+    "availableWorkers": "Mevcut Çalışanlar",
+    "hireNow": "Şimdi Kirala",
+    "smartAlerts": "Akıllı Uyarılar",
+    "activityLog": "Ajan Aktivite Günlüğü",
+    "toast": {
+      "agentActivated": "Ajan Aktif Edildi!",
+      "agentActivatedDesc": "Yapay zeka çalışanınız kullanıma hazır.",
+      "newWorkerReady": "Yeni yapay zeka çalışanınız panelinizde kullanıma hazır.",
+      "alreadyActive": "Zaten Aktif",
+      "alreadyActiveDesc": "Bu ajan zaten aktif edilmiş.",
+      "error": "Hata",
+      "failedToActivate": "Ajan aktifleştirilemedi."
+    },
+    "connected": "Bağlandı",
+    "alertActions": {
+      "sendOutreach": "Temas Gönder",
+      "followUp": "Takip Et",
+      "createProposal": "Teklif Oluştur",
+      "checkIn": "Kontrol Et",
+      "prioritize": "Önceliklendir"
+    }
+  },
+  "guide": {
+    "badgeLoggedIn": "Tam Rehber",
+    "badgePublic": "Platform Rehberi",
+    "titleLoggedIn": "RentAI 24'ü Ustalaşın",
+    "titlePublic": "RentAI 24 Nasıl Kullanılır",
+    "subtitleLoggedIn": "Yapay zeka iş gücünüzden en iyi şekilde yararlanmak için ihtiyacınız olan her şey. Öğreticiler, ipuçları ve ileri teknikler.",
+    "subtitlePublic": "Yapay zeka personel platformunuzun tam bir tanıtımı. Yapay zeka iş gücünüzü nasıl kiralayacağınızı, sohbet edeceğinizi ve yöneteceğinizi öğrenin.",
+    "gettingStarted": {
+      "title": "Başlangıç Kontrol Listesi",
+      "subtitle": "Yapay zeka iş gücünüzü kurmak için bu adımları tamamlayın",
+      "items": {
+        "createAccount": "Hesabınızı oluşturun",
+        "browseAgents": "Mevcut yapay zeka ajanlarına göz atın",
+        "hireFirst": "İlk ajanınızı kiralayın",
+        "startChat": "Bir sohbet başlatın",
+        "connectIntegrations": "Entegrasyonlarınızı bağlayın",
+        "reviewDashboard": "Panel metriklerinizi inceleyin"
+      },
+      "go": "Git"
+    },
+    "interactiveDemo": {
+      "title": "Etkileşimli Demo",
+      "subtitle": "Platformun nasıl çalıştığını izleyin — duraklatmak için üzerine gelin, adımlar arasında gezinmek için tıklayın"
+    },
+    "agentTutorials": {
+      "title": "Ajan Eğitimleri",
+      "subtitle": "Her ajanın yeteneklerine, örnek komutlarına ve entegrasyon ipuçlarına derinlemesine bakış",
+      "capabilities": "Yetenekler",
+      "examplePrompts": "Örnek Komutlar",
+      "integrationTips": "Entegrasyon İpuçları",
+      "viewFullProfile": "Tam Profili Gör"
+    },
+    "advancedFeatures": {
+      "title": "Gelişmiş Özellikler",
+      "subtitle": "Yapay zeka iş gücünüzü maksimize etmek için uzman teknikleri",
+      "multiAgent": "Çoklu Ajan İş Akışları",
+      "multiAgentDesc": "Karmaşık görevler için birden fazla ajanı bir araya getirin. Rex müşteri adaylarını bulur, Ava destek ile takip eder ve DataBot sonuçları izler.",
+      "customPrompts": "Özel Komutlar ve Personalar",
+      "customPromptsDesc": "Özel sistem komutları, marka ses yönergeleri ve persona ayarları ile ajanlarınızın yanıtlarını ince ayarlayın.",
+      "apiWebhook": "API ve Webhook Entegrasyonu",
+      "apiWebhookDesc": "API'mizi kullanarak ajanlarınızı herhangi bir harici servise bağlayın. Webhook'lardan ajan eylemlerini tetikleyin ve karmaşık iş akışlarını otomatikleştirin.",
+      "benchmarks": "Performans Karşılaştırmaları",
+      "benchmarksDesc": "Her ajan için özel KPI'lar belirleyin. Yanıt sürelerini, çözüm oranlarını ve müşteri memnuniyeti puanlarını otomatik olarak izleyin.",
+      "templates": "Konuşma Şablonları",
+      "templatesDesc": "Yaygın senaryolar için yeniden kullanılabilir konuşma şablonları oluşturun. Ajanlar tutarlı yanıtlar için bunları başlangıç noktası olarak kullanır.",
+      "accessControls": "Erişim Kontrolleri ve Koruma Duvarları",
+      "accessControlsDesc": "Ajanların yapabileceklerine sınırlar koyun. İade veya veri erişimi gibi hassas eylemler için onay iş akışları yapılandırın."
+    },
+    "tipsTricks": {
+      "title": "İpuçları ve Püf Noktaları",
+      "subtitle": "Yapay zeka ajanlarınızdan daha iyi sonuçlar almak için profesyonel ipuçları",
+      "tips": [
+        {
+          "tip": "Komutlarınızda spesifik olun",
+          "detail": "'Bir e-posta yaz' yerine, 'Q3 teklifimiz hakkında 5 gündür yanıt vermeyen bir müşteriye profesyonel bir takip e-postası yaz' deyin."
+        },
+        {
+          "tip": "Bağlam ve geçmişi kullanın",
+          "detail": "Önceki konuşmalara veya görevlere atıfta bulunun. Ajanlarınız bağlamı hatırlar, bu yüzden 'dün tartıştığımız gibi' demek daha iyi yanıtlar almalarına yardımcı olur."
+        },
+        {
+          "tip": "Tekrarlayan görevler ayarlayın",
+          "detail": "Ajanları günlük veya haftalık rutin görevleri gerçekleştirmek üzere planlayın. Rex her Salı takip gönderebilir, DataBot her Cuma rapor oluşturabilir."
+        },
+        {
+          "tip": "Birden fazla ajanı birleştirin",
+          "detail": "Karmaşık iş akışları için ajanları birlikte kullanın. Rex müşteri adaylarını bulsun, sonra Cal toplantıları planlasın ve Ava takip desteğini üstlensin."
+        },
+        {
+          "tip": "Referans materyalleri yükleyin",
+          "detail": "Marka yönergelerinizi, ürün belgelerinizi ve SOP'larınızı ajanlarla paylaşın. Ne kadar çok bağlam varsa, çıktıları ihtiyaçlarınıza o kadar iyi uyar."
+        },
+        {
+          "tip": "İnceleyin ve geri bildirim verin",
+          "detail": "Ajan çıktılarını düzenli olarak kontrol edin ve geri bildirim sağlayın. Bu, yapay zekanın tercihlerinizi öğrenmesine ve zamanla gelişmesine yardımcı olur."
+        }
+      ]
+    },
+    "features": {
+      "title": "Platform Özellikleri",
+      "subtitle": "Yapay zeka iş gücünüzü yönetmek için ihtiyacınız olan her şey",
+      "aiChat": "Yapay Zeka Sohbet",
+      "aiChatDesc": "Ajanlarınızla doğal konuşmalar. Bağlamı anlarlar ve geçmişi hatırlarlar.",
+      "smartIntegrations": "Akıllı Entegrasyonlar",
+      "smartIntegrationsDesc": "Gmail, WhatsApp, sosyal medya, kargo sağlayıcıları ve daha fazlasını bağlayın.",
+      "fileSupport": "Dosya ve Görsel Desteği",
+      "fileSupportDesc": "Ajanlarınızın işlemesi için doğrudan sohbette belge, görsel ve veri yükleyin.",
+      "multilingual": "Çok Dilli",
+      "multilingualDesc": "Ajanlar birden fazla dil konuşur ve küresel müşterileri zahmetsizce yönetir.",
+      "mobileReady": "Mobil Hazır",
+      "mobileReadyDesc": "Her cihazdan, her yerden hızlı erişim için PWA olarak yükleyin.",
+      "security": "Kurumsal Güvenlik",
+      "securityDesc": "AES-256 şifreleme, yapay zeka koruma duvarları ve tam veri sahipliği."
+    },
+    "meetAgents": "Yapay Zeka Ajanlarınızla Tanışın",
+    "meetAgentsDesc": "Uzman çalışanlar kataloğumuza göz atın. Her biri önceden eğitilmiş ve dağıtıma hazır.",
+    "ctaTitle": "Keşfetmeye Hazır mısınız?",
+    "ctaSubtitle": "Bilginizi işe koyun. Şimdi yapay zeka ajanlarınızla sohbet etmeye başlayın.",
+    "startChatting": "Sohbet Başlat",
+    "goToDashboard": "Panele Git",
+    "viewWorkers": "Tüm Çalışanları Gör",
+    "getStartedFree": "Ücretsiz Başla"
+  },
+  "demoPage": {
+    "yourWorkers": "Çalışanlarınız",
+    "aiWorkers": "Yapay Zeka Çalışanları",
+    "backToDashboard": "Panele Dön",
+    "demoMode": "Demo Modu",
+    "smartRouter": "Akıllı Yönlendirici",
+    "chats": "Sohbetler",
+    "new": "Yeni",
+    "newChat": "Yeni Sohbet",
+    "tokenUsage": "Token Kullanımı",
+    "social": "Sosyal",
+    "connectedAccounts": "Bağlı Hesaplar",
+    "noSocialAccounts": "Henüz bağlı sosyal hesap yok",
+    "connectAccount": "Hesap Bağla",
+    "selectPlatform": "Platform seçin:",
+    "cancel": "İptal",
+    "connect": "Bağla",
+    "addAccount": "Hesap Ekle",
+    "imageCredits": "Görsel Kredileri",
+    "creditsRemaining": "kredi kaldı",
+    "creditDescription": "1 kredi = 1 yapay zeka görsel oluşturma veya stok fotoğraf araması",
+    "selectPackage": "Bir paket seçin:",
+    "credit": "Kredi",
+    "credits": "Kredi",
+    "backToPackages": "Paketlere dön",
+    "cardNumber": "Kart Numarası",
+    "expiry": "Son Kullanma",
+    "cvc": "CVC",
+    "purchaseCredits": "Kredi Satın Al",
+    "testCards": "Test kartları: 4242 4242 4242 4242",
+    "tasks": "Görevler",
+    "cargo": "Kargo",
+    "shippingProviders": "Kargo Sağlayıcıları",
+    "noShippingProviders": "Bağlı kargo sağlayıcısı yok",
+    "quickConnect": "Hızlı Bağlantı",
+    "saving": "Kaydediliyor...",
+    "addProvider": "Sağlayıcı Ekle",
+    "fullSettings": "Tüm Ayarlar",
+    "reportIssue": "Sorun Bildir",
+    "reportIssueDesc": "Hata, arıza veya teknik sorun",
+    "feedbackSuggestions": "Geri Bildirim & Öneriler",
+    "myTickets": "Taleplerim",
+    "open": "açık",
+    "settingsConnections": "Ayarlar & Bağlantılar",
+    "back": "Geri",
+    "subject": "Konu",
+    "subjectPlaceholder": "Sorunun kısa açıklaması",
+    "details": "Ayrıntılar",
+    "detailsPlaceholder": "Sorunu, hata mesajını veya önerinizi açıklayın...",
+    "sendToAdmin": "Yöneticiye Gönder",
+    "inProgress": "Devam Ediyor",
+    "adminReply": "Yönetici Yanıtı",
+    "newTicket": "Yeni Talep",
+    "agent": "Ajan",
+    "workerReady": "Yapay zeka çalışanınız hazır. Aşağıdan sohbet başlatın.",
+    "previewMode": "Önizleme modu — neler yapabileceğimi sorun!",
+    "promptCapabilities": "Yetenekler",
+    "promptCapabilitiesText": "Neler yapabilirsin?",
+    "promptGetStarted": "Başlayalım",
+    "promptGetStartedText": "Başlamama yardım et",
+    "promptQuickTask": "Hızlı görev",
+    "promptQuickTaskText": "Senin için hızlı bir görevim var",
+    "tokenLimitReached": "Token Limiti Aşıldı",
+    "admin": "Yönetici",
+    "you": "Sen",
+    "somethingWrong": "Bir şeyler ters gitti. Lütfen tekrar deneyin.",
+    "supportedFormats": "Görsel, PDF, Excel, DOCX, CSV, TXT",
+    "getStarted": "Başlayın",
+    "createTask": "Yeni Görev Oluştur",
+    "taskTitle": "Görev başlığı",
+    "priorityLow": "Düşük",
+    "priorityMedium": "Orta",
+    "priorityHigh": "Yüksek",
+    "priorityUrgent": "Acil",
+    "saveTask": "Görevi Kaydet",
+    "toast": {
+      "connected": "Bağlandı",
+      "accountAdded": "{{platform}} hesabı başarıyla eklendi",
+      "error": "Hata",
+      "failedAddAccount": "Hesap eklenemedi",
+      "disconnected": "Bağlantı Kesildi",
+      "accountRemoved": "Hesap kaldırıldı",
+      "failedRemoveAccount": "Hesap kaldırılamadı",
+      "taskCreated": "Görev Oluşturuldu",
+      "taskCreatedDesc": "\"{{title}}\" başarıyla eklendi",
+      "taskError": "Hata",
+      "taskErrorDesc": "Görev oluşturulamadı",
+      "ticketCreated": "Talep Oluşturuldu",
+      "ticketCreatedDesc": "Destek talebiniz yöneticiye gönderildi",
+      "failedSubmitTicket": "Talep gönderilemedi",
+      "fileTooLarge": "Dosya çok büyük",
+      "fileTooLargeDesc": "Maksimum dosya boyutu 10MB",
+      "unsupportedFile": "Desteklenmeyen dosya",
+      "unsupportedFileDesc": "Desteklenen türler: JPG, PNG, GIF, WebP, SVG, PDF, DOCX, XLSX, XLS, CSV, TXT, MD, Numbers, Pages",
+      "uploadFailed": "Yükleme başarısız",
+      "uploadFailedDesc": "Dosya yüklenirken bir hata oluştu",
+      "providerRemoved": "Sağlayıcı kaldırıldı",
+      "providerRemovedDesc": "{{name}} bağlantısı kesildi.",
+      "failedRemoveProvider": "Sağlayıcı kaldırılamadı.",
+      "providerConnected": "Sağlayıcı bağlandı",
+      "providerConnectedDesc": "{{provider}} eklendi.",
+      "providerConnectFailed": "Sağlayıcı bağlanamadı."
+    },
+    "systemResolved": "Yetkilimiz konuşmayı tamamladı. Ajan tekrar hizmetinizde.",
+    "systemAdminJoined": "Yetkilimiz chat'e katıldı",
+    "cargoLabels": {
+      "apiKey": "API Anahtarı",
+      "customerCode": "Müşteri Kodu",
+      "username": "Kullanıcı Adı",
+      "password": "Şifre",
+      "accountNumber": "Hesap Numarası",
+      "siteId": "Site ID"
+    },
+    "helpAndSupport": "Yardım & Destek",
+    "feedbackSuggestionsDesc": "Özellik isteği veya genel geri bildirim",
+    "viewSupportRequests": "Destek taleplerinizi görüntüleyin",
+    "dropFilesHere": "Dosyayı buraya bırakın",
+    "unlockCapabilities": "Tüm özelliklerin kilidini açmak ister misiniz? Hesap oluşturun ve yapay zeka çalışanınızı kiralayın!",
+    "createNewTask": "Yeni Görev Oluştur",
+    "taskDescOptional": "Açıklama (opsiyonel)",
+    "task": "Görev",
+    "attachFile": "Dosya ekle",
+    "askPlaceholder": "{{agent}}'a neler yapabileceğini sor...",
+    "messagePlaceholder": "{{agent}}'a mesaj yaz...",
+    "noTicketsYet": "Henüz talep yok",
+    "sendToAdminInfo": "Bu, mevcut ajanınız ({{agent}}) bilgileriyle birlikte yöneticiye gönderilecektir.",
+    "resolved": "Çözüldü",
+    "demoPreviewText": "Bu bir demo önizlemesidir.",
+    "createAnAccount": "Hesap oluşturun",
+    "andRentAgent": "ve tüm özelliklerin kilidini açmak için bu ajanı kiralayın!",
+    "helpCategories": {
+      "bug": "Hata",
+      "error": "Arıza",
+      "connection": "Bağlantı",
+      "suggestion": "Öneri",
+      "other": "Diğer"
+    }
+  },
+  "tasksPanel": {
+    "projectsTasks": "Projeler & Görevler",
+    "taskTitle": "Görev başlığı",
+    "descriptionOptional": "Açıklama (opsiyonel)",
+    "projectOptional": "Proje adı (opsiyonel)",
+    "priority": "Öncelik:",
+    "saving": "Kaydediliyor...",
+    "addTask": "Görev Ekle",
+    "cancel": "İptal",
+    "all": "Tümü",
+    "toDo": "Yapılacak",
+    "inProgress": "Devam Ediyor",
+    "done": "Tamamlandı",
+    "loading": "Görevler yükleniyor...",
+    "noTasks": "Henüz görev yok",
+    "createFirst": "İlk görevinizi oluşturun",
+    "noTasksInGroup": "Görev yok",
+    "clearDate": "Tarihi temizle",
+    "markAs": "{{status}} olarak işaretle"
+  },
+  "chatMessage": {
+    "imageLoadError": "Görsel yüklenemedi",
+    "download": "İndir",
+    "fileType": "{{ext}} dosyası"
+  }
+}

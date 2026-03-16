@@ -1,1 +1,853 @@
-{}
+{
+  "notFound": {
+    "title": "404",
+    "heading": "Page Not Found",
+    "description": "The page you're looking for doesn't exist or has been moved.",
+    "goHome": "Go Home"
+  },
+  "login": {
+    "title": "Sign In",
+    "subtitle": "Access your AI workforce dashboard",
+    "email": "Email",
+    "password": "Password",
+    "emailPlaceholder": "you@company.com",
+    "passwordPlaceholder": "Enter your password",
+    "submit": "Sign In",
+    "or": "or",
+    "google": "Sign in with Google",
+    "noAccount": "Don't have an account?",
+    "createOne": "Create one",
+    "welcomeBack": "Welcome back!",
+    "loginSuccess": "You've been logged in successfully.",
+    "loginFailed": "Login failed"
+  },
+  "register": {
+    "title": "Create Account",
+    "subtitle": "Start building your AI workforce today",
+    "fullName": "Full Name",
+    "username": "Username",
+    "email": "Email",
+    "password": "Password",
+    "company": "Company (optional)",
+    "fullNamePlaceholder": "John Doe",
+    "usernamePlaceholder": "johndoe",
+    "emailPlaceholder": "you@company.com",
+    "passwordPlaceholder": "Min. 6 characters",
+    "companyPlaceholder": "Acme Inc.",
+    "submit": "Create Account",
+    "or": "or",
+    "google": "Sign in with Google",
+    "hasAccount": "Already have an account?",
+    "signIn": "Sign in",
+    "welcome": "Welcome to RentAI 24!",
+    "registerSuccess": "Your account has been created.",
+    "registerFailed": "Registration failed"
+  },
+  "sectionCta": {
+    "heading": "Ready to Hire Your First AI Worker?",
+    "subtitle": "Start your 14-day free trial. No credit card required.",
+    "features": "No Setup Fee · Cancel Anytime · 14-Day Free Trial",
+    "getStarted": "Get Started Free",
+    "bookDemo": "Book a Demo"
+  },
+  "signupFlow": {
+    "title": "Ready to Hire {{agentName}}?",
+    "description": "Sign up to hire this AI worker. After registration, choose a plan and your agent will be activated instantly in your dashboard.",
+    "step1Title": "1. Create your account",
+    "step1Desc": "Quick signup — takes less than a minute.",
+    "step2Title": "2. Choose a plan & checkout",
+    "step2Desc": "Pick a plan that fits your needs. Cancel anytime.",
+    "step3Title": "3. Agent activates instantly",
+    "step3Desc": "Your AI worker goes live in your dashboard, ready to chat and work.",
+    "signUp": "Sign Up Now",
+    "signIn": "Sign In"
+  },
+  "home": {
+    "hero": {
+      "agentsStandingBy": "9 agents standing by",
+      "titleLine1": "Meet your new",
+      "titleLine2": "AI workforce.",
+      "subtitle": "Hire pre-trained AI agents that handle customer support, sales, scheduling, bookkeeping, and more — 24/7, starting at $49/mo.",
+      "startFree": "Start Free",
+      "viewRoster": "View Roster"
+    },
+    "trustedBy": "Trusted by teams at",
+    "showcase": {
+      "badge": "Platform Showcase",
+      "title": "Experience the Future of Work",
+      "subtitle": "See how AI agents transform your business operations in real-time"
+    },
+    "showcaseScenes": {
+      "office": {
+        "title": "Your AI-Powered Office",
+        "subtitle": "A team that never sleeps"
+      },
+      "agents": {
+        "title": "Meet Your Agents",
+        "subtitle": "Specialized for every role"
+      },
+      "tasks": {
+        "title": "Watch Them Work",
+        "subtitle": "Tasks completed in real-time"
+      },
+      "results": {
+        "title": "See the Results",
+        "subtitle": "Measurable impact from day one"
+      },
+      "scale": {
+        "title": "Scale Without Limits",
+        "subtitle": "From startup to enterprise"
+      }
+    },
+    "officeLabels": {
+      "workspace": "Workspace",
+      "liveChat": "Live Chat",
+      "emails": "Emails",
+      "analytics": "Analytics",
+      "calendar": "Calendar",
+      "security": "Security"
+    },
+    "taskLabels": {
+      "task1": "Sending 50 cold outreach emails",
+      "task2": "Resolving 12 support tickets",
+      "task3": "Scheduling 8 client meetings",
+      "task4": "Generating weekly analytics",
+      "task5": "Processing 15 invoices",
+      "completed": "Completed",
+      "working": "{{agent}} working..."
+    },
+    "resultLabels": {
+      "costSavings": "Cost Savings",
+      "timeSaved": "Time Saved",
+      "satisfaction": "Satisfaction",
+      "tasksDone": "Tasks Done"
+    },
+    "scaleLabels": {
+      "teamGrowing": "Team size growing...",
+      "scaleInstantly": "Scale to any size, instantly",
+      "week1": "Week 1",
+      "month1": "Month 1",
+      "month3": "Month 3",
+      "month6": "Month 6",
+      "year1": "Year 1"
+    },
+    "howItWorks": {
+      "title": "How It Works",
+      "subtitle": "Three simple steps to your first AI team member",
+      "step1Title": "Tell Us What You Need",
+      "step1Desc": "Describe the role. Customer support? Sales? Accounting? We'll match you with the perfect AI worker.",
+      "step2Title": "Pick Your AI Worker",
+      "step2Desc": "Browse our catalog of pre-trained agents, each specialized for specific roles and industries.",
+      "step3Title": "Deploy in Minutes",
+      "step3Desc": "We handle integration with your existing tools. You just start working. It's that simple."
+    },
+    "demo": {
+      "title": "See It in Action",
+      "subtitle": "Watch how businesses use RentAI 24 to automate their operations"
+    },
+    "catalog": {
+      "title": "Meet Your Next Team Members",
+      "subtitle": "Pre-trained, battle-tested, and ready to deploy today",
+      "online": "Online",
+      "viewProfile": "View Profile",
+      "viewAll": "View All AI Workers"
+    },
+    "stats": {
+      "aiWorkers": "AI Workers Available",
+      "businesses": "Businesses Served",
+      "uptime": "24/7 Uptime, Zero Downtime",
+      "savings": "Average Cost Savings"
+    },
+    "comparison": {
+      "title": "The Old Way vs. The RentAI Way",
+      "traditional": "Traditional Hiring",
+      "rentai": "RentAI 24",
+      "old1": "Weeks to hire",
+      "new1": "Deploy in minutes",
+      "old2": "Sick days, vacations, turnover",
+      "new2": "24/7, never misses a day",
+      "old3": "Training costs $$$",
+      "new3": "Pre-trained & ready",
+      "old4": "One language",
+      "new4": "Multilingual",
+      "old5": "Hard to scale",
+      "new5": "Instant scaling",
+      "old6": "$3,000-5,000+/month",
+      "new6": "From $49/month"
+    },
+    "industries": {
+      "title": "AI Workers for Every Industry",
+      "subtitle": "Specialized AI agents trained for your specific sector"
+    },
+    "testimonials": {
+      "title": "What Our Clients Say"
+    },
+    "faq": {
+      "title": "Frequently Asked Questions"
+    },
+    "loggedIn": {
+      "teamOnline": "Your AI team is online",
+      "welcomeBack": "Welcome back, {{name}}",
+      "subtitle": "Your AI workforce is ready. What would you like to do today?",
+      "quickActions": "Quick Actions",
+      "dashboard": "Dashboard",
+      "dashboardDesc": "View your overview",
+      "chat": "Chat",
+      "chatDesc": "Talk to your agents",
+      "aiWorkers": "AI Workers",
+      "aiWorkersDesc": "Browse & hire agents",
+      "settings": "Settings",
+      "settingsDesc": "Configure your account",
+      "guide": "Guide",
+      "guideDesc": "Learn the platform",
+      "yourTeam": "Your AI Team",
+      "viewAll": "View All",
+      "active": "Active",
+      "recentActivity": "Recent Activity",
+      "activity1": "Rex sent 50 outreach emails to your leads list",
+      "activity2": "Ava resolved 12 support tickets with 98% satisfaction",
+      "activity3": "DataBot generated your weekly analytics report",
+      "activity4": "Cal scheduled 8 client meetings for this week",
+      "activity5": "Maya posted 5 social media updates across platforms",
+      "time2h": "2 hours ago",
+      "time4h": "4 hours ago",
+      "time6h": "6 hours ago",
+      "timeYesterday": "Yesterday",
+      "exploreMore": "Explore More",
+      "exploreSubtitle": "Get the most out of your AI workforce",
+      "platformGuide": "Platform Guide",
+      "howItWorks": "How It Works"
+    }
+  },
+  "about": {
+    "title": "We're Building the Future of Work",
+    "subtitle": "RentAI 24 is the world's first AI staffing agency. We believe every business deserves access to intelligent, tireless, and affordable team members.",
+    "storyTitle": "Our Story",
+    "storyP1": "RentAI 24 was born from a simple observation: businesses of all sizes struggle with hiring, training, and retaining talent for roles that AI can handle better, faster, and more affordably.",
+    "storyP2": "Just like traditional staffing agencies place qualified human workers at companies, we place pre-trained AI agents. Our mission is to make AI workforce accessible to every business — from solo founders running a side project to enterprises managing thousands of customers.",
+    "missionTitle": "Our Mission",
+    "missionDesc": "To democratize access to AI workforce, enabling businesses of all sizes to operate more efficiently, serve customers better, and scale without traditional hiring constraints.",
+    "visionTitle": "Our Vision",
+    "visionDesc": "A world where every business has an AI-augmented team, where humans and AI work together to achieve more than either could alone.",
+    "valuesTitle": "Our Values",
+    "values": {
+      "accessibleAI": "Accessible AI",
+      "accessibleAIDesc": "Enterprise-grade AI at startup-friendly prices. We believe every business, from solopreneurs to enterprises, deserves access to intelligent automation.",
+      "humanAI": "Human + AI",
+      "humanAIDesc": "We augment teams, not replace them. Our AI workers handle the repetitive work so your human team can focus on what they do best.",
+      "alwaysImproving": "Always Improving",
+      "alwaysImprovingDesc": "Our agents learn and get better over time. Continuous optimization ensures your AI workforce delivers increasing value every month.",
+      "trustTransparency": "Trust & Transparency",
+      "trustTransparencyDesc": "Your data stays yours. Always. We're SOC 2 compliant, GDPR compliant, and fully transparent about how our AI works."
+    },
+    "stats": {
+      "founded": "Founded",
+      "foundedVal": "2023",
+      "teamMembers": "Team Members",
+      "teamMembersVal": "45+",
+      "countries": "Countries Served",
+      "countriesVal": "30+",
+      "deployed": "AI Workers Deployed",
+      "deployedVal": "2,500+"
+    },
+    "founder": {
+      "name": "Daniel Reeves",
+      "role": "Founder & CEO",
+      "bio": "A serial entrepreneur with deep roots in AI infrastructure, Daniel founded RentAI 24 after seeing firsthand how small and mid-size businesses struggled to access the same AI capabilities as large enterprises. His mission: democratize the AI workforce and make intelligent automation available to every team, everywhere."
+    }
+  },
+  "contact": {
+    "title": "Get in Touch",
+    "subtitle": "Ready to hire your first AI worker? Have questions? We'd love to hear from you.",
+    "form": {
+      "fullName": "Full Name",
+      "businessEmail": "Business Email",
+      "companyName": "Company Name",
+      "companySize": "Company Size",
+      "selectSize": "Select size",
+      "size1_10": "1-10 employees",
+      "size11_50": "11-50 employees",
+      "size51_200": "51-200 employees",
+      "size200plus": "200+ employees",
+      "aiWorkerInterest": "Which AI worker are you interested in?",
+      "selectWorker": "Select a worker (optional)",
+      "notSure": "Not sure yet",
+      "message": "Message",
+      "messagePlaceholder": "Tell us about your needs...",
+      "sending": "Sending...",
+      "sendMessage": "Send Message",
+      "namePlaceholder": "John Smith",
+      "emailPlaceholder": "john@company.com",
+      "companyPlaceholder": "Acme Inc."
+    },
+    "success": {
+      "title": "Message Sent Successfully!",
+      "description": "Our team will get back to you within 2 hours. Thank you for your interest in RentAI 24.",
+      "newMessage": "Send Another Message"
+    },
+    "toast": {
+      "sent": "Message sent!",
+      "sentDesc": "We'll get back to you within 2 hours.",
+      "error": "Error",
+      "errorDesc": "Failed to send message. Please try again."
+    },
+    "info": {
+      "title": "Contact Info",
+      "email": "Email",
+      "emailAddress": "hello@rentai24.com",
+      "scheduleCall": "Schedule a Call",
+      "scheduleCallDesc": "Book a 15-min consultation",
+      "responseTime": "Response Time",
+      "responseTimeVal": "Within 2 hours"
+    },
+    "quickLinks": {
+      "title": "Quick Links",
+      "liveDemo": "Try Live Demo",
+      "viewPricing": "View Pricing",
+      "howItWorks": "How It Works"
+    }
+  },
+  "howItWorks": {
+    "title": "How It Works",
+    "subtitle": "From signup to deployment in as little as 24 hours",
+    "stepLabel": "Step {{num}}",
+    "steps": {
+      "step1": {
+        "title": "Free Consultation",
+        "desc": "Book a 15-min call. We analyze your workflow and identify which roles AI can fill.",
+        "detail": "Our team walks through your current processes, tools, and pain points to determine where AI workers can deliver the most impact."
+      },
+      "step2": {
+        "title": "AI Worker Matching",
+        "desc": "We recommend the best AI agents based on your industry, tools, and goals.",
+        "detail": "From our catalog of 150+ specialized agents, we match you with workers that fit your exact needs, tech stack, and business objectives."
+      },
+      "step3": {
+        "title": "Customization & Fine-Tuning",
+        "desc": "We tailor the agent to your brand voice, processes, and specific requirements.",
+        "detail": "Your AI worker learns your products, policies, and communication style. We fine-tune responses to match your brand perfectly."
+      },
+      "step4": {
+        "title": "Integration",
+        "desc": "We connect to your existing stack: CRM, helpdesk, email, messaging, calendars, and more.",
+        "detail": "Our team handles the entire technical integration. We support 50+ tools including HubSpot, Zendesk, Slack, WhatsApp, and more."
+      },
+      "step5": {
+        "title": "Testing & QA",
+        "desc": "48-hour test period where we monitor performance and make adjustments.",
+        "detail": "We run comprehensive tests with real scenarios, monitor response quality, and fine-tune performance before going live."
+      },
+      "step6": {
+        "title": "Go Live",
+        "desc": "Your AI worker starts handling real tasks. You monitor via your dashboard.",
+        "detail": "Once testing is complete, your AI worker goes live. You get full visibility into performance metrics and conversation logs."
+      },
+      "step7": {
+        "title": "Continuous Improvement",
+        "desc": "We track performance, gather feedback, and optimize regularly.",
+        "detail": "Our team monitors your AI worker's performance weekly, implements improvements, and ensures it gets better over time."
+      }
+    },
+    "avgTimeLabel": "Average time from signup to deployment:",
+    "avgTimeValue": "24 hours"
+  },
+  "pricing": {
+    "title": "Simple, Transparent Pricing",
+    "subtitle": "Scale your AI workforce with flexible plans. Cancel anytime.",
+    "guarantee": "Cancel Anytime · Secure Checkout · Money-back Guarantee",
+    "plans": {
+      "starter": {
+        "name": "Starter",
+        "per": "/mo per worker",
+        "desc": "Perfect for small businesses getting started with AI",
+        "features": [
+          "1 AI Worker",
+          "Basic integrations (up to 3)",
+          "100 messages/month",
+          "Email support",
+          "Community access"
+        ]
+      },
+      "professional": {
+        "name": "Professional",
+        "per": "/mo per worker",
+        "desc": "Best value for growing teams scaling with AI",
+        "features": [
+          "Up to 5 AI Workers",
+          "Advanced integrations (unlimited)",
+          "500 messages/month per worker",
+          "Priority support (chat + email)",
+          "Custom fine-tuning",
+          "API access",
+          "Multilingual support"
+        ]
+      },
+      "enterprise": {
+        "name": "Enterprise",
+        "desc": "For large-scale operations with custom requirements",
+        "features": [
+          "Unlimited AI Workers",
+          "All integrations + custom",
+          "5,000 messages/month per worker",
+          "24/7 dedicated support",
+          "Custom AI training on your data",
+          "SLA guarantee",
+          "White-label option",
+          "Dedicated account manager"
+        ]
+      }
+    },
+    "mostPopular": "Most Popular",
+    "contactSales": "Contact Sales",
+    "subscribeNow": "Subscribe Now",
+    "getStarted": "Get Started",
+    "addonsTitle": "Add-ons",
+    "addons": {
+      "languagePack": {
+        "name": "Extra Language Pack",
+        "price": "$19/month",
+        "desc": "Add additional language support to any worker"
+      },
+      "customIntegration": {
+        "name": "Custom Integration",
+        "price": "$99 one-time",
+        "desc": "Connect to any tool or platform"
+      },
+      "priorityOnboarding": {
+        "name": "Priority Onboarding",
+        "price": "$199 one-time",
+        "desc": "Dedicated onboarding specialist"
+      },
+      "accountManager": {
+        "name": "Dedicated Account Manager",
+        "price": "$299/month",
+        "desc": "Your personal AI workforce advisor"
+      }
+    },
+    "checkout": {
+      "title": "Checkout",
+      "planInfo": "{{name}} Plan — {{price}}{{per}}",
+      "cardholderName": "Cardholder Name",
+      "cardNumber": "Card Number",
+      "expiry": "Expiry",
+      "cvc": "CVC",
+      "processing": "Processing...",
+      "pay": "Pay {{price}}/mo",
+      "securePayment": "Secure payment — Test mode active",
+      "testCard": "Test card:",
+      "testCardHint": "Any future expiry · Any 3-digit CVC",
+      "paymentSuccess": "Payment Successful!",
+      "paymentSuccessDesc": "Your {{plan}} plan is now active.",
+      "paymentFailed": "Payment Failed",
+      "invalidCard": "Invalid Card",
+      "invalidCardDesc": "Please enter a valid card number.",
+      "invalidExpiry": "Invalid Expiry",
+      "invalidExpiryDesc": "Please enter a valid expiry date (MM/YY).",
+      "invalidCvc": "Invalid CVC",
+      "invalidCvcDesc": "Please enter a valid CVC."
+    }
+  },
+  "workers": {
+    "titleTeam": "Your AI Team",
+    "titleBrowse": "Browse Our AI Workforce",
+    "subtitleTeam": "You have {{count}} active agent(s). Manage your team or discover new talent.",
+    "subtitleBrowse": "Every agent is pre-trained, battle-tested, and ready to deploy.",
+    "searchPlaceholder": "Search by name or skill...",
+    "categoryPlaceholder": "Category",
+    "pricePlaceholder": "Price",
+    "allPrices": "All Prices",
+    "priceLow": "$99 and under",
+    "priceMid": "$100 - $139",
+    "priceHigh": "$140+",
+    "activeAgents": "Active Agents",
+    "activeAgentsDesc": "Your currently hired AI team members",
+    "discoverMore": "Discover More Agents",
+    "active": "Active",
+    "available247": "24/7",
+    "viewProfile": "View Profile",
+    "chat": "Chat",
+    "plan": "{{plan}} Plan",
+    "perMonth": "/mo",
+    "hireNow": "Hire Now",
+    "processing": "Processing",
+    "noResults": "No results found",
+    "noResultsDesc": "Try different filters or search terms.",
+    "planDialog": {
+      "title": "Choose a Plan for {{name}}",
+      "description": "Select the plan that fits your needs. You can upgrade or change anytime.",
+      "starter": "Starter",
+      "starterPrice": "$49",
+      "starterMsgs": "100 messages/mo",
+      "professional": "Professional",
+      "professionalPrice": "$39",
+      "professionalMsgs": "500 messages/mo",
+      "enterprise": "Enterprise",
+      "enterprisePrice": "Custom",
+      "enterpriseMsgs": "5,000 messages/mo",
+      "basicSupport": "Basic support",
+      "standardResponse": "Standard response time",
+      "prioritySupport": "Priority support",
+      "fasterResponses": "Faster responses",
+      "allToolsUnlocked": "All tools unlocked",
+      "dedicatedSupport": "Dedicated support",
+      "customIntegrations": "Custom integrations",
+      "slaGuarantee": "SLA guarantee",
+      "mostPopular": "Most Popular",
+      "contactEnterprise": "Contact us for enterprise pricing",
+      "confirmHire": "Confirm & Hire",
+      "cancel": "Cancel"
+    },
+    "toast": {
+      "agentHired": "Agent Hired!",
+      "agentHiredDesc": "{{name}} is now active on the {{plan}} plan.",
+      "alreadyActive": "Already Active",
+      "alreadyActiveDesc": "You already have this agent active.",
+      "error": "Error",
+      "failedToHire": "Failed to hire agent."
+    },
+    "thisAiWorker": "this AI worker"
+  },
+  "workerProfile": {
+    "notFound": {
+      "title": "Worker Not Found",
+      "description": "This AI worker profile doesn't exist.",
+      "browseAll": "Browse All Workers"
+    },
+    "online247": "Online 24/7",
+    "hireNow": "Hire Now",
+    "tryDemo": "Try Demo",
+    "skillsTitle": "Skills & Capabilities",
+    "integrationsTitle": "Integrations",
+    "languagesTitle": "Languages",
+    "pricingTitle": "Pricing",
+    "perMonth": "/month",
+    "pricingDesc": "Includes all features, integrations, and 24/7 availability. 14-day free trial, no credit card required.",
+    "useCasesTitle": "Use Cases",
+    "relatedWorkers": "Related Workers",
+    "planDialog": {
+      "title": "Choose a Plan for {{name}}",
+      "description": "Select the plan that fits your needs. You can upgrade or change anytime.",
+      "confirmHire": "Confirm & Hire",
+      "cancel": "Cancel"
+    },
+    "toast": {
+      "workerHired": "Worker Hired!",
+      "workerHiredDesc": "{{name}} is now active on the {{plan}} plan.",
+      "error": "Error",
+      "somethingWrong": "Something went wrong."
+    }
+  },
+  "dashboard": {
+    "welcome": "Welcome, {{name}}",
+    "manageSubtitle": "Manage your AI workforce from here",
+    "planLabel": "{{plan}} Plan",
+    "activeSubscription": "Active Subscription",
+    "renewsOn": "Renews {{date}}",
+    "noSubscription": "No Subscription",
+    "gmailConnected": "Gmail: {{address}}",
+    "platformEmail": "Platform Email",
+    "rentWorker": "Rent AI Worker",
+    "settings": "Settings",
+    "signOut": "Sign Out",
+    "stats": {
+      "activeWorkers": "Active Workers",
+      "messagesUsed": "Messages Used",
+      "msgsRemaining": "Msgs Remaining",
+      "activeCampaigns": "Active Campaigns"
+    },
+    "yourWorkers": "Your AI Workers",
+    "noWorkersTitle": "No AI Workers Yet",
+    "noWorkersDesc": "Browse our catalog and rent your first AI worker to get started.",
+    "browseWorkers": "Browse AI Workers",
+    "active": "Active",
+    "usage": "Usage",
+    "chat": "Chat",
+    "availableWorkers": "Available Workers",
+    "hireNow": "Hire Now",
+    "smartAlerts": "Smart Alerts",
+    "activityLog": "Agent Activity Log",
+    "toast": {
+      "agentActivated": "Agent Activated!",
+      "agentActivatedDesc": "Your AI worker is now ready to use.",
+      "newWorkerReady": "Your new AI worker is ready to use in your dashboard.",
+      "alreadyActive": "Already Active",
+      "alreadyActiveDesc": "This agent is already activated.",
+      "error": "Error",
+      "failedToActivate": "Failed to activate agent."
+    },
+    "connected": "Connected",
+    "alertActions": {
+      "sendOutreach": "Send Outreach",
+      "followUp": "Follow Up",
+      "createProposal": "Create Proposal",
+      "checkIn": "Check In",
+      "prioritize": "Prioritize"
+    }
+  },
+  "guide": {
+    "badgeLoggedIn": "Complete Guide",
+    "badgePublic": "Platform Guide",
+    "titleLoggedIn": "Master RentAI 24",
+    "titlePublic": "How to Use RentAI 24",
+    "subtitleLoggedIn": "Everything you need to get the most out of your AI workforce. Tutorials, tips, and advanced techniques.",
+    "subtitlePublic": "A complete walkthrough of your AI staffing platform. Learn how to hire, chat with, and manage your AI workforce.",
+    "gettingStarted": {
+      "title": "Getting Started Checklist",
+      "subtitle": "Complete these steps to set up your AI workforce",
+      "items": {
+        "createAccount": "Create your account",
+        "browseAgents": "Browse available AI agents",
+        "hireFirst": "Hire your first agent",
+        "startChat": "Start a chat conversation",
+        "connectIntegrations": "Connect your integrations",
+        "reviewDashboard": "Review your dashboard metrics"
+      },
+      "go": "Go"
+    },
+    "interactiveDemo": {
+      "title": "Interactive Demo",
+      "subtitle": "Watch how the platform works — hover to pause, click steps to navigate"
+    },
+    "agentTutorials": {
+      "title": "Agent Tutorials",
+      "subtitle": "Deep dive into each agent's capabilities, example prompts, and integration tips",
+      "capabilities": "Capabilities",
+      "examplePrompts": "Example Prompts",
+      "integrationTips": "Integration Tips",
+      "viewFullProfile": "View Full Profile"
+    },
+    "advancedFeatures": {
+      "title": "Advanced Features",
+      "subtitle": "Power-user techniques to maximize your AI workforce",
+      "multiAgent": "Multi-Agent Workflows",
+      "multiAgentDesc": "Chain multiple agents together for complex tasks. Rex finds leads, Ava follows up with support, and DataBot tracks the results.",
+      "customPrompts": "Custom Prompts & Personas",
+      "customPromptsDesc": "Fine-tune your agents' responses with custom system prompts, brand voice guidelines, and persona settings.",
+      "apiWebhook": "API & Webhook Integration",
+      "apiWebhookDesc": "Connect your agents to any external service using our API. Trigger agent actions from webhooks and automate complex workflows.",
+      "benchmarks": "Performance Benchmarks",
+      "benchmarksDesc": "Set custom KPIs for each agent. Track response times, resolution rates, and customer satisfaction scores automatically.",
+      "templates": "Conversation Templates",
+      "templatesDesc": "Create reusable conversation templates for common scenarios. Agents use them as starting points for consistent responses.",
+      "accessControls": "Access Controls & Guardrails",
+      "accessControlsDesc": "Set boundaries on what agents can do. Configure approval workflows for sensitive actions like refunds or data access."
+    },
+    "tipsTricks": {
+      "title": "Tips & Tricks",
+      "subtitle": "Pro tips to get better results from your AI agents",
+      "tips": [
+        {
+          "tip": "Be specific with your prompts",
+          "detail": "Instead of 'write an email', say 'write a professional follow-up email to a client who hasn't responded in 5 days about our Q3 proposal'."
+        },
+        {
+          "tip": "Use context and history",
+          "detail": "Reference previous conversations or tasks. Your agents remember context, so saying 'like we discussed yesterday' helps them provide better responses."
+        },
+        {
+          "tip": "Set up recurring tasks",
+          "detail": "Schedule agents to perform routine tasks daily or weekly. Rex can send follow-ups every Tuesday, DataBot can generate reports every Friday."
+        },
+        {
+          "tip": "Combine multiple agents",
+          "detail": "Use agents together for complex workflows. Have Rex find leads, then Cal schedule meetings, and Ava handle follow-up support."
+        },
+        {
+          "tip": "Upload reference materials",
+          "detail": "Share your brand guidelines, product docs, and SOPs with agents. The more context they have, the better their output matches your needs."
+        },
+        {
+          "tip": "Review and give feedback",
+          "detail": "Check agent outputs regularly and provide feedback. This helps the AI learn your preferences and improve over time."
+        }
+      ]
+    },
+    "features": {
+      "title": "Platform Features",
+      "subtitle": "Everything you need to manage your AI workforce",
+      "aiChat": "AI Chat",
+      "aiChatDesc": "Natural conversations with your agents. They understand context and remember history.",
+      "smartIntegrations": "Smart Integrations",
+      "smartIntegrationsDesc": "Connect Gmail, WhatsApp, social media, shipping providers, and more.",
+      "fileSupport": "File & Image Support",
+      "fileSupportDesc": "Upload documents, images, and data directly in chat for your agents to process.",
+      "multilingual": "Multilingual",
+      "multilingualDesc": "Agents speak multiple languages and handle global customers effortlessly.",
+      "mobileReady": "Mobile Ready",
+      "mobileReadyDesc": "Install as a PWA for quick access from any device, anywhere.",
+      "security": "Enterprise Security",
+      "securityDesc": "AES-256 encryption, AI guardrails, and complete data ownership."
+    },
+    "meetAgents": "Meet Your AI Agents",
+    "meetAgentsDesc": "Browse our catalog of specialized workers. Each one is pre-trained and ready to deploy.",
+    "ctaTitle": "Ready to Explore?",
+    "ctaSubtitle": "Put your knowledge to work. Start chatting with your AI agents now.",
+    "startChatting": "Start Chatting",
+    "goToDashboard": "Go to Dashboard",
+    "viewWorkers": "View All Workers",
+    "getStartedFree": "Get Started Free"
+  },
+  "demoPage": {
+    "yourWorkers": "Your Workers",
+    "aiWorkers": "AI Workers",
+    "backToDashboard": "Back to Dashboard",
+    "demoMode": "Demo Mode",
+    "smartRouter": "Smart Router",
+    "chats": "Chats",
+    "new": "New",
+    "newChat": "New Chat",
+    "tokenUsage": "Token Usage",
+    "social": "Social",
+    "connectedAccounts": "Connected Accounts",
+    "noSocialAccounts": "No social accounts connected yet",
+    "connectAccount": "Connect Account",
+    "selectPlatform": "Select platform:",
+    "cancel": "Cancel",
+    "connect": "Connect",
+    "addAccount": "Add Account",
+    "imageCredits": "Image Credits",
+    "creditsRemaining": "credits remaining",
+    "creditDescription": "1 credit = 1 AI image generation or stock photo search",
+    "selectPackage": "Select a package:",
+    "credit": "Credit",
+    "credits": "Credits",
+    "backToPackages": "Back to packages",
+    "cardNumber": "Card Number",
+    "expiry": "Expiry",
+    "cvc": "CVC",
+    "purchaseCredits": "Purchase Credits",
+    "testCards": "Test cards: 4242 4242 4242 4242",
+    "tasks": "Tasks",
+    "cargo": "Cargo",
+    "shippingProviders": "Shipping Providers",
+    "noShippingProviders": "No shipping providers connected",
+    "quickConnect": "Quick Connect",
+    "saving": "Saving...",
+    "addProvider": "Add Provider",
+    "fullSettings": "Full Settings",
+    "reportIssue": "Report Issue",
+    "reportIssueDesc": "Bug, error, or technical problem",
+    "feedbackSuggestions": "Feedback & Suggestions",
+    "myTickets": "My Tickets",
+    "open": "open",
+    "settingsConnections": "Settings & Connections",
+    "back": "Back",
+    "subject": "Subject",
+    "subjectPlaceholder": "Brief description of the issue",
+    "details": "Details",
+    "detailsPlaceholder": "Describe the issue, error message, or your suggestion...",
+    "sendToAdmin": "Send to Admin",
+    "inProgress": "In Progress",
+    "adminReply": "Admin Reply",
+    "newTicket": "New Ticket",
+    "agent": "Agent",
+    "workerReady": "Your AI worker is ready. Start a conversation below.",
+    "previewMode": "Preview mode — ask what I can do!",
+    "promptCapabilities": "Capabilities",
+    "promptCapabilitiesText": "What can you do?",
+    "promptGetStarted": "Get started",
+    "promptGetStartedText": "Help me get started",
+    "promptQuickTask": "Quick task",
+    "promptQuickTaskText": "I have a quick task for you",
+    "tokenLimitReached": "Token Limit Reached",
+    "admin": "Admin",
+    "you": "You",
+    "somethingWrong": "Something went wrong. Please try again.",
+    "supportedFormats": "Image, PDF, Excel, DOCX, CSV, TXT",
+    "getStarted": "Get Started",
+    "createTask": "Create New Task",
+    "taskTitle": "Task title",
+    "priorityLow": "Low",
+    "priorityMedium": "Medium",
+    "priorityHigh": "High",
+    "priorityUrgent": "Urgent",
+    "saveTask": "Save Task",
+    "toast": {
+      "connected": "Connected",
+      "accountAdded": "{{platform}} account added successfully",
+      "error": "Error",
+      "failedAddAccount": "Failed to add account",
+      "disconnected": "Disconnected",
+      "accountRemoved": "Account removed",
+      "failedRemoveAccount": "Failed to remove account",
+      "taskCreated": "Task Created",
+      "taskCreatedDesc": "\"{{title}}\" has been added",
+      "taskError": "Error",
+      "taskErrorDesc": "Failed to create task",
+      "ticketCreated": "Ticket Created",
+      "ticketCreatedDesc": "Your support request has been sent to admin",
+      "failedSubmitTicket": "Failed to submit ticket",
+      "fileTooLarge": "File too large",
+      "fileTooLargeDesc": "Maximum file size is 10MB",
+      "unsupportedFile": "Unsupported file",
+      "unsupportedFileDesc": "Supported types: JPG, PNG, GIF, WebP, SVG, PDF, DOCX, XLSX, XLS, CSV, TXT, MD, Numbers, Pages",
+      "uploadFailed": "Upload failed",
+      "uploadFailedDesc": "An error occurred while uploading the file",
+      "providerRemoved": "Provider removed",
+      "providerRemovedDesc": "{{name}} has been disconnected.",
+      "failedRemoveProvider": "Failed to remove provider.",
+      "providerConnected": "Provider connected",
+      "providerConnectedDesc": "{{provider}} has been added.",
+      "providerConnectFailed": "Failed to connect provider."
+    },
+    "systemResolved": "Our representative has completed the conversation. The agent is back at your service.",
+    "systemAdminJoined": "Our representative has joined the chat",
+    "cargoLabels": {
+      "apiKey": "API Key",
+      "customerCode": "Customer Code",
+      "username": "Username",
+      "password": "Password",
+      "accountNumber": "Account Number",
+      "siteId": "Site ID"
+    },
+    "helpAndSupport": "Help & Support",
+    "feedbackSuggestionsDesc": "Feature request or general feedback",
+    "viewSupportRequests": "View your support requests",
+    "dropFilesHere": "Drop file here",
+    "unlockCapabilities": "Want to unlock full capabilities? Create an account and rent your AI worker!",
+    "createNewTask": "Create New Task",
+    "taskDescOptional": "Description (optional)",
+    "task": "Task",
+    "attachFile": "Add file",
+    "askPlaceholder": "Ask {{agent}} what it can do...",
+    "messagePlaceholder": "Message {{agent}}...",
+    "noTicketsYet": "No tickets yet",
+    "sendToAdminInfo": "This will be sent to admin with your current agent ({{agent}}) info.",
+    "resolved": "Resolved",
+    "demoPreviewText": "This is a demo preview.",
+    "createAnAccount": "Create an account",
+    "andRentAgent": "and rent this agent to unlock all features!",
+    "helpCategories": {
+      "bug": "Bug",
+      "error": "Error",
+      "connection": "Connection",
+      "suggestion": "Suggestion",
+      "other": "Other"
+    }
+  },
+  "tasksPanel": {
+    "projectsTasks": "Projects & Tasks",
+    "taskTitle": "Task title",
+    "descriptionOptional": "Description (optional)",
+    "projectOptional": "Project name (optional)",
+    "priority": "Priority:",
+    "saving": "Saving...",
+    "addTask": "Add Task",
+    "cancel": "Cancel",
+    "all": "All",
+    "toDo": "To Do",
+    "inProgress": "In Progress",
+    "done": "Done",
+    "loading": "Loading tasks...",
+    "noTasks": "No tasks yet",
+    "createFirst": "Create your first task",
+    "noTasksInGroup": "No tasks",
+    "clearDate": "Clear date",
+    "markAs": "Mark as {{status}}"
+  },
+  "chatMessage": {
+    "imageLoadError": "Image could not be loaded",
+    "download": "Download",
+    "fileType": "{{ext}} file"
+  }
+}

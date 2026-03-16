@@ -35,6 +35,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import SectionCTA from "@/components/section-cta";
 import { SignupFlowDialog } from "@/components/signup-flow-dialog";
+import { useTranslation } from "react-i18next";
 
 const agentIcons: Record<string, any> = {
   "customer-support": Headphones,
@@ -49,6 +50,7 @@ const agentIcons: Record<string, any> = {
 };
 
 export default function WorkerProfile() {
+  const { t } = useTranslation("pages");
   const { slug } = useParams<{ slug: string }>();
   const agent = agents.find((a) => a.slug === slug);
   const { user } = useAuth();
@@ -63,10 +65,10 @@ export default function WorkerProfile() {
       <div className="pt-16 min-h-screen flex items-center justify-center">
         <div className="text-center">
           <Bot className="w-16 h-16 text-muted-foreground/30 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-foreground mb-2">Worker Not Found</h2>
-          <p className="text-muted-foreground mb-6">This AI worker profile doesn't exist.</p>
+          <h2 className="text-2xl font-bold text-foreground mb-2">{t("workerProfile.notFound.title")}</h2>
+          <p className="text-muted-foreground mb-6">{t("workerProfile.notFound.description")}</p>
           <Link href="/workers">
-            <Button data-testid="button-back-workers">Browse All Workers</Button>
+            <Button data-testid="button-back-workers">{t("workerProfile.notFound.browseAll")}</Button>
           </Link>
         </div>
       </div>
@@ -100,7 +102,7 @@ export default function WorkerProfile() {
                   )}
                   <div className="flex items-center gap-1.5">
                     <div className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
-                    <span className="text-sm text-emerald-400 font-medium">Online 24/7</span>
+                    <span className="text-sm text-emerald-400 font-medium">{t("workerProfile.online247")}</span>
                   </div>
                 </div>
                 <p className="text-base sm:text-lg text-muted-foreground mb-3 sm:mb-4">{agent.role}</p>
@@ -121,7 +123,7 @@ export default function WorkerProfile() {
                   }}
                 >
                   {renting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Zap className="w-4 h-4 mr-2" />}
-                  Hire Now
+                  {t("workerProfile.hireNow")}
                   <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>
               ) : (
@@ -132,13 +134,13 @@ export default function WorkerProfile() {
                   onClick={() => setSignupDialogOpen(true)}
                 >
                   <Zap className="w-4 h-4 mr-2" />
-                  Hire Now
+                  {t("workerProfile.hireNow")}
                   <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>
               )}
               <Link href={`/demo?agent=${agent.id}`}>
                 <Button size="lg" variant="outline" data-testid="button-try-demo">
-                  Try Demo
+                  {t("workerProfile.tryDemo")}
                 </Button>
               </Link>
             </div>
@@ -156,7 +158,7 @@ export default function WorkerProfile() {
               <Card className="p-4 sm:p-6 bg-card border-border/50">
                 <h3 className="font-semibold text-foreground mb-3 sm:mb-4 flex items-center gap-2">
                   <Zap className="w-4 h-4 text-blue-400" />
-                  Skills & Capabilities
+                  {t("workerProfile.skillsTitle")}
                 </h3>
                 <div className="flex flex-wrap gap-1.5 sm:gap-2">
                   {agent.skills.map((skill) => (
@@ -168,7 +170,7 @@ export default function WorkerProfile() {
               <Card className="p-4 sm:p-6 bg-card border-border/50">
                 <h3 className="font-semibold text-foreground mb-3 sm:mb-4 flex items-center gap-2">
                   <Plug className="w-4 h-4 text-blue-400" />
-                  Integrations
+                  {t("workerProfile.integrationsTitle")}
                 </h3>
                 <div className="flex flex-wrap gap-1.5 sm:gap-2">
                   {agent.integrations.map((integ) => (
@@ -185,7 +187,7 @@ export default function WorkerProfile() {
               <Card className="p-4 sm:p-6 bg-card border-border/50">
                 <h3 className="font-semibold text-foreground mb-3 sm:mb-4 flex items-center gap-2">
                   <Globe className="w-4 h-4 text-blue-400" />
-                  Languages
+                  {t("workerProfile.languagesTitle")}
                 </h3>
                 <div className="flex flex-wrap gap-1.5 sm:gap-2">
                   {agent.languages.map((lang) => (
@@ -195,19 +197,19 @@ export default function WorkerProfile() {
               </Card>
 
               <Card className="p-4 sm:p-6 bg-card border-border/50">
-                <h3 className="font-semibold text-foreground mb-3 sm:mb-4">Pricing</h3>
+                <h3 className="font-semibold text-foreground mb-3 sm:mb-4">{t("workerProfile.pricingTitle")}</h3>
                 <div className="mb-3 sm:mb-4">
                   <span className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent">${agent.price}</span>
-                  <span className="text-muted-foreground">/month</span>
+                  <span className="text-muted-foreground">{t("workerProfile.perMonth")}</span>
                 </div>
                 <p className="text-xs sm:text-sm text-muted-foreground">
-                  Includes all features, integrations, and 24/7 availability. 14-day free trial, no credit card required.
+                  {t("workerProfile.pricingDesc")}
                 </p>
               </Card>
             </div>
 
             <Card className="p-4 sm:p-6 bg-card border-border/50 mb-8 sm:mb-12">
-              <h3 className="font-semibold text-foreground mb-3 sm:mb-4">Use Cases</h3>
+              <h3 className="font-semibold text-foreground mb-3 sm:mb-4">{t("workerProfile.useCasesTitle")}</h3>
               <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
                 {agent.useCases.map((uc) => (
                   <li key={uc} className="flex items-start gap-2 sm:gap-3 text-xs sm:text-sm text-muted-foreground">
@@ -219,7 +221,7 @@ export default function WorkerProfile() {
             </Card>
 
             <div>
-              <h3 className="text-xl sm:text-2xl font-bold text-foreground mb-4 sm:mb-6">Related Workers</h3>
+              <h3 className="text-xl sm:text-2xl font-bold text-foreground mb-4 sm:mb-6">{t("workerProfile.relatedWorkers")}</h3>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
                 {related.map((r) => {
                   const RIcon = agentIcons[r.id] || Bot;
@@ -254,17 +256,17 @@ export default function WorkerProfile() {
         <DialogContent className="sm:max-w-lg bg-card border-border">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold text-foreground" data-testid="text-plan-dialog-title">
-              Choose a Plan for {agent?.name}
+              {t("workerProfile.planDialog.title", { name: agent?.name })}
             </DialogTitle>
             <DialogDescription className="text-muted-foreground">
-              Select the plan that fits your needs. You can upgrade or change anytime.
+              {t("workerProfile.planDialog.description")}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 py-4">
             {[
-              { id: "starter", name: "Starter", price: "$49", msgs: "100 messages/mo", features: ["Basic support", "Standard response time"] },
-              { id: "professional", name: "Professional", price: "$39", msgs: "500 messages/mo", features: ["Priority support", "Faster responses", "All tools unlocked"], popular: true },
-              { id: "enterprise", name: "Enterprise", price: "Custom", msgs: "5,000 messages/mo", features: ["Dedicated support", "Custom integrations", "SLA guarantee"] },
+              { id: "starter", name: t("workers.planDialog.starter"), price: t("workers.planDialog.starterPrice"), msgs: t("workers.planDialog.starterMsgs"), features: [t("workers.planDialog.basicSupport"), t("workers.planDialog.standardResponse")] },
+              { id: "professional", name: t("workers.planDialog.professional"), price: t("workers.planDialog.professionalPrice"), msgs: t("workers.planDialog.professionalMsgs"), features: [t("workers.planDialog.prioritySupport"), t("workers.planDialog.fasterResponses"), t("workers.planDialog.allToolsUnlocked")], popular: true },
+              { id: "enterprise", name: t("workers.planDialog.enterprise"), price: t("workers.planDialog.enterprisePrice"), msgs: t("workers.planDialog.enterpriseMsgs"), features: [t("workers.planDialog.dedicatedSupport"), t("workers.planDialog.customIntegrations"), t("workers.planDialog.slaGuarantee")] },
             ].map((plan) => (
               <div
                 key={plan.id}
@@ -278,7 +280,7 @@ export default function WorkerProfile() {
               >
                 {plan.popular && (
                   <Badge className="absolute -top-2.5 right-3 bg-gradient-to-r from-blue-500 to-violet-500 text-white text-xs border-0">
-                    Most Popular
+                    {t("workers.planDialog.mostPopular")}
                   </Badge>
                 )}
                 <div className="flex items-center justify-between mb-2">
@@ -292,7 +294,7 @@ export default function WorkerProfile() {
                   </div>
                   <div>
                     <span className="text-lg font-bold text-foreground">{plan.price}</span>
-                    {plan.id !== "enterprise" && <span className="text-xs text-muted-foreground">/mo</span>}
+                    {plan.id !== "enterprise" && <span className="text-xs text-muted-foreground">{t("workers.perMonth")}</span>}
                   </div>
                 </div>
                 <p className="text-xs text-muted-foreground ml-6 mb-1">{plan.msgs}</p>
@@ -304,7 +306,7 @@ export default function WorkerProfile() {
                   ))}
                 </div>
                 {plan.id === "enterprise" && (
-                  <p className="text-xs text-muted-foreground ml-6 mt-1 italic">Contact us for enterprise pricing</p>
+                  <p className="text-xs text-muted-foreground ml-6 mt-1 italic">{t("workers.planDialog.contactEnterprise")}</p>
                 )}
               </div>
             ))}
@@ -326,12 +328,12 @@ export default function WorkerProfile() {
                   });
                   const data = await res.json();
                   if (data.success) {
-                    toast({ title: "Worker Hired!", description: `${agent!.name} is now active on the ${selectedPlan} plan.` });
+                    toast({ title: t("workerProfile.toast.workerHired"), description: t("workerProfile.toast.workerHiredDesc", { name: agent!.name, plan: selectedPlan }) });
                     window.location.href = "/dashboard?checkout=success";
                   }
                 } catch (error: any) {
-                  const msg = error?.message || "Something went wrong.";
-                  toast({ title: "Error", description: msg, variant: "destructive" });
+                  const msg = error?.message || t("workerProfile.toast.somethingWrong");
+                  toast({ title: t("workerProfile.toast.error"), description: msg, variant: "destructive" });
                 } finally {
                   setRenting(false);
                 }
@@ -339,10 +341,10 @@ export default function WorkerProfile() {
               data-testid="button-confirm-hire"
             >
               <Zap className="w-4 h-4 mr-1" />
-              Confirm & Hire
+              {t("workerProfile.planDialog.confirmHire")}
             </Button>
             <Button variant="outline" onClick={() => setPlanDialogOpen(false)} data-testid="button-cancel-plan">
-              Cancel
+              {t("workerProfile.planDialog.cancel")}
             </Button>
           </div>
         </DialogContent>

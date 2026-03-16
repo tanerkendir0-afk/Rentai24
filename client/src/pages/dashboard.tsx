@@ -55,6 +55,7 @@ import {
   Settings,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from "react-i18next";
 
 interface Rental {
   id: number;
@@ -93,6 +94,7 @@ const agentPersonas: Record<string, string> = {
 };
 
 export default function Dashboard() {
+  const { t } = useTranslation("pages");
   const { user, logout, isLoading: authLoading } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
@@ -138,15 +140,15 @@ export default function Dashboard() {
       });
       const data = await res.json();
       if (data.success) {
-        toast({ title: "Agent Activated!", description: "Your AI worker is now ready to use." });
+        toast({ title: t("dashboard.toast.agentActivated"), description: t("dashboard.toast.agentActivatedDesc") });
         queryClient.invalidateQueries({ queryKey: ["/api/rentals"] });
       }
     } catch (error: any) {
-      const msg = error?.message || "Failed to activate agent.";
+      const msg = error?.message || t("dashboard.toast.failedToActivate");
       if (msg.includes("already have")) {
-        toast({ title: "Already Active", description: "This agent is already activated.", variant: "destructive" });
+        toast({ title: t("dashboard.toast.alreadyActive"), description: t("dashboard.toast.alreadyActiveDesc"), variant: "destructive" });
       } else {
-        toast({ title: "Error", description: msg, variant: "destructive" });
+        toast({ title: t("dashboard.toast.error"), description: msg, variant: "destructive" });
       }
     } finally {
       setInstallingAgent(null);
@@ -178,7 +180,7 @@ export default function Dashboard() {
     const params = new URLSearchParams(window.location.search);
     if (params.get("checkout") === "success") {
       queryClient.invalidateQueries({ queryKey: ["/api/rentals"] });
-      toast({ title: "Agent Activated!", description: "Your new AI worker is ready to use in your dashboard." });
+      toast({ title: t("dashboard.toast.agentActivated"), description: t("dashboard.toast.newWorkerReady") });
       window.history.replaceState({}, "", "/dashboard");
     }
   }, [toast]);
@@ -210,18 +212,18 @@ export default function Dashboard() {
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
               <h1 className="text-xl sm:text-2xl font-bold text-foreground" data-testid="text-dashboard-welcome">
-                Welcome, {user.fullName}
+                {t("dashboard.welcome", { name: user.fullName })}
               </h1>
               <p className="text-muted-foreground text-sm mt-1 flex items-center gap-2 flex-wrap">
-                Manage your AI workforce from here
+                {t("dashboard.manageSubtitle")}
                 {hasSubscription ? (
                   <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-500/20 text-green-400 border border-green-500/30" data-testid="badge-subscription-active">
-                    {planName ? `${planName} Plan` : 'Active Subscription'}
-                    {renewalDate ? ` · Renews ${renewalDate}` : ''}
+                    {planName ? t("dashboard.planLabel", { plan: planName }) : t("dashboard.activeSubscription")}
+                    {renewalDate ? ` · ${t("dashboard.renewsOn", { date: renewalDate })}` : ''}
                   </span>
                 ) : (
                   <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-500/20 text-yellow-400 border border-yellow-500/30" data-testid="badge-no-subscription">
-                    No Subscription
+                    {t("dashboard.noSubscription")}
                   </span>
                 )}
                 {emailStatus && hasSalesAgent && (
@@ -235,8 +237,8 @@ export default function Dashboard() {
                   >
                     <Mail className="w-3 h-3" />
                     {emailStatus.provider === "gmail"
-                      ? `Gmail: ${emailStatus.address || "Connected"}`
-                      : "Platform Email"}
+                      ? t("dashboard.gmailConnected", { address: emailStatus.address || t("dashboard.connected") })
+                      : t("dashboard.platformEmail")}
                   </span>
                 )}
               </p>
@@ -245,18 +247,18 @@ export default function Dashboard() {
               <Link href="/workers">
                 <Button variant="outline" size="sm" data-testid="button-browse-workers">
                   <Plus className="w-4 h-4 mr-1" />
-                  Rent AI Worker
+                  {t("dashboard.rentWorker")}
                 </Button>
               </Link>
               <Link href="/settings">
                 <Button variant="outline" size="sm" data-testid="button-settings">
                   <Settings className="w-4 h-4 mr-1" />
-                  Settings
+                  {t("dashboard.settings")}
                 </Button>
               </Link>
               <Button variant="ghost" size="sm" onClick={handleLogout} data-testid="button-logout">
                 <LogOut className="w-4 h-4 mr-1" />
-                Sign Out
+                {t("dashboard.signOut")}
               </Button>
             </div>
           </div>
@@ -274,7 +276,7 @@ export default function Dashboard() {
                 <p className="text-xl sm:text-2xl font-bold text-foreground" data-testid="text-active-workers">
                   {activeRentals.length}
                 </p>
-                <p className="text-[10px] sm:text-xs text-muted-foreground truncate">Active Workers</p>
+                <p className="text-[10px] sm:text-xs text-muted-foreground truncate">{t("dashboard.stats.activeWorkers")}</p>
               </div>
             </div>
           </Card>
@@ -288,7 +290,7 @@ export default function Dashboard() {
                 <p className="text-xl sm:text-2xl font-bold text-foreground" data-testid="text-messages-used">
                   {totalMessages}
                 </p>
-                <p className="text-[10px] sm:text-xs text-muted-foreground truncate">Messages Used</p>
+                <p className="text-[10px] sm:text-xs text-muted-foreground truncate">{t("dashboard.stats.messagesUsed")}</p>
               </div>
             </div>
           </Card>
@@ -302,7 +304,7 @@ export default function Dashboard() {
                 <p className="text-xl sm:text-2xl font-bold text-foreground" data-testid="text-messages-remaining">
                   {totalLimit - totalMessages}
                 </p>
-                <p className="text-[10px] sm:text-xs text-muted-foreground truncate">Msgs Remaining</p>
+                <p className="text-[10px] sm:text-xs text-muted-foreground truncate">{t("dashboard.stats.msgsRemaining")}</p>
               </div>
             </div>
           </Card>
@@ -316,14 +318,14 @@ export default function Dashboard() {
                 <p className="text-xl sm:text-2xl font-bold text-foreground" data-testid="text-active-campaigns">
                   {activeCampaigns.length}
                 </p>
-                <p className="text-[10px] sm:text-xs text-muted-foreground truncate">Active Campaigns</p>
+                <p className="text-[10px] sm:text-xs text-muted-foreground truncate">{t("dashboard.stats.activeCampaigns")}</p>
               </div>
             </div>
           </Card>
         </div>
 
         <h2 className="text-lg font-semibold text-foreground mb-4" data-testid="text-workers-section">
-          Your AI Workers
+          {t("dashboard.yourWorkers")}
         </h2>
 
         {isLoading ? (
@@ -336,14 +338,14 @@ export default function Dashboard() {
               <Bot className="w-8 h-8 text-blue-400" />
             </div>
             <h3 className="text-lg font-semibold text-foreground mb-2" data-testid="text-no-workers">
-              No AI Workers Yet
+              {t("dashboard.noWorkersTitle")}
             </h3>
             <p className="text-sm text-muted-foreground mb-6 max-w-sm mx-auto">
-              Browse our catalog and rent your first AI worker to get started.
+              {t("dashboard.noWorkersDesc")}
             </p>
             <Link href="/workers">
               <Button className="bg-gradient-to-r from-blue-500 to-violet-500 text-white border-0" data-testid="button-get-started">
-                Browse AI Workers
+                {t("dashboard.browseWorkers")}
               </Button>
             </Link>
           </Card>
@@ -373,13 +375,13 @@ export default function Dashboard() {
                         </div>
                       </div>
                       <Badge variant="secondary" className="text-xs bg-emerald-500/10 text-emerald-400 border-0">
-                        Active
+                        {t("dashboard.active")}
                       </Badge>
                     </div>
 
                     <div className="mb-4">
                       <div className="flex justify-between text-xs text-muted-foreground mb-1.5">
-                        <span>Usage</span>
+                        <span>{t("dashboard.usage")}</span>
                         <span>{rental.messagesUsed} / {rental.messagesLimit}</span>
                       </div>
                       <div className="h-2 bg-muted rounded-full overflow-hidden">
@@ -394,12 +396,12 @@ export default function Dashboard() {
 
                     <div className="flex items-center justify-between">
                       <span className="text-xs text-muted-foreground capitalize">
-                        {rental.plan} Plan
+                        {t("dashboard.planLabel", { plan: rental.plan })}
                       </span>
                       <Link href={`/chat?agent=${rental.agentType}`}>
                         <Button size="sm" variant="outline" className="text-xs" data-testid={`button-chat-${rental.agentType}`}>
                           <MessageSquare className="w-3 h-3 mr-1" />
-                          Chat
+                          {t("dashboard.chat")}
                         </Button>
                       </Link>
                     </div>
@@ -414,7 +416,7 @@ export default function Dashboard() {
           <div className="mt-8">
             <div className="flex items-center gap-2 mb-4">
               <Plus className="w-5 h-5 text-violet-400" />
-              <h2 className="text-lg font-semibold text-foreground" data-testid="text-available-workers">Available Workers</h2>
+              <h2 className="text-lg font-semibold text-foreground" data-testid="text-available-workers">{t("dashboard.availableWorkers")}</h2>
               <Badge variant="secondary" className="text-xs">{availableAgents.length}</Badge>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -450,7 +452,7 @@ export default function Dashboard() {
                         ) : (
                           <>
                             <Zap className="w-3 h-3 mr-1" />
-                            Hire Now
+                            {t("dashboard.hireNow")}
                           </>
                         )}
                       </Button>
@@ -467,7 +469,7 @@ export default function Dashboard() {
           <div className="mt-6 sm:mt-8">
             <div className="flex items-center gap-2 mb-3 sm:mb-4">
               <AlertTriangle className="w-5 h-5 text-yellow-400" />
-              <h2 className="text-base sm:text-lg font-semibold text-foreground" data-testid="text-alerts-title">Smart Alerts</h2>
+              <h2 className="text-base sm:text-lg font-semibold text-foreground" data-testid="text-alerts-title">{t("dashboard.smartAlerts")}</h2>
               <Badge variant="secondary" className="text-xs">{smartAlerts.length}</Badge>
             </div>
             <div className="grid grid-cols-1 gap-3" data-testid="smart-alerts-grid">
@@ -481,12 +483,14 @@ export default function Dashboard() {
                 const config = severityConfig[alert.severity] || severityConfig.info;
                 const AlertIcon = config.icon;
 
-                const actionLabel = alert.type === "stale_new" ? "Send Outreach"
-                  : alert.type === "stale_contacted" ? "Follow Up"
-                  : alert.type === "qualified_waiting" ? "Create Proposal"
-                  : alert.type === "proposal_stale" ? "Check In"
-                  : alert.type === "hot_lead" ? "Prioritize"
-                  : null;
+                const actionLabelMap: Record<string, string> = {
+                  stale_new: t("dashboard.alertActions.sendOutreach"),
+                  stale_contacted: t("dashboard.alertActions.followUp"),
+                  qualified_waiting: t("dashboard.alertActions.createProposal"),
+                  proposal_stale: t("dashboard.alertActions.checkIn"),
+                  hot_lead: t("dashboard.alertActions.prioritize"),
+                };
+                const actionLabel = actionLabelMap[alert.type] || null;
 
                 return (
                   <Card key={i} className={`p-3 ${config.bg} border ${config.border}`} data-testid={`smart-alert-${i}`}>
@@ -519,7 +523,7 @@ export default function Dashboard() {
           <div className="mt-6 sm:mt-8">
             <div className="flex items-center gap-2 mb-3 sm:mb-4">
               <Activity className="w-5 h-5 text-blue-400" />
-              <h2 className="text-base sm:text-lg font-semibold text-foreground" data-testid="text-actions-title">Agent Activity Log</h2>
+              <h2 className="text-base sm:text-lg font-semibold text-foreground" data-testid="text-actions-title">{t("dashboard.activityLog")}</h2>
               <Badge variant="secondary" className="text-xs">{agentActions.length}</Badge>
             </div>
             <Card className="bg-card border-border/50 divide-y divide-border/50" data-testid="card-actions-log">

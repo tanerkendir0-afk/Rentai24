@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { Card } from "@/components/ui/card";
 import { Bot, Target, Eye, Shield, TrendingUp, Users, Globe, Zap } from "lucide-react";
 import SectionCTA from "@/components/section-cta";
+import { useTranslation } from "react-i18next";
 
 const fadeUp = {
   initial: { opacity: 0, y: 30 },
@@ -10,37 +11,13 @@ const fadeUp = {
   transition: { duration: 0.6 },
 };
 
-const values = [
-  {
-    icon: Zap,
-    title: "Accessible AI",
-    desc: "Enterprise-grade AI at startup-friendly prices. We believe every business, from solopreneurs to enterprises, deserves access to intelligent automation.",
-  },
-  {
-    icon: Users,
-    title: "Human + AI",
-    desc: "We augment teams, not replace them. Our AI workers handle the repetitive work so your human team can focus on what they do best.",
-  },
-  {
-    icon: TrendingUp,
-    title: "Always Improving",
-    desc: "Our agents learn and get better over time. Continuous optimization ensures your AI workforce delivers increasing value every month.",
-  },
-  {
-    icon: Shield,
-    title: "Trust & Transparency",
-    desc: "Your data stays yours. Always. We're SOC 2 compliant, GDPR compliant, and fully transparent about how our AI works.",
-  },
-];
-
-const stats = [
-  { label: "Founded", value: "2023" },
-  { label: "Team Members", value: "45+" },
-  { label: "Countries Served", value: "30+" },
-  { label: "AI Workers Deployed", value: "2,500+" },
-];
+const valueIcons = [Zap, Users, TrendingUp, Shield];
+const valueKeys = ["accessibleAI", "humanAI", "alwaysImproving", "trustTransparency"] as const;
+const statKeys = ["founded", "teamMembers", "countries", "deployed"] as const;
 
 export default function About() {
+  const { t } = useTranslation("pages");
+
   return (
     <div className="pt-16">
       <section className="py-20 relative">
@@ -53,13 +30,10 @@ export default function About() {
             transition={{ duration: 0.6 }}
           >
             <h1 className="text-4xl sm:text-5xl font-bold text-foreground mb-4" data-testid="text-about-title">
-              We're Building the{" "}
-              <span className="bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent">
-                Future of Work
-              </span>
+              {t("about.title")}
             </h1>
             <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-              RentAI 24 is the world's first AI staffing agency. We believe every business deserves access to intelligent, tireless, and affordable team members.
+              {t("about.subtitle")}
             </p>
           </motion.div>
 
@@ -70,12 +44,12 @@ export default function About() {
                   <Bot className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold text-foreground mb-2">Our Story</h2>
+                  <h2 className="text-2xl font-bold text-foreground mb-2">{t("about.storyTitle")}</h2>
                   <p className="text-muted-foreground leading-relaxed mb-4">
-                    RentAI 24 was born from a simple observation: businesses of all sizes struggle with hiring, training, and retaining talent for roles that AI can handle better, faster, and more affordably.
+                    {t("about.storyP1")}
                   </p>
                   <p className="text-muted-foreground leading-relaxed">
-                    Just like traditional staffing agencies place qualified human workers at companies, we place pre-trained AI agents. Our mission is to make AI workforce accessible to every business — from solo founders running a side project to enterprises managing thousands of customers.
+                    {t("about.storyP2")}
                   </p>
                 </div>
               </div>
@@ -86,9 +60,9 @@ export default function About() {
                     <Target className="w-5 h-5 text-blue-400" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-foreground mb-1">Our Mission</h3>
+                    <h3 className="font-semibold text-foreground mb-1">{t("about.missionTitle")}</h3>
                     <p className="text-sm text-muted-foreground leading-relaxed">
-                      To democratize access to AI workforce, enabling businesses of all sizes to operate more efficiently, serve customers better, and scale without traditional hiring constraints.
+                      {t("about.missionDesc")}
                     </p>
                   </div>
                 </div>
@@ -97,9 +71,9 @@ export default function About() {
                     <Eye className="w-5 h-5 text-violet-400" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-foreground mb-1">Our Vision</h3>
+                    <h3 className="font-semibold text-foreground mb-1">{t("about.visionTitle")}</h3>
                     <p className="text-sm text-muted-foreground leading-relaxed">
-                      A world where every business has an AI-augmented team, where humans and AI work together to achieve more than either could alone.
+                      {t("about.visionDesc")}
                     </p>
                   </div>
                 </div>
@@ -109,12 +83,12 @@ export default function About() {
 
           <motion.div {...fadeUp}>
             <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 mb-16">
-              {stats.map((stat) => (
-                <Card key={stat.label} className="p-6 bg-card border-border/50 text-center">
+              {statKeys.map((key) => (
+                <Card key={key} className="p-6 bg-card border-border/50 text-center">
                   <div className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent mb-1">
-                    {stat.value}
+                    {t(`about.stats.${key}Val`)}
                   </div>
-                  <p className="text-sm text-muted-foreground">{stat.label}</p>
+                  <p className="text-sm text-muted-foreground">{t(`about.stats.${key}`)}</p>
                 </Card>
               ))}
             </div>
@@ -122,22 +96,25 @@ export default function About() {
 
           <motion.div {...fadeUp}>
             <h2 className="text-3xl font-bold text-foreground mb-8 text-center" data-testid="text-values-title">
-              Our Values
+              {t("about.valuesTitle")}
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              {values.map((value) => (
-                <Card key={value.title} className="p-6 bg-card border-border/50">
-                  <div className="flex items-start gap-4">
-                    <div className="w-10 h-10 rounded-md bg-gradient-to-br from-blue-500/20 to-violet-500/20 flex items-center justify-center shrink-0">
-                      <value.icon className="w-5 h-5 text-blue-400" />
+              {valueKeys.map((key, i) => {
+                const Icon = valueIcons[i];
+                return (
+                  <Card key={key} className="p-6 bg-card border-border/50">
+                    <div className="flex items-start gap-4">
+                      <div className="w-10 h-10 rounded-md bg-gradient-to-br from-blue-500/20 to-violet-500/20 flex items-center justify-center shrink-0">
+                        <Icon className="w-5 h-5 text-blue-400" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-foreground mb-2">{t(`about.values.${key}`)}</h3>
+                        <p className="text-sm text-muted-foreground leading-relaxed">{t(`about.values.${key}Desc`)}</p>
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="font-semibold text-foreground mb-2">{value.title}</h3>
-                      <p className="text-sm text-muted-foreground leading-relaxed">{value.desc}</p>
-                    </div>
-                  </div>
-                </Card>
-              ))}
+                  </Card>
+                );
+              })}
             </div>
           </motion.div>
 
@@ -148,10 +125,10 @@ export default function About() {
                   DR
                 </div>
                 <div>
-                  <h3 className="font-bold text-foreground text-lg">Daniel Reeves</h3>
-                  <p className="text-sm text-blue-400 mb-2">Founder & CEO</p>
+                  <h3 className="font-bold text-foreground text-lg">{t("about.founder.name")}</h3>
+                  <p className="text-sm text-blue-400 mb-2">{t("about.founder.role")}</p>
                   <p className="text-sm text-muted-foreground leading-relaxed">
-                    A serial entrepreneur with deep roots in AI infrastructure, Daniel founded RentAI 24 after seeing firsthand how small and mid-size businesses struggled to access the same AI capabilities as large enterprises. His mission: democratize the AI workforce and make intelligent automation available to every team, everywhere.
+                    {t("about.founder.bio")}
                   </p>
                 </div>
               </div>

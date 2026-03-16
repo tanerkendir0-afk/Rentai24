@@ -11,66 +11,10 @@ import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import SectionCTA from "@/components/section-cta";
+import { useTranslation } from "react-i18next";
 
-const fallbackPlans = [
-  {
-    name: "Starter",
-    price: "$49",
-    per: "/mo per worker",
-    desc: "Perfect for small businesses getting started with AI",
-    featured: false,
-    plan: "starter",
-    features: [
-      "1 AI Worker",
-      "Basic integrations (up to 3)",
-      "100 messages/month",
-      "Email support",
-      "Community access",
-    ],
-  },
-  {
-    name: "Professional",
-    price: "$39",
-    per: "/mo per worker",
-    desc: "Best value for growing teams scaling with AI",
-    featured: true,
-    plan: "professional",
-    features: [
-      "Up to 5 AI Workers",
-      "Advanced integrations (unlimited)",
-      "500 messages/month per worker",
-      "Priority support (chat + email)",
-      "Custom fine-tuning",
-      "API access",
-      "Multilingual support",
-    ],
-  },
-  {
-    name: "Enterprise",
-    price: "Custom",
-    per: "",
-    desc: "For large-scale operations with custom requirements",
-    featured: false,
-    plan: "enterprise",
-    features: [
-      "Unlimited AI Workers",
-      "All integrations + custom",
-      "5,000 messages/month per worker",
-      "24/7 dedicated support",
-      "Custom AI training on your data",
-      "SLA guarantee",
-      "White-label option",
-      "Dedicated account manager",
-    ],
-  },
-];
-
-const addons = [
-  { icon: Globe, name: "Extra Language Pack", price: "$19/month", desc: "Add additional language support to any worker" },
-  { icon: Zap, name: "Custom Integration", price: "$99 one-time", desc: "Connect to any tool or platform" },
-  { icon: Users, name: "Priority Onboarding", price: "$199 one-time", desc: "Dedicated onboarding specialist" },
-  { icon: Shield, name: "Dedicated Account Manager", price: "$299/month", desc: "Your personal AI workforce advisor" },
-];
+const addonIcons = [Globe, Zap, Users, Shield];
+const addonKeys = ["languagePack", "customIntegration", "priorityOnboarding", "accountManager"] as const;
 
 const stagger = {
   initial: { opacity: 0, y: 20 },
@@ -82,7 +26,38 @@ export default function Pricing() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [, navigate] = useLocation();
+  const { t } = useTranslation("pages");
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
+
+  const plans = [
+    {
+      name: t("pricing.plans.starter.name"),
+      price: "$49",
+      per: t("pricing.plans.starter.per"),
+      desc: t("pricing.plans.starter.desc"),
+      featured: false,
+      plan: "starter",
+      features: t("pricing.plans.starter.features", { returnObjects: true }) as string[],
+    },
+    {
+      name: t("pricing.plans.professional.name"),
+      price: "$39",
+      per: t("pricing.plans.professional.per"),
+      desc: t("pricing.plans.professional.desc"),
+      featured: true,
+      plan: "professional",
+      features: t("pricing.plans.professional.features", { returnObjects: true }) as string[],
+    },
+    {
+      name: t("pricing.plans.enterprise.name"),
+      price: "Custom",
+      per: "",
+      desc: t("pricing.plans.enterprise.desc"),
+      featured: false,
+      plan: "enterprise",
+      features: t("pricing.plans.enterprise.features", { returnObjects: true }) as string[],
+    },
+  ];
 
   function handleSelectPlan(planName: string) {
     if (!user) {
@@ -104,23 +79,20 @@ export default function Pricing() {
             transition={{ duration: 0.6 }}
           >
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-foreground mb-3 sm:mb-4" data-testid="text-pricing-title">
-              Simple, Transparent{" "}
-              <span className="bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent">
-                Pricing
-              </span>
+              {t("pricing.title")}
             </h1>
             <p className="text-muted-foreground text-sm sm:text-lg max-w-2xl mx-auto mb-3 sm:mb-4">
-              Scale your AI workforce with flexible plans. Cancel anytime.
+              {t("pricing.subtitle")}
             </p>
             <div className="flex items-center justify-center gap-2">
               <Shield className="w-4 h-4 text-emerald-400 shrink-0" />
-              <span className="text-xs sm:text-sm text-emerald-400 font-medium">Cancel Anytime &middot; Secure Checkout &middot; Money-back Guarantee</span>
+              <span className="text-xs sm:text-sm text-emerald-400 font-medium">{t("pricing.guarantee")}</span>
             </div>
           </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 max-w-5xl mx-auto items-stretch">
-            {fallbackPlans.map((plan, i) => (
-              <motion.div key={plan.name} {...stagger} transition={{ duration: 0.5, delay: i * 0.15 }} className="flex">
+            {plans.map((plan, i) => (
+              <motion.div key={plan.plan} {...stagger} transition={{ duration: 0.5, delay: i * 0.15 }} className="flex">
                 <Card
                   className={`p-5 sm:p-8 flex flex-col w-full relative ${
                     plan.featured
@@ -132,7 +104,7 @@ export default function Pricing() {
                   {plan.featured && (
                     <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-blue-500 to-violet-500 text-white border-0">
                       <Sparkles className="w-3 h-3 mr-1" />
-                      Most Popular
+                      {t("pricing.mostPopular")}
                     </Badge>
                   )}
 
@@ -165,7 +137,7 @@ export default function Pricing() {
                         className="w-full min-h-[44px]"
                         data-testid={`button-plan-${plan.plan}`}
                       >
-                        Contact Sales
+                        {t("pricing.contactSales")}
                         <ArrowRight className="w-4 h-4 ml-2" />
                       </Button>
                     </Link>
@@ -179,7 +151,7 @@ export default function Pricing() {
                       data-testid={`button-plan-${plan.plan}`}
                       onClick={() => handleSelectPlan(plan.plan)}
                     >
-                      {user ? "Subscribe Now" : "Get Started"}
+                      {user ? t("pricing.subscribeNow") : t("pricing.getStarted")}
                       <ArrowRight className="w-4 h-4 ml-2" />
                     </Button>
                   )}
@@ -195,18 +167,21 @@ export default function Pricing() {
             viewport={{ once: true }}
             transition={{ duration: 0.5 }}
           >
-            <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-6 sm:mb-8 text-center" data-testid="text-addons-title">Add-ons</h2>
+            <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-6 sm:mb-8 text-center" data-testid="text-addons-title">{t("pricing.addonsTitle")}</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-              {addons.map((addon) => (
-                <Card key={addon.name} className="p-5 bg-card border-border/50">
-                  <div className="w-10 h-10 rounded-md bg-gradient-to-br from-blue-500/20 to-violet-500/20 flex items-center justify-center mb-3">
-                    <addon.icon className="w-5 h-5 text-blue-400" />
-                  </div>
-                  <h3 className="font-semibold text-foreground text-sm mb-1">{addon.name}</h3>
-                  <p className="text-xs text-muted-foreground mb-2">{addon.desc}</p>
-                  <p className="text-sm font-bold bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent">{addon.price}</p>
-                </Card>
-              ))}
+              {addonKeys.map((key, i) => {
+                const Icon = addonIcons[i];
+                return (
+                  <Card key={key} className="p-5 bg-card border-border/50">
+                    <div className="w-10 h-10 rounded-md bg-gradient-to-br from-blue-500/20 to-violet-500/20 flex items-center justify-center mb-3">
+                      <Icon className="w-5 h-5 text-blue-400" />
+                    </div>
+                    <h3 className="font-semibold text-foreground text-sm mb-1">{t(`pricing.addons.${key}.name`)}</h3>
+                    <p className="text-xs text-muted-foreground mb-2">{t(`pricing.addons.${key}.desc`)}</p>
+                    <p className="text-sm font-bold bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent">{t(`pricing.addons.${key}.price`)}</p>
+                  </Card>
+                );
+              })}
             </div>
           </motion.div>
         </div>
@@ -218,7 +193,7 @@ export default function Pricing() {
         {selectedPlan && (
           <CheckoutModal
             plan={selectedPlan}
-            planData={fallbackPlans.find(p => p.plan === selectedPlan)!}
+            planData={plans.find(p => p.plan === selectedPlan)!}
             onClose={() => setSelectedPlan(null)}
             onSuccess={() => {
               setSelectedPlan(null);
@@ -238,11 +213,12 @@ function CheckoutModal({
   onSuccess,
 }: {
   plan: string;
-  planData: typeof fallbackPlans[0];
+  planData: { name: string; price: string; per: string };
   onClose: () => void;
   onSuccess: () => void;
 }) {
   const { toast } = useToast();
+  const { t } = useTranslation("pages");
   const [processing, setProcessing] = useState(false);
   const [cardNumber, setCardNumber] = useState("");
   const [expiry, setExpiry] = useState("");
@@ -267,15 +243,15 @@ function CheckoutModal({
 
     const cleanCard = cardNumber.replace(/\s/g, "");
     if (cleanCard.length < 13) {
-      toast({ title: "Invalid Card", description: "Please enter a valid card number.", variant: "destructive" });
+      toast({ title: t("pricing.checkout.invalidCard"), description: t("pricing.checkout.invalidCardDesc"), variant: "destructive" });
       return;
     }
     if (!expiry || expiry.length < 4) {
-      toast({ title: "Invalid Expiry", description: "Please enter a valid expiry date (MM/YY).", variant: "destructive" });
+      toast({ title: t("pricing.checkout.invalidExpiry"), description: t("pricing.checkout.invalidExpiryDesc"), variant: "destructive" });
       return;
     }
     if (!cvc || cvc.length < 3) {
-      toast({ title: "Invalid CVC", description: "Please enter a valid CVC.", variant: "destructive" });
+      toast({ title: t("pricing.checkout.invalidCvc"), description: t("pricing.checkout.invalidCvcDesc"), variant: "destructive" });
       return;
     }
 
@@ -289,12 +265,12 @@ function CheckoutModal({
       });
       const data = await res.json();
       if (data.success) {
-        toast({ title: "Payment Successful!", description: `Your ${planData.name} plan is now active.` });
+        toast({ title: t("pricing.checkout.paymentSuccess"), description: t("pricing.checkout.paymentSuccessDesc", { plan: planData.name }) });
         onSuccess();
       }
     } catch (error: any) {
       const message = error?.message || "Payment failed. Please try again.";
-      toast({ title: "Payment Failed", description: message, variant: "destructive" });
+      toast({ title: t("pricing.checkout.paymentFailed"), description: message, variant: "destructive" });
     } finally {
       setProcessing(false);
     }
@@ -322,8 +298,8 @@ function CheckoutModal({
                 <CreditCard className="w-5 h-5 text-blue-400" />
               </div>
               <div>
-                <h3 className="text-lg font-bold text-foreground">Checkout</h3>
-                <p className="text-xs text-muted-foreground">{planData.name} Plan — {planData.price}{planData.per}</p>
+                <h3 className="text-lg font-bold text-foreground">{t("pricing.checkout.title")}</h3>
+                <p className="text-xs text-muted-foreground">{t("pricing.checkout.planInfo", { name: planData.name, price: planData.price, per: planData.per })}</p>
               </div>
             </div>
             <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors" data-testid="button-close-checkout">
@@ -333,7 +309,7 @@ function CheckoutModal({
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <Label htmlFor="cardName" className="text-sm text-muted-foreground">Cardholder Name</Label>
+              <Label htmlFor="cardName" className="text-sm text-muted-foreground">{t("pricing.checkout.cardholderName")}</Label>
               <Input
                 id="cardName"
                 placeholder="John Doe"
@@ -345,7 +321,7 @@ function CheckoutModal({
             </div>
 
             <div>
-              <Label htmlFor="cardNumber" className="text-sm text-muted-foreground">Card Number</Label>
+              <Label htmlFor="cardNumber" className="text-sm text-muted-foreground">{t("pricing.checkout.cardNumber")}</Label>
               <div className="relative mt-1">
                 <Input
                   id="cardNumber"
@@ -362,7 +338,7 @@ function CheckoutModal({
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="expiry" className="text-sm text-muted-foreground">Expiry</Label>
+                <Label htmlFor="expiry" className="text-sm text-muted-foreground">{t("pricing.checkout.expiry")}</Label>
                 <Input
                   id="expiry"
                   placeholder="MM/YY"
@@ -374,7 +350,7 @@ function CheckoutModal({
                 />
               </div>
               <div>
-                <Label htmlFor="cvc" className="text-sm text-muted-foreground">CVC</Label>
+                <Label htmlFor="cvc" className="text-sm text-muted-foreground">{t("pricing.checkout.cvc")}</Label>
                 <Input
                   id="cvc"
                   placeholder="123"
@@ -400,18 +376,18 @@ function CheckoutModal({
                 ) : (
                   <Lock className="w-4 h-4 mr-2" />
                 )}
-                {processing ? "Processing..." : `Pay ${planData.price}/mo`}
+                {processing ? t("pricing.checkout.processing") : t("pricing.checkout.pay", { price: planData.price })}
               </Button>
             </div>
 
             <div className="flex items-center justify-center gap-2 pt-1">
               <Lock className="w-3 h-3 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Secure payment — Test mode active</span>
+              <span className="text-xs text-muted-foreground">{t("pricing.checkout.securePayment")}</span>
             </div>
 
             <div className="pt-2 border-t border-border/30">
-              <p className="text-xs text-muted-foreground mb-2">Test card: <code className="text-foreground">4242 4242 4242 4242</code></p>
-              <p className="text-xs text-muted-foreground">Any future expiry &middot; Any 3-digit CVC</p>
+              <p className="text-xs text-muted-foreground mb-2">{t("pricing.checkout.testCard")}: <code className="text-foreground">4242 4242 4242 4242</code></p>
+              <p className="text-xs text-muted-foreground">{t("pricing.checkout.testCardHint")}</p>
             </div>
           </form>
         </Card>

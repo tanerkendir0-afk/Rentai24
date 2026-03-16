@@ -3,6 +3,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { Components } from "react-markdown";
 import { Download, X, ImageOff, Loader2, FileText, FileSpreadsheet, File } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 function getDownloadUrl(src: string): string {
   const match = src?.match(/\/api\/images\/([^/]+)$/);
@@ -50,6 +51,7 @@ function ImageLightbox({ src, alt, onClose }: { src: string; alt: string; onClos
 }
 
 function ChatImage({ src, alt, isUser }: { src?: string; alt?: string; isUser: boolean }) {
+  const { t } = useTranslation("pages");
   const [error, setError] = useState(false);
   const [loading, setLoading] = useState(true);
   const [lightboxOpen, setLightboxOpen] = useState(false);
@@ -65,7 +67,7 @@ function ChatImage({ src, alt, isUser }: { src?: string; alt?: string; isUser: b
     return (
       <div className="my-2 flex items-center gap-2 p-3 rounded-lg border border-border/30 bg-muted/30 text-muted-foreground text-xs" data-testid="image-error">
         <ImageOff className="w-4 h-4 shrink-0 opacity-60" />
-        <span>Görsel yüklenemedi</span>
+        <span>{t("chatMessage.imageLoadError")}</span>
       </div>
     );
   }
@@ -95,7 +97,7 @@ function ChatImage({ src, alt, isUser }: { src?: string; alt?: string; isUser: b
           className={`inline-flex items-center gap-1 mt-1.5 text-xs ${isUser ? "text-blue-100 hover:text-white" : "text-blue-400 hover:text-blue-300"}`}
           data-testid="image-download-link"
         >
-          <Download className="w-3 h-3" /> İndir
+          <Download className="w-3 h-3" /> {t("chatMessage.download")}
         </a>
       </div>
       {lightboxOpen && (
@@ -113,6 +115,7 @@ function getFileIcon(filename: string) {
 }
 
 function DocumentCard({ filename, sizeInfo, isUser }: { filename: string; sizeInfo?: string; isUser: boolean }) {
+  const { t } = useTranslation("pages");
   const Icon = getFileIcon(filename);
   const ext = filename.split(".").pop()?.toUpperCase() || "FILE";
   return (
@@ -132,7 +135,7 @@ function DocumentCard({ filename, sizeInfo, isUser }: { filename: string; sizeIn
       <div className="min-w-0">
         <p className="text-xs font-medium truncate max-w-[200px]">{filename}</p>
         <p className={`text-[10px] ${isUser ? "text-blue-200/60" : "text-muted-foreground"}`}>
-          {ext} dosyası{sizeInfo ? ` · ${sizeInfo}` : ""}
+          {t("chatMessage.fileType", { ext })}{sizeInfo ? ` · ${sizeInfo}` : ""}
         </p>
       </div>
     </div>

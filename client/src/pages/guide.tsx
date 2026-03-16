@@ -38,6 +38,7 @@ import {
 } from "lucide-react";
 import PlatformGuide from "@/components/platform-guide";
 import { useAuth } from "@/lib/auth";
+import { useTranslation } from "react-i18next";
 
 const fadeUp = {
   initial: { opacity: 0, y: 30 },
@@ -59,12 +60,12 @@ const agentList = [
 ];
 
 const features = [
-  { icon: MessageSquare, title: "AI Chat", desc: "Natural conversations with your agents. They understand context and remember history." },
-  { icon: Settings, title: "Smart Integrations", desc: "Connect Gmail, WhatsApp, social media, shipping providers, and more." },
-  { icon: Upload, title: "File & Image Support", desc: "Upload documents, images, and data directly in chat for your agents to process." },
-  { icon: Globe, title: "Multilingual", desc: "Agents speak multiple languages and handle global customers effortlessly." },
-  { icon: Smartphone, title: "Mobile Ready", desc: "Install as a PWA for quick access from any device, anywhere." },
-  { icon: Shield, title: "Enterprise Security", desc: "AES-256 encryption, AI guardrails, and complete data ownership." },
+  { icon: MessageSquare, titleKey: "aiChat", descKey: "aiChatDesc" },
+  { icon: Settings, titleKey: "smartIntegrations", descKey: "smartIntegrationsDesc" },
+  { icon: Upload, titleKey: "fileSupport", descKey: "fileSupportDesc" },
+  { icon: Globe, titleKey: "multilingual", descKey: "multilingualDesc" },
+  { icon: Smartphone, titleKey: "mobileReady", descKey: "mobileReadyDesc" },
+  { icon: Shield, titleKey: "security", descKey: "securityDesc" },
 ];
 
 const agentTutorials = [
@@ -296,48 +297,25 @@ const agentTutorials = [
 ];
 
 const gettingStartedChecklist = [
-  { label: "Create your account", done: true },
-  { label: "Browse available AI agents", done: false, href: "/workers" },
-  { label: "Hire your first agent", done: false, href: "/workers" },
-  { label: "Start a chat conversation", done: false, href: "/chat" },
-  { label: "Connect your integrations", done: false, href: "/settings" },
-  { label: "Review your dashboard metrics", done: false, href: "/dashboard" },
+  { labelKey: "createAccount", done: true },
+  { labelKey: "browseAgents", done: false, href: "/workers" },
+  { labelKey: "hireFirst", done: false, href: "/workers" },
+  { labelKey: "startChat", done: false, href: "/chat" },
+  { labelKey: "connectIntegrations", done: false, href: "/settings" },
+  { labelKey: "reviewDashboard", done: false, href: "/dashboard" },
 ];
 
 const advancedFeatures = [
-  {
-    icon: Layers,
-    title: "Multi-Agent Workflows",
-    desc: "Chain multiple agents together for complex tasks. Rex finds leads, Ava follows up with support, and DataBot tracks the results.",
-  },
-  {
-    icon: Terminal,
-    title: "Custom Prompts & Personas",
-    desc: "Fine-tune your agents' responses with custom system prompts, brand voice guidelines, and persona settings.",
-  },
-  {
-    icon: Puzzle,
-    title: "API & Webhook Integration",
-    desc: "Connect your agents to any external service using our API. Trigger agent actions from webhooks and automate complex workflows.",
-  },
-  {
-    icon: Target,
-    title: "Performance Benchmarks",
-    desc: "Set custom KPIs for each agent. Track response times, resolution rates, and customer satisfaction scores automatically.",
-  },
-  {
-    icon: FileText,
-    title: "Conversation Templates",
-    desc: "Create reusable conversation templates for common scenarios. Agents use them as starting points for consistent responses.",
-  },
-  {
-    icon: Shield,
-    title: "Access Controls & Guardrails",
-    desc: "Set boundaries on what agents can do. Configure approval workflows for sensitive actions like refunds or data access.",
-  },
+  { icon: Layers, titleKey: "multiAgent", descKey: "multiAgentDesc" },
+  { icon: Terminal, titleKey: "customPrompts", descKey: "customPromptsDesc" },
+  { icon: Puzzle, titleKey: "apiWebhook", descKey: "apiWebhookDesc" },
+  { icon: Target, titleKey: "benchmarks", descKey: "benchmarksDesc" },
+  { icon: FileText, titleKey: "templates", descKey: "templatesDesc" },
+  { icon: Shield, titleKey: "accessControls", descKey: "accessControlsDesc" },
 ];
 
 function AgentTutorialCard({ tutorial, index }: { tutorial: typeof agentTutorials[0]; index: number }) {
+  const { t } = useTranslation("pages");
   const [expanded, setExpanded] = useState(false);
   const Icon = tutorial.icon;
 
@@ -383,7 +361,7 @@ function AgentTutorialCard({ tutorial, index }: { tutorial: typeof agentTutorial
               <div className="px-4 pb-4 space-y-4 border-t border-border/30 pt-4">
                 <div>
                   <h4 className="text-xs font-semibold text-foreground mb-2 flex items-center gap-1.5">
-                    <Zap className="w-3.5 h-3.5 text-blue-400" /> Capabilities
+                    <Zap className="w-3.5 h-3.5 text-blue-400" /> {t("guide.agentTutorials.capabilities")}
                   </h4>
                   <ul className="space-y-1.5">
                     {tutorial.capabilities.map((cap, i) => (
@@ -397,7 +375,7 @@ function AgentTutorialCard({ tutorial, index }: { tutorial: typeof agentTutorial
 
                 <div>
                   <h4 className="text-xs font-semibold text-foreground mb-2 flex items-center gap-1.5">
-                    <MessageSquare className="w-3.5 h-3.5 text-violet-400" /> Example Prompts
+                    <MessageSquare className="w-3.5 h-3.5 text-violet-400" /> {t("guide.agentTutorials.examplePrompts")}
                   </h4>
                   <div className="space-y-1.5">
                     {tutorial.examplePrompts.map((prompt, i) => (
@@ -410,7 +388,7 @@ function AgentTutorialCard({ tutorial, index }: { tutorial: typeof agentTutorial
 
                 <div>
                   <h4 className="text-xs font-semibold text-foreground mb-2 flex items-center gap-1.5">
-                    <Puzzle className="w-3.5 h-3.5 text-amber-400" /> Integration Tips
+                    <Puzzle className="w-3.5 h-3.5 text-amber-400" /> {t("guide.agentTutorials.integrationTips")}
                   </h4>
                   <ul className="space-y-1.5">
                     {tutorial.integrationTips.map((tip, i) => (
@@ -424,7 +402,7 @@ function AgentTutorialCard({ tutorial, index }: { tutorial: typeof agentTutorial
 
                 <Link href={`/workers/${tutorial.slug}`}>
                   <Button size="sm" variant="secondary" className="text-xs w-full mt-2" data-testid={`button-view-${tutorial.name.toLowerCase()}`}>
-                    View Full Profile <ArrowRight className="w-3 h-3 ml-1" />
+                    {t("guide.agentTutorials.viewFullProfile")} <ArrowRight className="w-3 h-3 ml-1" />
                   </Button>
                 </Link>
               </div>
@@ -437,6 +415,8 @@ function AgentTutorialCard({ tutorial, index }: { tutorial: typeof agentTutorial
 }
 
 function LoggedInGuide() {
+  const { t } = useTranslation("pages");
+  const tips = t("guide.tipsTricks.tips", { returnObjects: true }) as Array<{ tip: string; detail: string }>;
   return (
     <div className="pt-16 overflow-x-hidden">
       <section className="py-12 sm:py-20 relative">
@@ -452,16 +432,15 @@ function LoggedInGuide() {
             transition={{ duration: 0.6 }}
           >
             <Badge className="mb-4 bg-blue-500/10 text-blue-400 border-blue-500/20" data-testid="badge-guide">
-              <BookOpen className="w-3 h-3 mr-1" /> Complete Guide
+              <BookOpen className="w-3 h-3 mr-1" /> {t("guide.badgeLoggedIn")}
             </Badge>
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-foreground mb-4" data-testid="text-guide-title">
-              Master{" "}
               <span className="bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent">
-                RentAI 24
+                {t("guide.titleLoggedIn")}
               </span>
             </h1>
             <p className="text-muted-foreground text-sm sm:text-lg max-w-2xl mx-auto">
-              Everything you need to get the most out of your AI workforce. Tutorials, tips, and advanced techniques.
+              {t("guide.subtitleLoggedIn")}
             </p>
           </motion.div>
         </div>
@@ -471,15 +450,15 @@ function LoggedInGuide() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div className="mb-8" {...fadeUp}>
             <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-2" data-testid="text-getting-started">
-              Getting Started Checklist
+              {t("guide.gettingStarted.title")}
             </h2>
-            <p className="text-muted-foreground text-sm">Complete these steps to set up your AI workforce</p>
+            <p className="text-muted-foreground text-sm">{t("guide.gettingStarted.subtitle")}</p>
           </motion.div>
 
           <div className="space-y-3">
             {gettingStartedChecklist.map((item, i) => (
               <motion.div
-                key={item.label}
+                key={item.labelKey}
                 initial={{ opacity: 0, x: -20 }}
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true }}
@@ -494,12 +473,12 @@ function LoggedInGuide() {
                     )}
                   </div>
                   <span className={`text-sm flex-1 ${item.done ? "text-emerald-400 line-through" : "text-foreground"}`}>
-                    {item.label}
+                    {t(`guide.gettingStarted.items.${item.labelKey}`)}
                   </span>
                   {!item.done && item.href && (
                     <Link href={item.href}>
                       <Button size="sm" variant="ghost" className="text-xs h-7" data-testid={`checklist-action-${i}`}>
-                        Go <ArrowRight className="w-3 h-3 ml-1" />
+                        {t("guide.gettingStarted.go")} <ArrowRight className="w-3 h-3 ml-1" />
                       </Button>
                     </Link>
                   )}
@@ -514,10 +493,10 @@ function LoggedInGuide() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div className="text-center mb-10" {...fadeUp}>
             <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-3" data-testid="text-interactive-demo">
-              Interactive Demo
+              {t("guide.interactiveDemo.title")}
             </h2>
             <p className="text-muted-foreground text-sm sm:text-base max-w-xl mx-auto">
-              Watch how the platform works — hover to pause, click steps to navigate
+              {t("guide.interactiveDemo.subtitle")}
             </p>
           </motion.div>
           <PlatformGuide variant="full" />
@@ -528,10 +507,10 @@ function LoggedInGuide() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div className="text-center mb-10" {...fadeUp}>
             <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-3" data-testid="text-agent-tutorials">
-              Agent Tutorials
+              {t("guide.agentTutorials.title")}
             </h2>
             <p className="text-muted-foreground text-sm sm:text-base max-w-xl mx-auto">
-              Deep dive into each agent's capabilities, example prompts, and integration tips
+              {t("guide.agentTutorials.subtitle")}
             </p>
           </motion.div>
 
@@ -547,10 +526,10 @@ function LoggedInGuide() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div className="text-center mb-10" {...fadeUp}>
             <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-3" data-testid="text-advanced-features">
-              Advanced Features
+              {t("guide.advancedFeatures.title")}
             </h2>
             <p className="text-muted-foreground text-sm sm:text-base max-w-xl mx-auto">
-              Power-user techniques to maximize your AI workforce
+              {t("guide.advancedFeatures.subtitle")}
             </p>
           </motion.div>
 
@@ -569,8 +548,8 @@ function LoggedInGuide() {
                     <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500/20 to-violet-500/20 flex items-center justify-center mb-3">
                       <Icon className="w-5 h-5 text-blue-400" />
                     </div>
-                    <h3 className="font-semibold text-foreground text-sm mb-1">{feature.title}</h3>
-                    <p className="text-xs text-muted-foreground leading-relaxed">{feature.desc}</p>
+                    <h3 className="font-semibold text-foreground text-sm mb-1">{t(`guide.advancedFeatures.${feature.titleKey}`)}</h3>
+                    <p className="text-xs text-muted-foreground leading-relaxed">{t(`guide.advancedFeatures.${feature.descKey}`)}</p>
                   </Card>
                 </motion.div>
               );
@@ -583,22 +562,15 @@ function LoggedInGuide() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div className="text-center mb-10" {...fadeUp}>
             <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-3" data-testid="text-tips-tricks">
-              Tips & Tricks
+              {t("guide.tipsTricks.title")}
             </h2>
             <p className="text-muted-foreground text-sm sm:text-base max-w-xl mx-auto">
-              Pro tips to get better results from your AI agents
+              {t("guide.tipsTricks.subtitle")}
             </p>
           </motion.div>
 
           <div className="space-y-3">
-            {[
-              { tip: "Be specific with your prompts", detail: "Instead of 'write an email', say 'write a professional follow-up email to a client who hasn't responded in 5 days about our Q3 proposal'." },
-              { tip: "Use context and history", detail: "Reference previous conversations or tasks. Your agents remember context, so saying 'like we discussed yesterday' helps them provide better responses." },
-              { tip: "Set up recurring tasks", detail: "Schedule agents to perform routine tasks daily or weekly. Rex can send follow-ups every Tuesday, DataBot can generate reports every Friday." },
-              { tip: "Combine multiple agents", detail: "Use agents together for complex workflows. Have Rex find leads, then Cal schedule meetings, and Ava handle follow-up support." },
-              { tip: "Upload reference materials", detail: "Share your brand guidelines, product docs, and SOPs with agents. The more context they have, the better their output matches your needs." },
-              { tip: "Review and give feedback", detail: "Check agent outputs regularly and provide feedback. This helps the AI learn your preferences and improve over time." },
-            ].map((item, i) => (
+            {tips.map((item, i) => (
               <motion.div
                 key={item.tip}
                 initial={{ opacity: 0, y: 15 }}
@@ -627,10 +599,10 @@ function LoggedInGuide() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div className="text-center mb-10" {...fadeUp}>
             <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-3" data-testid="text-features">
-              Platform Features
+              {t("guide.features.title")}
             </h2>
             <p className="text-muted-foreground text-sm sm:text-base max-w-xl mx-auto">
-              Everything you need to manage your AI workforce
+              {t("guide.features.subtitle")}
             </p>
           </motion.div>
 
@@ -639,7 +611,7 @@ function LoggedInGuide() {
               const Icon = feature.icon;
               return (
                 <motion.div
-                  key={feature.title}
+                  key={feature.titleKey}
                   initial={{ opacity: 0, scale: 0.95 }}
                   whileInView={{ opacity: 1, scale: 1 }}
                   viewport={{ once: true }}
@@ -649,8 +621,8 @@ function LoggedInGuide() {
                     <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500/20 to-violet-500/20 flex items-center justify-center mb-3">
                       <Icon className="w-5 h-5 text-blue-400" />
                     </div>
-                    <h3 className="font-semibold text-foreground text-sm mb-1">{feature.title}</h3>
-                    <p className="text-xs text-muted-foreground leading-relaxed">{feature.desc}</p>
+                    <h3 className="font-semibold text-foreground text-sm mb-1">{t(`guide.features.${feature.titleKey}`)}</h3>
+                    <p className="text-xs text-muted-foreground leading-relaxed">{t(`guide.features.${feature.descKey}`)}</p>
                   </Card>
                 </motion.div>
               );
@@ -663,21 +635,21 @@ function LoggedInGuide() {
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <motion.div {...fadeUp}>
             <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-4" data-testid="text-guide-cta">
-              Ready to Explore?
+              {t("guide.ctaTitle")}
             </h2>
             <p className="text-muted-foreground text-sm sm:text-base mb-8 max-w-xl mx-auto">
-              Put your knowledge to work. Start chatting with your AI agents now.
+              {t("guide.ctaSubtitle")}
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
               <Link href="/chat">
                 <Button className="bg-gradient-to-r from-blue-500 to-violet-500 text-white border-0 px-8" data-testid="guide-cta-chat">
                   <MessageSquare className="w-4 h-4 mr-2" />
-                  Start Chatting
+                  {t("guide.startChatting")}
                 </Button>
               </Link>
               <Link href="/dashboard">
                 <Button variant="outline" className="px-8 border-border/30" data-testid="guide-cta-dashboard">
-                  Go to Dashboard
+                  {t("guide.goToDashboard")}
                 </Button>
               </Link>
             </div>
@@ -689,6 +661,7 @@ function LoggedInGuide() {
 }
 
 export default function GuidePage() {
+  const { t } = useTranslation("pages");
   const { user, isLoading } = useAuth();
 
   if (isLoading) {
@@ -722,16 +695,15 @@ export default function GuidePage() {
             transition={{ duration: 0.6 }}
           >
             <Badge className="mb-4 bg-blue-500/10 text-blue-400 border-blue-500/20" data-testid="badge-guide">
-              <Bot className="w-3 h-3 mr-1" /> Platform Guide
+              <Bot className="w-3 h-3 mr-1" /> {t("guide.badgePublic")}
             </Badge>
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-foreground mb-4" data-testid="text-guide-title">
-              How to Use{" "}
               <span className="bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent">
-                RentAI 24
+                {t("guide.titlePublic")}
               </span>
             </h1>
             <p className="text-muted-foreground text-sm sm:text-lg max-w-2xl mx-auto">
-              A complete walkthrough of your AI staffing platform. Learn how to hire, chat with, and manage your AI workforce.
+              {t("guide.subtitlePublic")}
             </p>
           </motion.div>
         </div>
@@ -741,10 +713,10 @@ export default function GuidePage() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div className="text-center mb-10" {...fadeUp}>
             <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-3" data-testid="text-interactive-demo">
-              Interactive Demo
+              {t("guide.interactiveDemo.title")}
             </h2>
             <p className="text-muted-foreground text-sm sm:text-base max-w-xl mx-auto">
-              Watch how the platform works — hover to pause, click steps to navigate
+              {t("guide.interactiveDemo.subtitle")}
             </p>
           </motion.div>
           <PlatformGuide variant="full" />
@@ -755,10 +727,10 @@ export default function GuidePage() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div className="text-center mb-10" {...fadeUp}>
             <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-3" data-testid="text-meet-agents">
-              Meet Your AI Agents
+              {t("guide.meetAgents")}
             </h2>
             <p className="text-muted-foreground text-sm sm:text-base max-w-xl mx-auto">
-              9 specialized agents, each trained for specific business roles
+              {t("guide.meetAgentsDesc")}
             </p>
           </motion.div>
 
@@ -794,10 +766,10 @@ export default function GuidePage() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div className="text-center mb-10" {...fadeUp}>
             <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-3" data-testid="text-features">
-              Platform Features
+              {t("guide.features.title")}
             </h2>
             <p className="text-muted-foreground text-sm sm:text-base max-w-xl mx-auto">
-              Everything you need to manage your AI workforce
+              {t("guide.features.subtitle")}
             </p>
           </motion.div>
 
@@ -806,7 +778,7 @@ export default function GuidePage() {
               const Icon = feature.icon;
               return (
                 <motion.div
-                  key={feature.title}
+                  key={feature.titleKey}
                   initial={{ opacity: 0, scale: 0.95 }}
                   whileInView={{ opacity: 1, scale: 1 }}
                   viewport={{ once: true }}
@@ -816,8 +788,8 @@ export default function GuidePage() {
                     <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500/20 to-violet-500/20 flex items-center justify-center mb-3">
                       <Icon className="w-5 h-5 text-blue-400" />
                     </div>
-                    <h3 className="font-semibold text-foreground text-sm mb-1">{feature.title}</h3>
-                    <p className="text-xs text-muted-foreground leading-relaxed">{feature.desc}</p>
+                    <h3 className="font-semibold text-foreground text-sm mb-1">{t(`guide.features.${feature.titleKey}`)}</h3>
+                    <p className="text-xs text-muted-foreground leading-relaxed">{t(`guide.features.${feature.descKey}`)}</p>
                   </Card>
                 </motion.div>
               );
@@ -830,21 +802,21 @@ export default function GuidePage() {
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <motion.div {...fadeUp}>
             <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-4" data-testid="text-guide-cta">
-              Ready to Get Started?
+              {t("guide.ctaTitle")}
             </h2>
             <p className="text-muted-foreground text-sm sm:text-base mb-8 max-w-xl mx-auto">
-              Hire your first AI worker and see the difference in minutes.
+              {t("guide.ctaSubtitle")}
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
               <Link href="/workers">
                 <Button className="bg-gradient-to-r from-blue-500 to-violet-500 text-white border-0 px-8" data-testid="guide-cta-workers">
-                  Browse AI Workers
+                  {t("guide.viewWorkers")}
                   <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>
               </Link>
               <Link href="/dashboard">
                 <Button variant="outline" className="px-8 border-border/30" data-testid="guide-cta-dashboard">
-                  Go to Dashboard
+                  {t("guide.goToDashboard")}
                 </Button>
               </Link>
             </div>

@@ -7,6 +7,7 @@ import "katex/dist/katex.min.css";
 import type { Components } from "react-markdown";
 import { Download, X, ImageOff, Loader2, FileText, FileSpreadsheet, File } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { useToast } from "@/hooks/use-toast";
 
 function getDownloadUrl(src: string): string {
   const match = src?.match(/\/api\/images\/([^/]+)$/);
@@ -145,7 +146,7 @@ function DocumentCard({ filename, sizeInfo, isUser }: { filename: string; sizeIn
   );
 }
 
-const createComponents = (isUser: boolean): Components => ({
+const createComponents = (isUser: boolean, showToast?: (msg: string) => void): Components => ({
   p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
   strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
   em: ({ children }) => <em className="italic">{children}</em>,
@@ -219,7 +220,7 @@ const createComponents = (isUser: boolean): Components => ({
               document.body.removeChild(a);
               URL.revokeObjectURL(url);
             } catch {
-              alert("Dosya indirilemedi. Lütfen tekrar deneyin.");
+              showToast?.("Dosya indirilemedi. Lütfen tekrar deneyin.");
             }
           }}
           className={`inline-flex items-center gap-1 underline underline-offset-2 decoration-1 cursor-pointer ${isUser ? "text-blue-100 hover:text-white" : "text-blue-400 hover:text-blue-300"}`}
@@ -259,15 +260,20 @@ interface ChatMessageContentProps {
 }
 
 export default function ChatMessageContent({ content, isUser }: ChatMessageContentProps) {
+  const { toast } = useToast();
   const docMatch = content.match(/📎 \*\*(.+?)\*\*(?:\s*\((.+?)\))?$/m);
   const textWithoutDoc = docMatch ? content.replace(/\n*📎 \*\*.+$/m, "").trim() : content;
+
+  const showToast = (msg: string) => {
+    toast({ title: msg, variant: "destructive" });
+  };
 
   return (
     <div className="prose-chat text-sm leading-relaxed [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
       <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkMath]}
         rehypePlugins={[rehypeKatex]}
-        components={createComponents(isUser)}
+        components={createComponents(isUser, showToast)}
       >
         {textWithoutDoc}
       </ReactMarkdown>

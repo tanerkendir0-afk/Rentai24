@@ -51,6 +51,7 @@ import {
   Shield,
   FileText,
   Paperclip,
+  Square,
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
@@ -269,6 +270,11 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
 
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    return () => { abortControllerRef.current?.abort(); };
+  }, []);
   const [initialAgentSet, setInitialAgentSet] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<{ url: string; name: string; type: "image" | "document"; size?: number; documentContent?: string } | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -623,6 +629,9 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
     setLoading(true);
     trackEvent("chat_message_sent", "agent", { agentType: selectedAgent });
 
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     try {
       const res = await fetch("/api/chat", {
         method: "POST",
@@ -633,6 +642,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
           conversationHistory: messages.slice(-50),
           sessionId: currentConvoId,
         }),
+        signal: controller.signal,
       });
       const data = await res.json();
       if (data.code === "GUARDRAIL_BLOCKED") {
@@ -653,12 +663,20 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
       if (isSocialMediaAgent) {
         queryClient.invalidateQueries({ queryKey: ["/api/image-credits"] });
       }
-    } catch {
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: t("demoPage.somethingWrong") },
-      ]);
+    } catch (err: any) {
+      if (err?.name === "AbortError") {
+        setMessages((prev) => [
+          ...prev,
+          { role: "assistant", content: `⏹ ${t("demoPage.responseStopped")}` },
+        ]);
+      } else {
+        setMessages((prev) => [
+          ...prev,
+          { role: "assistant", content: t("demoPage.somethingWrong") },
+        ]);
+      }
     } finally {
+      abortControllerRef.current = null;
       setLoading(false);
     }
   };
@@ -2010,14 +2028,26 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                   className="w-full h-11 sm:h-11 px-3 sm:px-4 pr-11 sm:pr-12 rounded-xl bg-muted/50 border border-border/50 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 transition-all disabled:opacity-50"
                   data-testid="input-chat"
                 />
-                <button
-                  type="submit"
-                  disabled={loading || (!input.trim() && !uploadedFile)}
-                  className="absolute right-1.5 top-1/2 -translate-y-1/2 w-8 h-8 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 rounded-lg bg-gradient-to-r from-blue-500 to-violet-500 flex items-center justify-center text-white disabled:opacity-30 transition-opacity"
-                  data-testid="button-send-chat"
-                >
-                  <Send className="w-4 h-4" />
-                </button>
+                {loading ? (
+                  <button
+                    type="button"
+                    onClick={() => abortControllerRef.current?.abort()}
+                    className="absolute right-1.5 top-1/2 -translate-y-1/2 w-8 h-8 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 rounded-lg bg-gradient-to-r from-red-500 to-orange-500 flex items-center justify-center text-white transition-opacity animate-pulse"
+                    data-testid="button-stop-chat"
+                    title={t("demoPage.stopResponse")}
+                  >
+                    <Square className="w-3.5 h-3.5 fill-current" />
+                  </button>
+                ) : (
+                  <button
+                    type="submit"
+                    disabled={!input.trim() && !uploadedFile}
+                    className="absolute right-1.5 top-1/2 -translate-y-1/2 w-8 h-8 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 rounded-lg bg-gradient-to-r from-blue-500 to-violet-500 flex items-center justify-center text-white disabled:opacity-30 transition-opacity"
+                    data-testid="button-send-chat"
+                  >
+                    <Send className="w-4 h-4" />
+                  </button>
+                )}
               </div>
             </form>
           </div>

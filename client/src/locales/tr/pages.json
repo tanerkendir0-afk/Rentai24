@@ -1064,6 +1064,8 @@
     "taskDescOptional": "Açıklama (opsiyonel)",
     "task": "Görev",
     "attachFile": "Dosya ekle",
+    "stopResponse": "Yanıtı durdur",
+    "responseStopped": "Yanıt durduruldu.",
     "askPlaceholder": "{{agent}}'a neler yapabileceğini sor...",
     "messagePlaceholder": "{{agent}}'a mesaj yaz...",
     "noTicketsYet": "Henüz talep yok",

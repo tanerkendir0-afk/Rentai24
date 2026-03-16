@@ -1064,6 +1064,8 @@
     "taskDescOptional": "Description (optional)",
     "task": "Task",
     "attachFile": "Add file",
+    "stopResponse": "Stop response",
+    "responseStopped": "Response stopped.",
     "askPlaceholder": "Ask {{agent}} what it can do...",
     "messagePlaceholder": "Message {{agent}}...",
     "noTicketsYet": "No tickets yet",

@@ -1609,7 +1609,8 @@
       "security": "Security",
       "escalations": "Escalations",
       "collaboration": "Collaboration",
-      "consentStats": "KVKK/GDPR"
+      "consentStats": "KVKK/GDPR",
+      "behaviorAnalytics": "User Behavior"
     },
     "login": {
       "passwordPlaceholder": "Admin Password",
@@ -1705,6 +1706,33 @@
       "noData": "No consent data recorded yet.",
       "userConsentOverview": "User Consent Overview",
       "consentLogHistory": "Consent Log History"
+    },
+    "analytics": {
+      "title": "User Behavior Analytics",
+      "day": "Day",
+      "week": "Week",
+      "month": "Month",
+      "activeUsers": "Active Users",
+      "totalPageViews": "Total Page Views",
+      "totalEvents": "Total Events",
+      "conversionRate": "Conversion Rate",
+      "popularPages": "Popular Pages",
+      "topAgents": "Top Agents by Usage",
+      "topEvents": "Top Events",
+      "eventName": "Event",
+      "category": "Category",
+      "count": "Count",
+      "views": "views",
+      "uniqueUsers": "unique",
+      "events": "events",
+      "users": "users",
+      "noData": "No data available for this period.",
+      "dailyActivity": "Daily Activity",
+      "dailyLegend": "Users / Page Views per day",
+      "conversionFunnel": "Conversion Funnel",
+      "newUsers": "New Registrations",
+      "usersWithRentals": "Users with Rentals",
+      "conversionRateLabel": "Conversion Rate"
     },
     "bossAi": {
       "askPlaceholder": "Ask Boss anything about the platform...",

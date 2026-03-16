@@ -10,9 +10,11 @@ import { SiGoogle } from "react-icons/si";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "react-i18next";
 import { apiRequest } from "@/lib/queryClient";
+import { useAnalytics } from "@/lib/analytics";
 
 export default function Register() {
   const { register } = useAuth();
+  const { trackEvent } = useAnalytics();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { t } = useTranslation("pages");
@@ -39,6 +41,7 @@ export default function Register() {
     setLoading(true);
     try {
       await register({ ...form, kvkkConsent: true, dataProcessingConsent: true });
+      trackEvent("user_registered", "auth", { method: "email" });
       toast({ title: t("register.welcome"), description: t("register.registerSuccess") });
       setTimeout(() => setLocation("/dashboard"), 100);
     } catch (err: any) {

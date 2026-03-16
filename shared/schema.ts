@@ -727,3 +727,37 @@ export const insertCrmDocumentSchema = createInsertSchema(crmDocuments).omit({
 
 export type CrmDocument = typeof crmDocuments.$inferSelect;
 export type InsertCrmDocument = z.infer<typeof insertCrmDocumentSchema>;
+
+export const pageViews = pgTable("page_views", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id),
+  path: text("path").notNull(),
+  duration: integer("duration"),
+  referrer: text("referrer"),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
+export const insertPageViewSchema = createInsertSchema(pageViews).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type PageView = typeof pageViews.$inferSelect;
+export type InsertPageView = z.infer<typeof insertPageViewSchema>;
+
+export const userEvents = pgTable("user_events", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id),
+  eventName: text("event_name").notNull(),
+  eventCategory: text("event_category").notNull(),
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
+export const insertUserEventSchema = createInsertSchema(userEvents).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type UserEvent = typeof userEvents.$inferSelect;
+export type InsertUserEvent = z.infer<typeof insertUserEventSchema>;

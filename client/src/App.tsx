@@ -7,6 +7,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 import { AuthProvider } from "@/lib/auth";
 import { LanguageProvider } from "@/lib/language";
+import { AnalyticsProvider } from "@/lib/analytics";
 import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
 import CookieConsent from "@/components/cookie-consent";
@@ -97,9 +98,11 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <LanguageProvider>
-          <TooltipProvider>
-            <AppContent />
-          </TooltipProvider>
+          <AnalyticsProvider>
+            <TooltipProvider>
+              <AppContent />
+            </TooltipProvider>
+          </AnalyticsProvider>
         </LanguageProvider>
       </AuthProvider>
     </QueryClientProvider>

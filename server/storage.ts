@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { users, rentals, contactMessages, newsletterSubscribers, leads, agentActions, emailCampaigns, supportTickets, tokenUsage, agentTasks, chatMessages, conversations, teamMembers, bossNotifications, socialAccounts, shippingProviders, guardrailLogs, systemSettings, scheduledPosts, whatsappConfig, whatsappMessages, agentLimits, escalationRules, escalations, escalationMessages, agentInstructions, globalAgentInstructions, consentLogs, crmDocuments, securityEvents, type User, type InsertUser, type Rental, type InsertRental, type ContactMessage, type InsertContactMessage, type NewsletterSubscriber, type Lead, type InsertLead, type AgentAction, type InsertAgentAction, type EmailCampaign, type InsertEmailCampaign, type SupportTicket, type InsertSupportTicket, type TokenUsage, type InsertTokenUsage, type AgentTask, type InsertAgentTask, type ChatMessage, type InsertChatMessage, type ConversationRecord, type InsertConversation, type TeamMember, type InsertTeamMember, type BossNotification, type InsertBossNotification, type SocialAccount, type InsertSocialAccount, type ShippingProvider, type InsertShippingProvider, type GuardrailLog, type ScheduledPost, type InsertScheduledPost, type WhatsappConfig, type InsertWhatsappConfig, type WhatsappMessage, type InsertWhatsappMessage, type AgentLimit, type InsertAgentLimit, type EscalationRule, type InsertEscalationRule, type Escalation, type InsertEscalation, type EscalationMessage, type InsertEscalationMessage, type AgentInstruction, type InsertAgentInstruction, type GlobalAgentInstruction, type ConsentLog, type InsertConsentLog, type CrmDocument, type InsertCrmDocument } from "@shared/schema";
+import { users, rentals, contactMessages, newsletterSubscribers, leads, agentActions, emailCampaigns, supportTickets, tokenUsage, agentTasks, chatMessages, conversations, teamMembers, bossNotifications, socialAccounts, shippingProviders, guardrailLogs, systemSettings, scheduledPosts, whatsappConfig, whatsappMessages, agentLimits, escalationRules, escalations, escalationMessages, agentInstructions, globalAgentInstructions, consentLogs, crmDocuments, securityEvents, pageViews, userEvents, type User, type InsertUser, type Rental, type InsertRental, type ContactMessage, type InsertContactMessage, type NewsletterSubscriber, type Lead, type InsertLead, type AgentAction, type InsertAgentAction, type EmailCampaign, type InsertEmailCampaign, type SupportTicket, type InsertSupportTicket, type TokenUsage, type InsertTokenUsage, type AgentTask, type InsertAgentTask, type ChatMessage, type InsertChatMessage, type ConversationRecord, type InsertConversation, type TeamMember, type InsertTeamMember, type BossNotification, type InsertBossNotification, type SocialAccount, type InsertSocialAccount, type ShippingProvider, type InsertShippingProvider, type GuardrailLog, type ScheduledPost, type InsertScheduledPost, type WhatsappConfig, type InsertWhatsappConfig, type WhatsappMessage, type InsertWhatsappMessage, type AgentLimit, type InsertAgentLimit, type EscalationRule, type InsertEscalationRule, type Escalation, type InsertEscalation, type EscalationMessage, type InsertEscalationMessage, type AgentInstruction, type InsertAgentInstruction, type GlobalAgentInstruction, type ConsentLog, type InsertConsentLog, type CrmDocument, type InsertCrmDocument, type PageView, type InsertPageView, type UserEvent, type InsertUserEvent } from "@shared/schema";
 import { eq, and, sql, desc, gte, lte } from "drizzle-orm";
 import * as cryptoModule from "crypto";
 
@@ -161,6 +161,11 @@ export interface IStorage {
   getConsentLogs(userId: number): Promise<ConsentLog[]>;
   getConsentStats(): Promise<{ consentType: string; granted: number; revoked: number; total: number }[]>;
   updateUserConsent(userId: number, updates: { cookieConsent?: boolean; dataProcessingConsent?: boolean }): Promise<User | undefined>;
+
+  createPageView(pv: InsertPageView): Promise<PageView>;
+  createUserEvent(ev: InsertUserEvent): Promise<UserEvent>;
+  getAnalyticsSummary(period: "day" | "week" | "month"): Promise<any>;
+
   deleteUserAndData(userId: number): Promise<boolean>;
 }
 
@@ -1163,8 +1168,93 @@ export class DatabaseStorage implements IStorage {
     return updated;
   }
 
+  async createPageView(pv: InsertPageView): Promise<PageView> {
+    const [created] = await db.insert(pageViews).values(pv).returning();
+    return created;
+  }
+
+  async createUserEvent(ev: InsertUserEvent): Promise<UserEvent> {
+    const [created] = await db.insert(userEvents).values(ev).returning();
+    return created;
+  }
+
+  async getAnalyticsSummary(period: "day" | "week" | "month"): Promise<any> {
+    const intervalMap = { day: "1 day", week: "7 days", month: "30 days" };
+    const interval = intervalMap[period];
+
+    const activeUsersResult = await db.execute(sql`
+      SELECT COUNT(DISTINCT user_id)::int as count FROM page_views
+      WHERE created_at >= NOW() - ${sql.raw(`INTERVAL '${interval}'`)} AND user_id IS NOT NULL
+    `);
+
+    const pageViewsResult = await db.execute(sql`
+      SELECT path, COUNT(*)::int as views, COUNT(DISTINCT user_id)::int as unique_users
+      FROM page_views
+      WHERE created_at >= NOW() - ${sql.raw(`INTERVAL '${interval}'`)}
+      GROUP BY path ORDER BY views DESC LIMIT 20
+    `);
+
+    const topEventsResult = await db.execute(sql`
+      SELECT event_name, event_category, COUNT(*)::int as count
+      FROM user_events
+      WHERE created_at >= NOW() - ${sql.raw(`INTERVAL '${interval}'`)}
+      GROUP BY event_name, event_category ORDER BY count DESC LIMIT 20
+    `);
+
+    const agentUsageResult = await db.execute(sql`
+      SELECT
+        ue.metadata->>'agentType' as agent_type,
+        COUNT(*)::int as event_count,
+        COUNT(DISTINCT ue.user_id)::int as unique_users
+      FROM user_events ue
+      WHERE ue.created_at >= NOW() - ${sql.raw(`INTERVAL '${interval}'`)}
+        AND ue.event_category = 'agent'
+      GROUP BY ue.metadata->>'agentType'
+      ORDER BY event_count DESC
+    `);
+
+    const dailyActiveResult = await db.execute(sql`
+      SELECT
+        DATE(created_at) as date,
+        COUNT(DISTINCT user_id)::int as active_users,
+        COUNT(*)::int as total_views
+      FROM page_views
+      WHERE created_at >= NOW() - ${sql.raw(`INTERVAL '${interval}'`)} AND user_id IS NOT NULL
+      GROUP BY DATE(created_at) ORDER BY date DESC
+    `);
+
+    const conversionResult = await db.execute(sql`
+      SELECT
+        (SELECT COUNT(*)::int FROM users WHERE created_at >= NOW() - ${sql.raw(`INTERVAL '${interval}'`)}) as new_users,
+        (SELECT COUNT(DISTINCT user_id)::int FROM rentals WHERE started_at >= NOW() - ${sql.raw(`INTERVAL '${interval}'`)}) as users_with_rentals
+    `);
+
+    const totalPageViews = await db.execute(sql`
+      SELECT COUNT(*)::int as count FROM page_views
+      WHERE created_at >= NOW() - ${sql.raw(`INTERVAL '${interval}'`)}
+    `);
+
+    const totalEvents = await db.execute(sql`
+      SELECT COUNT(*)::int as count FROM user_events
+      WHERE created_at >= NOW() - ${sql.raw(`INTERVAL '${interval}'`)}
+    `);
+
+    return {
+      activeUsers: activeUsersResult.rows[0]?.count || 0,
+      totalPageViews: totalPageViews.rows[0]?.count || 0,
+      totalEvents: totalEvents.rows[0]?.count || 0,
+      popularPages: pageViewsResult.rows,
+      topEvents: topEventsResult.rows,
+      agentUsage: agentUsageResult.rows,
+      dailyActive: dailyActiveResult.rows,
+      conversion: conversionResult.rows[0] || { new_users: 0, users_with_rentals: 0 },
+    };
+  }
+
   async deleteUserAndData(userId: number): Promise<boolean> {
     try {
+      await db.delete(pageViews).where(eq(pageViews.userId, userId));
+      await db.delete(userEvents).where(eq(userEvents.userId, userId));
       await db.delete(consentLogs).where(eq(consentLogs.userId, userId));
       await db.delete(crmDocuments).where(eq(crmDocuments.userId, userId));
       await db.delete(securityEvents).where(eq(securityEvents.userId, userId));

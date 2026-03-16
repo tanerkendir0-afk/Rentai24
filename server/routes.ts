@@ -5,7 +5,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import bcrypt from "bcrypt";
 import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
-import { chatMessageSchema, contactFormSchema, registerSchema, loginSchema, newsletterSchema, bossConversations, collaborationSessions, rentals, conversations, chatMessages, type User, type AgentTask } from "@shared/schema";
+import { chatMessageSchema, contactFormSchema, registerSchema, loginSchema, newsletterSchema, bossConversations, collaborationSessions, rentals, conversations, chatMessages, insertPageViewSchema, insertUserEventSchema, type User, type AgentTask } from "@shared/schema";
 import { z } from "zod";
 import { storage } from "./storage";
 import { requireAuth } from "./auth";
@@ -5094,6 +5094,70 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
       res.json({ success: true, message: msg("accountDeleted", req.lang!) });
     } catch (error: unknown) {
       console.error("Account deletion error:", error);
+      res.status(500).json({ error: msg("internalServerError", req.lang!) });
+    }
+  });
+
+  const pageViewBodySchema = z.object({
+    path: z.string().min(1).max(500),
+    duration: z.number().int().min(0).max(86400).nullable().optional(),
+    referrer: z.string().max(2000).nullable().optional(),
+  });
+
+  const eventBodySchema = z.object({
+    eventName: z.string().min(1).max(200),
+    eventCategory: z.string().min(1).max(100),
+    metadata: z.record(z.unknown()).nullable().optional(),
+  });
+
+  app.post("/api/analytics/pageview", async (req, res) => {
+    try {
+      const parsed = pageViewBodySchema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ error: "Invalid payload", details: parsed.error.flatten() });
+      const userId = req.session?.userId || null;
+      if (userId) {
+        const user = await storage.getUserById(userId);
+        if (user && !user.dataProcessingConsent) {
+          return res.json({ success: true, skipped: true });
+        }
+      }
+      await storage.createPageView({ userId, path: parsed.data.path, duration: parsed.data.duration ?? null, referrer: parsed.data.referrer ?? null });
+      res.json({ success: true });
+    } catch (error: unknown) {
+      console.error("Analytics pageview error:", error);
+      res.status(500).json({ error: msg("internalServerError", req.lang!) });
+    }
+  });
+
+  app.post("/api/analytics/event", async (req, res) => {
+    try {
+      const parsed = eventBodySchema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ error: "Invalid payload", details: parsed.error.flatten() });
+      const userId = req.session?.userId || null;
+      if (userId) {
+        const user = await storage.getUserById(userId);
+        if (user && !user.dataProcessingConsent) {
+          return res.json({ success: true, skipped: true });
+        }
+      }
+      await storage.createUserEvent({ userId, eventName: parsed.data.eventName, eventCategory: parsed.data.eventCategory, metadata: parsed.data.metadata ?? null });
+      res.json({ success: true });
+    } catch (error: unknown) {
+      console.error("Analytics event error:", error);
+      res.status(500).json({ error: msg("internalServerError", req.lang!) });
+    }
+  });
+
+  app.get(`/api/${ADMIN_PATH}/analytics`, requireAdmin, async (req, res) => {
+    try {
+      const period = (req.query.period as string) || "week";
+      if (!["day", "week", "month"].includes(period)) {
+        return res.status(400).json({ error: "Invalid period. Use day, week, or month." });
+      }
+      const summary = await storage.getAnalyticsSummary(period as "day" | "week" | "month");
+      res.json(summary);
+    } catch (error: unknown) {
+      console.error("Analytics summary error:", error);
       res.status(500).json({ error: msg("internalServerError", req.lang!) });
     }
   });

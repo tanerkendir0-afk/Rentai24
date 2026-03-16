@@ -5208,6 +5208,237 @@ function AIProviderPanel({ token }: { token: string }) {
   );
 }
 
+function BehaviorAnalyticsPanel({ token }: { token: string }) {
+  const { t } = useTranslation("pages");
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [period, setPeriod] = useState<"day" | "week" | "month">("week");
+
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const headers = { Authorization: `Bearer ${token}` };
+      const res = await fetch(`${ADMIN_API}/analytics?period=${period}`, { headers });
+      if (res.ok) {
+        const d = await res.json();
+        setData(d);
+      }
+    } catch (err) {
+      console.error("Failed to fetch analytics:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, [token, period]);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-12">
+        <Loader2 className="w-6 h-6 animate-spin text-blue-400" />
+      </div>
+    );
+  }
+
+  const conversionRate = data?.conversion?.new_users > 0
+    ? Math.round((data.conversion.users_with_rentals / data.conversion.new_users) * 100)
+    : 0;
+
+  const periodLabels: Record<string, string> = {
+    day: t("adminPage.analytics.day"),
+    week: t("adminPage.analytics.week"),
+    month: t("adminPage.analytics.month"),
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+          <BarChart3 className="w-5 h-5 text-cyan-400" />
+          {t("adminPage.analytics.title")}
+        </h3>
+        <div className="flex items-center gap-2">
+          {(["day", "week", "month"] as const).map(p => (
+            <Button
+              key={p}
+              size="sm"
+              variant={period === p ? "default" : "outline"}
+              onClick={() => setPeriod(p)}
+              className={period === p ? "bg-cyan-600 hover:bg-cyan-700 text-white" : "border-[#1E2448] text-gray-400"}
+              data-testid={`button-analytics-period-${p}`}
+            >
+              {periodLabels[p]}
+            </Button>
+          ))}
+          <Button variant="ghost" size="sm" onClick={fetchData} disabled={loading} data-testid="button-refresh-analytics">
+            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+          </Button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <Card className="bg-[#0A0E27] border-[#1E2448]">
+          <CardContent className="p-4 text-center">
+            <p className="text-2xl font-bold text-cyan-400">{data?.activeUsers || 0}</p>
+            <p className="text-xs text-gray-400 mt-1">{t("adminPage.analytics.activeUsers")}</p>
+          </CardContent>
+        </Card>
+        <Card className="bg-[#0A0E27] border-[#1E2448]">
+          <CardContent className="p-4 text-center">
+            <p className="text-2xl font-bold text-blue-400">{data?.totalPageViews || 0}</p>
+            <p className="text-xs text-gray-400 mt-1">{t("adminPage.analytics.totalPageViews")}</p>
+          </CardContent>
+        </Card>
+        <Card className="bg-[#0A0E27] border-[#1E2448]">
+          <CardContent className="p-4 text-center">
+            <p className="text-2xl font-bold text-violet-400">{data?.totalEvents || 0}</p>
+            <p className="text-xs text-gray-400 mt-1">{t("adminPage.analytics.totalEvents")}</p>
+          </CardContent>
+        </Card>
+        <Card className="bg-[#0A0E27] border-[#1E2448]">
+          <CardContent className="p-4 text-center">
+            <p className="text-2xl font-bold text-emerald-400">{conversionRate}%</p>
+            <p className="text-xs text-gray-400 mt-1">{t("adminPage.analytics.conversionRate")}</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Card className="bg-[#0A0E27] border-[#1E2448]">
+          <CardHeader>
+            <CardTitle className="text-sm text-white">{t("adminPage.analytics.popularPages")}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {data?.popularPages?.length > 0 ? (
+              <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                {data.popularPages.map((p: any, i: number) => (
+                  <div key={i} className="flex items-center justify-between p-2 bg-[#111633] rounded border border-[#1E2448]">
+                    <span className="text-sm text-white truncate flex-1 mr-2">{p.path}</span>
+                    <div className="flex items-center gap-3 shrink-0">
+                      <Badge variant="outline" className="border-cyan-800 text-cyan-400 text-xs">{p.views} {t("adminPage.analytics.views")}</Badge>
+                      <span className="text-xs text-gray-500">{p.unique_users} {t("adminPage.analytics.uniqueUsers")}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-gray-500 text-center py-4 text-sm">{t("adminPage.analytics.noData")}</p>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="bg-[#0A0E27] border-[#1E2448]">
+          <CardHeader>
+            <CardTitle className="text-sm text-white">{t("adminPage.analytics.topAgents")}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {data?.agentUsage?.length > 0 ? (
+              <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                {data.agentUsage.map((a: any, i: number) => {
+                  const agentName = AGENTS_DATA.find(ag => ag.slug === a.agent_type)?.persona || a.agent_type;
+                  return (
+                    <div key={i} className="flex items-center justify-between p-2 bg-[#111633] rounded border border-[#1E2448]">
+                      <span className="text-sm text-white">{agentName}</span>
+                      <div className="flex items-center gap-3">
+                        <Badge variant="outline" className="border-violet-800 text-violet-400 text-xs">{a.event_count} {t("adminPage.analytics.events")}</Badge>
+                        <span className="text-xs text-gray-500">{a.unique_users} {t("adminPage.analytics.users")}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="text-gray-500 text-center py-4 text-sm">{t("adminPage.analytics.noData")}</p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card className="bg-[#0A0E27] border-[#1E2448]">
+        <CardHeader>
+          <CardTitle className="text-sm text-white">{t("adminPage.analytics.topEvents")}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {data?.topEvents?.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-[#1E2448]">
+                    <th className="text-left p-2 text-gray-400">{t("adminPage.analytics.eventName")}</th>
+                    <th className="text-left p-2 text-gray-400">{t("adminPage.analytics.category")}</th>
+                    <th className="text-center p-2 text-gray-400">{t("adminPage.analytics.count")}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.topEvents.map((ev: any, i: number) => (
+                    <tr key={i} className="border-b border-[#1E2448]/50">
+                      <td className="p-2 text-white">{ev.event_name}</td>
+                      <td className="p-2">
+                        <Badge variant="outline" className="border-[#1E2448] text-gray-300 text-xs">{ev.event_category}</Badge>
+                      </td>
+                      <td className="p-2 text-center text-cyan-400">{ev.count}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="text-gray-500 text-center py-4 text-sm">{t("adminPage.analytics.noData")}</p>
+          )}
+        </CardContent>
+      </Card>
+
+      {data?.dailyActive?.length > 0 && (
+        <Card className="bg-[#0A0E27] border-[#1E2448]">
+          <CardHeader>
+            <CardTitle className="text-sm text-white">{t("adminPage.analytics.dailyActivity")}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-1 max-h-[200px] overflow-y-auto">
+              {data.dailyActive.map((d: any, i: number) => {
+                const maxViews = Math.max(...data.dailyActive.map((x: any) => x.total_views), 1);
+                const barWidth = Math.max(5, (d.total_views / maxViews) * 100);
+                return (
+                  <div key={i} className="flex items-center gap-3">
+                    <span className="text-xs text-gray-400 w-20 shrink-0">{new Date(d.date).toLocaleDateString()}</span>
+                    <div className="flex-1 h-5 bg-[#111633] rounded overflow-hidden">
+                      <div className="h-full bg-gradient-to-r from-cyan-500 to-blue-500 rounded" style={{ width: `${barWidth}%` }} />
+                    </div>
+                    <span className="text-xs text-white w-16 text-right shrink-0">{d.active_users} / {d.total_views}</span>
+                  </div>
+                );
+              })}
+            </div>
+            <p className="text-xs text-gray-500 mt-2">{t("adminPage.analytics.dailyLegend")}</p>
+          </CardContent>
+        </Card>
+      )}
+
+      <Card className="bg-[#0A0E27] border-[#1E2448]">
+        <CardHeader>
+          <CardTitle className="text-sm text-white">{t("adminPage.analytics.conversionFunnel")}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="p-4 bg-[#111633] rounded-lg border border-[#1E2448] text-center">
+              <p className="text-xl font-bold text-blue-400">{data?.conversion?.new_users || 0}</p>
+              <p className="text-xs text-gray-400 mt-1">{t("adminPage.analytics.newUsers")}</p>
+            </div>
+            <div className="p-4 bg-[#111633] rounded-lg border border-[#1E2448] text-center">
+              <p className="text-xl font-bold text-emerald-400">{data?.conversion?.users_with_rentals || 0}</p>
+              <p className="text-xs text-gray-400 mt-1">{t("adminPage.analytics.usersWithRentals")}</p>
+            </div>
+            <div className="p-4 bg-[#111633] rounded-lg border border-[#1E2448] text-center">
+              <p className="text-xl font-bold text-yellow-400">{conversionRate}%</p>
+              <p className="text-xs text-gray-400 mt-1">{t("adminPage.analytics.conversionRateLabel")}</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 function ConsentStatsPanel({ token }: { token: string }) {
   const { t } = useTranslation("pages");
   const [stats, setStats] = useState<any>(null);
@@ -5583,7 +5814,7 @@ export default function AdminPage() {
             "boss-ai": "dashboard", "overview": "dashboard", "users": "dashboard",
             "rag": "ai-training", "training-data": "ai-training", "fine-tuning": "ai-training", "agent-instructions": "ai-training", "ai-provider": "ai-training",
             "messages": "analytics", "spend-analysis": "analytics", "token-optimization": "analytics",
-            "costs": "analytics", "performance": "analytics", "conversation-review": "analytics",
+            "costs": "analytics", "performance": "analytics", "conversation-review": "analytics", "behavior-analytics": "analytics",
             "limit-management": "limits", "packages": "limits",
             "guardrails": "security", "support-tickets": "security", "security-report": "security", "escalations": "security", "collaboration": "security", "consent-stats": "security",
             "admin-guide": "help",
@@ -5704,6 +5935,10 @@ export default function AdminPage() {
                     <MessageSquare className="w-3.5 h-3.5 mr-1" />
                     {t("adminPage.tabs.convReview")}
                   </TabsTrigger>
+                  <TabsTrigger value="behavior-analytics" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500 data-[state=active]:to-blue-600 data-[state=active]:text-white" data-testid="tab-behavior-analytics">
+                    <Activity className="w-3.5 h-3.5 mr-1" />
+                    {t("adminPage.tabs.behaviorAnalytics")}
+                  </TabsTrigger>
                 </>
               )}
               {activeCategory === "limits" && (
@@ -5823,6 +6058,10 @@ export default function AdminPage() {
 
           <TabsContent value="conversation-review">
             <ConversationReviewPanel token={token} />
+          </TabsContent>
+
+          <TabsContent value="behavior-analytics">
+            <BehaviorAnalyticsPanel token={token} />
           </TabsContent>
 
           <TabsContent value="security-report">

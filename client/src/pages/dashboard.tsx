@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useAnalytics } from "@/lib/analytics";
 import { useLocation, Link } from "wouter";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -99,6 +100,7 @@ export default function Dashboard() {
   const { user, logout, isLoading: authLoading } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { trackEvent } = useAnalytics();
 
   const { data: rentals, isLoading } = useQuery<Rental[]>({
     queryKey: ["/api/rentals"],
@@ -141,6 +143,7 @@ export default function Dashboard() {
       });
       const data = await res.json();
       if (data.success) {
+        trackEvent("agent_rented", "agent", { agentType: agentId, plan: "starter" });
         toast({ title: t("dashboard.toast.agentActivated"), description: t("dashboard.toast.agentActivatedDesc") });
         queryClient.invalidateQueries({ queryKey: ["/api/rentals"] });
       }

@@ -1609,7 +1609,8 @@
       "security": "Güvenlik",
       "escalations": "Eskalasyonlar",
       "collaboration": "İş Birliği",
-      "consentStats": "KVKK/GDPR"
+      "consentStats": "KVKK/GDPR",
+      "behaviorAnalytics": "Kullanıcı Davranışı"
     },
     "login": {
       "passwordPlaceholder": "Admin Şifresi",
@@ -1705,6 +1706,33 @@
       "noData": "Henüz onay verisi kaydedilmedi.",
       "userConsentOverview": "Kullanıcı Onay Genel Görünümü",
       "consentLogHistory": "Onay Günlük Geçmişi"
+    },
+    "analytics": {
+      "title": "Kullanıcı Davranış Analizi",
+      "day": "Gün",
+      "week": "Hafta",
+      "month": "Ay",
+      "activeUsers": "Aktif Kullanıcılar",
+      "totalPageViews": "Toplam Sayfa Görüntüleme",
+      "totalEvents": "Toplam Etkinlik",
+      "conversionRate": "Dönüşüm Oranı",
+      "popularPages": "Popüler Sayfalar",
+      "topAgents": "En Çok Kullanılan Ajanlar",
+      "topEvents": "En Çok Gerçekleşen Etkinlikler",
+      "eventName": "Etkinlik",
+      "category": "Kategori",
+      "count": "Adet",
+      "views": "görüntüleme",
+      "uniqueUsers": "tekil",
+      "events": "etkinlik",
+      "users": "kullanıcı",
+      "noData": "Bu dönem için veri bulunmuyor.",
+      "dailyActivity": "Günlük Aktivite",
+      "dailyLegend": "Kullanıcılar / Günlük sayfa görüntüleme",
+      "conversionFunnel": "Dönüşüm Hunisi",
+      "newUsers": "Yeni Kayıtlar",
+      "usersWithRentals": "Kiralama Yapan Kullanıcılar",
+      "conversionRateLabel": "Dönüşüm Oranı"
     },
     "bossAi": {
       "askPlaceholder": "Boss'a platform hakkında herhangi bir şey sorun...",

@@ -62,6 +62,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
 import type { AgentTask } from "@shared/schema";
 import TasksPanel from "@/components/tasks-panel";
+import { useAnalytics } from "@/lib/analytics";
 
 interface AgentAction {
   type: string;
@@ -109,6 +110,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
   const { user } = useAuth();
   const { toast } = useToast();
   const { t } = useTranslation("pages");
+  const { trackEvent } = useAnalytics();
   const [selectedAgent, setSelectedAgent] = useState(agentOptions[0].id);
 
   const generateVisibleId = () => Date.now().toString() + Math.random().toString(36).slice(2, 6);
@@ -617,6 +619,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
 
     setMessages((prev) => [...prev, { role: "user", content: displayContent }]);
     setLoading(true);
+    trackEvent("chat_message_sent", "agent", { agentType: selectedAgent });
 
     try {
       const res = await fetch("/api/chat", {

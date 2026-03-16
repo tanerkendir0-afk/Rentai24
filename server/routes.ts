@@ -973,13 +973,13 @@ export async function registerRoutes(
   const npsSchema = z.object({
     type: z.literal("nps"),
     score: z.number().int().min(0).max(10),
-    comment: z.string().max(2000).optional(),
+    comment: z.string().max(2000).nullish(),
   });
   const chatRatingSchema = z.object({
     type: z.literal("chat_rating"),
     score: z.number().int().min(0).max(10),
     agentType: z.string().min(1).max(50),
-    comment: z.string().max(2000).optional(),
+    comment: z.string().max(2000).nullish(),
   });
   const generalFeedbackSchema = z.object({
     type: z.literal("general"),

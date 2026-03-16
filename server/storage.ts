@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { users, rentals, contactMessages, newsletterSubscribers, leads, agentActions, emailCampaigns, supportTickets, tokenUsage, agentTasks, chatMessages, conversations, teamMembers, bossNotifications, socialAccounts, shippingProviders, guardrailLogs, systemSettings, scheduledPosts, whatsappConfig, whatsappMessages, agentLimits, escalationRules, escalations, escalationMessages, agentInstructions, globalAgentInstructions, consentLogs, crmDocuments, securityEvents, pageViews, userEvents, type User, type InsertUser, type Rental, type InsertRental, type ContactMessage, type InsertContactMessage, type NewsletterSubscriber, type Lead, type InsertLead, type AgentAction, type InsertAgentAction, type EmailCampaign, type InsertEmailCampaign, type SupportTicket, type InsertSupportTicket, type TokenUsage, type InsertTokenUsage, type AgentTask, type InsertAgentTask, type ChatMessage, type InsertChatMessage, type ConversationRecord, type InsertConversation, type TeamMember, type InsertTeamMember, type BossNotification, type InsertBossNotification, type SocialAccount, type InsertSocialAccount, type ShippingProvider, type InsertShippingProvider, type GuardrailLog, type ScheduledPost, type InsertScheduledPost, type WhatsappConfig, type InsertWhatsappConfig, type WhatsappMessage, type InsertWhatsappMessage, type AgentLimit, type InsertAgentLimit, type EscalationRule, type InsertEscalationRule, type Escalation, type InsertEscalation, type EscalationMessage, type InsertEscalationMessage, type AgentInstruction, type InsertAgentInstruction, type GlobalAgentInstruction, type ConsentLog, type InsertConsentLog, type CrmDocument, type InsertCrmDocument, type PageView, type InsertPageView, type UserEvent, type InsertUserEvent } from "@shared/schema";
+import { users, rentals, contactMessages, newsletterSubscribers, leads, agentActions, emailCampaigns, supportTickets, tokenUsage, agentTasks, chatMessages, conversations, teamMembers, bossNotifications, socialAccounts, shippingProviders, guardrailLogs, systemSettings, scheduledPosts, whatsappConfig, whatsappMessages, agentLimits, escalationRules, escalations, escalationMessages, agentInstructions, globalAgentInstructions, consentLogs, crmDocuments, securityEvents, pageViews, userEvents, feedback, type User, type InsertUser, type Rental, type InsertRental, type ContactMessage, type InsertContactMessage, type NewsletterSubscriber, type Lead, type InsertLead, type AgentAction, type InsertAgentAction, type EmailCampaign, type InsertEmailCampaign, type SupportTicket, type InsertSupportTicket, type TokenUsage, type InsertTokenUsage, type AgentTask, type InsertAgentTask, type ChatMessage, type InsertChatMessage, type ConversationRecord, type InsertConversation, type TeamMember, type InsertTeamMember, type BossNotification, type InsertBossNotification, type SocialAccount, type InsertSocialAccount, type ShippingProvider, type InsertShippingProvider, type GuardrailLog, type ScheduledPost, type InsertScheduledPost, type WhatsappConfig, type InsertWhatsappConfig, type WhatsappMessage, type InsertWhatsappMessage, type AgentLimit, type InsertAgentLimit, type EscalationRule, type InsertEscalationRule, type Escalation, type InsertEscalation, type EscalationMessage, type InsertEscalationMessage, type AgentInstruction, type InsertAgentInstruction, type GlobalAgentInstruction, type ConsentLog, type InsertConsentLog, type CrmDocument, type InsertCrmDocument, type PageView, type InsertPageView, type UserEvent, type InsertUserEvent, type Feedback, type InsertFeedback } from "@shared/schema";
 import { eq, and, sql, desc, gte, lte } from "drizzle-orm";
 import * as cryptoModule from "crypto";
 
@@ -166,6 +166,11 @@ export interface IStorage {
   createPageView(pv: InsertPageView): Promise<PageView>;
   createUserEvent(ev: InsertUserEvent): Promise<UserEvent>;
   getAnalyticsSummary(period: "day" | "week" | "month"): Promise<any>;
+
+  createFeedback(fb: InsertFeedback): Promise<Feedback>;
+  getLastNpsByUser(userId: number): Promise<Feedback | undefined>;
+  getFeedbackList(filters?: { type?: "nps" | "chat_rating" | "general"; limit?: number; offset?: number }): Promise<Feedback[]>;
+  getFeedbackSummary(): Promise<{ npsAvg: number; npsCount: number; chatRatingAvg: number; chatRatingCount: number; generalCount: number; categoryDist: { category: string; count: number }[]; agentSatisfaction: { agentType: string; avgScore: number; count: number }[]; npsTrend: { month: string; avg: number; count: number }[] }>;
 
   deleteUserAndData(userId: number): Promise<boolean>;
 }
@@ -1290,6 +1295,7 @@ export class DatabaseStorage implements IStorage {
 
   async deleteUserAndData(userId: number): Promise<boolean> {
     try {
+      await db.delete(feedback).where(eq(feedback.userId, userId));
       await db.delete(pageViews).where(eq(pageViews.userId, userId));
       await db.delete(userEvents).where(eq(userEvents.userId, userId));
       await db.delete(consentLogs).where(eq(consentLogs.userId, userId));
@@ -1323,6 +1329,79 @@ export class DatabaseStorage implements IStorage {
       console.error("deleteUserAndData failed:", err);
       return false;
     }
+  }
+
+  async createFeedback(fb: InsertFeedback): Promise<Feedback> {
+    const [created] = await db.insert(feedback).values(fb).returning();
+    return created;
+  }
+
+  async getLastNpsByUser(userId: number): Promise<Feedback | undefined> {
+    const [last] = await db.select().from(feedback)
+      .where(and(eq(feedback.userId, userId), eq(feedback.type, "nps")))
+      .orderBy(desc(feedback.createdAt))
+      .limit(1);
+    return last;
+  }
+
+  async getFeedbackList(filters?: { type?: "nps" | "chat_rating" | "general"; limit?: number; offset?: number }): Promise<Feedback[]> {
+    const conditions = [];
+    if (filters?.type) conditions.push(eq(feedback.type, filters.type));
+    const query = conditions.length > 0
+      ? db.select().from(feedback).where(and(...conditions))
+      : db.select().from(feedback);
+    return query.orderBy(desc(feedback.createdAt)).limit(filters?.limit || 50).offset(filters?.offset || 0);
+  }
+
+  async getFeedbackSummary(): Promise<{
+    npsAvg: number; npsCount: number;
+    chatRatingAvg: number; chatRatingCount: number;
+    generalCount: number;
+    categoryDist: { category: string; count: number }[];
+    agentSatisfaction: { agentType: string; avgScore: number; count: number }[];
+    npsTrend: { month: string; avg: number; count: number }[];
+  }> {
+    const npsResult = await db.execute(sql`
+      SELECT COALESCE(AVG(score), 0)::float as avg, COUNT(*)::int as count
+      FROM feedback WHERE type = 'nps' AND score IS NOT NULL
+    `);
+    const chatResult = await db.execute(sql`
+      SELECT COALESCE(AVG(score), 0)::float as avg, COUNT(*)::int as count
+      FROM feedback WHERE type = 'chat_rating' AND score IS NOT NULL
+    `);
+    const generalResult = await db.execute(sql`
+      SELECT COUNT(*)::int as count FROM feedback WHERE type = 'general'
+    `);
+    const categoryResult = await db.execute(sql`
+      SELECT category, COUNT(*)::int as count FROM feedback
+      WHERE type = 'general' AND category IS NOT NULL
+      GROUP BY category ORDER BY count DESC
+    `);
+    const agentResult = await db.execute(sql`
+      SELECT agent_type, AVG(score)::float as avg_score, COUNT(*)::int as count
+      FROM feedback WHERE type = 'chat_rating' AND agent_type IS NOT NULL AND score IS NOT NULL
+      GROUP BY agent_type ORDER BY avg_score DESC
+    `);
+    const trendResult = await db.execute(sql`
+      SELECT TO_CHAR(created_at, 'YYYY-MM') as month, AVG(score)::float as avg, COUNT(*)::int as count
+      FROM feedback WHERE type = 'nps' AND score IS NOT NULL
+      GROUP BY TO_CHAR(created_at, 'YYYY-MM')
+      ORDER BY month DESC LIMIT 12
+    `);
+    return {
+      npsAvg: (npsResult.rows[0] as Record<string, number>)?.avg || 0,
+      npsCount: (npsResult.rows[0] as Record<string, number>)?.count || 0,
+      chatRatingAvg: (chatResult.rows[0] as Record<string, number>)?.avg || 0,
+      chatRatingCount: (chatResult.rows[0] as Record<string, number>)?.count || 0,
+      generalCount: (generalResult.rows[0] as Record<string, number>)?.count || 0,
+      categoryDist: categoryResult.rows as { category: string; count: number }[],
+      agentSatisfaction: agentResult.rows.map((r: Record<string, unknown>) => ({
+        agentType: r.agent_type as string,
+        avgScore: r.avg_score as number,
+        count: r.count as number,
+      })),
+      npsTrend: trendResult.rows as { month: string; avg: number; count: number }[],
+    };
   }
 }
 

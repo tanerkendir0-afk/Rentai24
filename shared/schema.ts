@@ -767,3 +767,23 @@ export const insertUserEventSchema = createInsertSchema(userEvents).omit({
 
 export type UserEvent = typeof userEvents.$inferSelect;
 export type InsertUserEvent = z.infer<typeof insertUserEventSchema>;
+
+export const feedback = pgTable("feedback", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  type: text("type", { enum: ["nps", "chat_rating", "general"] }).notNull(),
+  score: integer("score"),
+  comment: text("comment"),
+  agentType: text("agent_type"),
+  category: text("category"),
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
+export const insertFeedbackSchema = createInsertSchema(feedback).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type Feedback = typeof feedback.$inferSelect;
+export type InsertFeedback = z.infer<typeof insertFeedbackSchema>;

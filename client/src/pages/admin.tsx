@@ -5742,6 +5742,170 @@ function ConsentStatsPanel({ token }: { token: string }) {
   );
 }
 
+function AdminFeedbackPanel({ token }: { token: string }) {
+  const { t } = useTranslation("pages");
+  const [filter, setFilter] = useState("all");
+  const [summary, setSummary] = useState<{
+    npsAvg: number; npsCount: number; chatRatingAvg: number; chatRatingCount: number; generalCount: number;
+    agentSatisfaction: { agentType: string; avgScore: number; count: number }[];
+    categoryDist: { category: string; count: number }[];
+    npsTrend: { month: string; avg: number; count: number }[];
+  } | null>(null);
+  const [feedbackList, setFeedbackList] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    Promise.all([
+      fetch(`${ADMIN_API}/feedback-summary`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()),
+      fetch(`${ADMIN_API}/feedback-list`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()),
+    ]).then(([s, l]) => {
+      setSummary(s);
+      setFeedbackList(l);
+      setLoading(false);
+    }).catch(() => setLoading(false));
+  }, [token]);
+
+  const filtered = feedbackList.filter(f => filter === "all" || f.type === filter);
+
+  if (loading) return <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-blue-400" /></div>;
+
+  return (
+    <div className="space-y-6" data-testid="admin-feedback-panel">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card className="bg-gradient-to-br from-blue-900/50 to-blue-800/30 border-blue-500/30">
+          <CardContent className="pt-5 text-center">
+            <p className="text-2xl font-bold text-white">{summary?.npsAvg?.toFixed(1) ?? "—"}</p>
+            <p className="text-xs text-blue-300 mt-1">{t("feedback.admin.npsAverage")}</p>
+          </CardContent>
+        </Card>
+        <Card className="bg-gradient-to-br from-violet-900/50 to-violet-800/30 border-violet-500/30">
+          <CardContent className="pt-5 text-center">
+            <p className="text-2xl font-bold text-white">{(summary?.npsCount ?? 0) + (summary?.chatRatingCount ?? 0) + (summary?.generalCount ?? 0)}</p>
+            <p className="text-xs text-violet-300 mt-1">{t("feedback.admin.totalFeedback")}</p>
+          </CardContent>
+        </Card>
+        <Card className="bg-gradient-to-br from-emerald-900/50 to-emerald-800/30 border-emerald-500/30">
+          <CardContent className="pt-5 text-center">
+            <p className="text-2xl font-bold text-white">{summary?.chatRatingAvg?.toFixed(1) ?? "—"}</p>
+            <p className="text-xs text-emerald-300 mt-1">{t("feedback.admin.chatSatisfaction")}</p>
+          </CardContent>
+        </Card>
+        <Card className="bg-gradient-to-br from-rose-900/50 to-rose-800/30 border-rose-500/30">
+          <CardContent className="pt-5 text-center">
+            <p className="text-2xl font-bold text-white">{summary?.npsCount ?? 0}</p>
+            <p className="text-xs text-rose-300 mt-1">{t("feedback.admin.filterNps")}</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {summary?.agentSatisfaction && summary.agentSatisfaction.length > 0 && (
+        <Card className="bg-[#0D1230] border-[#1E2448]">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-white">{t("feedback.admin.chatSatisfaction")}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {summary.agentSatisfaction.map(a => (
+                <div key={a.agentType} className="flex items-center gap-3">
+                  <span className="text-xs text-gray-400 w-28 truncate">{a.agentType}</span>
+                  <div className="flex-1 h-2 bg-[#1E2448] rounded-full overflow-hidden">
+                    <div className="h-full bg-gradient-to-r from-blue-500 to-emerald-500 rounded-full" style={{ width: `${(a.avgScore / 10) * 100}%` }} />
+                  </div>
+                  <span className="text-xs text-white w-12 text-right">{a.avgScore.toFixed(1)}/10</span>
+                  <span className="text-[10px] text-gray-500">({a.count})</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {summary?.categoryDist && summary.categoryDist.length > 0 && (
+        <Card className="bg-[#0D1230] border-[#1E2448]">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-white">{t("feedback.admin.categoryDistribution")}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex gap-4 flex-wrap">
+              {summary.categoryDist.map(c => {
+                const label = c.category === "bug_report" ? t("feedback.admin.bugReport")
+                  : c.category === "feature_request" ? t("feedback.admin.featureRequest")
+                  : t("feedback.admin.generalCategory");
+                return (
+                  <Badge key={c.category} variant="secondary" className="text-xs px-3 py-1">
+                    {label}: {c.count}
+                  </Badge>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      <Card className="bg-[#0D1230] border-[#1E2448]">
+        <CardHeader className="pb-2 flex flex-row items-center justify-between">
+          <CardTitle className="text-sm text-white">{t("feedback.admin.recentFeedback")}</CardTitle>
+          <div className="flex gap-1">
+            {["all", "nps", "chat_rating", "general"].map(f => (
+              <button
+                key={f}
+                onClick={() => setFilter(f)}
+                className={`px-2 py-1 rounded text-[10px] font-medium transition-colors ${
+                  filter === f ? "bg-blue-600 text-white" : "bg-[#1E2448] text-gray-400 hover:text-white"
+                }`}
+                data-testid={`button-filter-${f}`}
+              >
+                {f === "all" ? t("feedback.admin.filterAll")
+                  : f === "nps" ? t("feedback.admin.filterNps")
+                  : f === "chat_rating" ? t("feedback.admin.filterChat")
+                  : t("feedback.admin.filterGeneral")}
+              </button>
+            ))}
+          </div>
+        </CardHeader>
+        <CardContent>
+          {filtered.length === 0 ? (
+            <p className="text-sm text-gray-500 text-center py-6">{t("feedback.admin.noFeedback")}</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="text-gray-400 border-b border-[#1E2448]">
+                    <th className="text-left py-2 px-2">{t("feedback.admin.type")}</th>
+                    <th className="text-left py-2 px-2">{t("feedback.admin.score")}</th>
+                    <th className="text-left py-2 px-2">{t("feedback.admin.user")}</th>
+                    <th className="text-left py-2 px-2">{t("feedback.admin.comment")}</th>
+                    <th className="text-left py-2 px-2">{t("feedback.admin.agent")}</th>
+                    <th className="text-left py-2 px-2">{t("feedback.admin.date")}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.slice(0, 50).map((f: any) => (
+                    <tr key={f.id} className="border-b border-[#1E2448]/50 hover:bg-[#1E2448]/30" data-testid={`feedback-row-${f.id}`}>
+                      <td className="py-2 px-2">
+                        <Badge variant="outline" className={`text-[10px] ${
+                          f.type === "nps" ? "border-blue-500/50 text-blue-400" :
+                          f.type === "chat_rating" ? "border-emerald-500/50 text-emerald-400" :
+                          "border-violet-500/50 text-violet-400"
+                        }`}>{f.type}</Badge>
+                      </td>
+                      <td className="py-2 px-2 text-white font-medium">{f.score ?? "—"}</td>
+                      <td className="py-2 px-2 text-gray-300 truncate max-w-[120px]">{f.userEmail}</td>
+                      <td className="py-2 px-2 text-gray-400 truncate max-w-[200px]">{f.comment || "—"}</td>
+                      <td className="py-2 px-2 text-gray-400">{f.agentType || "—"}</td>
+                      <td className="py-2 px-2 text-gray-500">{new Date(f.createdAt).toLocaleDateString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 function AdminGuidePanel() {
   const { t } = useTranslation("pages");
   const AGENT_DETAILS = [
@@ -6131,6 +6295,10 @@ export default function AdminPage() {
                     <Activity className="w-3.5 h-3.5 mr-1" />
                     {t("adminPage.tabs.behaviorAnalytics")}
                   </TabsTrigger>
+                  <TabsTrigger value="feedback" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-pink-500 data-[state=active]:to-rose-600 data-[state=active]:text-white" data-testid="tab-feedback">
+                    <MessageSquare className="w-3.5 h-3.5 mr-1" />
+                    {t("feedback.admin.title")}
+                  </TabsTrigger>
                 </>
               )}
               {activeCategory === "limits" && (
@@ -6286,6 +6454,10 @@ export default function AdminPage() {
 
           <TabsContent value="admin-guide">
             <AdminGuidePanel />
+          </TabsContent>
+
+          <TabsContent value="feedback">
+            <AdminFeedbackPanel token={token} />
           </TabsContent>
         </Tabs>
       </div>

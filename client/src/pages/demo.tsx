@@ -57,6 +57,7 @@ import { queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/lib/auth";
 import { useTranslation } from "react-i18next";
 import ChatMessageContent from "@/components/chat-message";
+import ChatRating from "@/components/chat-rating";
 import PublishAssistantCard, { parsePublishAssistant } from "@/components/publish-assistant-card";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
@@ -1817,6 +1818,10 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                     </div>
                   </div>
                 </motion.div>
+              )}
+
+              {user && messages.length >= 4 && !loading && (
+                <ChatRating agentType={selectedAgent} sessionId={currentConvoId || selectedAgent} />
               )}
 
               <div ref={messagesEndRef} />

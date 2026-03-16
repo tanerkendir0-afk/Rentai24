@@ -888,6 +888,60 @@ export async function registerRoutes(
     });
   });
 
+  const ALLOWED_FEEDBACK_CATEGORIES = ["bug_report", "feature_request", "general"] as const;
+  const npsSchema = z.object({
+    type: z.literal("nps"),
+    score: z.number().int().min(0).max(10),
+    comment: z.string().max(2000).optional(),
+  });
+  const chatRatingSchema = z.object({
+    type: z.literal("chat_rating"),
+    score: z.number().int().min(0).max(10),
+    agentType: z.string().min(1).max(50),
+    comment: z.string().max(2000).optional(),
+  });
+  const generalFeedbackSchema = z.object({
+    type: z.literal("general"),
+    comment: z.string().min(1).max(2000),
+    category: z.enum(ALLOWED_FEEDBACK_CATEGORIES).optional(),
+  });
+  const feedbackSchema = z.discriminatedUnion("type", [npsSchema, chatRatingSchema, generalFeedbackSchema]);
+
+  app.post("/api/feedback", requireAuth, async (req, res) => {
+    const lang = await resolveUserLang(req);
+    const parsed = feedbackSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: msg("invalidInput", lang) });
+    }
+    try {
+      const d = parsed.data;
+      const fb = await storage.createFeedback({
+        userId: req.session.userId!,
+        type: d.type,
+        score: "score" in d ? d.score : null,
+        comment: ("comment" in d ? d.comment : null) ?? null,
+        agentType: ("agentType" in d ? d.agentType : null) ?? null,
+        category: ("category" in d ? d.category : null) ?? null,
+      });
+      res.json({ success: true, feedback: fb });
+    } catch (error) {
+      console.error("feedback create error:", error);
+      res.status(500).json({ error: msg("internalServerError", lang) });
+    }
+  });
+
+  app.get("/api/feedback/nps-status", requireAuth, async (req, res) => {
+    try {
+      const last = await storage.getLastNpsByUser(req.session.userId!);
+      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      const isDue = !last || last.score === null || new Date(last.createdAt) < thirtyDaysAgo;
+      res.json({ isDue, lastNpsDate: last?.createdAt || null });
+    } catch (error) {
+      console.error("nps status error:", error);
+      res.json({ isDue: false, lastNpsDate: null });
+    }
+  });
+
   const passwordUpdateSchema = z.object({
     currentPassword: z.string().min(1, "Current password is required"),
     newPassword: z.string().min(6, "New password must be at least 6 characters"),
@@ -3686,6 +3740,43 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
         onboarding: onboardingResult.rows[0],
       });
     } catch (error: any) {
+      console.error(error);
+      res.status(500).json({ error: msg("internalServerError", req.lang!) });
+    }
+  });
+
+  app.get(`/api/${ADMIN_PATH}/feedback-summary`, requireAdmin, async (req, res) => {
+    try {
+      const summary = await storage.getFeedbackSummary();
+      res.json(summary);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: msg("internalServerError", req.lang!) });
+    }
+  });
+
+  app.get(`/api/${ADMIN_PATH}/feedback-list`, requireAdmin, async (req, res) => {
+    try {
+      const rawType = typeof req.query.type === "string" ? req.query.type : undefined;
+      const type = rawType && ["nps", "chat_rating", "general"].includes(rawType) ? rawType as "nps" | "chat_rating" | "general" : undefined;
+      const parsedLimit = typeof req.query.limit === "string" ? parseInt(req.query.limit) : 50;
+      const parsedOffset = typeof req.query.offset === "string" ? parseInt(req.query.offset) : 0;
+      const limit = Number.isFinite(parsedLimit) && parsedLimit > 0 ? Math.min(parsedLimit, 100) : 50;
+      const offset = Number.isFinite(parsedOffset) && parsedOffset >= 0 ? parsedOffset : 0;
+      const list = await storage.getFeedbackList({ type, limit, offset });
+      const userIds = [...new Set(list.map(f => f.userId))];
+      const usersMap: Record<number, { email: string; fullName: string }> = {};
+      for (const uid of userIds) {
+        const u = await storage.getUserById(uid);
+        if (u) usersMap[uid] = { email: u.email, fullName: u.fullName };
+      }
+      const enriched = list.map(f => ({
+        ...f,
+        userEmail: usersMap[f.userId]?.email || "—",
+        userFullName: usersMap[f.userId]?.fullName || "—",
+      }));
+      res.json(enriched);
+    } catch (error) {
       console.error(error);
       res.status(500).json({ error: msg("internalServerError", req.lang!) });
     }

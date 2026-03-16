@@ -2454,5 +2454,70 @@
         "content": "Bu Kullanım Koşulları hakkında sorularınız için lütfen şu adresten bizimle iletişime geçin:"
       }
     }
+  },
+  "feedback": {
+    "nps": {
+      "title": "Bizi tavsiye eder misiniz?",
+      "question": "0-10 arası bir ölçekte, RentAI'ı bir meslektaşınıza veya arkadaşınıza tavsiye etme olasılığınız nedir?",
+      "notLikely": "Hiç olası değil",
+      "veryLikely": "Çok olası",
+      "commentPlaceholder": "Deneyiminiz hakkında daha fazla bilgi verin (isteğe bağlı)",
+      "skip": "Geç",
+      "submit": "Gönder",
+      "thankYou": "Geri bildiriminiz için teşekkür ederiz!",
+      "error": "Gönderilemedi. Lütfen tekrar deneyin."
+    },
+    "chatRating": {
+      "question": "Bu konuşma nasıldı?",
+      "bad": "Kötü",
+      "neutral": "İdare eder",
+      "good": "İyi",
+      "excellent": "Harika",
+      "thankYou": "Değerlendirmeniz için teşekkürler!",
+      "error": "Değerlendirme gönderilemedi.",
+      "dismiss": "Kapat"
+    },
+    "general": {
+      "title": "Geri Bildirim Gönder",
+      "description": "RentAI'ı geliştirmemize yardımcı olun. Geri bildiriminiz değerlidir ve tamamen isteğe bağlıdır.",
+      "category": "Kategori",
+      "selectCategory": "Bir kategori seçin",
+      "categories": {
+        "bugReport": "Hata Bildirimi",
+        "featureRequest": "Özellik İsteği",
+        "general": "Genel Geri Bildirim"
+      },
+      "comment": "Geri bildiriminiz",
+      "commentPlaceholder": "Deneyiminizi, önerinizi veya sorununuzu açıklayın...",
+      "send": "Geri Bildirim Gönder",
+      "sending": "Gönderiliyor...",
+      "thankYou": "Teşekkürler! Geri bildiriminiz alındı.",
+      "error": "Geri bildirim gönderilemedi. Lütfen tekrar deneyin."
+    },
+    "admin": {
+      "title": "Kullanıcı Geri Bildirimleri",
+      "npsAverage": "NPS Ortalaması",
+      "totalFeedback": "Toplam Geri Bildirim",
+      "chatSatisfaction": "Sohbet Memnuniyeti",
+      "categoryDistribution": "Kategori Dağılımı",
+      "recentFeedback": "Son Geri Bildirimler",
+      "noFeedback": "Henüz geri bildirim yok.",
+      "filterAll": "Tümü",
+      "filterNps": "NPS",
+      "filterChat": "Sohbet Değerlendirmeleri",
+      "filterGeneral": "Genel",
+      "score": "Puan",
+      "type": "Tür",
+      "user": "Kullanıcı",
+      "date": "Tarih",
+      "comment": "Yorum",
+      "agent": "Ajan",
+      "promoters": "Destekçiler",
+      "passives": "Pasifler",
+      "detractors": "Eleştirmenler",
+      "bugReport": "Hata Bildirimleri",
+      "featureRequest": "Özellik İstekleri",
+      "generalCategory": "Genel"
+    }
   }
 }

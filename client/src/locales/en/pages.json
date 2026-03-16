@@ -2454,5 +2454,70 @@
         "content": "For questions about these Terms of Service, please contact us at"
       }
     }
+  },
+  "feedback": {
+    "nps": {
+      "title": "How likely are you to recommend us?",
+      "question": "On a scale of 0-10, how likely are you to recommend RentAI to a colleague or friend?",
+      "notLikely": "Not likely",
+      "veryLikely": "Very likely",
+      "commentPlaceholder": "Tell us more about your experience (optional)",
+      "skip": "Skip",
+      "submit": "Submit",
+      "thankYou": "Thank you for your feedback!",
+      "error": "Could not submit. Please try again."
+    },
+    "chatRating": {
+      "question": "How was this conversation?",
+      "bad": "Bad",
+      "neutral": "Okay",
+      "good": "Good",
+      "excellent": "Great",
+      "thankYou": "Thanks for the rating!",
+      "error": "Could not submit rating.",
+      "dismiss": "Dismiss"
+    },
+    "general": {
+      "title": "Send Feedback",
+      "description": "Help us improve RentAI. Your feedback is valuable and entirely optional.",
+      "category": "Category",
+      "selectCategory": "Select a category",
+      "categories": {
+        "bugReport": "Bug Report",
+        "featureRequest": "Feature Request",
+        "general": "General Feedback"
+      },
+      "comment": "Your feedback",
+      "commentPlaceholder": "Describe your experience, suggestion, or issue...",
+      "send": "Send Feedback",
+      "sending": "Sending...",
+      "thankYou": "Thank you! Your feedback has been received.",
+      "error": "Could not send feedback. Please try again."
+    },
+    "admin": {
+      "title": "User Feedback",
+      "npsAverage": "NPS Average",
+      "totalFeedback": "Total Feedback",
+      "chatSatisfaction": "Chat Satisfaction",
+      "categoryDistribution": "Category Distribution",
+      "recentFeedback": "Recent Feedback",
+      "noFeedback": "No feedback yet.",
+      "filterAll": "All",
+      "filterNps": "NPS",
+      "filterChat": "Chat Ratings",
+      "filterGeneral": "General",
+      "score": "Score",
+      "type": "Type",
+      "user": "User",
+      "date": "Date",
+      "comment": "Comment",
+      "agent": "Agent",
+      "promoters": "Promoters",
+      "passives": "Passives",
+      "detractors": "Detractors",
+      "bugReport": "Bug Reports",
+      "featureRequest": "Feature Requests",
+      "generalCategory": "General"
+    }
   }
 }

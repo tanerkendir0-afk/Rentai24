@@ -1033,7 +1033,7 @@
     "team": {
       "title": "Ekip Üyeleri",
       "addMember": "Üye Ekle",
-      "description": "Ekip üyelerinizi ekleyin, böylece yapay zeka ajanları herkesi tanıyabilsin. E-posta gönderirken veya görevleri koordine ederken ekip üyelerine başvurabilirler.",
+      "description": "Ekip üyelerinizi ekleyin, böylece AI ajanları herkesi tanır. E-posta gönderirken veya görevleri koordine ederken ekip üyelerine başvurabilirler.",
       "editMember": "Üye Düzenle",
       "addNewMember": "Yeni Üye Ekle",
       "name": "Ad *",
@@ -1255,6 +1255,20 @@
       "gmailConnectedToast": "Gmail bağlandı",
       "gmailAppPasswordSaved": "Gmail Uygulama Şifreniz kaydedildi.",
       "failedSaveGmail": "Gmail ayarları kaydedilemedi"
+    },
+    "common": {
+      "cancel": "İptal",
+      "connect": "Bağla"
+    },
+    "secrets": {
+      "title": "API Gizli Anahtarları",
+      "description": "Kargo sağlayıcı API kimlik bilgilerinizi güvenle yönetin. Görüntülemek veya güncellemek için bir sağlayıcıya tıklayın.",
+      "storedCredentials": "Kayıtlı kimlik bilgileri (değerler şifrelenmiştir)",
+      "set": "ayarlandı",
+      "current": "Mevcut",
+      "enter": "Girin",
+      "updateSecrets": "Gizli Anahtarları Güncelle",
+      "leaveEmpty": "Mevcut değerleri korumak için alanları boş bırakın. Yalnızca doldurulan alanlar güncellenecektir."
     }
   },
   "adminPage": {
@@ -1355,7 +1369,10 @@
       "free": "Ücretsiz",
       "noUsersYet": "Henüz kayıtlı kullanıcı yok",
       "noUsersMatch": "Aramanızla eşleşen kullanıcı yok",
-      "subscribed": "Abone"
+      "subscribed": "Abone",
+      "registeredUsers": "Kayıtlı Kullanıcılar ({{count}})",
+      "credits": "kredi",
+      "joined": "Katılım"
     },
     "documents": {
       "urlPlaceholder": "https://example.com/docs/page",
@@ -1363,7 +1380,12 @@
       "clickToUpload": "Yüklemek için tıklayın veya sürükleyip bırakın",
       "urlProcessing": "İşleniyor...",
       "extractIndex": "Çıkar ve İndeksle",
-      "noDocuments": "Henüz döküman yüklenmedi"
+      "noDocuments": "Henüz döküman yüklenmedi",
+      "uploadDocument": "Doküman Yükle",
+      "supportedFormats": "TXT, PDF, DOCX, CSV, MD desteklenir (max 10MB)",
+      "addFromUrl": "URL'den Ekle",
+      "extractDescription": "Herhangi bir web sayfasından içerik çıkar ve indeksle",
+      "knowledgeBase": "Bilgi Tabanı ({{count}} doküman)"
     },
     "tokenOpt": {
       "noExpensiveRequests": "Henüz $0.01 üzerinde istek yok.",
@@ -1384,7 +1406,13 @@
       "cacheHitRate": "Önbellek İsabet Oranı",
       "summaryReuseRate": "özet yeniden kullanım oranı",
       "noDataYet": "Henüz veri yok",
-      "noRecentData": "Henüz güncel veri yok"
+      "noRecentData": "Henüz güncel veri yok",
+      "title": "Token Optimizasyonu",
+      "modelDistribution": "Model Dağılımı",
+      "requests": "istek",
+      "last7Days": "Son 7 Gün",
+      "avgLabel": "ort",
+      "promptTokens": "prompt token"
     },
     "collaboration": {
       "topicPlaceholder": "Ekip için bir konu, soru veya zorluk girin...",
@@ -1396,7 +1424,10 @@
       "description": "AI ajanlarınızı bir ekip beyin fırtınası oturumunda bir araya getirin. Her ajan benzersiz bakış açısını sunar, ardından Boss AI her şeyi bir eylem planına sentezler.",
       "failed": "İş birliği başarısız",
       "deselectAll": "Tümünü Kaldır",
-      "selectAll": "Tümünü Seç"
+      "selectAll": "Tümünü Seç",
+      "title": "Ajan İşbirliği — Beyin Fırtınası",
+      "history": "Geçmiş",
+      "pastSessions": "Geçmiş Beyin Fırtınası Oturumları"
     },
     "bossAi": {
       "askPlaceholder": "Boss'a platform hakkında herhangi bir şey sorun...",
@@ -1415,7 +1446,11 @@
       "unifiedSynthesis": "Boss AI — Birleşik Sentez",
       "newConversation": "Yeni Konuşma",
       "requestFailed": "İstek başarısız",
-      "unavailable": "Boss AI kullanılamıyor"
+      "unavailable": "Boss AI kullanılamıyor",
+      "new": "Yeni",
+      "messages": "mesaj",
+      "backToChat": "Sohbete Dön",
+      "welcomeMessage": "9 ajanın tamamını denetliyorum ve platformun her detayını biliyorum. Bana her şeyi sorabilirsiniz."
     },
     "guardrails": {
       "noBlocks": "Kayıtlı güvenlik duvarı bloğu yok",
@@ -1427,14 +1462,24 @@
       "blockedTopic": "Engelli Konu",
       "inputLength": "Giriş Uzunluğu",
       "rateLimit": "Hız Limiti",
-      "dailyLimit": "Günlük Limit"
+      "dailyLimit": "Günlük Limit",
+      "logs": "Güvenlik Duvarı Kayıtları"
     },
     "tickets": {
       "description": "Kullanıcı gönderilen hata raporları, sorunlar ve geri bildirimleri yönetin",
       "replyPlaceholder": "Yanıtınızı yazın...",
       "userHash": "Kullanıcı #{{id}}",
       "loading": "Yükleniyor...",
-      "yourReply": "Yanıtınız"
+      "yourReply": "Yanıtınız",
+      "title": "Destek Talepleri",
+      "open": "açık",
+      "inProgress": "devam ediyor",
+      "noTickets": "Talep yok",
+      "send": "Gönder",
+      "reply": "Yanıtla",
+      "high": "yüksek",
+      "medium": "orta",
+      "low": "düşük"
     },
     "select": {
       "openaiGpt4o": "OpenAI (GPT-4o)",
@@ -1517,7 +1562,12 @@
       "realEstate": "Gayrimenkul",
       "realEstateDesc": "Emlak listeleme, fiyat analizi, müşteri eşleştirme.",
       "managerRole": "Akıllı Yönlendirici",
-      "managerDesc": "Mesajları doğru ajana yönlendirir, ekip koordinasyonu sağlar."
+      "managerDesc": "Mesajları doğru ajana yönlendirir, ekip koordinasyonu sağlar.",
+      "title": "Ajan Özel Talimatları",
+      "description": "Her ajana özel talimatlar ekleyin. Bu talimatlar ajanın sistem mesajına eklenir ve davranışını yönlendirir.",
+      "globalTitle": "Global Talimatlar (Tüm Ajanlar)",
+      "globalDesc": "Bu talimatlar tüm ajanlara uygulanır. Genel kurallar, ton, kısıtlamalar buraya yazılabilir.",
+      "saveGlobal": "Global Talimatları Kaydet"
     },
     "escalations": {
       "messagePlaceholder": "Müşteriye mesaj yazın...",
@@ -1556,7 +1606,9 @@
       "cost": "Maliyet (Cost)",
       "tokenUsage": "Token Kullanımı",
       "vs": "vs",
-      "noResult": "Sonuç yok"
+      "noResult": "Sonuç yok",
+      "title": "A/B Test — OpenAI vs Anthropic",
+      "description": "Aynı promptu hem OpenAI (GPT-4o) hem Anthropic (Claude Sonnet 4) ile test edin. Cevap kalitesi, hız ve maliyet farklarını karşılaştırın."
     },
     "aiProvider": {
       "perAgentDesc": "Belirli ajanlar için farklı sağlayıcı seçebilirsiniz. \"Varsayılan\" seçeneği genel ayarı kullanır.",
@@ -1593,7 +1645,10 @@
       "unlimitedAgents": "Sınırsız ajan",
       "starterPrice": "Starter ($49/ay)",
       "professionalPrice": "Professional ($39/ay)",
-      "enterprisePrice": "Enterprise (Özel)"
+      "enterprisePrice": "Enterprise (Özel)",
+      "title": "Paket Planları ve Kuralları",
+      "description": "Mevcut paket planları, fiyatlandırma ve her planın limitleri.",
+      "popular": "Popüler"
     },
     "spend": {
       "avg": "Ort",
@@ -1615,7 +1670,9 @@
       "openaiReqs": "OpenAI İstek",
       "anthropicCost": "Anthropic Maliyet",
       "anthropicReqs": "Anthropic İstek",
-      "difference": "Fark"
+      "difference": "Fark",
+      "perAgentBreakdown": "Ajan Bazında Harcama Dağılımı",
+      "providerComparison": "Sağlayıcı Karşılaştırması (OpenAI vs Anthropic)"
     },
     "overview": {
       "totalUsers": "Toplam Kullanıcı",
@@ -1642,7 +1699,15 @@
       "critical": "Kritik",
       "noData": "Henüz ajan performans verisi yok. Veri toplamak için ajanlarla sohbet edin.",
       "longResp": "uzun yanıt",
-      "fetchFailed": "Performans verileri alınamadı"
+      "fetchFailed": "Performans verileri alınamadı",
+      "title": "Ajan Performans Genel Bakış",
+      "description": "Ajan bazında istatistikler: araç kullanımı, hata oranları ve verimlilik metrikleri",
+      "problematicSessions": "Sorunlu Oturumlar",
+      "problematicDesc": "Aşırı araç kullanımı (>5) veya çok uzun konuşmalar (>20 mesaj) olan oturumlar",
+      "session": "Oturum",
+      "msgs": "mesaj",
+      "tools": "araç",
+      "authErrs": "yetki hatası"
     },
     "messages": {
       "toolUsed": "Araç Kullanıldı",
@@ -1655,7 +1720,9 @@
       "bad": "Kötü",
       "noConversations": "Konuşma bulunamadı. Veri oluşturmak için ajanlarla sohbet edin.",
       "fetchFailed": "Konuşmalar alınamadı",
-      "rateFailed": "Konuşma değerlendirilemedi"
+      "rateFailed": "Konuşma değerlendirilemedi",
+      "title": "Konuşma İnceleme",
+      "description": "Konuşmaları inceleyin ve ince ayar veri küratörlüğü için kalite değerlendirmesi yapın. Yalnızca \"iyi\" olarak derecelendirilen konuşmalar eğitim verisi dışa aktarımlarına dahil edilir."
     },
     "trainingData": {
       "totalConversations": "Toplam Konuşma",
@@ -1666,7 +1733,17 @@
       "needMore": "Daha fazla gerekli",
       "noDataLabel": "Veri yok",
       "minConvTurns": "Min. Konuşma Turu",
-      "fetchStatsFailed": "İstatistikler alınamadı"
+      "fetchStatsFailed": "İstatistikler alınamadı",
+      "agentRulesDoc": "Ajan Kuralları Dokümanı",
+      "agentRulesDesc": "Tüm 9 ajanın kuralları, araçları ve davranış yönergelerinin belgelerini indirin",
+      "downloadRules": "Ajan Kurallarını İndir (.pdf)",
+      "exportTitle": "Eğitim Verisi Dışa Aktar",
+      "exportDesc": "Sohbet konuşmalarını OpenAI ince ayarı için JSONL olarak dışa aktarın",
+      "turns": "tur",
+      "toolUsageOnly": "Yalnızca araç kullanan konuşmalar",
+      "exporting": "Dışa aktarılıyor...",
+      "exportJsonl": "JSONL Dışa Aktar",
+      "collectWarning": "{{count}} konuşma toplandı. OpenAI iyi sonuçlar için en az 50 konuşma önerir. Daha fazla eğitim verisi oluşturmak için bu ajanla sohbet etmeye devam edin."
     },
     "fineTuning": {
       "noJobs": "Henüz ince ayar işi yok",
@@ -1675,7 +1752,11 @@
       "jobId": "İş ID",
       "model": "Model",
       "uploading": "Yükleniyor ve iş başlatılıyor...",
-      "clickToUpload": "JSONL eğitim dosyası yüklemek için tıklayın"
+      "clickToUpload": "JSONL eğitim dosyası yüklemek için tıklayın",
+      "startNew": "Yeni İnce Ayar Başlat",
+      "uploadDesc": "Eğitim verisi ile JSONL dosyası yükleyin (OpenAI sohbet formatı)",
+      "jobs": "İnce Ayar İşleri ({{count}})",
+      "resetToBase": "Temel Modele Sıfırla"
     },
     "costs": {
       "totalCost": "Toplam Maliyet",
@@ -1683,13 +1764,18 @@
       "totalTokens": "Toplam Token",
       "uniqueUsers": "Tekil Kullanıcı",
       "description": "Kullanıcı ve ajan bazında AI API maliyetleri",
-      "noData": "Henüz token kullanım verisi yok. Veri oluşturmak için ajanlarla sohbet edin."
+      "noData": "Henüz token kullanım verisi yok. Veri oluşturmak için ajanlarla sohbet edin.",
+      "tokenCostBreakdown": "Token Maliyet Dağılımı",
+      "summary": "Özet",
+      "detailed": "Detaylı"
     },
     "security": {
       "noSuspicious": "Bu dönemde şüpheli aktivite tespit edilmedi",
       "noEvents": "Bu dönemde güvenlik olayı yok",
       "distillationAttempt": "Distilasyon Girişimi",
-      "guardrailBlock": "Güvenlik Duvarı Bloğu"
+      "guardrailBlock": "Güvenlik Duvarı Bloğu",
+      "title": "Güvenlik Raporu",
+      "eventsOverTime": "Zamana Göre Olaylar"
     },
     "guide": {
       "userMgmt": "Kullanıcı Yönetimi",
@@ -1754,7 +1840,10 @@
     },
     "common": {
       "loading": "Yükleniyor...",
-      "delete": "Sil"
+      "delete": "Sil",
+      "loadingStats": "İstatistikler yükleniyor...",
+      "refresh": "Yenile",
+      "cancel": "İptal"
     }
   }
 }

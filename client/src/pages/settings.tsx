@@ -105,7 +105,7 @@ interface ShippingProvider {
 
 function CrmDocumentsSection() {
   const { toast } = useToast();
-  const { t } = useTranslation("pages");
+  const { t, i18n } = useTranslation("pages");
   const [uploading, setUploading] = useState(false);
 
   const { data: documents = [], refetch } = useQuery<any[]>({
@@ -283,7 +283,7 @@ function CrmDocumentsSection() {
                   <div className="min-w-0">
                     <p className="text-sm font-medium truncate">{doc.originalName}</p>
                     <p className="text-xs text-muted-foreground">
-                      {formatSize(doc.fileSize)} — {new Date(doc.uploadedAt).toLocaleDateString("tr-TR")}
+                      {formatSize(doc.fileSize)} — {new Date(doc.uploadedAt).toLocaleDateString(i18n.language === "tr" ? "tr-TR" : "en-US")}
                     </p>
                   </div>
                 </div>
@@ -1511,11 +1511,11 @@ export default function Settings() {
               onClick={() => { resetMemberForm(); setShowAddMember(true); }}
               data-testid="button-add-member"
             >
-              <Plus className="w-3.5 h-3.5 mr-1" />Add Member
+              <Plus className="w-3.5 h-3.5 mr-1" />{t("settingsPage.team.addMember")}
             </Button>
           </div>
           <p className="text-xs text-muted-foreground mb-4">
-            Add your team members so AI agents know who everyone is. They can reference team members when sending emails or coordinating tasks.
+            {t("settingsPage.team.description")}
           </p>
 
           {showAddMember && (
@@ -1608,7 +1608,7 @@ export default function Settings() {
                   onClick={resetMemberForm}
                   data-testid="button-cancel-member"
                 >
-                  Cancel
+                  {t("settingsPage.common.cancel")}
                 </Button>
               </div>
             </div>
@@ -1881,10 +1881,10 @@ export default function Settings() {
                   data-testid="button-save-whatsapp"
                 >
                   {whatsappSaving ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Link2 className="w-3.5 h-3.5 mr-1" />}
-                  Connect
+                  {t("settingsPage.common.connect")}
                 </Button>
                 <Button size="sm" variant="outline" onClick={() => setShowWhatsappSetup(false)} data-testid="button-cancel-whatsapp">
-                  Cancel
+                  {t("settingsPage.common.cancel")}
                 </Button>
               </div>
             </div>
@@ -1998,7 +1998,7 @@ export default function Settings() {
                   className="bg-gradient-to-r from-orange-500 to-amber-500 text-white border-0"
                   data-testid="button-save-shipping"
                 >
-                  <Link2 className="w-3.5 h-3.5 mr-1" />Connect
+                  <Link2 className="w-3.5 h-3.5 mr-1" />{t("settingsPage.common.connect")}
                 </Button>
                 <Button
                   size="sm"
@@ -2006,7 +2006,7 @@ export default function Settings() {
                   onClick={() => setShowAddShipping(false)}
                   data-testid="button-cancel-shipping"
                 >
-                  Cancel
+                  {t("settingsPage.common.cancel")}
                 </Button>
               </div>
             </div>
@@ -2067,11 +2067,11 @@ export default function Settings() {
           <Card className="p-4 sm:p-6 bg-card border-border/50" data-testid="card-api-secrets">
             <div className="flex items-center gap-2 mb-2">
               <KeyRound className="w-5 h-5 text-red-400" />
-              <h2 className="text-lg font-semibold text-foreground">API Secrets</h2>
+              <h2 className="text-lg font-semibold text-foreground">{t("settingsPage.secrets.title")}</h2>
               <ShieldCheck className="w-4 h-4 text-emerald-500 ml-1" />
             </div>
             <p className="text-xs text-muted-foreground mb-4">
-              Manage your shipping provider API credentials securely. Click on a provider to view or update its secrets.
+              {t("settingsPage.secrets.description")}
             </p>
 
             <div className="space-y-2">
@@ -2116,7 +2116,7 @@ export default function Settings() {
                       <div className="p-4 border-t border-border/50 space-y-3 bg-muted/10">
                         <div className="flex items-center gap-2 mb-1">
                           <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
-                          <p className="text-[10px] text-emerald-400 font-medium">Stored credentials (values are encrypted)</p>
+                          <p className="text-[10px] text-emerald-400 font-medium">{t("settingsPage.secrets.storedCredentials")}</p>
                         </div>
 
                         {fieldList.map((field) => {
@@ -2140,7 +2140,7 @@ export default function Settings() {
                                 </Label>
                                 {hasValue && (
                                   <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/30 text-[9px] h-4">
-                                    <CheckCircle2 className="w-2 h-2 mr-0.5" />set
+                                    <CheckCircle2 className="w-2 h-2 mr-0.5" />{t("settingsPage.secrets.set")}
                                   </Badge>
                                 )}
                               </div>
@@ -2148,7 +2148,7 @@ export default function Settings() {
                                 <div className="relative flex-1">
                                   <Input
                                     type={isSensitive && !isVisible ? "password" : "text"}
-                                    placeholder={hasValue ? `Current: ${currentMasked}` : `Enter ${shippingFieldLabels[field]}`}
+                                    placeholder={hasValue ? `${t("settingsPage.secrets.current")}: ${currentMasked}` : `${t("settingsPage.secrets.enter")} ${shippingFieldLabels[field]}`}
                                     value={secretForm[field] || ""}
                                     onChange={(e) => setSecretForm(p => ({ ...p, [field]: e.target.value }))}
                                     className="h-8 text-sm pr-8 font-mono bg-background/50"
@@ -2178,7 +2178,7 @@ export default function Settings() {
                             data-testid={`button-save-secret-${sp.id}`}
                           >
                             {secretSaving ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5 mr-1" />}
-                            Update Secrets
+                            {t("settingsPage.secrets.updateSecrets")}
                           </Button>
                           <Button
                             size="sm"
@@ -2186,13 +2186,13 @@ export default function Settings() {
                             onClick={() => { setEditingSecretId(null); setSecretForm({}); setVisibleSecretFields({}); }}
                             data-testid={`button-cancel-secret-${sp.id}`}
                           >
-                            Cancel
+                            {t("settingsPage.common.cancel")}
                           </Button>
                         </div>
 
                         <p className="text-[9px] text-muted-foreground/60 flex items-center gap-1">
                           <Lock className="w-2.5 h-2.5" />
-                          Leave fields empty to keep current values. Only filled fields will be updated.
+                          {t("settingsPage.secrets.leaveEmpty")}
                         </p>
                       </div>
                     )}

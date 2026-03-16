@@ -1255,6 +1255,20 @@
       "gmailConnectedToast": "Gmail connected",
       "gmailAppPasswordSaved": "Your Gmail App Password has been saved.",
       "failedSaveGmail": "Failed to save Gmail settings"
+    },
+    "common": {
+      "cancel": "Cancel",
+      "connect": "Connect"
+    },
+    "secrets": {
+      "title": "API Secrets",
+      "description": "Manage your shipping provider API credentials securely. Click on a provider to view or update its secrets.",
+      "storedCredentials": "Stored credentials (values are encrypted)",
+      "set": "set",
+      "current": "Current",
+      "enter": "Enter",
+      "updateSecrets": "Update Secrets",
+      "leaveEmpty": "Leave fields empty to keep current values. Only filled fields will be updated."
     }
   },
   "adminPage": {
@@ -1355,7 +1369,10 @@
       "free": "Free",
       "noUsersYet": "No registered users yet",
       "noUsersMatch": "No users match your search",
-      "subscribed": "Subscribed"
+      "subscribed": "Subscribed",
+      "registeredUsers": "Registered Users ({{count}})",
+      "credits": "credits",
+      "joined": "Joined"
     },
     "documents": {
       "urlPlaceholder": "https://example.com/docs/page",
@@ -1363,7 +1380,12 @@
       "clickToUpload": "Click to upload or drag & drop",
       "urlProcessing": "Processing...",
       "extractIndex": "Extract & Index",
-      "noDocuments": "No documents uploaded yet"
+      "noDocuments": "No documents uploaded yet",
+      "uploadDocument": "Upload Document",
+      "supportedFormats": "Supports TXT, PDF, DOCX, CSV, MD (max 10MB)",
+      "addFromUrl": "Add from URL",
+      "extractDescription": "Extract and index content from any web page",
+      "knowledgeBase": "Knowledge Base ({{count}} documents)"
     },
     "tokenOpt": {
       "noExpensiveRequests": "No requests over $0.01 yet.",
@@ -1384,7 +1406,13 @@
       "cacheHitRate": "Cache Hit Rate",
       "summaryReuseRate": "summary reuse rate",
       "noDataYet": "No data yet",
-      "noRecentData": "No recent data"
+      "noRecentData": "No recent data",
+      "title": "Token Optimization",
+      "modelDistribution": "Model Distribution",
+      "requests": "requests",
+      "last7Days": "Last 7 Days",
+      "avgLabel": "avg",
+      "promptTokens": "prompt tokens"
     },
     "collaboration": {
       "topicPlaceholder": "Enter a topic, question, or challenge for the team...",
@@ -1396,7 +1424,10 @@
       "description": "Bring your AI agents together for a team brainstorming session. Each agent provides their unique perspective, then Boss AI synthesizes everything into an action plan.",
       "failed": "Collaboration failed",
       "deselectAll": "Deselect All",
-      "selectAll": "Select All"
+      "selectAll": "Select All",
+      "title": "Agent Collaboration — Brainstorming",
+      "history": "History",
+      "pastSessions": "Past Brainstorming Sessions"
     },
     "bossAi": {
       "askPlaceholder": "Ask Boss anything about the platform...",
@@ -1415,7 +1446,11 @@
       "unifiedSynthesis": "Boss AI — Unified Synthesis",
       "newConversation": "New Conversation",
       "requestFailed": "Request failed",
-      "unavailable": "Boss AI is unavailable"
+      "unavailable": "Boss AI is unavailable",
+      "new": "New",
+      "messages": "messages",
+      "backToChat": "Back to Chat",
+      "welcomeMessage": "I oversee all 9 agents and know every detail of the platform. Ask me anything."
     },
     "guardrails": {
       "noBlocks": "No guardrail blocks recorded",
@@ -1427,14 +1462,24 @@
       "blockedTopic": "Blocked Topic",
       "inputLength": "Input Length",
       "rateLimit": "Rate Limit",
-      "dailyLimit": "Daily Limit"
+      "dailyLimit": "Daily Limit",
+      "logs": "Guardrail Logs"
     },
     "tickets": {
       "description": "Manage user-submitted bug reports, issues, and feedback",
       "replyPlaceholder": "Write your reply...",
       "userHash": "User #{{id}}",
       "loading": "Loading...",
-      "yourReply": "Your Reply"
+      "yourReply": "Your Reply",
+      "title": "Support Tickets",
+      "open": "open",
+      "inProgress": "in progress",
+      "noTickets": "No tickets",
+      "send": "Send",
+      "reply": "Reply",
+      "high": "high",
+      "medium": "medium",
+      "low": "low"
     },
     "select": {
       "openaiGpt4o": "OpenAI (GPT-4o)",
@@ -1517,7 +1562,12 @@
       "realEstate": "Real Estate",
       "realEstateDesc": "Property listings, price analysis, customer matching.",
       "managerRole": "Smart Router",
-      "managerDesc": "Routes messages to the right agent, provides team coordination."
+      "managerDesc": "Routes messages to the right agent, provides team coordination.",
+      "title": "Agent Custom Instructions",
+      "description": "Add custom instructions to each agent. These instructions are added to the agent's system message and direct its behavior.",
+      "globalTitle": "Global Instructions (All Agents)",
+      "globalDesc": "These instructions apply to all agents. General rules, tone, restrictions can be written here.",
+      "saveGlobal": "Save Global Instructions"
     },
     "escalations": {
       "messagePlaceholder": "Write a message to the customer...",
@@ -1556,7 +1606,9 @@
       "cost": "Cost",
       "tokenUsage": "Token Usage",
       "vs": "vs",
-      "noResult": "No result"
+      "noResult": "No result",
+      "title": "A/B Test — OpenAI vs Anthropic",
+      "description": "Test the same prompt with both OpenAI (GPT-4o) and Anthropic (Claude Sonnet 4). Compare response quality, speed and cost differences."
     },
     "aiProvider": {
       "perAgentDesc": "You can choose a different provider for specific agents. The \"Default\" option uses the global setting.",
@@ -1593,7 +1645,10 @@
       "unlimitedAgents": "Unlimited agents",
       "starterPrice": "Starter ($49/mo)",
       "professionalPrice": "Professional ($39/mo)",
-      "enterprisePrice": "Enterprise (Custom)"
+      "enterprisePrice": "Enterprise (Custom)",
+      "title": "Package Plans and Rules",
+      "description": "Current package plans, pricing and each plan's limits.",
+      "popular": "Popular"
     },
     "spend": {
       "avg": "Avg",
@@ -1615,7 +1670,9 @@
       "openaiReqs": "OpenAI Reqs",
       "anthropicCost": "Anthropic Cost",
       "anthropicReqs": "Anthropic Reqs",
-      "difference": "Difference"
+      "difference": "Difference",
+      "perAgentBreakdown": "Per-Agent Spend Breakdown",
+      "providerComparison": "Provider Comparison (OpenAI vs Anthropic)"
     },
     "overview": {
       "totalUsers": "Total Users",
@@ -1642,7 +1699,15 @@
       "critical": "Critical",
       "noData": "No agent performance data yet. Start chatting with agents to collect data.",
       "longResp": "long resp",
-      "fetchFailed": "Failed to fetch performance data"
+      "fetchFailed": "Failed to fetch performance data",
+      "title": "Agent Performance Overview",
+      "description": "Per-agent statistics: tool usage, error rates, and efficiency metrics",
+      "problematicSessions": "Problematic Sessions",
+      "problematicDesc": "Sessions with excessive tool usage (>5) or very long conversations (>20 messages)",
+      "session": "Session",
+      "msgs": "msgs",
+      "tools": "tools",
+      "authErrs": "auth errs"
     },
     "messages": {
       "toolUsed": "Tool Used",
@@ -1655,7 +1720,9 @@
       "bad": "Bad",
       "noConversations": "No conversations found. Start chatting with agents to generate data.",
       "fetchFailed": "Failed to fetch conversations",
-      "rateFailed": "Failed to rate conversation"
+      "rateFailed": "Failed to rate conversation",
+      "title": "Conversation Review",
+      "description": "Review conversations and rate quality for fine-tuning data curation. Only conversations rated \"good\" are included in training data exports. Unrated and \"bad\" rated conversations are excluded."
     },
     "trainingData": {
       "totalConversations": "Total Conversations",
@@ -1666,7 +1733,17 @@
       "needMore": "Need more",
       "noDataLabel": "No data",
       "minConvTurns": "Min Conversation Turns",
-      "fetchStatsFailed": "Failed to fetch stats"
+      "fetchStatsFailed": "Failed to fetch stats",
+      "agentRulesDoc": "Agent Rules Document",
+      "agentRulesDesc": "Download complete documentation of all 9 agent rules, tools, and behavior guidelines",
+      "downloadRules": "Download Agent Rules (.pdf)",
+      "exportTitle": "Export Training Data",
+      "exportDesc": "Export chat conversations as JSONL for OpenAI fine-tuning",
+      "turns": "turns",
+      "toolUsageOnly": "Only conversations with tool usage",
+      "exporting": "Exporting...",
+      "exportJsonl": "Export JSONL",
+      "collectWarning": "{{count}} conversations collected. OpenAI recommends at least 50 for good results. Keep chatting with this agent to build more training data."
     },
     "fineTuning": {
       "noJobs": "No fine-tuning jobs yet",
@@ -1675,7 +1752,11 @@
       "jobId": "Job ID",
       "model": "Model",
       "uploading": "Uploading & starting job...",
-      "clickToUpload": "Click to upload JSONL training file"
+      "clickToUpload": "Click to upload JSONL training file",
+      "startNew": "Start New Fine-Tuning",
+      "uploadDesc": "Upload a JSONL file with training data (OpenAI chat format)",
+      "jobs": "Fine-Tuning Jobs ({{count}})",
+      "resetToBase": "Reset to Base Model"
     },
     "costs": {
       "totalCost": "Total Cost",
@@ -1683,13 +1764,18 @@
       "totalTokens": "Total Tokens",
       "uniqueUsers": "Unique Users",
       "description": "AI API costs per user and agent",
-      "noData": "No token usage data yet. Chat with agents to generate data."
+      "noData": "No token usage data yet. Chat with agents to generate data.",
+      "tokenCostBreakdown": "Token Cost Breakdown",
+      "summary": "Summary",
+      "detailed": "Detailed"
     },
     "security": {
       "noSuspicious": "No suspicious activity detected in this period",
       "noEvents": "No security events in this period",
       "distillationAttempt": "Distillation Attempt",
-      "guardrailBlock": "Guardrail Block"
+      "guardrailBlock": "Guardrail Block",
+      "title": "Security Report",
+      "eventsOverTime": "Events Over Time"
     },
     "guide": {
       "userMgmt": "User Management",
@@ -1754,7 +1840,10 @@
     },
     "common": {
       "loading": "Loading...",
-      "delete": "Delete"
+      "delete": "Delete",
+      "loadingStats": "Loading stats...",
+      "refresh": "Refresh",
+      "cancel": "Cancel"
     }
   }
 }

@@ -239,7 +239,7 @@ function UsersPanel({ token }: { token: string }) {
           <div>
             <CardTitle className="text-lg text-white flex items-center gap-2">
               <Users className="w-5 h-5 text-blue-400" />
-              Registered Users ({users.length})
+              {t("adminPage.users.registeredUsers", { count: users.length })}
             </CardTitle>
             <CardDescription className="text-gray-400">{t("adminPage.users.description")}</CardDescription>
           </div>
@@ -278,7 +278,7 @@ function UsersPanel({ token }: { token: string }) {
                       )}
                       {user.image_credits > 0 && (
                         <Badge variant="outline" className="border-yellow-800 text-yellow-400 text-xs">
-                          {user.image_credits} credits
+                          {user.image_credits} {t("adminPage.users.credits")}
                         </Badge>
                       )}
                     </div>
@@ -295,7 +295,7 @@ function UsersPanel({ token }: { token: string }) {
                       ))}
                     </div>
                   )}
-                  <p className="text-gray-600 text-xs mt-2">Joined: {new Date(user.created_at).toLocaleDateString()}</p>
+                  <p className="text-gray-600 text-xs mt-2">{t("adminPage.users.joined")}: {new Date(user.created_at).toLocaleDateString()}</p>
                 </div>
               ))}
             </div>
@@ -403,10 +403,10 @@ function DocumentsPanel({ agentType, token }: { agentType: string; token: string
           <CardHeader>
             <CardTitle className="text-lg text-white flex items-center gap-2">
               <Upload className="w-5 h-5 text-blue-400" />
-              Upload Document
+              {t("adminPage.documents.uploadDocument")}
             </CardTitle>
             <CardDescription className="text-gray-400">
-              Supports TXT, PDF, DOCX, CSV, MD (max 10MB)
+              {t("adminPage.documents.supportedFormats")}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -433,10 +433,10 @@ function DocumentsPanel({ agentType, token }: { agentType: string; token: string
           <CardHeader>
             <CardTitle className="text-lg text-white flex items-center gap-2">
               <Link2 className="w-5 h-5 text-violet-400" />
-              Add from URL
+              {t("adminPage.documents.addFromUrl")}
             </CardTitle>
             <CardDescription className="text-gray-400">
-              Extract and index content from any web page
+              {t("adminPage.documents.extractDescription")}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -464,7 +464,7 @@ function DocumentsPanel({ agentType, token }: { agentType: string; token: string
           <div>
             <CardTitle className="text-lg text-white flex items-center gap-2">
               <Database className="w-5 h-5 text-green-400" />
-              Knowledge Base ({documents.length} documents)
+              {t("adminPage.documents.knowledgeBase", { count: documents.length })}
             </CardTitle>
           </div>
           <Button variant="ghost" size="sm" onClick={fetchDocs} disabled={loading} data-testid="button-refresh-docs">
@@ -560,10 +560,10 @@ function PerformancePanel({ token }: { token: string }) {
         <CardHeader>
           <CardTitle className="text-white flex items-center gap-2">
             <Activity className="w-5 h-5 text-green-400" />
-            Agent Performance Overview
+            {t("adminPage.performance.title")}
           </CardTitle>
           <CardDescription className="text-gray-400">
-            Per-agent statistics: tool usage, error rates, and efficiency metrics
+            {t("adminPage.performance.description")}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -652,10 +652,10 @@ function PerformancePanel({ token }: { token: string }) {
           <CardHeader>
             <CardTitle className="text-white flex items-center gap-2">
               <AlertTriangle className="w-5 h-5 text-orange-400" />
-              Problematic Sessions
+              {t("adminPage.performance.problematicSessions")}
             </CardTitle>
             <CardDescription className="text-gray-400">
-              Sessions with excessive tool usage (&gt;5) or very long conversations (&gt;20 messages)
+              {t("adminPage.performance.problematicDesc")}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -664,12 +664,12 @@ function PerformancePanel({ token }: { token: string }) {
                 <div key={i} className="flex flex-col sm:flex-row sm:items-center sm:justify-between bg-[#0A0E27] rounded-lg p-3 border border-[#1E2448] gap-2" data-testid={`row-problematic-${i}`}>
                   <div className="flex items-center gap-2 sm:gap-3 min-w-0">
                     <Badge variant="outline" className="border-[#1E2448] text-gray-300 text-[10px] sm:text-xs shrink-0">{(agentNameMap[s.agent_type] || s.agent_type).split(" — ")[0]}</Badge>
-                    <span className="text-[10px] sm:text-xs text-gray-400 truncate">Session: {String(s.session_id).slice(0, 8)}...</span>
+                    <span className="text-[10px] sm:text-xs text-gray-400 truncate">{t("adminPage.performance.session")}: {String(s.session_id).slice(0, 8)}...</span>
                   </div>
                   <div className="flex flex-wrap gap-2 sm:gap-3 text-[10px] sm:text-xs">
-                    <span className="text-gray-400">{s.msg_count} msgs</span>
-                    <span className={Number(s.tool_count) > 5 ? "text-orange-400" : "text-gray-400"}>{s.tool_count} tools</span>
-                    {Number(s.auth_error_count) > 0 && <span className="text-red-400">{s.auth_error_count} auth errs</span>}
+                    <span className="text-gray-400">{s.msg_count} {t("adminPage.performance.msgs")}</span>
+                    <span className={Number(s.tool_count) > 5 ? "text-orange-400" : "text-gray-400"}>{s.tool_count} {t("adminPage.performance.tools")}</span>
+                    {Number(s.auth_error_count) > 0 && <span className="text-red-400">{s.auth_error_count} {t("adminPage.performance.authErrs")}</span>}
                     {Number(s.max_response_length) > 3000 && <span className="text-yellow-400">{t("adminPage.performance.longResp")}</span>}
                     <span className="text-gray-500">{s.started_at ? new Date(s.started_at).toLocaleDateString() : ""}</span>
                   </div>
@@ -828,10 +828,10 @@ function ConversationReviewPanel({ token }: { token: string }) {
         <CardHeader>
           <CardTitle className="text-white flex items-center gap-2">
             <MessageSquare className="w-5 h-5 text-teal-400" />
-            Conversation Review
+            {t("adminPage.convReview.title")}
           </CardTitle>
           <CardDescription className="text-gray-400">
-            Review conversations and rate quality for fine-tuning data curation. Only conversations rated "good" are included in training data exports. Unrated and "bad" rated conversations are excluded.
+            {t("adminPage.convReview.description")}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -852,7 +852,7 @@ function ConversationReviewPanel({ token }: { token: string }) {
                 <SelectValue placeholder={t("adminPage.select.allRatings")} />
               </SelectTrigger>
               <SelectContent className="bg-[#111633] border-[#1E2448]">
-                <SelectItem value="all" className="text-white">All</SelectItem>
+                <SelectItem value="all" className="text-white">{t("adminPage.select.all")}</SelectItem>
                 <SelectItem value="unrated" className="text-white">{t("adminPage.convReview.unrated")}</SelectItem>
                 <SelectItem value="good" className="text-white">{t("adminPage.convReview.good")}</SelectItem>
                 <SelectItem value="bad" className="text-white">{t("adminPage.convReview.bad")}</SelectItem>
@@ -990,10 +990,10 @@ function TrainingDataPanel({ agentType, token }: { agentType: string; token: str
         <CardHeader>
           <CardTitle className="text-white flex items-center gap-2">
             <FileText className="w-5 h-5 text-blue-400" />
-            Agent Rules Document
+            {t("adminPage.trainingData.agentRulesDoc")}
           </CardTitle>
           <CardDescription className="text-gray-400">
-            Download complete documentation of all 9 agent rules, tools, and behavior guidelines
+            {t("adminPage.trainingData.agentRulesDesc")}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -1003,7 +1003,7 @@ function TrainingDataPanel({ agentType, token }: { agentType: string; token: str
             data-testid="button-download-rules"
           >
             <FileText className="w-4 h-4 mr-2" />
-            Download Agent Rules (.pdf)
+            {t("adminPage.trainingData.downloadRules")}
           </Button>
         </CardContent>
       </Card>
@@ -1012,16 +1012,16 @@ function TrainingDataPanel({ agentType, token }: { agentType: string; token: str
         <CardHeader>
           <CardTitle className="text-white flex items-center gap-2">
             <Database className="w-5 h-5 text-violet-400" />
-            Export Training Data — {agentName}
+            {t("adminPage.trainingData.exportTitle")} — {agentName}
           </CardTitle>
           <CardDescription className="text-gray-400">
-            Export chat conversations as JSONL for OpenAI fine-tuning
+            {t("adminPage.trainingData.exportDesc")}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {loading ? (
             <div className="flex items-center gap-2 text-gray-400">
-              <RefreshCw className="w-4 h-4 animate-spin" /> Loading stats...
+              <RefreshCw className="w-4 h-4 animate-spin" /> {t("adminPage.common.loadingStats")}
             </div>
           ) : stats ? (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -1058,10 +1058,10 @@ function TrainingDataPanel({ agentType, token }: { agentType: string; token: str
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="bg-[#111633] border-[#1E2448]">
-                  <SelectItem value="1" className="text-white">1+ turns</SelectItem>
-                  <SelectItem value="2" className="text-white">2+ turns</SelectItem>
-                  <SelectItem value="3" className="text-white">3+ turns</SelectItem>
-                  <SelectItem value="5" className="text-white">5+ turns</SelectItem>
+                  <SelectItem value="1" className="text-white">1+ {t("adminPage.trainingData.turns")}</SelectItem>
+                  <SelectItem value="2" className="text-white">2+ {t("adminPage.trainingData.turns")}</SelectItem>
+                  <SelectItem value="3" className="text-white">3+ {t("adminPage.trainingData.turns")}</SelectItem>
+                  <SelectItem value="5" className="text-white">5+ {t("adminPage.trainingData.turns")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -1074,7 +1074,7 @@ function TrainingDataPanel({ agentType, token }: { agentType: string; token: str
                   className="rounded border-[#1E2448]"
                   data-testid="checkbox-tools-only"
                 />
-                Only conversations with tool usage
+                {t("adminPage.trainingData.toolUsageOnly")}
               </label>
             </div>
             <Button
@@ -1084,9 +1084,9 @@ function TrainingDataPanel({ agentType, token }: { agentType: string; token: str
               data-testid="button-export-training"
             >
               {exporting ? (
-                <><RefreshCw className="w-4 h-4 mr-2 animate-spin" /> Exporting...</>
+                <><RefreshCw className="w-4 h-4 mr-2 animate-spin" /> {t("adminPage.trainingData.exporting")}</>
               ) : (
-                <><Zap className="w-4 h-4 mr-2" /> Export JSONL</>
+                <><Zap className="w-4 h-4 mr-2" /> {t("adminPage.trainingData.exportJsonl")}</>
               )}
             </Button>
           </div>
@@ -1095,7 +1095,7 @@ function TrainingDataPanel({ agentType, token }: { agentType: string; token: str
             <div className="flex items-start gap-2 bg-yellow-900/20 border border-yellow-800/50 rounded-lg p-3">
               <AlertTriangle className="w-4 h-4 text-yellow-400 mt-0.5 shrink-0" />
               <p className="text-xs text-yellow-400">
-                {stats.total_conversations} conversations collected. OpenAI recommends at least 50 for good results. Keep chatting with this agent to build more training data.
+                {t("adminPage.trainingData.collectWarning", { count: stats.total_conversations })}
               </p>
             </div>
           )}
@@ -1206,10 +1206,10 @@ function FineTuningPanel({ agentType, token }: { agentType: string; token: strin
         <CardHeader>
           <CardTitle className="text-lg text-white flex items-center gap-2">
             <Brain className="w-5 h-5 text-violet-400" />
-            Start New Fine-Tuning
+            {t("adminPage.fineTuning.startNew")}
           </CardTitle>
           <CardDescription className="text-gray-400">
-            Upload a JSONL file with training data (OpenAI chat format)
+            {t("adminPage.fineTuning.uploadDesc")}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -1237,12 +1237,12 @@ function FineTuningPanel({ agentType, token }: { agentType: string; token: strin
           <div>
             <CardTitle className="text-lg text-white flex items-center gap-2">
               <Zap className="w-5 h-5 text-yellow-400" />
-              Fine-Tuning Jobs ({jobs.length})
+              {t("adminPage.fineTuning.jobs", { count: jobs.length })}
             </CardTitle>
           </div>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={handleDeactivate} className="text-xs border-[#1E2448] text-gray-400" data-testid="button-deactivate-all">
-              Reset to Base Model
+              {t("adminPage.fineTuning.resetToBase")}
             </Button>
             <Button variant="ghost" size="sm" onClick={fetchJobs} disabled={loading} data-testid="button-refresh-jobs">
               <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
@@ -1493,7 +1493,7 @@ function TokenOptimizationPanel({ token }: { token: string }) {
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold text-white flex items-center gap-2">
           <Zap className="w-5 h-5 text-yellow-400" />
-          Token Optimization
+          {t("adminPage.tokenOpt.title")}
         </h3>
         <Button variant="ghost" size="sm" onClick={fetchData} disabled={loading} data-testid="button-refresh-token-opt">
           <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
@@ -1580,7 +1580,7 @@ function TokenOptimizationPanel({ token }: { token: string }) {
         <CardHeader>
           <CardTitle className="text-lg text-white flex items-center gap-2">
             <Bot className="w-5 h-5 text-blue-400" />
-            Model Distribution
+            {t("adminPage.tokenOpt.modelDistribution")}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -1596,7 +1596,7 @@ function TokenOptimizationPanel({ token }: { token: string }) {
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-white font-medium">{m.model}</span>
                       <span className="text-gray-400">
-                        {m.count.toLocaleString()} requests ({pct}%) · ${parseFloat(m.total_cost).toFixed(4)}
+                        {m.count.toLocaleString()} {t("adminPage.tokenOpt.requests")} ({pct}%) · ${parseFloat(m.total_cost).toFixed(4)}
                       </span>
                     </div>
                     <div className="w-full bg-[#111633] rounded-full h-2">
@@ -1621,7 +1621,7 @@ function TokenOptimizationPanel({ token }: { token: string }) {
         <CardHeader>
           <CardTitle className="text-lg text-white flex items-center gap-2">
             <Activity className="w-5 h-5 text-violet-400" />
-            Last 7 Days
+            {t("adminPage.tokenOpt.last7Days")}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -1633,7 +1633,7 @@ function TokenOptimizationPanel({ token }: { token: string }) {
                 <div key={d.date} className="flex items-center justify-between p-3 bg-[#111633] rounded-lg" data-testid={`daily-stat-${d.date}`}>
                   <div>
                     <p className="text-white text-sm font-medium">{new Date(d.date).toLocaleDateString()}</p>
-                    <p className="text-gray-500 text-xs">{d.requests} requests · avg {d.avg_prompt} prompt tokens</p>
+                    <p className="text-gray-500 text-xs">{d.requests} {t("adminPage.tokenOpt.requests")} · {t("adminPage.tokenOpt.avgLabel")} {d.avg_prompt} {t("adminPage.tokenOpt.promptTokens")}</p>
                   </div>
                   <div className="text-right">
                     <p className="text-red-400 text-sm">${parseFloat(d.cost).toFixed(4)}</p>
@@ -1730,7 +1730,7 @@ function CostTrackerPanel({ token }: { token: string }) {
           <div>
             <CardTitle className="text-lg text-white flex items-center gap-2">
               <DollarSign className="w-5 h-5 text-yellow-400" />
-              Token Cost Breakdown
+              {t("adminPage.costs.tokenCostBreakdown")}
             </CardTitle>
             <CardDescription className="text-gray-400">{t("adminPage.costs.description")}</CardDescription>
           </div>
@@ -1752,7 +1752,7 @@ function CostTrackerPanel({ token }: { token: string }) {
               className={view === "summary" ? "bg-blue-600 text-white" : "border-[#1E2448] text-gray-300"}
               data-testid="button-view-summary"
             >
-              Summary
+              {t("adminPage.costs.summary")}
             </Button>
             <Button
               variant={view === "detailed" ? "default" : "outline"}
@@ -1761,7 +1761,7 @@ function CostTrackerPanel({ token }: { token: string }) {
               className={view === "detailed" ? "bg-violet-600 text-white" : "border-[#1E2448] text-gray-300"}
               data-testid="button-view-detailed"
             >
-              Detailed
+              {t("adminPage.costs.detailed")}
             </Button>
             <Button variant="ghost" size="sm" onClick={fetchData} disabled={loading}>
               <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
@@ -2027,7 +2027,7 @@ function CollaborationPanel({ token }: { token: string }) {
           <div className="flex items-center justify-between">
             <CardTitle className="text-xl text-white flex items-center gap-2">
               <Brain className="w-6 h-6 text-indigo-400" />
-              Agent Collaboration — Brainstorming
+              {t("adminPage.collaboration.title")}
             </CardTitle>
             <Button
               variant="outline"
@@ -2037,7 +2037,7 @@ function CollaborationPanel({ token }: { token: string }) {
               data-testid="button-collab-history"
             >
               <History className="w-3.5 h-3.5 mr-1" />
-              History ({sessions.length})
+              {t("adminPage.collaboration.history")} ({sessions.length})
             </Button>
           </div>
           <CardDescription className="text-gray-300">
@@ -2129,7 +2129,7 @@ function CollaborationPanel({ token }: { token: string }) {
           <CardHeader>
             <CardTitle className="text-lg text-white flex items-center gap-2">
               <History className="w-5 h-5 text-indigo-400" />
-              Past Brainstorming Sessions
+              {t("adminPage.collaboration.pastSessions")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -2398,10 +2398,10 @@ function SpendAnalysisPanel({ token }: { token: string }) {
           <div className="flex items-center justify-between">
             <CardTitle className="text-lg text-white flex items-center gap-2">
               <BarChart3 className="w-5 h-5 text-emerald-400" />
-              Per-Agent Spend Breakdown
+              {t("adminPage.spend.perAgentBreakdown")}
             </CardTitle>
             <Button size="sm" variant="outline" onClick={fetchData} className="border-[#1E2448] text-gray-300" data-testid="button-refresh-spend">
-              <RefreshCw className="w-3.5 h-3.5 mr-1" /> Refresh
+              <RefreshCw className="w-3.5 h-3.5 mr-1" /> {t("adminPage.common.refresh")}
             </Button>
           </div>
         </CardHeader>
@@ -2524,7 +2524,7 @@ function SpendAnalysisPanel({ token }: { token: string }) {
           <CardHeader>
             <CardTitle className="text-lg text-white flex items-center gap-2">
               <ArrowLeftRight className="w-5 h-5 text-violet-400" />
-              Provider Karsilastirmasi (OpenAI vs Anthropic)
+              {t("adminPage.spend.providerComparison")}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -2837,7 +2837,7 @@ function BossAIPanel({ token }: { token: string }) {
               data-testid="boss-new-conversation"
             >
               <Plus className="w-3.5 h-3.5 mr-1" />
-              New
+              {t("adminPage.bossAi.new")}
             </Button>
           </div>
         </div>
@@ -2846,7 +2846,7 @@ function BossAIPanel({ token }: { token: string }) {
             ? <span className="flex items-center gap-1.5">
                 <MessageSquare className="w-3 h-3" />
                 {activeConv.topic}
-                <span className="text-gray-500 text-xs">({activeConv.messageCount} messages)</span>
+                <span className="text-gray-500 text-xs">({activeConv.messageCount} {t("adminPage.bossAi.messages")})</span>
               </span>
             : t("adminPage.bossAi.description")
           }
@@ -2864,7 +2864,7 @@ function BossAIPanel({ token }: { token: string }) {
                 className="text-gray-400 hover:text-white h-7"
               >
                 <ChevronLeft className="w-3.5 h-3.5 mr-1" />
-                Back to Chat
+                {t("adminPage.bossAi.backToChat")}
               </Button>
             </div>
             <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2" data-testid="boss-conversation-list">
@@ -2954,7 +2954,7 @@ function BossAIPanel({ token }: { token: string }) {
                   <div>
                     <p className="text-white font-medium text-lg">{t("adminPage.tabs.bossAi")}</p>
                     <p className="text-gray-400 text-sm max-w-md mt-1">
-                      I oversee all 9 agents and know every detail of the platform. Ask me anything.
+                      {t("adminPage.bossAi.welcomeMessage")}
                     </p>
                   </div>
                   <div className="grid grid-cols-2 gap-2 max-w-lg">
@@ -3165,7 +3165,7 @@ function GuardrailsPanel({ token }: { token: string }) {
           <div className="flex items-center justify-between flex-wrap gap-3">
             <CardTitle className="text-lg text-white flex items-center gap-2">
               <Shield className="w-5 h-5 text-red-400" />
-              Guardrail Logs
+              {t("adminPage.guardrails.logs")}
             </CardTitle>
             <div className="flex gap-2 flex-wrap">
               <Select value={agentFilter} onValueChange={setAgentFilter}>
@@ -3310,12 +3310,12 @@ function SupportTicketsPanel({ token }: { token: string }) {
           <div>
             <CardTitle className="text-white flex items-center gap-2">
               <HelpCircle className="w-5 h-5 text-orange-400" />
-              Support Tickets
+              {t("adminPage.tickets.title")}
               {openCount > 0 && (
-                <Badge className="bg-orange-500/20 text-orange-400 text-xs">{openCount} open</Badge>
+                <Badge className="bg-orange-500/20 text-orange-400 text-xs">{openCount} {t("adminPage.tickets.open")}</Badge>
               )}
               {inProgressCount > 0 && (
-                <Badge className="bg-blue-500/20 text-blue-400 text-xs">{inProgressCount} in progress</Badge>
+                <Badge className="bg-blue-500/20 text-blue-400 text-xs">{inProgressCount} {t("adminPage.tickets.inProgress")}</Badge>
               )}
             </CardTitle>
             <CardDescription>{t("adminPage.tickets.description")}</CardDescription>
@@ -3345,7 +3345,7 @@ function SupportTicketsPanel({ token }: { token: string }) {
         ) : filtered.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
             <HelpCircle className="w-10 h-10 mx-auto mb-2 opacity-30" />
-            <p>No {statusFilter === "all" ? "" : statusFilter} tickets</p>
+            <p>{t("adminPage.tickets.noTickets")}</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -3365,7 +3365,7 @@ function SupportTicketsPanel({ token }: { token: string }) {
                       ticket.priority === "medium" ? "bg-yellow-500/20 text-yellow-400" :
                       "bg-blue-500/20 text-blue-400"
                     }`}>
-                      {ticket.priority}
+                      {t("adminPage.tickets." + ticket.priority)}
                     </Badge>
                     <Select value={ticket.status} onValueChange={(val) => handleUpdateTicket(ticket.id, { status: val })}>
                       <SelectTrigger className={`h-6 text-[10px] w-[100px] border-0 ${
@@ -3414,10 +3414,10 @@ function SupportTicketsPanel({ token }: { token: string }) {
                       data-testid={`input-admin-reply-${ticket.id}`}
                     />
                     <Button size="sm" className="h-8 bg-emerald-500 hover:bg-emerald-600 text-white text-xs" onClick={() => handleReply(ticket.id)} data-testid={`button-admin-send-reply-${ticket.id}`}>
-                      <Send className="w-3 h-3 mr-1" /> Send
+                      <Send className="w-3 h-3 mr-1" /> {t("adminPage.tickets.send")}
                     </Button>
                     <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={() => { setReplyingId(null); setReplyText(""); }}>
-                      Cancel
+                      {t("adminPage.common.cancel")}
                     </Button>
                   </div>
                 ) : (
@@ -3428,7 +3428,7 @@ function SupportTicketsPanel({ token }: { token: string }) {
                     onClick={() => setReplyingId(ticket.id)}
                     data-testid={`button-admin-reply-${ticket.id}`}
                   >
-                    <MessageSquare className="w-3 h-3 mr-1" /> Reply
+                    <MessageSquare className="w-3 h-3 mr-1" /> {t("adminPage.tickets.reply")}
                   </Button>
                 )}
               </div>
@@ -3496,7 +3496,7 @@ function SecurityReportPanel({ token }: { token: string }) {
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold text-white flex items-center gap-2">
           <AlertTriangle className="w-5 h-5 text-red-400" />
-          Security Report
+          {t("adminPage.security.title")}
         </h3>
         <div className="flex items-center gap-2">
           <Select value={period} onValueChange={setPeriod}>
@@ -3536,7 +3536,7 @@ function SecurityReportPanel({ token }: { token: string }) {
           <CardHeader>
             <CardTitle className="text-lg text-white flex items-center gap-2">
               <BarChart3 className="w-5 h-5 text-blue-400" />
-              Events Over Time
+              {t("adminPage.security.eventsOverTime")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -3719,10 +3719,10 @@ function PackageManagementPanel({ token }: { token: string }) {
         <CardHeader>
           <CardTitle className="text-xl text-white flex items-center gap-2">
             <CreditCard className="w-5 h-5 text-violet-400" />
-            Paket Planları ve Kuralları
+            {t("adminPage.packages.title")}
           </CardTitle>
           <CardDescription className="text-gray-300">
-            Mevcut paket planları, fiyatlandırma ve her planın limitleri.
+            {t("adminPage.packages.description")}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -3735,7 +3735,7 @@ function PackageManagementPanel({ token }: { token: string }) {
               >
                 {plan.popular && (
                   <Badge className="absolute -top-2 right-3 bg-gradient-to-r from-violet-500 to-purple-600 text-white text-xs">
-                    Popüler
+                    {t("adminPage.packages.popular")}
                   </Badge>
                 )}
                 <div className={`w-10 h-10 rounded-lg bg-gradient-to-r ${plan.color} flex items-center justify-center mb-3`}>
@@ -4139,7 +4139,7 @@ function LimitManagementPanel({ token }: { token: string }) {
                               type="number"
                               value={editVal.messageLimit || ""}
                               onChange={e => setEditValue(agent.slug, period, "messageLimit", parseInt(e.target.value) || 0)}
-                              placeholder=t("adminPage.limits.unlimited")
+                              placeholder={t("adminPage.limits.unlimited")}
                               className="bg-[#111633] border-[#1E2448] text-white h-8 text-sm"
                               data-testid={`input-message-limit-${agent.slug}-${period}`}
                             />
@@ -4358,10 +4358,10 @@ function AgentInstructionsPanel({ token }: { token: string }) {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FileText className="w-5 h-5 text-indigo-500" />
-            Ajan Özel Talimatları
+            {t("adminPage.instructions.title")}
           </CardTitle>
           <CardDescription>
-            Her ajana özel talimatlar ekleyin. Bu talimatlar ajanın sistem mesajına eklenir ve davranışını yönlendirir.
+            {t("adminPage.instructions.description")}
           </CardDescription>
         </CardHeader>
       </Card>
@@ -4370,10 +4370,10 @@ function AgentInstructionsPanel({ token }: { token: string }) {
         <CardHeader>
           <CardTitle className="text-sm font-medium flex items-center gap-2">
             <Crown className="w-4 h-4 text-amber-500" />
-            Global Talimatlar (Tüm Ajanlar)
+            {t("adminPage.instructions.globalTitle")}
           </CardTitle>
           <CardDescription className="text-xs">
-            Bu talimatlar tüm ajanlara uygulanır. Genel kurallar, ton, kısıtlamalar buraya yazılabilir.
+            {t("adminPage.instructions.globalDesc")}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -4391,7 +4391,7 @@ function AgentInstructionsPanel({ token }: { token: string }) {
             data-testid="button-save-global-instructions"
           >
             {saving === "global" ? <Loader2 className="animate-spin w-4 h-4 mr-1" /> : <CheckCircle className="w-4 h-4 mr-1" />}
-            Global Talimatları {t("adminPage.limits.save")}
+            {t("adminPage.instructions.saveGlobal")}
           </Button>
         </CardContent>
       </Card>
@@ -4890,10 +4890,10 @@ function ABTestPanel({ token }: { token: string }) {
         <CardHeader>
           <CardTitle className="text-xl text-white flex items-center gap-2">
             <FlaskConical className="w-6 h-6 text-orange-400" />
-            A/B Test — OpenAI vs Anthropic
+            {t("adminPage.abTest.title")}
           </CardTitle>
           <CardDescription className="text-gray-300">
-            Ayni promptu hem OpenAI (GPT-4o) hem Anthropic (Claude Sonnet 4) ile test edin. Cevap kalitesi, hiz ve maliyet farklarini karsilastirin.
+            {t("adminPage.abTest.description")}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -5630,7 +5630,7 @@ export default function AdminPage() {
               {activeCategory === "help" && (
                 <TabsTrigger value="admin-guide" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-500 data-[state=active]:to-teal-600 data-[state=active]:text-white" data-testid="tab-admin-guide">
                   <HelpCircle className="w-3.5 h-3.5 mr-1" />
-                  Rehber
+                  {t("adminPage.categories.guide")}
                 </TabsTrigger>
               )}
             </TabsList>

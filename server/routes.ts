@@ -19,7 +19,7 @@ import { getRelevantToolsForMessage, executeToolCall } from "./agentTools";
 import { getMuhasebeContext } from "./muhasebeRetriever";
 import { computeLeadScore } from "./leadScoring";
 import { checkInput, sanitizeOutput, logGuardrailBlock } from "./guardrails";
-import { resolveUserLang, type SupportedLang } from "./i18n";
+import { resolveUserLang, langMiddleware, type SupportedLang } from "./i18n";
 import { msg } from "./messages";
 import { checkDistillation, addWatermark } from "./distillationProtection";
 import { getImagePath, chatImageDir } from "./imageService";
@@ -575,6 +575,8 @@ export async function registerRoutes(
     throw new Error("ADMIN_PATH environment variable is not set");
   }
 
+  app.use("/api", langMiddleware());
+
   app.use(`/api/${ADMIN_PATH}`, (_req, res, next) => {
     res.setHeader("X-Robots-Tag", "noindex");
     next();
@@ -797,7 +799,7 @@ export async function registerRoutes(
     const lang = await resolveUserLang(req);
     const parsed = profileUpdateSchema.safeParse(req.body);
     if (!parsed.success) {
-      return res.status(400).json({ error: parsed.error.errors[0]?.message || msg("invalidInput", lang) });
+      return res.status(400).json({ error: msg("invalidInput", lang) });
     }
     const { fullName, company } = parsed.data;
     const updated = await storage.updateUserProfile(req.session.userId!, { fullName, company });
@@ -827,7 +829,7 @@ export async function registerRoutes(
     const lang = await resolveUserLang(req);
     const parsed = passwordUpdateSchema.safeParse(req.body);
     if (!parsed.success) {
-      return res.status(400).json({ error: parsed.error.errors[0]?.message || msg("invalidInput", lang) });
+      return res.status(400).json({ error: msg("invalidInput", lang) });
     }
     const { currentPassword, newPassword } = parsed.data;
     const user = await storage.getUserById(req.session.userId!);
@@ -876,7 +878,7 @@ export async function registerRoutes(
   app.post("/api/agent-tasks", requireAuth, async (req, res) => {
     const { title, description, agentType, priority, dueDate, project } = req.body;
     if (!title || !agentType) {
-      return res.status(400).json({ error: "Title and agentType are required" });
+      return res.status(400).json({ error: msg("titleAgentRequired", req.lang!) });
     }
     const validPriorities = ["low", "medium", "high", "urgent"];
     const safePriority = validPriorities.includes(priority) ? priority : "medium";
@@ -910,27 +912,27 @@ export async function registerRoutes(
     if (req.body.project !== undefined) updates.project = req.body.project;
     if (req.body.dueDate !== undefined) updates.dueDate = req.body.dueDate ? new Date(req.body.dueDate) : null;
     const task = await storage.updateAgentTask(id, req.session.userId!, updates);
-    if (!task) return res.status(404).json({ error: "Task not found" });
+    if (!task) return res.status(404).json({ error: msg("taskNotFound", req.lang!) });
     res.json(task);
   });
 
   app.delete("/api/agent-tasks/:id", requireAuth, async (req, res) => {
     const id = parseInt(req.params.id as string);
     const deleted = await storage.deleteAgentTask(id, req.session.userId!);
-    if (!deleted) return res.status(404).json({ error: "Task not found" });
+    if (!deleted) return res.status(404).json({ error: msg("taskNotFound", req.lang!) });
     res.json({ success: true });
   });
 
   app.get("/api/conversations", requireAuth, async (req, res) => {
     const agentType = req.query.agentType as string;
-    if (!agentType) return res.status(400).json({ error: "agentType is required" });
+    if (!agentType) return res.status(400).json({ error: msg("agentTypeRequired", req.lang!) });
     const convos = await storage.getConversationsByUser(req.session.userId!, agentType);
     res.json(convos);
   });
 
   app.post("/api/conversations", requireAuth, async (req, res) => {
     const { agentType, visibleId, title } = req.body;
-    if (!agentType || !visibleId) return res.status(400).json({ error: "agentType and visibleId are required" });
+    if (!agentType || !visibleId) return res.status(400).json({ error: msg("agentTypeAndVisibleIdRequired", req.lang!) });
     const convo = await storage.createConversation({
       visibleId,
       userId: req.session.userId!,
@@ -943,16 +945,16 @@ export async function registerRoutes(
   app.patch("/api/conversations/:id", requireAuth, async (req, res) => {
     const id = parseInt(req.params.id as string);
     const { title } = req.body;
-    if (!title) return res.status(400).json({ error: "title is required" });
+    if (!title) return res.status(400).json({ error: msg("titleRequired", req.lang!) });
     const updated = await storage.updateConversationTitle(id, req.session.userId!, title);
-    if (!updated) return res.status(404).json({ error: "Conversation not found" });
+    if (!updated) return res.status(404).json({ error: msg("conversationNotFound", req.lang!) });
     res.json(updated);
   });
 
   app.delete("/api/conversations/:id", requireAuth, async (req, res) => {
     const id = parseInt(req.params.id as string);
     const deleted = await storage.deleteConversation(id, req.session.userId!);
-    if (!deleted) return res.status(404).json({ error: "Conversation not found" });
+    if (!deleted) return res.status(404).json({ error: msg("conversationNotFound", req.lang!) });
     res.json({ success: true });
   });
 
@@ -969,7 +971,7 @@ export async function registerRoutes(
 
   app.post("/api/team-members", requireAuth, async (req, res) => {
     const { name, email, position, department, skills, responsibilities, phone } = req.body;
-    if (!name || !email) return res.status(400).json({ error: "Name and email are required" });
+    if (!name || !email) return res.status(400).json({ error: msg("nameEmailRequired", req.lang!) });
     const member = await storage.createTeamMember({
       userId: req.session.userId!,
       name,
@@ -985,7 +987,7 @@ export async function registerRoutes(
 
   app.patch("/api/team-members/:id", requireAuth, async (req, res) => {
     const id = parseInt(req.params.id as string);
-    if (isNaN(id)) return res.status(400).json({ error: "Invalid member ID" });
+    if (isNaN(id)) return res.status(400).json({ error: msg("invalidMemberId", req.lang!) });
     const { name, email, position, department, skills, responsibilities, phone } = req.body;
     const updates: any = {};
     if (name !== undefined) updates.name = name;
@@ -996,21 +998,21 @@ export async function registerRoutes(
     if (responsibilities !== undefined) updates.responsibilities = responsibilities;
     if (phone !== undefined) updates.phone = phone;
     const updated = await storage.updateTeamMember(id, req.session.userId!, updates);
-    if (!updated) return res.status(404).json({ error: "Team member not found" });
+    if (!updated) return res.status(404).json({ error: msg("teamMemberNotFound", req.lang!) });
     res.json(updated);
   });
 
   app.delete("/api/team-members/:id", requireAuth, async (req, res) => {
     const id = parseInt(req.params.id as string);
-    if (isNaN(id)) return res.status(400).json({ error: "Invalid member ID" });
+    if (isNaN(id)) return res.status(400).json({ error: msg("invalidMemberId", req.lang!) });
     const deleted = await storage.deleteTeamMember(id, req.session.userId!);
-    if (!deleted) return res.status(404).json({ error: "Team member not found" });
+    if (!deleted) return res.status(404).json({ error: msg("teamMemberNotFound", req.lang!) });
     res.json({ success: true });
   });
 
   app.get("/api/settings/gmail", requireAuth, async (req, res) => {
     const user = await storage.getUserById(req.session.userId!);
-    if (!user) return res.status(404).json({ error: "User not found" });
+    if (!user) return res.status(404).json({ error: msg("userNotFound", req.lang!) });
     res.json({
       gmailAddress: user.gmailAddress || null,
       hasOAuth: !!user.gmailRefreshToken,
@@ -1028,7 +1030,7 @@ export async function registerRoutes(
       });
     } catch (err: any) {
       console.error("Google OAuth URL error:", err);
-      res.status(500).json({ error: "Failed to generate Google auth URL" });
+      res.status(500).json({ error: msg("failedGoogleAuth", req.lang!) });
     }
   });
 
@@ -1062,7 +1064,7 @@ export async function registerRoutes(
       await disconnectUserGmail(req.session.userId!);
       res.json({ success: true });
     } catch (err: any) {
-      console.error(err); res.status(500).json({ error: "Failed to disconnect Gmail" });
+      console.error(err); res.status(500).json({ error: msg("failedDisconnectGmail", req.lang!) });
     }
   });
 
@@ -1070,17 +1072,17 @@ export async function registerRoutes(
     try {
       const { gmailAddress, gmailAppPassword } = req.body;
       if (!gmailAddress || !gmailAppPassword) {
-        return res.status(400).json({ error: "Gmail address and app password are required" });
+        return res.status(400).json({ error: msg("gmailCredentialsRequired", req.lang!) });
       }
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(gmailAddress)) {
-        return res.status(400).json({ error: "Invalid email address format" });
+        return res.status(400).json({ error: msg("invalidEmailFormat", req.lang!) });
       }
       const updated = await storage.updateUserGmail(req.session.userId!, gmailAddress, gmailAppPassword);
-      if (!updated) return res.status(404).json({ error: "User not found" });
+      if (!updated) return res.status(404).json({ error: msg("userNotFound", req.lang!) });
       res.json({ success: true, gmailAddress: updated.gmailAddress });
     } catch (err: any) {
-      console.error(err); res.status(500).json({ error: "Failed to save Gmail settings" });
+      console.error(err); res.status(500).json({ error: msg("failedSaveGmail", req.lang!) });
     }
   });
 
@@ -1090,7 +1092,7 @@ export async function registerRoutes(
       const status = await getUserGmailStatus(req.session.userId!);
       res.json(status);
     } catch (err: any) {
-      console.error(err); res.status(500).json({ error: "Failed to check Gmail status" });
+      console.error(err); res.status(500).json({ error: msg("failedCheckGmail", req.lang!) });
     }
   });
 
@@ -1098,7 +1100,7 @@ export async function registerRoutes(
     try {
       const { type, teamMemberName, summary, details } = req.body;
       if (!type || !teamMemberName || !summary) {
-        return res.status(400).json({ error: "type, teamMemberName, and summary are required" });
+        return res.status(400).json({ error: msg("meetingFieldsRequired", req.lang!) });
       }
       const { notifyBoss } = await import("./bossNotificationService");
       await notifyBoss({
@@ -1110,7 +1112,7 @@ export async function registerRoutes(
       });
       res.json({ success: true, message: "Boss notification created" });
     } catch (err: any) {
-      console.error(err); res.status(500).json({ error: "Failed to create notification" });
+      console.error(err); res.status(500).json({ error: msg("failedCreateNotification", req.lang!) });
     }
   });
 
@@ -1132,9 +1134,9 @@ export async function registerRoutes(
 
   app.post("/api/social-accounts", requireAuth, async (req, res) => {
     const { platform, username, profileUrl, accessToken, accountType, apiKey, apiSecret, accessTokenSecret, pageId, businessAccountId } = req.body;
-    if (!platform || !username) return res.status(400).json({ error: "Platform and username are required" });
+    if (!platform || !username) return res.status(400).json({ error: msg("platformUsernameRequired", req.lang!) });
     const validPlatforms = ["instagram", "twitter", "linkedin", "facebook", "tiktok", "youtube"];
-    if (!validPlatforms.includes(platform)) return res.status(400).json({ error: "Invalid platform" });
+    if (!validPlatforms.includes(platform)) return res.status(400).json({ error: msg("invalidPlatform", req.lang!) });
     const account = await storage.addSocialAccount({
       userId: req.session.userId!,
       platform,
@@ -1154,7 +1156,7 @@ export async function registerRoutes(
 
   app.patch("/api/social-accounts/:id", requireAuth, async (req, res) => {
     const id = parseInt(req.params.id as string);
-    if (isNaN(id)) return res.status(400).json({ error: "Invalid account ID" });
+    if (isNaN(id)) return res.status(400).json({ error: msg("invalidId", req.lang!) });
     const { username, profileUrl, accessToken, status, accountType, apiKey, apiSecret, accessTokenSecret, pageId, businessAccountId } = req.body;
     const updates: any = {};
     if (username !== undefined) updates.username = username;
@@ -1168,15 +1170,15 @@ export async function registerRoutes(
     if (pageId !== undefined) updates.pageId = pageId;
     if (businessAccountId !== undefined) updates.businessAccountId = businessAccountId;
     const updated = await storage.updateSocialAccount(id, req.session.userId!, updates);
-    if (!updated) return res.status(404).json({ error: "Account not found" });
+    if (!updated) return res.status(404).json({ error: msg("accountNotFound", req.lang!) });
     res.json({ id: updated.id, userId: updated.userId, platform: updated.platform, username: updated.username, profileUrl: updated.profileUrl, accountType: updated.accountType, status: updated.status, connectedAt: updated.connectedAt, hasApiCredentials: !!(updated.apiKey || updated.accessToken) });
   });
 
   app.delete("/api/social-accounts/:id", requireAuth, async (req, res) => {
     const id = parseInt(req.params.id as string);
-    if (isNaN(id)) return res.status(400).json({ error: "Invalid account ID" });
+    if (isNaN(id)) return res.status(400).json({ error: msg("invalidId", req.lang!) });
     const deleted = await storage.deleteSocialAccount(id, req.session.userId!);
-    if (!deleted) return res.status(404).json({ error: "Account not found" });
+    if (!deleted) return res.status(404).json({ error: msg("accountNotFound", req.lang!) });
     res.json({ success: true });
   });
 
@@ -1187,9 +1189,9 @@ export async function registerRoutes(
 
   app.post("/api/scheduled-posts/:id/cancel", requireAuth, async (req, res) => {
     const id = parseInt(req.params.id as string);
-    if (isNaN(id)) return res.status(400).json({ error: "Invalid post ID" });
+    if (isNaN(id)) return res.status(400).json({ error: msg("invalidId", req.lang!) });
     const cancelled = await storage.cancelScheduledPost(id, req.session.userId!);
-    if (!cancelled) return res.status(404).json({ error: "Post not found or already published/cancelled" });
+    if (!cancelled) return res.status(404).json({ error: msg("postNotFound", req.lang!) });
     res.json({ success: true });
   });
 
@@ -1213,9 +1215,9 @@ export async function registerRoutes(
 
   app.post("/api/shipping-providers", requireAuth, async (req, res) => {
     const { provider, apiKey, customerCode, username, password, accountNumber, siteId } = req.body;
-    if (!provider || !apiKey) return res.status(400).json({ error: "Provider and API key are required" });
+    if (!provider || !apiKey) return res.status(400).json({ error: msg("providerApiKeyRequired", req.lang!) });
     const validProviders = ["aras", "yurtici", "mng", "surat", "ptt", "ups", "fedex", "dhl"];
-    if (!validProviders.includes(provider)) return res.status(400).json({ error: "Invalid shipping provider" });
+    if (!validProviders.includes(provider)) return res.status(400).json({ error: msg("invalidProvider", req.lang!) });
     const created = await storage.addShippingProvider({
       userId: req.session.userId!,
       provider,
@@ -1232,7 +1234,7 @@ export async function registerRoutes(
 
   app.patch("/api/shipping-providers/:id", requireAuth, async (req, res) => {
     const id = parseInt(req.params.id as string);
-    if (isNaN(id)) return res.status(400).json({ error: "Invalid provider ID" });
+    if (isNaN(id)) return res.status(400).json({ error: msg("invalidId", req.lang!) });
     const { apiKey, customerCode, username, password, accountNumber, siteId, status } = req.body;
     const updates: any = {};
     if (apiKey !== undefined) updates.apiKey = apiKey;
@@ -1243,15 +1245,15 @@ export async function registerRoutes(
     if (siteId !== undefined) updates.siteId = siteId;
     if (status !== undefined) updates.status = status;
     const updated = await storage.updateShippingProvider(id, req.session.userId!, updates);
-    if (!updated) return res.status(404).json({ error: "Provider not found" });
+    if (!updated) return res.status(404).json({ error: msg("providerNotFound", req.lang!) });
     res.json(updated);
   });
 
   app.delete("/api/shipping-providers/:id", requireAuth, async (req, res) => {
     const id = parseInt(req.params.id as string);
-    if (isNaN(id)) return res.status(400).json({ error: "Invalid provider ID" });
+    if (isNaN(id)) return res.status(400).json({ error: msg("invalidId", req.lang!) });
     const deleted = await storage.deleteShippingProvider(id, req.session.userId!);
-    if (!deleted) return res.status(404).json({ error: "Provider not found" });
+    if (!deleted) return res.status(404).json({ error: msg("providerNotFound", req.lang!) });
     res.json({ success: true });
   });
 
@@ -1272,7 +1274,7 @@ export async function registerRoutes(
   app.post("/api/whatsapp/config", requireAuth, async (req, res) => {
     const { phoneNumberId, businessAccountId, accessToken, verifyToken, displayName } = req.body;
     if (!phoneNumberId || !accessToken || !verifyToken) {
-      return res.status(400).json({ error: "Phone Number ID, Access Token, and Verify Token are required" });
+      return res.status(400).json({ error: msg("whatsappConfigRequired", req.lang!) });
     }
     const config = await storage.saveWhatsappConfig({
       userId: req.session.userId!,
@@ -1288,13 +1290,13 @@ export async function registerRoutes(
 
   app.delete("/api/whatsapp/config", requireAuth, async (req, res) => {
     const deleted = await storage.deleteWhatsappConfig(req.session.userId!);
-    if (!deleted) return res.status(404).json({ error: "No WhatsApp config found" });
+    if (!deleted) return res.status(404).json({ error: msg("whatsappConfigNotFound", req.lang!) });
     res.json({ success: true });
   });
 
   app.post("/api/whatsapp/test", requireAuth, async (req, res) => {
     const config = await storage.getWhatsappConfig(req.session.userId!);
-    if (!config) return res.status(400).json({ error: "WhatsApp not configured" });
+    if (!config) return res.status(400).json({ error: msg("whatsappNotConfigured", req.lang!) });
     try {
       const response = await fetch(`https://graph.facebook.com/v21.0/${config.phoneNumberId}`, {
         headers: { "Authorization": `Bearer ${config.accessToken}` },
@@ -1368,7 +1370,7 @@ export async function registerRoutes(
   app.post("/api/support-tickets", requireAuth, async (req, res) => {
     const { subject, description, category, agentType, priority } = req.body;
     if (!subject?.trim() || !description?.trim()) {
-      return res.status(400).json({ error: "Subject and description are required" });
+      return res.status(400).json({ error: msg("subjectDescriptionRequired", req.lang!) });
     }
     const ticket = await storage.createSupportTicket({
       userId: req.session.userId!,
@@ -1391,7 +1393,7 @@ export async function registerRoutes(
     const id = parseInt(req.params.id as string);
     const { status, priority, resolution, adminReply } = req.body;
     const updated = await storage.adminUpdateTicket(id, { status, priority, resolution, adminReply });
-    if (!updated) return res.status(404).json({ error: "Ticket not found" });
+    if (!updated) return res.status(404).json({ error: msg("ticketNotFound", req.lang!) });
     res.json(updated);
   });
 
@@ -1463,22 +1465,22 @@ export async function registerRoutes(
   app.post("/api/rentals", requireAuth, async (req, res) => {
     const { agentType } = req.body;
     if (!agentType || !agentNameMap[agentType]) {
-      return res.status(400).json({ error: "Invalid agent type" });
+      return res.status(400).json({ error: msg("invalidAgentType", req.lang!) });
     }
 
     const user = await storage.getUserById(req.session.userId!);
     if (!user?.stripeSubscriptionId) {
-      return res.status(403).json({ error: "An active subscription is required. Please subscribe from the Pricing page first." });
+      return res.status(403).json({ error: msg("subscriptionRequired", req.lang!) });
     }
 
     const existing = await storage.getActiveRental(req.session.userId!, agentType);
     if (existing) {
-      return res.status(409).json({ error: "You already have an active rental for this agent" });
+      return res.status(409).json({ error: msg("alreadyRented", req.lang!) });
     }
 
     const subscription = await storage.getSubscription(user.stripeSubscriptionId);
     if (!subscription || (subscription.status !== 'active' && subscription.status !== 'trialing')) {
-      return res.status(403).json({ error: "Your subscription is not active. Please update your billing." });
+      return res.status(403).json({ error: msg("subscriptionNotActive", req.lang!) });
     }
 
     const planMeta = (subscription.metadata as Record<string, string> | null)?.plan || 'starter';
@@ -1502,7 +1504,7 @@ export async function registerRoutes(
   app.get("/api/images/:filename", (req, res) => {
     const filepath = getImagePath(req.params.filename);
     if (!filepath) {
-      return res.status(404).json({ error: "Image not found" });
+      return res.status(404).json({ error: msg("imageNotFound", req.lang!) });
     }
     const ext = path.extname(req.params.filename).toLowerCase();
     const mimeTypes: Record<string, string> = {
@@ -1522,7 +1524,7 @@ export async function registerRoutes(
   app.get("/api/images/:filename/download", (req, res) => {
     const filepath = getImagePath(req.params.filename);
     if (!filepath) {
-      return res.status(404).json({ error: "Image not found" });
+      return res.status(404).json({ error: msg("imageNotFound", req.lang!) });
     }
     const ext = path.extname(req.params.filename).toLowerCase();
     const mimeTypes: Record<string, string> = {
@@ -1569,15 +1571,15 @@ export async function registerRoutes(
     chatUpload.single("file")(req, res, (err: any) => {
       if (err) {
         if (err.code === "LIMIT_FILE_SIZE") {
-          return res.status(400).json({ error: "Dosya çok büyük. Maksimum dosya boyutu 10MB." });
+          return res.status(400).json({ error: msg("fileTooLarge", req.lang!) });
         }
-        return res.status(400).json({ error: err.message || "Dosya yüklenirken bir hata oluştu." });
+        return res.status(400).json({ error: msg("fileUploadError", req.lang!) });
       }
       next();
     });
   }, async (req: any, res) => {
     if (!req.file) {
-      return res.status(400).json({ error: "No file provided" });
+      return res.status(400).json({ error: msg("noFileProvided", req.lang!) });
     }
     const originalName = Buffer.from(req.file.originalname, 'latin1').toString('utf8');
     const ext = path.extname(originalName).toLowerCase();
@@ -1600,7 +1602,7 @@ export async function registerRoutes(
           documentContent: truncated,
         });
       } catch (err: any) {
-        res.status(400).json({ error: `Dosya işlenemedi: ${err.message}` });
+        res.status(400).json({ error: msg("fileUploadError", req.lang!) });
       }
     }
   });
@@ -1609,7 +1611,7 @@ export async function registerRoutes(
     const filename = path.basename(req.params.filename);
     const filepath = path.join(chatImageDir, filename);
     if (!fs.existsSync(filepath)) {
-      return res.status(404).json({ error: "File not found" });
+      return res.status(404).json({ error: msg("fileNotFound", req.lang!) });
     }
     const ext = path.extname(filename).toLowerCase();
     const safeMimeTypes: Record<string, string> = {
@@ -1637,7 +1639,7 @@ export async function registerRoutes(
   app.post("/api/chat", async (req, res) => {
     const parsed = chatMessageSchema.safeParse(req.body);
     if (!parsed.success) {
-      return res.status(400).json({ error: "Invalid request" });
+      return res.status(400).json({ error: msg("invalidRequest", req.lang!) });
     }
 
     const { message, agentType, conversationHistory, sessionId: clientSessionId } = parsed.data;
@@ -2438,7 +2440,7 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
   app.post("/api/contact", async (req, res) => {
     const parsed = contactFormSchema.safeParse(req.body);
     if (!parsed.success) {
-      return res.status(400).json({ error: "Please check your form data", details: parsed.error.flatten() });
+      return res.status(400).json({ error: msg("invalidFormData", req.lang!), details: parsed.error.flatten() });
     }
 
     try {
@@ -2453,14 +2455,14 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
       res.json({ success: true, message: "Your message has been received. We'll get back to you within 2 hours." });
     } catch (error: any) {
       console.error("Contact form error:", error.message);
-      res.status(500).json({ error: "Failed to save your message. Please try again." });
+      res.status(500).json({ error: msg("failedSaveMessage", req.lang!) });
     }
   });
 
   app.post("/api/newsletter", async (req, res) => {
     const parsed = newsletterSchema.safeParse(req.body);
     if (!parsed.success) {
-      return res.status(400).json({ error: "Please enter a valid email address" });
+      return res.status(400).json({ error: msg("invalidEmailAddress", req.lang!) });
     }
 
     try {
@@ -2471,7 +2473,7 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
         return res.json({ success: true, message: "You're already subscribed!" });
       }
       console.error("Newsletter error:", error.message);
-      res.status(500).json({ error: "Failed to subscribe. Please try again." });
+      res.status(500).json({ error: msg("failedSubscribe", req.lang!) });
     }
   });
 
@@ -2480,7 +2482,7 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
       const publishableKey = getPublishableKey();
       res.json({ publishableKey });
     } catch (error) {
-      res.status(500).json({ error: "Stripe not configured" });
+      res.status(500).json({ error: msg("stripeNotConfigured", req.lang!) });
     }
   });
 
@@ -2523,7 +2525,7 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
 
       const allowedPlans = ["starter", "professional"];
       if (!plan || !allowedPlans.includes(plan)) {
-        return res.status(400).json({ error: "Invalid plan" });
+        return res.status(400).json({ error: msg("invalidPlan", req.lang!) });
       }
 
       const cleanCard = (cardNumber || "").replace(/\s/g, "");
@@ -2540,20 +2542,20 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
       ];
 
       if (declinedCards.includes(cleanCard)) {
-        return res.status(402).json({ error: "Card declined. Please try a different card." });
+        return res.status(402).json({ error: msg("cardDeclined", req.lang!) });
       }
 
       if (!validTestCards.includes(cleanCard)) {
-        return res.status(400).json({ error: "Invalid test card number. Use 4242 4242 4242 4242 for testing." });
+        return res.status(400).json({ error: msg("invalidTestCard", req.lang!) });
       }
 
       if (!expiry || !cvc) {
-        return res.status(400).json({ error: "Card details are incomplete" });
+        return res.status(400).json({ error: msg("cardIncomplete", req.lang!) });
       }
 
       const user = await storage.getUserById(req.session.userId!);
       if (!user) {
-        return res.status(401).json({ error: "User not found" });
+        return res.status(401).json({ error: msg("userNotFound", req.lang!) });
       }
 
       const planLimits: Record<string, number> = { starter: 100, professional: 500 };
@@ -2563,7 +2565,7 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
       if (agentType && agentNameMap[agentType]) {
         const existing = await storage.getActiveRental(user.id, agentType);
         if (existing) {
-          return res.status(409).json({ error: "You already have an active rental for this agent" });
+          return res.status(409).json({ error: msg("alreadyRented", req.lang!) });
         }
 
         await storage.createRental({
@@ -2596,7 +2598,7 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
       res.json({ success: true, redirect: "/dashboard?checkout=success" });
     } catch (error: any) {
       console.error("Test checkout error:", error.message);
-      res.status(500).json({ error: "Checkout failed. Please try again." });
+      res.status(500).json({ error: msg("checkoutFailed", req.lang!) });
     }
   });
 
@@ -2604,28 +2606,28 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
     try {
       const { priceId, agentType } = req.body;
       if (!priceId) {
-        return res.status(400).json({ error: "Price ID is required" });
+        return res.status(400).json({ error: msg("priceIdRequired", req.lang!) });
       }
 
       const price = await storage.getPrice(priceId);
       if (!price || !price.active || !price.recurring) {
-        return res.status(400).json({ error: "Invalid or inactive price" });
+        return res.status(400).json({ error: msg("invalidPrice", req.lang!) });
       }
 
       const product = await storage.getProduct(String(price.product));
       if (!product || !product.active) {
-        return res.status(400).json({ error: "Invalid product" });
+        return res.status(400).json({ error: msg("invalidProduct", req.lang!) });
       }
 
       const allowedPlans = ["starter", "professional"];
       const planMeta = (product.metadata as Record<string, string> | null)?.plan;
       if (!planMeta || !allowedPlans.includes(planMeta)) {
-        return res.status(400).json({ error: "Invalid plan. Enterprise plans require contacting sales." });
+        return res.status(400).json({ error: msg("enterpriseContactSales", req.lang!) });
       }
 
       const user = await storage.getUserById(req.session.userId!);
       if (!user) {
-        return res.status(401).json({ error: "User not found" });
+        return res.status(401).json({ error: msg("userNotFound", req.lang!) });
       }
 
       let customerId = user.stripeCustomerId;
@@ -2648,7 +2650,7 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
       res.json({ url: session.url });
     } catch (error: any) {
       console.error("Checkout error:", error.message);
-      res.status(500).json({ error: "Failed to create checkout session" });
+      res.status(500).json({ error: msg("failedCreateCheckout", req.lang!) });
     }
   });
 
@@ -2656,27 +2658,27 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
     try {
       const { priceId } = req.body;
       if (!priceId) {
-        return res.status(400).json({ error: "Price ID is required" });
+        return res.status(400).json({ error: msg("priceIdRequired", req.lang!) });
       }
 
       const price = await storage.getPrice(priceId);
       if (!price || !price.active) {
-        return res.status(400).json({ error: "Invalid or inactive price" });
+        return res.status(400).json({ error: msg("invalidPrice", req.lang!) });
       }
 
       const product = await storage.getProduct(String(price.product));
       if (!product || !product.active || (product.metadata as Record<string, string> | null)?.type !== "image_credits") {
-        return res.status(400).json({ error: "Invalid image credit product" });
+        return res.status(400).json({ error: msg("invalidImageProduct", req.lang!) });
       }
 
       const credits = parseInt((price.metadata as Record<string, string> | null)?.credits || "0");
       if (credits <= 0) {
-        return res.status(400).json({ error: "Invalid credit amount" });
+        return res.status(400).json({ error: msg("invalidCreditAmount", req.lang!) });
       }
 
       const user = await storage.getUserById(req.session.userId!);
       if (!user) {
-        return res.status(401).json({ error: "User not found" });
+        return res.status(401).json({ error: msg("userNotFound", req.lang!) });
       }
 
       let customerId = user.stripeCustomerId;
@@ -2700,17 +2702,17 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
       res.json({ url: session.url });
     } catch (error: any) {
       console.error("Credits checkout error:", error.message);
-      res.status(500).json({ error: "Failed to create checkout session" });
+      res.status(500).json({ error: msg("failedCreateCheckout", req.lang!) });
     }
   });
 
   app.get("/api/image-credits", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUserById(req.session.userId!);
-      if (!user) return res.status(401).json({ error: "User not found" });
+      if (!user) return res.status(401).json({ error: msg("userNotFound", req.lang!) });
       res.json({ credits: user.imageCredits });
     } catch (error: any) {
-      console.error(error); res.status(500).json({ error: "Internal server error" });
+      console.error(error); res.status(500).json({ error: msg("internalServerError", req.lang!) });
     }
   });
 
@@ -2718,13 +2720,13 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
     try {
       const { packageId, cardNumber, expiry, cvc } = req.body;
       if (!packageId || !cardNumber || !expiry || !cvc) {
-        return res.status(400).json({ error: "All payment fields are required" });
+        return res.status(400).json({ error: msg("paymentFieldsRequired", req.lang!) });
       }
 
       const validCards = ["4242424242424242", "4000000000000077", "5555555555554444", "378282246310005"];
       const cleanCard = cardNumber.replace(/\s/g, "");
       if (!validCards.includes(cleanCard)) {
-        return res.status(400).json({ error: "Invalid test card number. Use: 4242 4242 4242 4242" });
+        return res.status(400).json({ error: msg("invalidTestCardShort", req.lang!) });
       }
 
       const packages: Record<string, { credits: number; price: number; label: string }> = {
@@ -2735,11 +2737,11 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
 
       const pkg = packages[packageId];
       if (!pkg) {
-        return res.status(400).json({ error: "Invalid credit package" });
+        return res.status(400).json({ error: msg("invalidCreditPackage", req.lang!) });
       }
 
       const user = await storage.getUserById(req.session.userId!);
-      if (!user) return res.status(401).json({ error: "User not found" });
+      if (!user) return res.status(401).json({ error: msg("userNotFound", req.lang!) });
 
       const currentCredits = user.imageCredits || 0;
       await storage.addImageCredits(req.session.userId!, pkg.credits);
@@ -2753,7 +2755,7 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
       });
     } catch (error: any) {
       console.error("Credit purchase error:", error.message);
-      res.status(500).json({ error: "Failed to purchase credits" });
+      res.status(500).json({ error: msg("failedPurchaseCredits", req.lang!) });
     }
   });
 
@@ -2787,7 +2789,7 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
         .sort((a: any, b: any) => a.credits - b.credits);
       res.json(prices);
     } catch (error: any) {
-      console.error(error); res.status(500).json({ error: "Internal server error" });
+      console.error(error); res.status(500).json({ error: msg("internalServerError", req.lang!) });
     }
   });
 
@@ -2795,7 +2797,7 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
     try {
       const user = await storage.getUserById(req.session.userId!);
       if (!user?.stripeCustomerId) {
-        return res.status(400).json({ error: "No billing account found" });
+        return res.status(400).json({ error: msg("noBillingAccount", req.lang!) });
       }
 
       const domain = process.env.REPLIT_DOMAINS?.split(',')[0];
@@ -2808,7 +2810,7 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
       res.json({ url: session.url });
     } catch (error: any) {
       console.error("Portal error:", error.message);
-      res.status(500).json({ error: "Failed to open billing portal" });
+      res.status(500).json({ error: msg("failedBillingPortal", req.lang!) });
     }
   });
 
@@ -2831,15 +2833,15 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
   function requireAdmin(req: Request, res: Response, next: NextFunction) {
     const adminPassword = process.env.ADMIN_PASSWORD;
     if (!adminPassword) {
-      return res.status(503).json({ error: "Admin access not configured" });
+      return res.status(503).json({ error: msg("adminNotConfigured", req.lang!) });
     }
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return res.status(401).json({ error: "Admin authentication required" });
+      return res.status(401).json({ error: msg("adminAuthRequired", req.lang!) });
     }
     const token = authHeader.slice(7);
     if (!adminTokens.has(token)) {
-      return res.status(403).json({ error: "Invalid admin credentials" });
+      return res.status(403).json({ error: msg("invalidAdminCredentials", req.lang!) });
     }
     next();
   }
@@ -2848,10 +2850,10 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
     const { password } = req.body;
     const adminPassword = process.env.ADMIN_PASSWORD;
     if (!adminPassword) {
-      return res.status(503).json({ error: "Admin access not configured" });
+      return res.status(503).json({ error: msg("adminNotConfigured", req.lang!) });
     }
     if (password !== adminPassword) {
-      return res.status(403).json({ error: "Invalid admin password" });
+      return res.status(403).json({ error: msg("invalidAdminPassword", req.lang!) });
     }
     const token = crypto.randomBytes(32).toString("hex");
     adminTokens.add(token);
@@ -2863,18 +2865,18 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
       const docs = await getDocumentsByAgent(req.params.agentType as string);
       res.json(docs);
     } catch (error: any) {
-      console.error(error); res.status(500).json({ error: "Internal server error" });
+      console.error(error); res.status(500).json({ error: msg("internalServerError", req.lang!) });
     }
   });
 
   app.post(`/api/${ADMIN_PATH}/agents/:agentType/documents`, requireAdmin, (req, res, next) => {
     uploadDocument.single("file")(req, res, async (err) => {
       if (err) {
-        return res.status(400).json({ error: err.message });
+        return res.status(400).json({ error: msg("fileUploadError", req.lang!) });
       }
       try {
         if (!req.file) {
-          return res.status(400).json({ error: "No file uploaded" });
+          return res.status(400).json({ error: msg("noFileUploaded", req.lang!) });
         }
         const decodedOriginalName = Buffer.from(req.file.originalname, 'latin1').toString('utf8');
         const doc = await processAndStoreDocument(
@@ -2886,7 +2888,7 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
         );
         res.json(doc);
       } catch (error: any) {
-        console.error(error); res.status(500).json({ error: "Internal server error" });
+        console.error(error); res.status(500).json({ error: msg("internalServerError", req.lang!) });
       }
     });
   });
@@ -2895,12 +2897,12 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
     try {
       const { url } = req.body;
       if (!url || typeof url !== "string") {
-        return res.status(400).json({ error: "URL is required" });
+        return res.status(400).json({ error: msg("urlRequired", req.lang!) });
       }
       const doc = await processAndStoreUrl(url, req.params.agentType as string);
       res.json(doc);
     } catch (error: any) {
-      console.error(error); res.status(500).json({ error: "Internal server error" });
+      console.error(error); res.status(500).json({ error: msg("internalServerError", req.lang!) });
     }
   });
 
@@ -2909,7 +2911,7 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
       await deleteDocument(parseInt(req.params.docId as string));
       res.json({ success: true });
     } catch (error: any) {
-      console.error(error); res.status(500).json({ error: "Internal server error" });
+      console.error(error); res.status(500).json({ error: msg("internalServerError", req.lang!) });
     }
   });
 
@@ -2918,18 +2920,18 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
       const jobs = await getJobsByAgent(req.params.agentType as string);
       res.json(jobs);
     } catch (error: any) {
-      console.error(error); res.status(500).json({ error: "Internal server error" });
+      console.error(error); res.status(500).json({ error: msg("internalServerError", req.lang!) });
     }
   });
 
   app.post(`/api/${ADMIN_PATH}/agents/:agentType/fine-tuning`, requireAdmin, (req, res, next) => {
     uploadTrainingFile.single("file")(req, res, async (err) => {
       if (err) {
-        return res.status(400).json({ error: err.message });
+        return res.status(400).json({ error: msg("fileUploadError", req.lang!) });
       }
       try {
         if (!req.file) {
-          return res.status(400).json({ error: "No file uploaded" });
+          return res.status(400).json({ error: msg("noFileUploaded", req.lang!) });
         }
         const decodedOriginalName = Buffer.from(req.file.originalname, 'latin1').toString('utf8');
         const job = await createFineTuningJob(
@@ -2939,7 +2941,7 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
         );
         res.json(job);
       } catch (error: any) {
-        console.error(error); res.status(500).json({ error: "Internal server error" });
+        console.error(error); res.status(500).json({ error: msg("internalServerError", req.lang!) });
       }
     });
   });
@@ -2949,7 +2951,7 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
       const job = await syncJobStatus(parseInt(req.params.jobId as string));
       res.json(job);
     } catch (error: any) {
-      console.error(error); res.status(500).json({ error: "Internal server error" });
+      console.error(error); res.status(500).json({ error: msg("internalServerError", req.lang!) });
     }
   });
 
@@ -2957,12 +2959,12 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
     try {
       const { agentType } = req.body;
       if (!agentType) {
-        return res.status(400).json({ error: "agentType is required" });
+        return res.status(400).json({ error: msg("agentTypeRequired", req.lang!) });
       }
       const job = await toggleActiveModel(parseInt(req.params.jobId as string), agentType);
       res.json(job);
     } catch (error: any) {
-      console.error(error); res.status(500).json({ error: "Internal server error" });
+      console.error(error); res.status(500).json({ error: msg("internalServerError", req.lang!) });
     }
   });
 
@@ -2971,7 +2973,7 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
       await deactivateModel(req.params.agentType as string);
       res.json({ success: true });
     } catch (error: any) {
-      console.error(error); res.status(500).json({ error: "Internal server error" });
+      console.error(error); res.status(500).json({ error: msg("internalServerError", req.lang!) });
     }
   });
 
@@ -2982,7 +2984,7 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
       res.setHeader("Content-Disposition", "attachment; filename=RentAI24_Agent_Rules.pdf");
       res.send(pdfBuffer);
     } catch (error: any) {
-      console.error(error); res.status(500).json({ error: "Internal server error" });
+      console.error(error); res.status(500).json({ error: msg("internalServerError", req.lang!) });
     }
   });
 
@@ -3038,7 +3040,7 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
       });
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "Unknown error";
-      console.error(message); res.status(500).json({ error: "Internal server error" });
+      console.error(message); res.status(500).json({ error: msg("internalServerError", req.lang!) });
     }
   });
 
@@ -3058,7 +3060,7 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
       });
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "Unknown error";
-      console.error(message); res.status(500).json({ error: "Internal server error" });
+      console.error(message); res.status(500).json({ error: msg("internalServerError", req.lang!) });
     }
   });
 
@@ -3070,7 +3072,7 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
       const result = await generateTrainingDataFromChatLogs(agentType, filters);
 
       if (!result.jsonl) {
-        return res.status(404).json({ error: "No training data available for this agent." });
+        return res.status(404).json({ error: msg("noTrainingData", req.lang!) });
       }
 
       const validationInfo = {
@@ -3084,7 +3086,7 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
       res.send(result.jsonl);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "Unknown error";
-      console.error(message); res.status(500).json({ error: "Internal server error" });
+      console.error(message); res.status(500).json({ error: msg("internalServerError", req.lang!) });
     }
   });
 
@@ -3092,7 +3094,7 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
     try {
       const { jsonlContent } = req.body;
       if (!jsonlContent || typeof jsonlContent !== "string") {
-        return res.status(400).json({ error: "jsonlContent is required" });
+        return res.status(400).json({ error: msg("jsonlContentRequired", req.lang!) });
       }
       const errors = validateJSONL(jsonlContent);
       const lineCount = jsonlContent.trim().split("\n").filter((l: string) => l.trim()).length;
@@ -3102,7 +3104,7 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
         errors,
       });
     } catch (error: any) {
-      console.error(error); res.status(500).json({ error: "Internal server error" });
+      console.error(error); res.status(500).json({ error: msg("internalServerError", req.lang!) });
     }
   });
 
@@ -3160,7 +3162,7 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
 
       res.json({ stats, problematicSessions: problematicSessions.rows || [] });
     } catch (error: any) {
-      console.error(error); res.status(500).json({ error: "Internal server error" });
+      console.error(error); res.status(500).json({ error: msg("internalServerError", req.lang!) });
     }
   });
 
@@ -3198,7 +3200,7 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
       const result = await db.execute(query);
       res.json({ conversations: result.rows || [] });
     } catch (error: any) {
-      console.error(error); res.status(500).json({ error: "Internal server error" });
+      console.error(error); res.status(500).json({ error: msg("internalServerError", req.lang!) });
     }
   });
 
@@ -3214,7 +3216,7 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
 
       res.json({ messages });
     } catch (error: any) {
-      console.error(error); res.status(500).json({ error: "Internal server error" });
+      console.error(error); res.status(500).json({ error: msg("internalServerError", req.lang!) });
     }
   });
 
@@ -3226,13 +3228,13 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
 
       const { rating } = req.body;
       if (!["good", "bad", null].includes(rating)) {
-        return res.status(400).json({ error: "Rating must be 'good', 'bad', or null" });
+        return res.status(400).json({ error: msg("invalidRating", req.lang!) });
       }
 
       await db.update(conversations).set({ qualityRating: rating }).where(eq(conversations.id, Number(req.params.id)));
       res.json({ success: true });
     } catch (error: any) {
-      console.error(error); res.status(500).json({ error: "Internal server error" });
+      console.error(error); res.status(500).json({ error: msg("internalServerError", req.lang!) });
     }
   });
 
@@ -3305,7 +3307,7 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
         period,
       });
     } catch (error: any) {
-      console.error(error); res.status(500).json({ error: "Internal server error" });
+      console.error(error); res.status(500).json({ error: msg("internalServerError", req.lang!) });
     }
   });
 
@@ -3314,7 +3316,7 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
       const messages = await storage.getContactMessages();
       res.json(messages);
     } catch (error: any) {
-      console.error(error); res.status(500).json({ error: "Internal server error" });
+      console.error(error); res.status(500).json({ error: msg("internalServerError", req.lang!) });
     }
   });
 
@@ -3323,7 +3325,7 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
       const subscribers = await storage.getNewsletterSubscribers();
       res.json(subscribers);
     } catch (error: any) {
-      console.error(error); res.status(500).json({ error: "Internal server error" });
+      console.error(error); res.status(500).json({ error: msg("internalServerError", req.lang!) });
     }
   });
 
@@ -3332,7 +3334,7 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
       const summary = await storage.getTokenUsageSummary();
       res.json(summary);
     } catch (error: any) {
-      console.error(error); res.status(500).json({ error: "Internal server error" });
+      console.error(error); res.status(500).json({ error: msg("internalServerError", req.lang!) });
     }
   });
 
@@ -3342,7 +3344,7 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
       const detailed = await storage.getTokenUsageDetailed(minCost);
       res.json(detailed);
     } catch (error: any) {
-      console.error(error); res.status(500).json({ error: "Internal server error" });
+      console.error(error); res.status(500).json({ error: msg("internalServerError", req.lang!) });
     }
   });
 
@@ -3363,7 +3365,7 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
         limitReached: spent >= limit,
       });
     } catch (error: any) {
-      console.error(error); res.status(500).json({ error: "Internal server error" });
+      console.error(error); res.status(500).json({ error: msg("internalServerError", req.lang!) });
     }
   });
 
@@ -3382,7 +3384,7 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
       `);
       res.json(result.rows[0] || {});
     } catch (error: any) {
-      console.error(error); res.status(500).json({ error: "Internal server error" });
+      console.error(error); res.status(500).json({ error: msg("internalServerError", req.lang!) });
     }
   });
 
@@ -3448,7 +3450,7 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
         summaryCacheHits: summaryStats.summaryCacheHits,
       });
     } catch (error: any) {
-      console.error(error); res.status(500).json({ error: "Internal server error" });
+      console.error(error); res.status(500).json({ error: msg("internalServerError", req.lang!) });
     }
   });
 
@@ -3463,7 +3465,7 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
         activeModel: activeModel || null,
       });
     } catch (error: any) {
-      console.error(error); res.status(500).json({ error: "Internal server error" });
+      console.error(error); res.status(500).json({ error: msg("internalServerError", req.lang!) });
     }
   });
 
@@ -3474,7 +3476,7 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
       const limits = await storage.getAgentLimits(agentType, userId);
       res.json(limits);
     } catch (error: any) {
-      console.error(error); res.status(500).json({ error: "Internal server error" });
+      console.error(error); res.status(500).json({ error: msg("internalServerError", req.lang!) });
     }
   });
 
@@ -3484,16 +3486,16 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
       const validPeriods = ["daily", "weekly", "monthly"];
       const validAgents = ["customer-support", "sales-sdr", "social-media", "bookkeeping", "scheduling", "hr-recruiting", "data-analyst", "ecommerce-ops", "real-estate", "manager"];
       if (!agentType || !validAgents.includes(agentType)) {
-        return res.status(400).json({ error: "Invalid agentType" });
+        return res.status(400).json({ error: msg("invalidAgentTypeParam", req.lang!) });
       }
       if (!period || !validPeriods.includes(period)) {
-        return res.status(400).json({ error: "Invalid period. Must be daily, weekly, or monthly" });
+        return res.status(400).json({ error: msg("invalidPeriod", req.lang!) });
       }
       const parsedTokenLimit = Math.max(0, parseInt(tokenLimit) || 0);
       const parsedMessageLimit = Math.max(0, parseInt(messageLimit) || 0);
       const parsedUserId = userId ? parseInt(userId) : null;
       if (parsedUserId !== null && (isNaN(parsedUserId) || parsedUserId <= 0)) {
-        return res.status(400).json({ error: "Invalid userId" });
+        return res.status(400).json({ error: msg("invalidUserId", req.lang!) });
       }
       const limit = await storage.upsertAgentLimit({
         agentType,
@@ -3505,7 +3507,7 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
       });
       res.json(limit);
     } catch (error: any) {
-      console.error(error); res.status(500).json({ error: "Internal server error" });
+      console.error(error); res.status(500).json({ error: msg("internalServerError", req.lang!) });
     }
   });
 
@@ -3513,12 +3515,12 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
     try {
       const id = parseInt(String(req.params.id));
       if (isNaN(id) || id <= 0) {
-        return res.status(400).json({ error: "Invalid limit ID" });
+        return res.status(400).json({ error: msg("invalidLimitId", req.lang!) });
       }
       const deleted = await storage.deleteAgentLimit(id);
       res.json({ success: deleted });
     } catch (error: any) {
-      console.error(error); res.status(500).json({ error: "Internal server error" });
+      console.error(error); res.status(500).json({ error: msg("internalServerError", req.lang!) });
     }
   });
 
@@ -3528,14 +3530,14 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
       const period = req.query.period as "daily" | "weekly" | "monthly";
       const userId = req.query.userId ? parseInt(req.query.userId as string) : null;
       if (!agentType || !period) {
-        return res.status(400).json({ error: "agentType and period are required" });
+        return res.status(400).json({ error: msg("agentTypePeriodRequired", req.lang!) });
       }
       const usage = userId
         ? await storage.getTokenUsageByPeriod(userId, agentType, period)
         : await storage.getUsageSummaryByPeriod(agentType, period);
       res.json(usage);
     } catch (error: any) {
-      console.error(error); res.status(500).json({ error: "Internal server error" });
+      console.error(error); res.status(500).json({ error: msg("internalServerError", req.lang!) });
     }
   });
 
@@ -3559,7 +3561,7 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
       `);
       res.json(result.rows);
     } catch (error: any) {
-      console.error(error); res.status(500).json({ error: "Internal server error" });
+      console.error(error); res.status(500).json({ error: msg("internalServerError", req.lang!) });
     }
   });
 
@@ -3573,12 +3575,12 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
       if (plan !== undefined) updates.plan = plan;
       if (status !== undefined) updates.status = status;
       if (Object.keys(updates).length === 0) {
-        return res.status(400).json({ error: "No fields to update" });
+        return res.status(400).json({ error: msg("noFieldsToUpdate", req.lang!) });
       }
       await db.update(rentals).set(updates).where(eq(rentals.id, rentalId));
       res.json({ success: true });
     } catch (error: any) {
-      console.error(error); res.status(500).json({ error: "Internal server error" });
+      console.error(error); res.status(500).json({ error: msg("internalServerError", req.lang!) });
     }
   });
 
@@ -3594,7 +3596,7 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
       `);
       res.json(result.rows);
     } catch (error: any) {
-      console.error(error); res.status(500).json({ error: "Internal server error" });
+      console.error(error); res.status(500).json({ error: msg("internalServerError", req.lang!) });
     }
   });
 
@@ -3615,7 +3617,7 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
         totalContacts: (messagesResult.rows[0] as any)?.contacts || 0,
       });
     } catch (error: any) {
-      console.error(error); res.status(500).json({ error: "Internal server error" });
+      console.error(error); res.status(500).json({ error: msg("internalServerError", req.lang!) });
     }
   });
 
@@ -3719,10 +3721,10 @@ ${SYSTEM_SECRECY}`;
     try {
       const { topic, selectedAgents, provider: requestedProvider } = req.body;
       if (!topic || typeof topic !== "string") {
-        return res.status(400).json({ error: "Topic is required" });
+        return res.status(400).json({ error: msg("topicRequired", req.lang!) });
       }
       if (topic.length > 500) {
-        return res.status(400).json({ error: "Topic must be under 500 characters" });
+        return res.status(400).json({ error: msg("topicTooLong", req.lang!) });
       }
 
       const collabProvider: "openai" | "anthropic" = (requestedProvider === "anthropic" && anthropicClient) ? "anthropic" : "openai";
@@ -3734,7 +3736,7 @@ ${SYSTEM_SECRECY}`;
         : collaborationAgents;
 
       if (agentsToUse.length === 0) {
-        return res.status(400).json({ error: "At least one agent must be selected" });
+        return res.status(400).json({ error: msg("atLeastOneAgent", req.lang!) });
       }
 
       const agentPromises = agentsToUse.map(async (agent) => {
@@ -3916,7 +3918,7 @@ Be decisive and actionable. Format with clear sections.`;
     } catch (error: unknown) {
       const errMsg = error instanceof Error ? error.message : String(error);
       console.error("Collaboration error:", errMsg);
-      console.error(errMsg); res.status(500).json({ error: "Internal server error" });
+      console.error(errMsg); res.status(500).json({ error: msg("internalServerError", req.lang!) });
     }
   });
 
@@ -3929,23 +3931,23 @@ Be decisive and actionable. Format with clear sections.`;
       res.json(sessions);
     } catch (error: unknown) {
       const errMsg = error instanceof Error ? error.message : String(error);
-      console.error(errMsg); res.status(500).json({ error: "Internal server error" });
+      console.error(errMsg); res.status(500).json({ error: msg("internalServerError", req.lang!) });
     }
   });
 
   app.delete(`/api/${ADMIN_PATH}/collaboration-sessions/:id`, requireAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id as string);
-      if (isNaN(id)) return res.status(400).json({ error: "Invalid ID" });
+      if (isNaN(id)) return res.status(400).json({ error: msg("invalidId", req.lang!) });
       const [session] = await db
         .delete(collaborationSessions)
         .where(eq(collaborationSessions.id, id))
         .returning();
-      if (!session) return res.status(404).json({ error: "Session not found" });
+      if (!session) return res.status(404).json({ error: msg("sessionNotFound", req.lang!) });
       res.json({ success: true });
     } catch (error: unknown) {
       const errMsg = error instanceof Error ? error.message : String(error);
-      console.error(errMsg); res.status(500).json({ error: "Internal server error" });
+      console.error(errMsg); res.status(500).json({ error: msg("internalServerError", req.lang!) });
     }
   });
 
@@ -4088,7 +4090,7 @@ Be decisive and actionable. Format with clear sections.`;
       });
     } catch (error: unknown) {
       const errMsg = error instanceof Error ? error.message : String(error);
-      console.error(errMsg); res.status(500).json({ error: "Internal server error" });
+      console.error(errMsg); res.status(500).json({ error: msg("internalServerError", req.lang!) });
     }
   });
 
@@ -4096,10 +4098,10 @@ Be decisive and actionable. Format with clear sections.`;
     try {
       const { prompt, agentType, systemPrompt } = req.body;
       if (!prompt || typeof prompt !== "string") {
-        return res.status(400).json({ error: "Prompt is required" });
+        return res.status(400).json({ error: msg("promptRequired", req.lang!) });
       }
       if (prompt.length > 1000) {
-        return res.status(400).json({ error: "Prompt must be under 1000 characters" });
+        return res.status(400).json({ error: msg("promptTooLong", req.lang!) });
       }
 
       const sysPrompt = systemPrompt || `You are a helpful AI assistant${agentType ? ` specializing in ${agentType}` : ""}. Be concise, clear, and actionable. Respond in the same language as the user.`;
@@ -4206,7 +4208,7 @@ Be decisive and actionable. Format with clear sections.`;
           tokens: 0,
           cost: 0,
           latencyMs: 0,
-          error: "Anthropic API key not configured",
+          error: msg("anthropicNotConfigured", req.lang!),
         });
       }
 
@@ -4214,7 +4216,7 @@ Be decisive and actionable. Format with clear sections.`;
     } catch (error: unknown) {
       const errMsg = error instanceof Error ? error.message : String(error);
       console.error("AB test error:", errMsg);
-      console.error(errMsg); res.status(500).json({ error: "Internal server error" });
+      console.error(errMsg); res.status(500).json({ error: msg("internalServerError", req.lang!) });
     }
   });
 
@@ -4323,7 +4325,7 @@ Be decisive and actionable. Format with clear sections.`;
     try {
       const { message, conversationHistory, provider: requestedProvider } = req.body;
       if (!message) {
-        return res.status(400).json({ error: "Message is required" });
+        return res.status(400).json({ error: msg("messageRequired", req.lang!) });
       }
       const bossProvider: "openai" | "anthropic" = (requestedProvider === "anthropic" && anthropicClient) ? "anthropic" : "openai";
 
@@ -4574,7 +4576,7 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
     } catch (error: unknown) {
       const errMsg = error instanceof Error ? error.message : String(error);
       console.error("Boss chat error:", errMsg);
-      console.error(errMsg); res.status(500).json({ error: "Internal server error" });
+      console.error(errMsg); res.status(500).json({ error: msg("internalServerError", req.lang!) });
     }
   });
 
@@ -4587,15 +4589,15 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
       res.json(conversations);
     } catch (error: unknown) {
       const errMsg = error instanceof Error ? error.message : String(error);
-      console.error(errMsg); res.status(500).json({ error: "Internal server error" });
+      console.error(errMsg); res.status(500).json({ error: msg("internalServerError", req.lang!) });
     }
   });
 
   app.post(`/api/${ADMIN_PATH}/boss-conversations`, requireAdmin, async (req, res) => {
     try {
       const { topic, messages: msgs, toolsUsed } = req.body;
-      if (!topic || typeof topic !== "string") return res.status(400).json({ error: "Topic is required" });
-      if (msgs && !Array.isArray(msgs)) return res.status(400).json({ error: "Messages must be an array" });
+      if (!topic || typeof topic !== "string") return res.status(400).json({ error: msg("topicRequired", req.lang!) });
+      if (msgs && !Array.isArray(msgs)) return res.status(400).json({ error: msg("messagesMustBeArray", req.lang!) });
 
       const [conv] = await db
         .insert(bossConversations)
@@ -4609,16 +4611,16 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
       res.json(conv);
     } catch (error: unknown) {
       const errMsg = error instanceof Error ? error.message : String(error);
-      console.error(errMsg); res.status(500).json({ error: "Internal server error" });
+      console.error(errMsg); res.status(500).json({ error: msg("internalServerError", req.lang!) });
     }
   });
 
   app.patch(`/api/${ADMIN_PATH}/boss-conversations/:id`, requireAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id as string);
-      if (isNaN(id)) return res.status(400).json({ error: "Invalid ID" });
+      if (isNaN(id)) return res.status(400).json({ error: msg("invalidId", req.lang!) });
       const { topic, messages: msgs, toolsUsed } = req.body;
-      if (msgs !== undefined && !Array.isArray(msgs)) return res.status(400).json({ error: "Messages must be an array" });
+      if (msgs !== undefined && !Array.isArray(msgs)) return res.status(400).json({ error: msg("messagesMustBeArray", req.lang!) });
       const updates: Partial<{
         topic: string;
         messages: unknown[];
@@ -4638,11 +4640,11 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
         .set(updates)
         .where(eq(bossConversations.id, id))
         .returning();
-      if (!conv) return res.status(404).json({ error: "Conversation not found" });
+      if (!conv) return res.status(404).json({ error: msg("conversationNotFound", req.lang!) });
       res.json(conv);
     } catch (error: unknown) {
       const errMsg = error instanceof Error ? error.message : String(error);
-      console.error(errMsg); res.status(500).json({ error: "Internal server error" });
+      console.error(errMsg); res.status(500).json({ error: msg("internalServerError", req.lang!) });
     }
   });
 
@@ -4653,11 +4655,11 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
         .delete(bossConversations)
         .where(eq(bossConversations.id, id))
         .returning();
-      if (!conv) return res.status(404).json({ error: "Conversation not found" });
+      if (!conv) return res.status(404).json({ error: msg("conversationNotFound", req.lang!) });
       res.json({ success: true });
     } catch (error: unknown) {
       const errMsg = error instanceof Error ? error.message : String(error);
-      console.error(errMsg); res.status(500).json({ error: "Internal server error" });
+      console.error(errMsg); res.status(500).json({ error: msg("internalServerError", req.lang!) });
     }
   });
 
@@ -4678,17 +4680,17 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
   app.get("/api/escalation/:id/messages", requireAuth, async (req: any, res) => {
     try {
       const id = parseInt(req.params.id);
-      if (isNaN(id)) return res.status(400).json({ error: "Invalid ID" });
+      if (isNaN(id)) return res.status(400).json({ error: msg("invalidId", req.lang!) });
       const esc = await storage.getEscalationById(id);
       if (!esc || esc.userId !== req.session.userId) {
-        return res.status(403).json({ error: "Access denied" });
+        return res.status(403).json({ error: msg("accessDenied", req.lang!) });
       }
       const afterParam = req.query.after ? new Date(req.query.after as string) : undefined;
       const messages = await storage.getEscalationMessages(id, afterParam);
       res.json({ messages, status: esc.status });
     } catch (error: unknown) {
       console.error("Escalation messages error:", error);
-      res.status(500).json({ error: "Internal server error" });
+      res.status(500).json({ error: msg("internalServerError", req.lang!) });
     }
   });
 
@@ -4698,7 +4700,7 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
       res.json(rules);
     } catch (error: unknown) {
       console.error("Get escalation rules error:", error);
-      res.status(500).json({ error: "Internal server error" });
+      res.status(500).json({ error: msg("internalServerError", req.lang!) });
     }
   });
 
@@ -4708,20 +4710,20 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
       res.json(rule);
     } catch (error: unknown) {
       console.error("Create escalation rule error:", error);
-      res.status(500).json({ error: "Internal server error" });
+      res.status(500).json({ error: msg("internalServerError", req.lang!) });
     }
   });
 
   app.patch(`/api/${ADMIN_PATH}/escalation-rules/:id`, requireAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      if (isNaN(id)) return res.status(400).json({ error: "Invalid ID" });
+      if (isNaN(id)) return res.status(400).json({ error: msg("invalidId", req.lang!) });
       const updated = await storage.updateEscalationRule(id, req.body);
-      if (!updated) return res.status(404).json({ error: "Rule not found" });
+      if (!updated) return res.status(404).json({ error: msg("ruleNotFound", req.lang!) });
       res.json(updated);
     } catch (error: unknown) {
       console.error("Update escalation rule error:", error);
-      res.status(500).json({ error: "Internal server error" });
+      res.status(500).json({ error: msg("internalServerError", req.lang!) });
     }
   });
 
@@ -4732,7 +4734,7 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
       res.json({ success: deleted });
     } catch (error: unknown) {
       console.error("Delete escalation rule error:", error);
-      res.status(500).json({ error: "Internal server error" });
+      res.status(500).json({ error: msg("internalServerError", req.lang!) });
     }
   });
 
@@ -4747,44 +4749,44 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
       res.json(enriched);
     } catch (error: unknown) {
       console.error("Get escalations error:", error);
-      res.status(500).json({ error: "Internal server error" });
+      res.status(500).json({ error: msg("internalServerError", req.lang!) });
     }
   });
 
   app.get(`/api/${ADMIN_PATH}/escalation/:id`, requireAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      if (isNaN(id)) return res.status(400).json({ error: "Invalid ID" });
+      if (isNaN(id)) return res.status(400).json({ error: msg("invalidId", req.lang!) });
       const esc = await storage.getEscalationById(id);
-      if (!esc) return res.status(404).json({ error: "Escalation not found" });
+      if (!esc) return res.status(404).json({ error: msg("escalationNotFound", req.lang!) });
       const user = esc.userId ? await storage.getUserById(esc.userId) : null;
       const messages = await storage.getEscalationMessages(id);
       res.json({ ...esc, userName: user?.fullName || user?.username || "Unknown", userEmail: user?.email || "N/A", messages });
     } catch (error: unknown) {
       console.error("Get escalation error:", error);
-      res.status(500).json({ error: "Internal server error" });
+      res.status(500).json({ error: msg("internalServerError", req.lang!) });
     }
   });
 
   app.post(`/api/${ADMIN_PATH}/escalation/:id/join`, requireAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      if (isNaN(id)) return res.status(400).json({ error: "Invalid ID" });
+      if (isNaN(id)) return res.status(400).json({ error: msg("invalidId", req.lang!) });
       const esc = await storage.joinEscalation(id);
-      if (!esc) return res.status(404).json({ error: "Escalation not found" });
+      if (!esc) return res.status(404).json({ error: msg("escalationNotFound", req.lang!) });
       res.json(esc);
     } catch (error: unknown) {
       console.error("Join escalation error:", error);
-      res.status(500).json({ error: "Internal server error" });
+      res.status(500).json({ error: msg("internalServerError", req.lang!) });
     }
   });
 
   app.post(`/api/${ADMIN_PATH}/escalation/:id/message`, requireAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      if (isNaN(id)) return res.status(400).json({ error: "Invalid ID" });
+      if (isNaN(id)) return res.status(400).json({ error: msg("invalidId", req.lang!) });
       const { content } = req.body;
-      if (!content || !content.trim()) return res.status(400).json({ error: "Message content required" });
+      if (!content || !content.trim()) return res.status(400).json({ error: msg("messageContentRequired", req.lang!) });
       const msg = await storage.createEscalationMessage({
         escalationId: id,
         senderType: "admin",
@@ -4793,46 +4795,46 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
       res.json(msg);
     } catch (error: unknown) {
       console.error("Send escalation message error:", error);
-      res.status(500).json({ error: "Internal server error" });
+      res.status(500).json({ error: msg("internalServerError", req.lang!) });
     }
   });
 
   app.get(`/api/${ADMIN_PATH}/escalation/:id/messages`, requireAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      if (isNaN(id)) return res.status(400).json({ error: "Invalid ID" });
+      if (isNaN(id)) return res.status(400).json({ error: msg("invalidId", req.lang!) });
       const afterParam = req.query.after ? new Date(req.query.after as string) : undefined;
       const messages = await storage.getEscalationMessages(id, afterParam);
       res.json(messages);
     } catch (error: unknown) {
       console.error("Get escalation messages error:", error);
-      res.status(500).json({ error: "Internal server error" });
+      res.status(500).json({ error: msg("internalServerError", req.lang!) });
     }
   });
 
   app.post(`/api/${ADMIN_PATH}/escalation/:id/resolve`, requireAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      if (isNaN(id)) return res.status(400).json({ error: "Invalid ID" });
+      if (isNaN(id)) return res.status(400).json({ error: msg("invalidId", req.lang!) });
       const esc = await storage.updateEscalationStatus(id, "resolved", new Date());
-      if (!esc) return res.status(404).json({ error: "Escalation not found" });
+      if (!esc) return res.status(404).json({ error: msg("escalationNotFound", req.lang!) });
       res.json(esc);
     } catch (error: unknown) {
       console.error("Resolve escalation error:", error);
-      res.status(500).json({ error: "Internal server error" });
+      res.status(500).json({ error: msg("internalServerError", req.lang!) });
     }
   });
 
   app.post(`/api/${ADMIN_PATH}/escalation/:id/dismiss`, requireAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      if (isNaN(id)) return res.status(400).json({ error: "Invalid ID" });
+      if (isNaN(id)) return res.status(400).json({ error: msg("invalidId", req.lang!) });
       const esc = await storage.updateEscalationStatus(id, "dismissed", new Date());
-      if (!esc) return res.status(404).json({ error: "Escalation not found" });
+      if (!esc) return res.status(404).json({ error: msg("escalationNotFound", req.lang!) });
       res.json(esc);
     } catch (error: unknown) {
       console.error("Dismiss escalation error:", error);
-      res.status(500).json({ error: "Internal server error" });
+      res.status(500).json({ error: msg("internalServerError", req.lang!) });
     }
   });
 
@@ -4843,7 +4845,7 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
       res.json({ instructions, globalInstructions: global?.instructions || "" });
     } catch (error: unknown) {
       console.error("Get agent instructions error:", error);
-      res.status(500).json({ error: "Internal server error" });
+      res.status(500).json({ error: msg("internalServerError", req.lang!) });
     }
   });
 
@@ -4851,24 +4853,24 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
     try {
       const { agentType } = req.params;
       const { instructions } = req.body;
-      if (typeof instructions !== "string") return res.status(400).json({ error: "instructions is required" });
+      if (typeof instructions !== "string") return res.status(400).json({ error: msg("instructionsRequired", req.lang!) });
       const result = await storage.upsertAgentInstruction(agentType, instructions);
       res.json(result);
     } catch (error: unknown) {
       console.error("Update agent instructions error:", error);
-      res.status(500).json({ error: "Internal server error" });
+      res.status(500).json({ error: msg("internalServerError", req.lang!) });
     }
   });
 
   app.put(`/api/${ADMIN_PATH}/global-instructions`, requireAdmin, async (req, res) => {
     try {
       const { instructions } = req.body;
-      if (typeof instructions !== "string") return res.status(400).json({ error: "instructions is required" });
+      if (typeof instructions !== "string") return res.status(400).json({ error: msg("instructionsRequired", req.lang!) });
       const result = await storage.upsertGlobalInstruction(instructions);
       res.json(result);
     } catch (error: unknown) {
       console.error("Update global instructions error:", error);
-      res.status(500).json({ error: "Internal server error" });
+      res.status(500).json({ error: msg("internalServerError", req.lang!) });
     }
   });
 
@@ -4892,7 +4894,7 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
       });
     } catch (error: unknown) {
       console.error("Get AI provider error:", error);
-      res.status(500).json({ error: "Internal server error" });
+      res.status(500).json({ error: msg("internalServerError", req.lang!) });
     }
   });
 
@@ -4923,7 +4925,7 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
       res.json({ success: true });
     } catch (error: unknown) {
       console.error("Update AI provider error:", error);
-      res.status(500).json({ error: "Internal server error" });
+      res.status(500).json({ error: msg("internalServerError", req.lang!) });
     }
   });
 
@@ -4933,7 +4935,7 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
       res.json(docs);
     } catch (error: unknown) {
       console.error("Get CRM documents error:", error);
-      res.status(500).json({ error: "Internal server error" });
+      res.status(500).json({ error: msg("internalServerError", req.lang!) });
     }
   });
 
@@ -4941,7 +4943,7 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
     try {
       const { fileName, originalName, fileType, fileSize, content, encoding } = req.body;
       if (!fileName || !originalName || !fileSize) {
-        return res.status(400).json({ error: "Missing required fields" });
+        return res.status(400).json({ error: msg("missingRequiredFields", req.lang!) });
       }
       const extMimeMap: Record<string, string> = {
         pdf: "application/pdf", txt: "text/plain", csv: "text/csv",
@@ -4953,17 +4955,17 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
       const allowedExtensions = Object.keys(extMimeMap);
       const ext = String(originalName).toLowerCase().split(".").pop() || "";
       if (!allowedExtensions.includes(ext)) {
-        return res.status(400).json({ error: "Unsupported file type" });
+        return res.status(400).json({ error: msg("unsupportedFileType", req.lang!) });
       }
       const effectiveType = extMimeMap[ext];
       const maxSize = 5 * 1024 * 1024;
       if (typeof fileSize !== "number" || fileSize > maxSize || fileSize <= 0) {
-        return res.status(400).json({ error: "File size must be between 1 byte and 5MB" });
+        return res.status(400).json({ error: msg("fileSizeLimit", req.lang!) });
       }
       const isBase64 = encoding === "base64";
       const maxContentSize = isBase64 ? Math.ceil(maxSize * 1.37) : maxSize;
       if (content && typeof content === "string" && content.length > maxContentSize) {
-        return res.status(400).json({ error: "Content too large" });
+        return res.status(400).json({ error: msg("contentTooLarge", req.lang!) });
       }
       const doc = await storage.createCrmDocument({
         userId: req.session.userId!,
@@ -4976,20 +4978,20 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
       res.json(doc);
     } catch (error: unknown) {
       console.error("Create CRM document error:", error);
-      res.status(500).json({ error: "Internal server error" });
+      res.status(500).json({ error: msg("internalServerError", req.lang!) });
     }
   });
 
   app.delete("/api/crm-documents/:id", requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      if (isNaN(id)) return res.status(400).json({ error: "Invalid ID" });
+      if (isNaN(id)) return res.status(400).json({ error: msg("invalidId", req.lang!) });
       const deleted = await storage.deleteCrmDocument(id, req.session.userId!);
-      if (!deleted) return res.status(404).json({ error: "Document not found" });
+      if (!deleted) return res.status(404).json({ error: msg("documentNotFound", req.lang!) });
       res.json({ success: true });
     } catch (error: unknown) {
       console.error("Delete CRM document error:", error);
-      res.status(500).json({ error: "Internal server error" });
+      res.status(500).json({ error: msg("internalServerError", req.lang!) });
     }
   });
 

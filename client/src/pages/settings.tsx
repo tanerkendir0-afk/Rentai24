@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useAnalytics } from "@/lib/analytics";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -369,6 +370,7 @@ export default function Settings() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { t } = useTranslation("pages");
+  const { trackEvent } = useAnalytics();
 
   const [fullName, setFullName] = useState("");
   const [company, setCompany] = useState("");
@@ -516,6 +518,7 @@ export default function Settings() {
     },
     onSuccess: (data) => {
       queryClient.setQueryData(["/api/auth/me"], { user: data.user });
+      trackEvent("profile_updated", "settings", { fields: ["fullName", "company"] });
       toast({ title: t("settingsPage.toast.profileUpdated"), description: t("settingsPage.toast.profileSaved") });
     },
     onError: (err: any) => {
@@ -532,6 +535,7 @@ export default function Settings() {
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
+      trackEvent("password_changed", "settings");
       toast({ title: t("settingsPage.toast.passwordChanged"), description: t("settingsPage.toast.passwordUpdated") });
     },
     onError: (err: any) => {

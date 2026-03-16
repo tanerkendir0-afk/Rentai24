@@ -5388,6 +5388,36 @@ function BehaviorAnalyticsPanel({ token }: { token: string }) {
         </CardContent>
       </Card>
 
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <Card className="bg-[#0A0E27] border-[#1E2448]">
+          <CardContent className="p-4 text-center">
+            <p className="text-2xl font-bold text-orange-400">{data?.avgSessionDuration || 0}s</p>
+            <p className="text-xs text-gray-400 mt-1">{t("adminPage.analytics.avgDuration")}</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {data?.userFlows?.length > 0 && (
+        <Card className="bg-[#0A0E27] border-[#1E2448]">
+          <CardHeader>
+            <CardTitle className="text-sm text-white">{t("adminPage.analytics.userFlows")}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2 max-h-[300px] overflow-y-auto">
+              {data.userFlows.map((f: any, i: number) => (
+                <div key={i} className="flex items-center gap-2 p-2 bg-[#111633] rounded border border-[#1E2448]">
+                  <span className="text-sm text-cyan-400 truncate flex-1">{f.from_path}</span>
+                  <span className="text-gray-500">→</span>
+                  <span className="text-sm text-blue-400 truncate flex-1">{f.to_path}</span>
+                  <Badge variant="outline" className="border-[#1E2448] text-gray-300 text-xs shrink-0">{f.transitions}x</Badge>
+                </div>
+              ))}
+            </div>
+            <p className="text-xs text-gray-500 mt-2">{t("adminPage.analytics.flowsLegend")}</p>
+          </CardContent>
+        </Card>
+      )}
+
       {data?.dailyActive?.length > 0 && (
         <Card className="bg-[#0A0E27] border-[#1E2448]">
           <CardHeader>

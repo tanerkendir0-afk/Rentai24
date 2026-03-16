@@ -539,6 +539,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
       const res = await fetch("/api/chat/upload", { method: "POST", body: formData });
       const data = await res.json();
       if (data.success) {
+        trackEvent("file_uploaded", "agent", { fileType: data.fileType, agentType: selectedAgent });
         if (data.fileType === "image") {
           setUploadedFile({ url: data.imageUrl, name: data.filename, type: "image" });
         } else {

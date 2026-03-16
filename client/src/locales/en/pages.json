@@ -1732,7 +1732,10 @@
       "conversionFunnel": "Conversion Funnel",
       "newUsers": "New Registrations",
       "usersWithRentals": "Users with Rentals",
-      "conversionRateLabel": "Conversion Rate"
+      "conversionRateLabel": "Conversion Rate",
+      "avgDuration": "Avg. Page Duration",
+      "userFlows": "User Navigation Flows",
+      "flowsLegend": "Most common page-to-page transitions by logged-in users"
     },
     "bossAi": {
       "askPlaceholder": "Ask Boss anything about the platform...",

@@ -1732,7 +1732,10 @@
       "conversionFunnel": "Dönüşüm Hunisi",
       "newUsers": "Yeni Kayıtlar",
       "usersWithRentals": "Kiralama Yapan Kullanıcılar",
-      "conversionRateLabel": "Dönüşüm Oranı"
+      "conversionRateLabel": "Dönüşüm Oranı",
+      "avgDuration": "Ort. Sayfa Süresi",
+      "userFlows": "Kullanıcı Gezinme Akışları",
+      "flowsLegend": "Giriş yapmış kullanıcılar tarafından en sık yapılan sayfa geçişleri"
     },
     "bossAi": {
       "askPlaceholder": "Boss'a platform hakkında herhangi bir şey sorun...",

@@ -1239,6 +1239,35 @@ export class DatabaseStorage implements IStorage {
       WHERE created_at >= NOW() - ${sql.raw(`INTERVAL '${interval}'`)}
     `);
 
+    const userFlowResult = await db.execute(sql`
+      WITH ordered_views AS (
+        SELECT
+          user_id,
+          path,
+          LAG(path) OVER (PARTITION BY user_id ORDER BY created_at) as prev_path
+        FROM page_views
+        WHERE created_at >= NOW() - ${sql.raw(`INTERVAL '${interval}'`)}
+          AND user_id IS NOT NULL
+      )
+      SELECT
+        prev_path as from_path,
+        path as to_path,
+        COUNT(*)::int as transitions
+      FROM ordered_views
+      WHERE prev_path IS NOT NULL AND prev_path != path
+      GROUP BY prev_path, path
+      ORDER BY transitions DESC
+      LIMIT 15
+    `);
+
+    const avgSessionDuration = await db.execute(sql`
+      SELECT
+        ROUND(AVG(duration))::int as avg_duration
+      FROM page_views
+      WHERE created_at >= NOW() - ${sql.raw(`INTERVAL '${interval}'`)}
+        AND duration IS NOT NULL AND duration > 0
+    `);
+
     return {
       activeUsers: activeUsersResult.rows[0]?.count || 0,
       totalPageViews: totalPageViews.rows[0]?.count || 0,
@@ -1248,6 +1277,8 @@ export class DatabaseStorage implements IStorage {
       agentUsage: agentUsageResult.rows,
       dailyActive: dailyActiveResult.rows,
       conversion: conversionResult.rows[0] || { new_users: 0, users_with_rentals: 0 },
+      userFlows: userFlowResult.rows,
+      avgSessionDuration: avgSessionDuration.rows[0]?.avg_duration || 0,
     };
   }
 

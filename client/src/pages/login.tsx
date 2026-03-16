@@ -9,12 +9,14 @@ import { Bot, Loader2, Eye, EyeOff } from "lucide-react";
 import { SiGoogle } from "react-icons/si";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "react-i18next";
+import { useAnalytics } from "@/lib/analytics";
 
 export default function Login() {
   const { login } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { t } = useTranslation("pages");
+  const { trackEvent } = useAnalytics();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -25,6 +27,7 @@ export default function Login() {
     setLoading(true);
     try {
       await login(email, password);
+      trackEvent("user_logged_in", "auth", { method: "email" });
       toast({ title: t("login.welcomeBack"), description: t("login.loginSuccess") });
       setTimeout(() => setLocation("/dashboard"), 100);
     } catch (err: any) {

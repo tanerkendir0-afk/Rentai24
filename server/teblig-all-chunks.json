@@ -1,0 +1,1058 @@
+{
+  "metadata": {
+    "document": "Kritik Vergi Tebliğleri ve Uygulama Rehberleri — Birleşik",
+    "version": "1.0",
+    "last_updated": "2026-03",
+    "total_chunks": 55
+  },
+  "chunks": [
+    {
+      "id": "teblig-kdv-genel-uygulama-genel",
+      "text": "KDV Genel Uygulama Tebliği (26.04.2014) — Genel Yapı: KDV Kanunu'nun tüm uygulama esaslarını düzenleyen ana tebliğdir. 4 ana bölümden oluşur: I) Mükellefiyet, II) İstisnalar, III) Matrah/oran/indirim/iade, IV) Diğer hususlar (tevkifat, özel esaslar, usul). KDV ile ilgili tüm eski tebliğleri (1-123 arası) birleştirerek tek bir çatı altında toplamıştır. Bu tebliğ KDV uygulamasının temel kaynağıdır; KDV Kanunu'ndaki her madde için uygulama detayları burada yer alır. Tebliğ, değişiklik tebliğleriyle sürekli güncellenmektedir. Tevkifat uygulaması (Bölüm I/C-2): Kısmi tevkifat oranları, tevkifata tabi işlemler, tevkifat uygulayacak alıcılar, beyan ve ödeme esasları bu bölümde düzenlenir.",
+      "metadata": {
+        "category": "teblig",
+        "subcategory": "kdv_genel",
+        "section": "genel",
+        "keywords": [
+          "KDV Genel Uygulama Tebliği",
+          "tevkifat",
+          "istisna",
+          "iade",
+          "matrah",
+          "4 bölüm"
+        ],
+        "year": "evergreen"
+      }
+    },
+    {
+      "id": "teblig-kdv-tevkifat-listesi",
+      "text": "KDV Genel Uygulama Tebliği — Kısmi Tevkifat Tablosu (Bölüm I/C-2.1.3): Yapım işleri — 4/10. Etüt, danışmanlık, denetim — 9/10. Makine tadil/bakım/onarım — 7/10. Yemek servis — 5/10. İşgücü temin — 9/10. Yapı denetim — 9/10. Fason tekstil/konfeksiyon — 7/10. Temizlik/çevre/bahçe bakım — 9/10. Servis taşımacılığı — 5/10. Baskı/basım — 7/10. Hurda/atık teslimi — 7/10. Metal/plastik/lastik/kauçuk/kâğıt/cam hurda — 7/10. Ağaç/orman ürünleri — 5/10. Külçe metal — 7/10. Bakır/çinko/alüminyum/kurşun ürünleri — 7/10. DEMİR-ÇELİK ÜRÜNLERİ — 5/10. Tevkifat alt sınırı: KDV dahil 2.000 TL altı işlemlere tevkifat uygulanmaz.",
+      "metadata": {
+        "category": "teblig",
+        "subcategory": "kdv_tevkifat",
+        "section": "kismi_tevkifat",
+        "keywords": [
+          "kısmi tevkifat",
+          "oran",
+          "yapım",
+          "işgücü",
+          "temizlik",
+          "hurda",
+          "demir çelik",
+          "5/10",
+          "7/10",
+          "9/10",
+          "2000 TL"
+        ],
+        "year": "evergreen"
+      }
+    },
+    {
+      "id": "teblig-kdv-iade-esaslari",
+      "text": "KDV Genel Uygulama Tebliği — İade Esasları (Bölüm IV): KDV iade prosedürü: 1) İade hakkı doğuran işlemin beyannamesinde beyanı. 2) Standart iade talep dilekçesi. 3) Belgeler: satış faturaları listesi, yüklenilen KDV listesi, GB (ihracat için), YMM raporu. Mahsuben iade: Vergi borçlarına mahsup, belirli limite kadar inceleme/teminat aranmaz. Nakden iade: Limitin altı incelemesiz, üstü YMM raporu veya vergi inceleme raporuyla. Teminat mektubuyla da iade alınabilir. KDVİRA (KDV İade Risk Analiz) sistemiyle kontrol edilir.",
+      "metadata": {
+        "category": "teblig",
+        "subcategory": "kdv_iade",
+        "section": "iade_esaslari",
+        "keywords": [
+          "KDV iade",
+          "mahsuben",
+          "nakden",
+          "YMM",
+          "teminat",
+          "KDVİRA",
+          "limit",
+          "dilekçe"
+        ],
+        "year": "evergreen"
+      }
+    },
+    {
+      "id": "teblig-kdv-ozel-esaslar",
+      "text": "KDV Genel Uygulama Tebliği — Özel Esaslar (Bölüm IV/E): Sahte veya muhteviyatı itibariyle yanıltıcı belge (SMİYB) tespiti halinde özel prosedürler. Özel esaslara alınan mükelleflerin KDV iade talepleri vergi inceleme raporu sonucuna göre yerine getirilir. SMİYB kullanıcısı belgeleri beyannameden çıkararak düzeltme yapar. Özel esaslardan çıkış: tarhiyatın kesinleşmesi/ödenmesi veya yargı kararıyla. 3 kat vergi ziyaı cezasına tabidir (VUK md. 344, 359).",
+      "metadata": {
+        "category": "teblig",
+        "subcategory": "ozel_esaslar",
+        "section": "smiyb",
+        "keywords": [
+          "özel esaslar",
+          "sahte belge",
+          "SMİYB",
+          "naylon fatura",
+          "iade",
+          "3 kat ceza"
+        ],
+        "year": "evergreen"
+      }
+    },
+    {
+      "id": "teblig-vuk-509-ebelge",
+      "text": "VUK 509 Sıra No'lu Genel Tebliğ — e-Belge Uygulamaları: e-Fatura: Brüt satış hasılatı belirli haddi aşan mükellefler zorunlu. e-Arşiv Fatura: e-Fatura kapsamı dışındakilere. e-İrsaliye: Mal hareketlerinin elektronik takibi. e-Defter: e-Fatura mükellefleri aynı zamanda e-Defter tutmak zorunda (XBRL-GL). e-Serbest Meslek Makbuzu, e-Müstahsil Makbuzu, e-Gider Pusulası: Belirli hadleri aşanlar için zorunlu. GİB portalı veya özel entegratörler aracılığıyla erişilir. e-Belge yerine kağıt düzenleyene özel usulsüzlük cezası kesilir.",
+      "metadata": {
+        "category": "teblig",
+        "subcategory": "vuk_509",
+        "section": "e_belge",
+        "keywords": [
+          "e-fatura",
+          "e-arşiv",
+          "e-irsaliye",
+          "e-defter",
+          "509 tebliğ",
+          "GİB",
+          "XBRL",
+          "zorunluluk"
+        ],
+        "year": "evergreen"
+      }
+    },
+    {
+      "id": "teblig-vuk-edefter",
+      "text": "1 Sıra No'lu Elektronik Defter Genel Tebliği: e-Defter, yevmiye defteri ve defter-i kebirin elektronik ortamda tutulması. e-Fatura mükellefleri aynı zamanda e-Defter tutmak zorunda. Format: XBRL-GL. Beratlar: Aylık defterin elektronik imza/mali mühür ile onaylanmış beratı GİB'e gönderilir. Gönderim süresi: İlgili ayı takip eden üçüncü ayın sonuna kadar. Saklama: 10 yıl. İbraz: Vergi incelemesinde elektronik ortamda. Berat süresi içinde gönderilmemesi usulsüzlük cezası gerektirir.",
+      "metadata": {
+        "category": "teblig",
+        "subcategory": "edefter",
+        "section": "uygulama",
+        "keywords": [
+          "e-defter",
+          "XBRL-GL",
+          "berat",
+          "GİB",
+          "aylık",
+          "3 ay",
+          "10 yıl",
+          "mali mühür"
+        ],
+        "year": "evergreen"
+      }
+    },
+    {
+      "id": "teblig-vuk-muhasebe-standartlari",
+      "text": "VUK MSUGT — Tekdüzen Hesap Planı: 1 Sıra No'lu MSUGT ile tüm mükelleflerin uyması gereken hesap planı belirlenmiştir. 7 hesap sınıfı: 1-Dönen Varlıklar, 2-Duran Varlıklar, 3-Kısa Vadeli Yabancı Kaynaklar, 4-Uzun Vadeli Yabancı Kaynaklar, 5-Özkaynaklar, 6-Gelir Tablosu, 7-Maliyet. 7/A: Fonksiyon esası (üretim/hizmet/genel yönetim/pazarlama/Ar-Ge). 7/B: Çeşit esası (ilk madde, işçilik, dışarıdan fayda, çeşitli giderler, vergi, amortisman, finansman). TMS/TFRS veya BOBİ FRS uygulayan şirketler KGK standartlarına da uyar.",
+      "metadata": {
+        "category": "teblig",
+        "subcategory": "msugt",
+        "section": "hesap_plani",
+        "keywords": [
+          "MSUGT",
+          "Tekdüzen Hesap Planı",
+          "THP",
+          "7/A",
+          "7/B",
+          "hesap sınıfı",
+          "bilanço",
+          "gelir tablosu"
+        ],
+        "year": "evergreen"
+      }
+    },
+    {
+      "id": "teblig-gvk-stopaj-oranlari",
+      "text": "GVK Stopaj Oranları (md. 94): Ücretler — GV tarifesine göre (%15-%40). Serbest meslek — %20. Kira — %20. Çiftçi alımları — %2/%4. Yıllara yaygın inşaat hakediş — %5. Mevduat faizi — %15. Repo — %15. Kar payı — %10. Telif hakları — %17. Muaf esnaf (gider pusulası) — %10. Stopaj ödeme anında kesilir, muhtasar beyanname (MUHSGK) ile beyan edilir.",
+      "metadata": {
+        "category": "teblig",
+        "subcategory": "gvk_stopaj",
+        "section": "oranlar",
+        "keywords": [
+          "stopaj",
+          "tevkifat",
+          "ücret",
+          "kira",
+          "%20",
+          "serbest meslek",
+          "kar payı",
+          "%10",
+          "muhtasar",
+          "md. 94"
+        ],
+        "year": "evergreen"
+      }
+    },
+    {
+      "id": "teblig-kvk-stopaj-md15-30",
+      "text": "KVK Stopaj Oranları (md. 15, 30): Dar mükellef kurumlara: Serbest meslek %20, gayrimenkul %20, ticari kazanç %10-15, finansal kiralama %1, telif %20. Tam mükellef kurumlara: Yıllara sari inşaat hakediş %5, kooperatif gayrimenkul kirası %20. ÇVÖA hükümleri saklıdır — mukimlik belgesi ibrazıyla düşük oran uygulanabilir.",
+      "metadata": {
+        "category": "teblig",
+        "subcategory": "kvk_stopaj",
+        "section": "md15-30",
+        "keywords": [
+          "KVK stopaj",
+          "dar mükellef",
+          "%20",
+          "ÇVÖA",
+          "mukimlik",
+          "md. 15",
+          "md. 30"
+        ],
+        "year": "evergreen"
+      }
+    },
+    {
+      "id": "teblig-ba-bs-formu",
+      "text": "Ba-Bs Formları (396 Sıra No'lu VUK Tebliği): Bilanço esası mükellefleri, bir kişi/kurumdan aylık KDV hariç 5.000 TL+ alım (Ba) veya satım (Bs) yapanlar bildirim verir. Süre: Takip eden ayın sonu. İçerik: VKN/TCKN, unvan, tutar, belge adedi. Ceza: VUK md. 355 özel usulsüzlük. Düzeltme: Beyanname verme süresini izleyen 10 gün içinde.",
+      "metadata": {
+        "category": "teblig",
+        "subcategory": "ba_bs",
+        "section": "396_teblig",
+        "keywords": [
+          "Ba-Bs",
+          "5000 TL",
+          "bildirim",
+          "aylık",
+          "VKN",
+          "özel usulsüzlük"
+        ],
+        "year": "evergreen"
+      }
+    },
+    {
+      "id": "teblig-damga-vergisi",
+      "text": "488 Sayılı Damga Vergisi Kanunu: Nispi oranlar: Sözleşmeler — binde 9,48. Kira sözleşmeleri — binde 1,89. Fesihnameler — binde 1,89. İhale kararları — binde 5,69. İstisna: İhracata ilişkin sözleşmeler, diplomatik muafiyetler. Beyan: Sürekli mükellefiyet — aylık (takip eden ayın 26'sı). Süreksiz — kâğıdın düzenlendiğinden itibaren 15 gün.",
+      "metadata": {
+        "category": "teblig",
+        "subcategory": "damga_vergisi",
+        "section": "oranlar",
+        "keywords": [
+          "damga vergisi",
+          "binde 9,48",
+          "sözleşme",
+          "kira",
+          "istisna",
+          "488 sayılı Kanun"
+        ],
+        "year": "evergreen"
+      }
+    },
+    {
+      "id": "teblig-beyanname-takvimi",
+      "text": "Vergi Beyanname Takvimi: AYLIK: KDV-1 → ayın 28'i. MUHSGK → ayın 28'i. Ba-Bs → ay sonu. Damga Vergisi → ayın 26'sı. KDV-2 → ayın 28'i. 3 AYLIK: Geçici Vergi → 2. ayın 17'si. Muhtasar (3 aylık) → ayın 26'sı. YILLIK: Kurumlar Vergisi → Nisan sonu. Gelir Vergisi → Mart sonu. Basit usul GV → Şubat sonu. Tüm beyannameler e-Beyanname sistemiyle verilir.",
+      "metadata": {
+        "category": "teblig",
+        "subcategory": "beyanname_takvimi",
+        "section": "takvim",
+        "keywords": [
+          "beyanname takvimi",
+          "KDV",
+          "muhtasar",
+          "geçici vergi",
+          "kurumlar vergisi",
+          "28",
+          "26"
+        ],
+        "year": "evergreen"
+      }
+    },
+    {
+      "id": "teblig-gecici-vergi",
+      "text": "Geçici Vergi (GVK Mükerrer Md. 120, KVK Md. 32): Üçer aylık dönemler halinde ödenir. Oran: GV mükellefleri %15, KV mükellefleri %25. Beyanname: Dönem bitimini izleyen 2. ayın 17'si. Kümülatif kazanç üzerinden hesaplanır, önceki dönemler mahsup edilir. Yıllık beyannamede hesaplanan vergiden mahsup edilir; fazla ödenen iade/mahsup edilir.",
+      "metadata": {
+        "category": "teblig",
+        "subcategory": "gecici_vergi",
+        "section": "uygulama",
+        "keywords": [
+          "geçici vergi",
+          "%15",
+          "%25",
+          "mahsup",
+          "17",
+          "kümülatif"
+        ],
+        "year": "evergreen"
+      }
+    },
+    {
+      "id": "teblig-kurumlar-vergisi-oran",
+      "text": "Kurumlar Vergisi (KVK Md. 32): Genel oran %25. Bankalar/finans/sigorta %30. İhracat kazancı %5 indirim. Sanayi sicil belgeli üretim kazancı %24 (1 puan indirim). Teknopark yazılım/Ar-Ge kazancı istisna. Serbest bölge kazançları koşullu istisna. Beyanname: Nisan sonu. Ödeme: Nisan sonuna kadar.",
+      "metadata": {
+        "category": "teblig",
+        "subcategory": "kurumlar_vergisi",
+        "section": "oran",
+        "keywords": [
+          "kurumlar vergisi",
+          "%25",
+          "%30",
+          "ihracat",
+          "sanayi sicil",
+          "teknopark",
+          "KVK md. 32"
+        ],
+        "year": "evergreen"
+      }
+    },
+    {
+      "id": "teblig-gelir-vergisi-tarife-2026",
+      "text": "Gelir Vergisi Tarifesi 2026 (GVK Md. 103): Ücret gelirleri: 190K→%15, 400K→%20, 1.5M→%27, 5.3M→%35, üzeri→%40. Ücret dışı: 190K→%15, 400K→%20, 1M→%27, 5.3M→%35, üzeri→%40. Ücret gelirlerinde 4. dilim (1.5M) daha yüksek. AGİ kaldırılmış, asgari ücret GV'den istisna tutulmuştur.",
+      "metadata": {
+        "category": "teblig",
+        "subcategory": "gv_tarife",
+        "section": "2026",
+        "keywords": [
+          "gelir vergisi",
+          "tarife",
+          "2026",
+          "%15",
+          "%20",
+          "%27",
+          "%35",
+          "%40",
+          "190000",
+          "GVK md. 103"
+        ],
+        "year": "2026"
+      }
+    },
+    {
+      "id": "teblig-amortisman-sureleri",
+      "text": "VUK Amortisman Süreleri (333, 339, 365 vb. Tebliğler): Binalar 50 yıl (%2). Ofis mobilyaları 5 yıl (%20). Bilgisayar 4 yıl (%25). Yazılım 3 yıl (%33). Binek oto 5 yıl (%20). Makine/tezgah 10 yıl (%10). Hadde makineleri 15 yıl (%6,67). Galvanizleme tesisi 10-15 yıl. Çelik tel çekme 10 yıl (%10). SCADA/otomasyon 5 yıl (%20). Doğrudan gider yazma sınırı 2026: 12.000 TL.",
+      "metadata": {
+        "category": "teblig",
+        "subcategory": "amortisman",
+        "section": "sureler",
+        "keywords": [
+          "amortisman",
+          "faydalı ömür",
+          "bina",
+          "bilgisayar",
+          "yazılım",
+          "araç",
+          "makine",
+          "12000 TL"
+        ],
+        "year": "evergreen"
+      }
+    },
+    {
+      "id": "teblig-transfer-fiyatlandirmasi",
+      "text": "Transfer Fiyatlandırması (KVK md. 13, 1 Sıra No'lu KVK GT Bölüm 7): İlişkili kişilerle emsallere uygunluk ilkesi zorunlu. İlişkili kişi: Ortaklar, yöneticiler, %10+ pay sahipleri, hakimiyet ilişkisi olanlar. Yöntemler: Karşılaştırılabilir fiyat, maliyet artı, yeniden satış fiyatı, kâr bölüşüm, işleme dayalı net kâr marjı. Büyük mükellefler yıllık rapor hazırlar. Peşin fiyatlandırma anlaşması imkânı var.",
+      "metadata": {
+        "category": "teblig",
+        "subcategory": "transfer_fiyat",
+        "section": "uygulama",
+        "keywords": [
+          "transfer fiyatlandırması",
+          "ilişkili kişi",
+          "emsallere uygunluk",
+          "maliyet artı",
+          "rapor",
+          "KVK md. 13"
+        ],
+        "year": "evergreen"
+      }
+    },
+    {
+      "id": "teblig-sgk-prim-2026",
+      "text": "SGK Prim Oranları 2026: İşçi: Uzun vadeli %9 + GSS %5 + İşsizlik %1 = %15. İşveren: Kısa vadeli %2 + Uzun vadeli %12 (7566 ile artırıldı) + GSS %7,5 + İşsizlik %2 = ~%23,5. Toplam ~%38,5. Tavan: 9 × 33.030 = 297.270 TL (7566 ile 9 kata çıktı). Taban: 33.030 TL. 5 puan Hazine desteği mevcut.",
+      "metadata": {
+        "category": "teblig",
+        "subcategory": "sgk_prim",
+        "section": "2026",
+        "keywords": [
+          "SGK",
+          "prim",
+          "%15",
+          "%23,5",
+          "tavan",
+          "297270",
+          "33030",
+          "7566",
+          "5 puan"
+        ],
+        "year": "2026"
+      }
+    },
+    {
+      "id": "teblig-enflasyon-duzeltme",
+      "text": "Enflasyon Düzeltmesi (VUK mükerrer md. 298, 555 Tebliğ): Yİ-ÜFE bazlı fiyat endeksi son 3 yılda %100 ve cari yılda %10 aşarsa zorunlu. Parasal olmayan kıymetler düzeltme katsayısıyla güncellenir, parasal kıymetler düzeltilmez. 2023 bilançosu düzeltme farkları geçmiş yıl kâr/zararına (vergi dışı). 2024+ farkları gelir tablosuna (vergiye tabi). 698 Enflasyon Düzeltme Hesabı kullanılır.",
+      "metadata": {
+        "category": "teblig",
+        "subcategory": "enflasyon_duzeltme",
+        "section": "uygulama",
+        "keywords": [
+          "enflasyon düzeltmesi",
+          "Yİ-ÜFE",
+          "%100",
+          "%10",
+          "parasal olmayan",
+          "698",
+          "555 tebliğ"
+        ],
+        "year": "evergreen"
+      }
+    },
+    {
+      "id": "teblig-tevsik-zorunlulugu",
+      "text": "Tevsik Zorunluluğu (459 ve 469 Sıra No'lu VUK GT): 7.000 TL üzeri tahsilat/ödemelerin banka/finans kurumu/PTT aracılığıyla yapılması zorunlu. Kapsam: Mükellefler arası ve mükellef olmayanlara 7.000 TL+ işlemler. Ceza: VUK md. 355 özel usulsüzlük (hem ödeyene hem tahsil edene). Nakit 7.000 TL+ işlem tespit edilirse her iki tarafa ayrı ceza.",
+      "metadata": {
+        "category": "teblig",
+        "subcategory": "tevsik",
+        "section": "459_teblig",
+        "keywords": [
+          "tevsik zorunluluğu",
+          "7000 TL",
+          "banka",
+          "nakit",
+          "özel usulsüzlük",
+          "459 tebliğ"
+        ],
+        "year": "evergreen"
+      }
+    },
+    {
+      "id": "teblig-yillara-yaygin-insaat",
+      "text": "Yıllara Yaygın İnşaat (GVK Md. 42-44): Birden fazla yıla sirayet eden inşaat/onarım işlerinde kâr/zarar işin bittiği yıl kesin tespit edilir. Hakediş ödemelerinden %5 stopaj kesilir, yıllık beyannamede mahsup edilir. İşin bitim tarihi: Geçici kabul tutanağının onaylandığı tarih. Muhasebe: 17-Maliyet (aktif), 35-Hakediş (pasif), iş bittiğinde kapatılarak kâr/zarar tespit edilir.",
+      "metadata": {
+        "category": "teblig",
+        "subcategory": "yillara_yaygin",
+        "section": "gvk42-44",
+        "keywords": [
+          "yıllara yaygın",
+          "inşaat",
+          "hakediş",
+          "%5 stopaj",
+          "geçici kabul",
+          "17 hesap",
+          "35 hesap"
+        ],
+        "year": "evergreen"
+      }
+    },
+    {
+      "id": "teblig-kidem-tazminati",
+      "text": "Kıdem Tazminatı (1475 sk. md. 14): En az 1 yıl çalışmış işçiye her tam yıl için 30 günlük giydirilmiş brüt ücret. Hak kazanma: İşveren feshi (haklı neden olmadan), işçi haklı nedenle fesih, askerlik, emeklilik, evlilik (kadın, 1 yıl içinde), ölüm. Tavan yıllık belirlenir. GV istisnası (tavan dahilinde), SGK primi kesilmez, damga vergisi (%0,759) kesilir. Muhasebe: 472/272 Kıdem Tazminatı Karşılığı.",
+      "metadata": {
+        "category": "teblig",
+        "subcategory": "kidem_tazminati",
+        "section": "uygulama",
+        "keywords": [
+          "kıdem tazminatı",
+          "1 yıl",
+          "30 gün",
+          "tavan",
+          "GV istisnası",
+          "damga vergisi",
+          "472"
+        ],
+        "year": "evergreen"
+      }
+    },
+    {
+      "id": "teblig-ihbar-tazminati",
+      "text": "İhbar Tazminatı (4857 sk. md. 17): Bildirim süreleri: 0-6 ay→2 hafta, 6 ay-1,5 yıl→4 hafta, 1,5-3 yıl→6 hafta, 3+ yıl→8 hafta. Süreye uymayan taraf süreye ilişkin ücret tutarını ihbar tazminatı olarak öder. GV + damga vergisi kesilir, SGK primi kesilmez. Muhasebe: 770 GYG → 335 Personele Borçlar.",
+      "metadata": {
+        "category": "teblig",
+        "subcategory": "ihbar_tazminati",
+        "section": "4857-md17",
+        "keywords": [
+          "ihbar tazminatı",
+          "bildirim süresi",
+          "2 hafta",
+          "4 hafta",
+          "6 hafta",
+          "8 hafta",
+          "770",
+          "4857 md. 17"
+        ],
+        "year": "evergreen"
+      }
+    },
+    {
+      "id": "teblig-vergiye-uyumlu-mukellef",
+      "text": "Vergiye Uyumlu Mükellef İndirimi (GVK Mükerrer Md. 121): Son 3 hesap döneminde; beyannameleri süresinde vermiş, tahakkuk eden vergilerini süresinde ödemiş, haklarında beyana tabi vergi türleri itibarıyla ikmalen/re'sen/idarece tarhiyat yapılmamış (kesinleşmiş olanlar hariç) olan gelir ve kurumlar vergisi mükelleflerine yıllık beyannamelerinde hesaplanan verginin %5'i indirim olarak uygulanır. İndirim tutarı 4.400.000 TL'yi aşamaz (güncel tutarı kontrol edin). İndirim, vergi aslından düşülür. İndirimden yararlanan mükellef, indirimi takip eden 1 yıl içinde beyanlarının doğru olmadığının tespiti halinde indirimi iade eder. Ayrıca vergiye uyumlu mükelleflere 6183 md. 48/A kapsamında teminatsız tecil imkânı tanınabilir.",
+      "metadata": {
+        "category": "teblig",
+        "subcategory": "uyumlu_mukellef",
+        "section": "gvk-121",
+        "keywords": [
+          "vergiye uyumlu",
+          "%5 indirim",
+          "3 hesap dönemi",
+          "tarhiyat yok",
+          "süresinde ödeme",
+          "mükerrer md. 121"
+        ],
+        "year": "evergreen"
+      }
+    },
+    {
+      "id": "teblig-nakdi-sermaye-indirimi",
+      "text": "Nakdi Sermaye Artışı Faiz İndirimi (KVK Md. 10/1-ı): Sermaye şirketlerinin nakdi sermaye artışları üzerinden Merkez Bankası tarafından ilan edilen ticari kredilere uygulanan ağırlıklı yıllık ortalama faiz oranı dikkate alınarak, kurum kazancından indirilebilecek tutar hesaplanır. İndirim oranı: TCMB faiz oranının %50'si (genel kural). Payları borsada işlem gören şirketler %75. Nakit dışı sermaye artışları (ayni sermaye, iç kaynak) kapsam dışıdır. İndirim, sermaye artışının yapıldığı hesap döneminden başlayarak süresiz uygulanır (2022 sonrası sınırlandırma: 5 hesap dönemi). Ortaklara borç olarak kullandırılan tutarlar indirim hesaplamasında dikkate alınmaz.",
+      "metadata": {
+        "category": "teblig",
+        "subcategory": "nakdi_sermaye",
+        "section": "kvk-md10",
+        "keywords": [
+          "nakdi sermaye",
+          "faiz indirimi",
+          "TCMB",
+          "%50",
+          "%75",
+          "borsa",
+          "KVK md. 10/1-ı",
+          "5 hesap dönemi"
+        ],
+        "year": "evergreen"
+      }
+    },
+    {
+      "id": "teblig2-kdv-tam-tevkifat",
+      "text": "KDV Tam Tevkifat Uygulaması (KDV GUT I/C-2.1.2): Tam tevkifat, işlem bedeli üzerinden hesaplanan KDV'nin tamamının alıcı tarafından kesilip vergi dairesine ödenmesidir. Tam tevkifat uygulanan haller: 1) Türkiye'de ikametgâhı/işyeri/merkezi bulunmayan kişilerin Türkiye'deki teslim/hizmetleri. 2) Profesyonel sanatçı kiralama. 3) GVK md. 18 kapsamındaki telif hakkı ödemeleri (KDV mükellefi olmayanlara). Satıcı faturasında KDV hesaplar ama tahsil etmez. Alıcı KDV-2 ile tamamını beyan edip öder, aynı dönem KDV-1'de indirim yapar.",
+      "metadata": {
+        "category": "teblig",
+        "subcategory": "kdv_tam_tevkifat",
+        "section": "uygulama",
+        "keywords": [
+          "tam tevkifat",
+          "yabancı",
+          "sanatçı",
+          "telif",
+          "KDV-2"
+        ],
+        "year": "evergreen"
+      }
+    },
+    {
+      "id": "teblig2-kdv-tevkifat-alici",
+      "text": "KDV Kısmi Tevkifat — Alıcı Grupları (KDV GUT I/C-2.1.3.1): GRUP 1 (Belirlenmiş alıcılar): Kamu kurum/kuruluşları, bankalar, sigorta şirketleri, borsada işlem gören şirketler, büyük mükellefler VDB'ye kayıtlı, döner sermayeli kuruluşlar, KİT'ler, OSB'ler. GRUP 2 (KDV mükellefleri): Belirli işlemlerde tüm KDV mükellefleri. Yapım/temizlik/işgücü işlemlerinde GRUP 1 alıcılar tevkifat yapar. Hurda/metal/demir-çelik mal teslimlerinde HER KDV MÜKELLEFİ (Grup 1+2) tevkifat yapar.",
+      "metadata": {
+        "category": "teblig",
+        "subcategory": "kdv_alici_gruplari",
+        "section": "grup1_grup2",
+        "keywords": [
+          "belirlenmiş alıcı",
+          "KDV mükellefi",
+          "kamu",
+          "banka",
+          "Grup 1",
+          "Grup 2"
+        ],
+        "year": "evergreen"
+      }
+    },
+    {
+      "id": "teblig2-kdv-tevkifat-muhasebe",
+      "text": "KDV Tevkifat Muhasebe Kayıtları: SATICI (tevkifata tabi satış): Borç 120 Alıcılar (net tahsil edilecek), Borç 127 Diğer Ticari Alacaklar (tevkif edilen KDV — iade), Alacak 600 Satışlar, Alacak 391 Hesaplanan KDV (toplam). ALICI (tevkifat uygulayan): Borç 150/153/770 (mal/hizmet), Borç 191 İndirilecek KDV (toplam KDV), Alacak 320 Satıcılar (net ödenen), Alacak 360 Ödenecek Vergi (tevkif edilen KDV — KDV-2). Satıcı toplam KDV'yi KDV-1'de, alıcı tevkif kısmını KDV-2'de beyan eder.",
+      "metadata": {
+        "category": "teblig",
+        "subcategory": "kdv_tevkifat_muhasebe",
+        "section": "kayit",
+        "keywords": [
+          "tevkifat muhasebe",
+          "127",
+          "360",
+          "KDV-1",
+          "KDV-2",
+          "iade"
+        ],
+        "year": "evergreen"
+      }
+    },
+    {
+      "id": "teblig2-efatura-senaryolari",
+      "text": "e-Fatura Senaryoları (509 Tebliğ): TEMEL — Alıcı reddedemez (otomatik kabul). TİCARİ — 8 gün içinde kabul/red, yoksa otomatik kabul. HAL — Tarım ürünleri. KAMU — Kamu kurumlarına. Zorunluluk hadleri: e-Fatura 3M TL+ brüt satış. e-Arşiv: Vergi mükellefi alıcıya 5.000 TL+, vergi mükellefi olmayanlara 14.000 TL+. e-Fatura mükellefleri birbirine e-Arşiv değil e-Fatura düzenlemek ZORUNDADIR.",
+      "metadata": {
+        "category": "teblig",
+        "subcategory": "efatura_senaryo",
+        "section": "detay",
+        "keywords": [
+          "e-fatura",
+          "temel",
+          "ticari",
+          "8 gün",
+          "e-arşiv",
+          "3M TL",
+          "5000 TL",
+          "14000 TL"
+        ],
+        "year": "evergreen"
+      }
+    },
+    {
+      "id": "teblig2-eirsaliye-detay",
+      "text": "e-İrsaliye Uygulaması: Mal hareketlerinin elektronik takibi. Malın sevkinden ÖNCE düzenlenir ve GİB'e iletilir. Çıktı araçta bulunur. Alıcı kabul/red yanıtı verebilir (zorunlu değil). e-İrsaliye mükellefi kâğıt irsaliye düzenleyemez (sistem arızası hariç). e-İrsaliye muhasebe kaydı gerektirmez, belgeleme sağlar.",
+      "metadata": {
+        "category": "teblig",
+        "subcategory": "eirsaliye",
+        "section": "detay",
+        "keywords": [
+          "e-irsaliye",
+          "sevkten önce",
+          "çıktı",
+          "GİB",
+          "kabul red"
+        ],
+        "year": "evergreen"
+      }
+    },
+    {
+      "id": "teblig2-gider-pusulasi",
+      "text": "Gider Pusulası (VUK md. 234, 509 Tebliğ): I. ve II. sınıf tüccarlar vergiden muaf esnaftan alımda gider pusulası düzenler. Stopaj: %10 genel oran. KDV sorumluluğu doğabilir. e-Gider Pusulası belirli mükelleflere zorunlu. Düzenlenecek haller: Nihai tüketiciden alım, muaf esnaftan alım, arızi kazanç ödemeleri. Düzenlememe cezası: VUK md. 353 özel usulsüzlük.",
+      "metadata": {
+        "category": "teblig",
+        "subcategory": "gider_pusulasi",
+        "section": "detay",
+        "keywords": [
+          "gider pusulası",
+          "muaf esnaf",
+          "%10",
+          "e-gider pusulası",
+          "KDV sorumluluğu",
+          "VUK md. 234"
+        ],
+        "year": "evergreen"
+      }
+    },
+    {
+      "id": "teblig2-reeskont",
+      "text": "Reeskont Uygulaması (VUK md. 281, 285): Vadesi gelmemiş senetli alacak/borçlar değerleme günü kıymetine irca olunabilir. Oran: TCMB iskonto haddi veya avans faiz oranı (seçim 3 yıl sabit). İç iskonto formülü: Nominal × Faiz × Gün / (36000 + Faiz × Gün). Muhasebe: Alacak reeskontu → Borç 657, Alacak 122. Borç reeskontu → Borç 322, Alacak 647. Alacak senetlerini reeskonta tutan mükellef borç senetlerini de TUTMAK ZORUNDADIR.",
+      "metadata": {
+        "category": "teblig",
+        "subcategory": "reeskont",
+        "section": "hesap",
+        "keywords": [
+          "reeskont",
+          "TCMB",
+          "iskonto",
+          "iç iskonto",
+          "3 yıl",
+          "657",
+          "647",
+          "122",
+          "322"
+        ],
+        "year": "evergreen"
+      }
+    },
+    {
+      "id": "teblig2-doviz-degerleme",
+      "text": "Döviz Değerleme (VUK md. 280): Dönem sonunda TCMB kurlarıyla değerleme: Döviz kasası/mevduat → efektif alış kuru. Dövizli alacaklar → döviz alış kuru. Dövizli borçlar → döviz satış kuru. Kur farkı geliri → 646 Kambiyo Karları. Kur farkı gideri → 656 Kambiyo Zararları. Geçici vergi dönemlerinde de değerleme yapılır. İhracat bedellerinin %25'inin TCMB'ye satılması zorunlu (USD/EUR/GBP).",
+      "metadata": {
+        "category": "teblig",
+        "subcategory": "doviz_degerleme",
+        "section": "kur",
+        "keywords": [
+          "döviz değerleme",
+          "TCMB",
+          "efektif alış",
+          "döviz alış",
+          "satış kuru",
+          "646",
+          "656",
+          "%25"
+        ],
+        "year": "evergreen"
+      }
+    },
+    {
+      "id": "teblig2-binek-oto-gider",
+      "text": "Binek Oto Gider Kısıtlaması (GVK md. 40, KVK md. 11): 1) Kiralama üst sınırı: Aylık belirli tutar. 2) ÖTV+KDV dahil alış bedeli üst sınırı: Aşan kısım amortismana tabi tutulamaz. 3) KDV indirilemez (KDVK md. 30/b) — maliyete/gidere eklenir. 4) Taşıt giderleri (yakıt/bakım/sigorta): %70 indirilebilir, %30 KKEG. MTV da KKEG'dir. KKEG kısmı 689'da izlenir.",
+      "metadata": {
+        "category": "teblig",
+        "subcategory": "binek_oto",
+        "section": "gider",
+        "keywords": [
+          "binek oto",
+          "gider kısıtlama",
+          "KDV indirilemez",
+          "%70",
+          "%30 KKEG",
+          "MTV",
+          "689"
+        ],
+        "year": "evergreen"
+      }
+    },
+    {
+      "id": "teblig2-kkeg-liste",
+      "text": "KKEG Listesi (GVK md. 41, KVK md. 11): Öz sermaye faizi, transfer fiyatlandırması örtülü kazanç, vergi cezaları/gecikme faizi/zammı, para cezaları, binek oto giderlerinin %30'u, işle ilgisiz giderler, belgesiz giderler, finansman gider kısıtlaması (%10), ortaklara aylık/ikramiye (GVK md. 41/2), MTV. 689 hesabında izlenir, beyannamede matraha eklenir.",
+      "metadata": {
+        "category": "teblig",
+        "subcategory": "kkeg",
+        "section": "liste",
+        "keywords": [
+          "KKEG",
+          "vergi cezası",
+          "binek oto %30",
+          "finansman %10",
+          "MTV",
+          "689",
+          "GVK md. 41",
+          "KVK md. 11"
+        ],
+        "year": "evergreen"
+      }
+    },
+    {
+      "id": "teblig2-finansman-gider-kisit",
+      "text": "Finansman Gider Kısıtlaması (KVK md. 11/1-i): Yabancı kaynak > Öz kaynak ise, aşan kısma ait finansman giderlerinin (faiz/kur farkı/vade farkı) %10'u KKEG. Hesaplama: (YK - ÖK) / YK = Kısıtlama oranı. Toplam finansman gideri × Oran × %10 = KKEG. Banka/finans/sigorta şirketleri kapsam dışı. Yatırım döneminde aktifleştirilen finansman giderleri hariç. Geçici vergi dönemlerinde de uygulanır.",
+      "metadata": {
+        "category": "teblig",
+        "subcategory": "finansman_gider",
+        "section": "kisitlama",
+        "keywords": [
+          "finansman gider kısıtlaması",
+          "%10",
+          "yabancı kaynak",
+          "öz kaynak",
+          "KKEG"
+        ],
+        "year": "evergreen"
+      }
+    },
+    {
+      "id": "teblig2-sgk-tesvik-detay",
+      "text": "SGK Teşvikleri Detay: 5 puan işveren indirimi (5510 md. 81): Özel sektör, SGK borcu yok, kayıt dışı tespit yok. 6 puan ek indirim (687 sk.): İmalat sektörü (toplam 11 puan). Genç/kadın/engelli (4447 geçici md. 10): İşsizlik fonundan prim desteği. Ar-Ge personeli (5746 sk.): SGK işveren payının yarısı Hazine karşılar. Asgari ücret desteği: Bütçe kanunuyla yıllık belirlenir. Aynı sigortalı için ayda tek teşvik kullanılır.",
+      "metadata": {
+        "category": "teblig",
+        "subcategory": "sgk_tesvik",
+        "section": "detay",
+        "keywords": [
+          "SGK teşvik",
+          "5 puan",
+          "6 puan",
+          "imalat",
+          "Ar-Ge",
+          "asgari ücret desteği"
+        ],
+        "year": "evergreen"
+      }
+    },
+    {
+      "id": "teblig2-sgk-bildirim",
+      "text": "SGK Bildirimleri: İşe giriş: İşe başlamadan EN AZ 1 GÜN ÖNCE e-Bildirge ile. İnşaat/balıkçılık/tarım aynı gün. İşten ayrılış: Ayrılıştan sonra 10 gün içinde. SGK kodları: 04-İşveren haklı fesih, 05-Belirli süreli sözleşme sonu, 08-Emeklilik, 14-İstifa, 29-İşveren feshi (performans). MUHSGK: Takip eden ayın 28'i. Eksik gün: 30 günden az çalışma halinde neden/belge bildirilir.",
+      "metadata": {
+        "category": "teblig",
+        "subcategory": "sgk_bildirim",
+        "section": "detay",
+        "keywords": [
+          "işe giriş",
+          "1 gün önce",
+          "işten ayrılış",
+          "10 gün",
+          "SGK kodu",
+          "MUHSGK",
+          "eksik gün"
+        ],
+        "year": "evergreen"
+      }
+    },
+    {
+      "id": "teblig2-bordro-hesap",
+      "text": "Bordro Hesaplama 2026: 1) Brüt ücret. 2) SGK matrahı (tavan 297.270, taban 33.030 TL). 3) SGK işçi %14 + İşsizlik %1 = %15. 4) GV matrahı: Brüt - SGK işçi - İşsizlik. 5) GV: Kümülatif tarife (%15-%40), asgari ücret istisnası düşülür. 6) Damga: Brüt × binde 7,59. 7) Net: Brüt - SGK işçi - İşsizlik - GV - DV. İşveren maliyeti: Brüt + SGK işveren (~%15,5-17,5 teşvik sonrası) + İşsizlik işveren %2.",
+      "metadata": {
+        "category": "teblig",
+        "subcategory": "bordro",
+        "section": "2026",
+        "keywords": [
+          "bordro",
+          "brüt",
+          "net",
+          "SGK",
+          "gelir vergisi",
+          "damga",
+          "kümülatif",
+          "asgari ücret istisnası"
+        ],
+        "year": "2026"
+      }
+    },
+    {
+      "id": "teblig2-otv-genel",
+      "text": "ÖTV (4760 sk.): 4 liste — I: Akaryakıt/LPG, II: Motorlu taşıtlar (binek %10-%220 kademeli), III: Alkol/tütün/kola, IV: Beyaz eşya/elektronik (%6,7-%20). İlk teslimde bir kez hesaplanır, sonraki satışlarda tekrarlanmaz. Binek otolarda ÖTV+KDV gider kısıtlamasıyla bağlantılı.",
+      "metadata": {
+        "category": "teblig",
+        "subcategory": "otv",
+        "section": "genel",
+        "keywords": [
+          "ÖTV",
+          "4760",
+          "akaryakıt",
+          "motorlu taşıt",
+          "binek",
+          "alkol",
+          "beyaz eşya"
+        ],
+        "year": "evergreen"
+      }
+    },
+    {
+      "id": "teblig2-harcirah-yemek",
+      "text": "Harcırah ve Yemek/Yol İstisnaları (GVK md. 23, 24): İş seyahati giderleri (yol/konaklama/yeme) belgelendirilirse vergiden istisna. Gündelik: Devlet memuru haddini aşmayan kısım istisna. Yemek yardımı (md. 23/8): İş yerinde yemek verilirse tam istisna. Yemek kartı/fişi ile günlük belirli tutara kadar istisna (yıllık güncellenir). Yol yardımı: Toplu taşıma kartı/bileti günlük belirli tutara kadar istisna.",
+      "metadata": {
+        "category": "teblig",
+        "subcategory": "harcirah_yemek",
+        "section": "istisna",
+        "keywords": [
+          "harcırah",
+          "yemek",
+          "yol",
+          "istisna",
+          "gündelik",
+          "GVK md. 23",
+          "md. 24"
+        ],
+        "year": "evergreen"
+      }
+    },
+    {
+      "id": "teblig2-arge-tesvik",
+      "text": "Ar-Ge/Tasarım Teşvikleri (5746, 4691 sk.): Ar-Ge indirimi: Harcamaların %200'ü matrahtan düşülür. GV stopaj teşviki: Personel GV'sinin %80-95'i terkin. SGK: İşveren payının yarısı Hazine karşılar. Gümrük muafiyeti. Damga vergisi istisnası. Teknopark (4691 sk.): Yazılım/Ar-Ge kazancı KV/GV istisna (31.12.2028'e kadar). Sistem yönetimi/yazılım/veri yönetimi teslim/hizmetleri KDV istisna.",
+      "metadata": {
+        "category": "teblig",
+        "subcategory": "arge_tesvik",
+        "section": "detay",
+        "keywords": [
+          "Ar-Ge",
+          "%200",
+          "stopaj teşviki",
+          "teknopark",
+          "yazılım",
+          "KDV istisna",
+          "5746",
+          "4691"
+        ],
+        "year": "evergreen"
+      }
+    },
+    {
+      "id": "teblig2-yatirim-tesvik",
+      "text": "Yatırım Teşvik Belgesi: 1) KDV istisnası makine/teçhizat alımında (md. 13/d). 2) Gümrük muafiyeti ithal makinede. 3) Vergi indirimi: Yatırıma katkı oranı bölgeye göre %15-55. 4) SGK işveren payı desteği. 5) Faiz desteği. 6) OSB'de bedelsiz arsa. 6 bölge sistemi: 1. en gelişmiş, 6. en az gelişmiş — bölge arttıkça teşvik yükselir.",
+      "metadata": {
+        "category": "teblig",
+        "subcategory": "yatirim_tesvik",
+        "section": "belgesi",
+        "keywords": [
+          "yatırım teşvik",
+          "KDV istisnası",
+          "gümrük muafiyeti",
+          "vergi indirimi",
+          "6 bölge",
+          "md. 13/d"
+        ],
+        "year": "evergreen"
+      }
+    },
+    {
+      "id": "teblig2-mtv",
+      "text": "MTV (197 sk.): Taşıt sahipliğine bağlı yıllık vergi. Ocak/Temmuz 2 taksit. Motor hacmi × yaş katsayısı = yıllık MTV. MTV gider olarak KABUL EDİLMEZ → KKEG (689). MTV borcu olan araç satılamaz/devredilemez. Yeniden değerleme oranıyla artırılır.",
+      "metadata": {
+        "category": "teblig",
+        "subcategory": "mtv",
+        "section": "uygulama",
+        "keywords": [
+          "MTV",
+          "2 taksit",
+          "KKEG",
+          "689",
+          "motor hacmi",
+          "197 sk."
+        ],
+        "year": "evergreen"
+      }
+    },
+    {
+      "id": "teblig2-emlak-vergisi",
+      "text": "Emlak Vergisi (1319 sk.): Bina konut: Büyükşehir %2, diğer %1. Bina diğer: Büyükşehir %4, diğer %2. Arsa: Büyükşehir %6, diğer %3. Arazi: Büyükşehir %2, diğer %1. Ödeme: Mayıs/Kasım 2 taksit. 200 m² altı tek konut, GV mükellefi olmayanlara muafiyet. Emlak vergisi işletme gideri yazılabilir (KKEG değildir). Değerli konut vergisi: Belirli tutarın üzeri.",
+      "metadata": {
+        "category": "teblig",
+        "subcategory": "emlak_vergisi",
+        "section": "uygulama",
+        "keywords": [
+          "emlak vergisi",
+          "bina",
+          "arsa",
+          "%2",
+          "%4",
+          "%6",
+          "Mayıs",
+          "Kasım",
+          "1319 sk."
+        ],
+        "year": "evergreen"
+      }
+    },
+    {
+      "id": "teblig2-masak",
+      "text": "MASAK Bildirimleri: Şüpheli işlem bildirimi: Mali müşavirler, bankalar, noterler zorunlu. Kara para/terör finansmanı şüphesi. Nakit işlem bildirimi: 560.000 TL+ otomatik bildirim. Kimlik tespiti: Belirli tutarın üzerinde zorunlu. Bildirimi yapmama → adli/idari yaptırım.",
+      "metadata": {
+        "category": "teblig",
+        "subcategory": "masak",
+        "section": "bildirim",
+        "keywords": [
+          "MASAK",
+          "şüpheli işlem",
+          "nakit",
+          "560000 TL",
+          "kimlik tespiti"
+        ],
+        "year": "evergreen"
+      }
+    },
+    {
+      "id": "teblig2-gayrimenkul-kazanc",
+      "text": "Gayrimenkul Satış Kazancı: Gerçek kişi: 5 yıl içinde satış → GV'ye tabi (değer artış kazancı, GVK mükerrer md. 80). 5 yıl+ elde tutma → istisna. Maliyet ÜFE ile endekslenebilir (%10+ artış şartı). Kurumlar: 2 yıl+ aktifte → satış kazancının %50'si KV'den istisna (KVK md. 5/1-e, 7456 sk. ile %50'ye düşürüldü). Koşullar: 2 yıl elde tutma, bedelin 2 yılda tahsili, istisna kazanç 5 yıl fonda.",
+      "metadata": {
+        "category": "teblig",
+        "subcategory": "gayrimenkul_kazanc",
+        "section": "vergileme",
+        "keywords": [
+          "gayrimenkul satış",
+          "5 yıl",
+          "%50 istisna",
+          "endeksleme",
+          "ÜFE",
+          "GVK md. 80",
+          "KVK md. 5"
+        ],
+        "year": "evergreen"
+      }
+    },
+    {
+      "id": "teblig2-menkul-irad",
+      "text": "Menkul Sermaye İradı (GVK md. 75, 86): Stopaj: Mevduat faizi %15, repo %15, kâr payı %10, devlet tahvili %10. Beyan sınırı aşılmadıkça beyan edilmez. Kâr payı: Brüt kâr payının yarısı istisna, kalan yarı belirli tutarı aşarsa beyanname. Beyannamede hesaplanan GV'den stopaj mahsup edilir.",
+      "metadata": {
+        "category": "teblig",
+        "subcategory": "menkul_irad",
+        "section": "vergileme",
+        "keywords": [
+          "menkul sermaye iradı",
+          "mevduat",
+          "kâr payı",
+          "%15",
+          "%10",
+          "beyan sınırı",
+          "GVK md. 75"
+        ],
+        "year": "evergreen"
+      }
+    },
+    {
+      "id": "teblig2-ihracat-bedel",
+      "text": "İhracat Bedeli Kabul (Kambiyo Mevzuatı): Fiili ihraçtan 180 gün içinde yurda getirilmesi zorunlu. DAB (Döviz Alım Belgesi) bankaca düzenlenir. %25 TCMB'ye satış (USD/EUR/GBP). Bedelsiz ihracat 250.000 USD'ye kadar izinsiz. Süresinde getirilmemesi → %5 KKDF. İthalat-ihracat bedeli belirli koşullarda mahsup edilebilir.",
+      "metadata": {
+        "category": "teblig",
+        "subcategory": "ihracat_bedel",
+        "section": "prosedur",
+        "keywords": [
+          "ihracat bedeli",
+          "180 gün",
+          "DAB",
+          "TCMB",
+          "%25",
+          "KKDF",
+          "250000 USD"
+        ],
+        "year": "evergreen"
+      }
+    },
+    {
+      "id": "teblig2-vergi-denetim",
+      "text": "Vergi Denetim Süreci: VDK müfettişi inceleme yazısıyla başlar. Tam inceleme max 1 yıl, sınırlı max 6 ay (uzatılabilir). Mükellef hakları: İş yerinde inceleme, tutanak, uzlaşma talebi, dava. Rapor → RDK onayı → İhbarname tebliği → 30 gün ödeme/dava/uzlaşma. Pişmanlık: İnceleme başlamadan önce mümkün (VUK md. 371).",
+      "metadata": {
+        "category": "teblig",
+        "subcategory": "vergi_denetim",
+        "section": "surec",
+        "keywords": [
+          "vergi incelemesi",
+          "VDK",
+          "1 yıl",
+          "6 ay",
+          "uzlaşma",
+          "pişmanlık",
+          "30 gün"
+        ],
+        "year": "evergreen"
+      }
+    },
+    {
+      "id": "teblig2-muhasebe-fisler",
+      "text": "Muhasebe Fiş Türleri: Mahsup fişi: Nakit hareketi olmayan kayıtlar (amortisman, reeskont, karşılık, KDV mahsup). Tahsil fişi: Kasa/banka girişi. Tediye fişi: Kasa/banka çıkışı. Açılış fişi: Dönem başı devir bakiyeleri. Kapanış fişi: Dönem sonu hesap kapatma. Fiş numaraları ardışık/kronolojik. VUK'a göre kayıtlar 10 gün içinde yapılmalı.",
+      "metadata": {
+        "category": "teblig",
+        "subcategory": "muhasebe_fis",
+        "section": "turler",
+        "keywords": [
+          "mahsup fişi",
+          "tahsil fişi",
+          "tediye fişi",
+          "açılış",
+          "kapanış",
+          "10 gün"
+        ],
+        "year": "evergreen"
+      }
+    },
+    {
+      "id": "teblig2-donem-sonu",
+      "text": "Dönem Sonu İşlemleri Kontrol Listesi: 1) Kasa sayımı/mutabakatı. 2) Banka mutabakatı. 3) Stok sayımı (envanter). 4) Alacak/borç mutabakatı. 5) Döviz değerlemesi (VUK md. 280). 6) Reeskont (vadeli çek/senet). 7) Şüpheli alacak karşılığı (md. 323). 8) Amortisman kaydı. 9) Kıdem tazminatı karşılığı. 10) Gider/gelir tahakkukları. 11) KDV mahsup (391-191-190-360). 12) Gelir/gider→690 devri. 13) Dönem kârı/zararı (690→691→692). 14) Geçici vergi. 15) Enflasyon düzeltmesi (varsa).",
+      "metadata": {
+        "category": "teblig",
+        "subcategory": "donem_sonu",
+        "section": "kontrol",
+        "keywords": [
+          "dönem sonu",
+          "sayım",
+          "mutabakat",
+          "değerleme",
+          "reeskont",
+          "amortisman",
+          "KDV mahsup",
+          "690",
+          "691"
+        ],
+        "year": "evergreen"
+      }
+    },
+    {
+      "id": "teblig2-vergi-yargi",
+      "text": "Vergi Yargılama Süreci: İhbarname → 30 gün vergi mahkemesi davası. Dava tahsili durdurur. Karar → 30 gün istinaf (BİM). BİM kararı → 30 gün temyiz (Danıştay, belirli tutar üzeri). Uzlaşma talebi dava süresini durdurur; sağlanamazsa kalan süre 15 günden az ise 15 güne tamamlanır. Yürütme durdurma talep edilebilir.",
+      "metadata": {
+        "category": "teblig",
+        "subcategory": "vergi_yargi",
+        "section": "surec",
+        "keywords": [
+          "vergi mahkemesi",
+          "30 gün",
+          "istinaf",
+          "Danıştay",
+          "uzlaşma",
+          "yürütme durdurma"
+        ],
+        "year": "evergreen"
+      }
+    },
+    {
+      "id": "teblig2-vergiye-uyumlu",
+      "text": "Vergiye Uyumlu Mükellef İndirimi (GVK Mükerrer Md. 121): Son 3 dönemde beyannameleri süresinde vermiş, vergileri süresinde ödemiş, tarhiyat yapılmamış mükelleflere hesaplanan verginin %5'i indirim. Üst sınır: 4.400.000 TL (güncellenebilir). 6183 md. 48/A kapsamında teminatsız tecil imkânı da tanınabilir.",
+      "metadata": {
+        "category": "teblig",
+        "subcategory": "uyumlu_mukellef",
+        "section": "indirim",
+        "keywords": [
+          "vergiye uyumlu",
+          "%5",
+          "3 dönem",
+          "tarhiyat yok",
+          "mükerrer md. 121"
+        ],
+        "year": "evergreen"
+      }
+    },
+    {
+      "id": "teblig2-nakdi-sermaye",
+      "text": "Nakdi Sermaye Faiz İndirimi (KVK Md. 10/1-ı): Nakdi sermaye artışı üzerinden TCMB ticari kredi faiz oranının %50'si (borsada %75) oranında kurum kazancından indirim. Nakit dışı (ayni/iç kaynak) artışlar kapsam dışı. 5 hesap dönemi süreyle uygulanır (2022 sonrası). Ortaklara borç kullandırılan tutarlar hariç.",
+      "metadata": {
+        "category": "teblig",
+        "subcategory": "nakdi_sermaye",
+        "section": "indirim",
+        "keywords": [
+          "nakdi sermaye",
+          "TCMB faiz",
+          "%50",
+          "%75",
+          "5 hesap dönemi",
+          "KVK md. 10"
+        ],
+        "year": "evergreen"
+      }
+    }
+  ]
+}

@@ -234,9 +234,11 @@ export function listTemplates(lang: SupportedLang = "en"): EmailTemplate[] {
   return Object.values(templates).map(entry => entry[lang] || entry.en);
 }
 
-export function fillTemplate(template: EmailTemplate, params: { name?: string; company?: string }): { subject: string; body: string } {
-  const name = params.name || "there";
-  const company = params.company || "your company";
+export function fillTemplate(template: EmailTemplate, params: { name?: string; company?: string; lang?: SupportedLang }): { subject: string; body: string } {
+  const fallbackName = (params.lang === "tr") ? "değerli müşteri" : "there";
+  const fallbackCompany = (params.lang === "tr") ? "şirketiniz" : "your company";
+  const name = params.name || fallbackName;
+  const company = params.company || fallbackCompany;
   return {
     subject: template.subject.replace(/\{\{name\}\}/g, name).replace(/\{\{company\}\}/g, company),
     body: template.body.replace(/\{\{name\}\}/g, name).replace(/\{\{company\}\}/g, company),

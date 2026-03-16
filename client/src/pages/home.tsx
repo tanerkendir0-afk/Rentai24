@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect, useCallback } from "react";
+import { useRef, useState, useEffect, useCallback, useMemo } from "react";
 import { Link } from "wouter";
 import { motion, useInView, useScroll, useTransform, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -49,7 +49,8 @@ import {
   Mail,
   CheckCircle2,
 } from "lucide-react";
-import { agents, testimonials, faqItems, industries } from "@/data/agents";
+import { testimonials as rawTestimonials, faqItems as rawFaqItems, industries as rawIndustries } from "@/data/agents";
+import { useLocalizedAgents } from "@/hooks/use-localized-agents";
 import SectionCTA from "@/components/section-cta";
 import PlatformGuide from "@/components/platform-guide";
 import { useAuth } from "@/lib/auth";
@@ -637,6 +638,7 @@ const quickActions = [
 
 function LoggedInHome({ userName }: { userName: string }) {
   const { t } = useTranslation("pages");
+  const agents = useLocalizedAgents();
   const firstName = userName.split(" ")[0];
 
   return (
@@ -841,7 +843,35 @@ function LoggedInHome({ userName }: { userName: string }) {
 
 export default function Home() {
   const { t } = useTranslation("pages");
+  const { t: ta } = useTranslation("agents");
+  const agents = useLocalizedAgents();
   const { user, isLoading } = useAuth();
+
+  const testimonials = useMemo(() => {
+    const localized = ta("testimonials", { returnObjects: true }) as Array<{ text: string; name: string; company: string; role: string }>;
+    return Array.isArray(localized) ? localized.map((item, i) => ({ ...rawTestimonials[i], ...item })) : rawTestimonials;
+  }, [ta]);
+
+  const faqItems = useMemo(() => {
+    const localized = ta("faqItems", { returnObjects: true }) as Array<{ question: string; answer: string }>;
+    return Array.isArray(localized) ? localized : rawFaqItems;
+  }, [ta]);
+
+  const industries = useMemo(() => {
+    const localized = ta("industries", { returnObjects: true }) as Record<string, string>;
+    if (typeof localized === "object" && !Array.isArray(localized)) {
+      const keyMap: Record<string, string> = {
+        "E-Commerce & Retail": "ecommerce", "Restaurants & Hospitality": "restaurants",
+        "Healthcare & Clinics": "healthcare", "Legal & Law Firms": "legal",
+        "Accounting & Finance": "accounting", "Real Estate": "realEstate",
+        "Education & E-Learning": "education", "Travel & Tourism": "travel",
+        "SaaS & Tech Startups": "saas", "Marketing Agencies": "marketing",
+      };
+      return rawIndustries.map(ind => ({ ...ind, name: localized[keyMap[ind.name] || ""] || ind.name }));
+    }
+    return rawIndustries;
+  }, [ta]);
+
   const [testimonialIdx, setTestimonialIdx] = useState(0);
   const [dragStartX, setDragStartX] = useState<number | null>(null);
   const heroRef = useRef(null);

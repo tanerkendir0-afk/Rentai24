@@ -57,6 +57,14 @@ class CircuitBreaker {
     });
   }
 
+  forceOpen(agentId: string): void {
+    const state = this.circuits.get(agentId) || { failures: 0, lastFailure: 0, isOpen: false };
+    state.isOpen = true;
+    state.lastFailure = Date.now();
+    this.circuits.set(agentId, state);
+    console.warn(`[CIRCUIT BREAKER] ${agentId} forced open by heartbeat`);
+  }
+
   getStatus(): Record<string, AgentStatus> {
     const result: Record<string, AgentStatus> = {};
     const allKeys = new Set([...this.circuits.keys(), ...this.heartbeats.keys()]);

@@ -25,6 +25,7 @@ export interface HeartbeatStatus {
 const heartbeatStore: Map<string, HeartbeatStatus> = new Map();
 
 let heartbeatInterval: ReturnType<typeof setInterval> | null = null;
+let startupTimeout: ReturnType<typeof setTimeout> | null = null;
 let systemPromptChecker: ((agentId: string) => boolean) | null = null;
 
 async function checkAgent(agentId: string): Promise<HeartbeatStatus> {
@@ -76,9 +77,10 @@ export async function runHeartbeatCheck(): Promise<void> {
 
       if (result.status === "healthy") {
         healthyCount++;
+        circuitBreaker.recordSuccess(agentId);
       } else {
         issues.push(`${agentId}: ${result.status} (${result.lastError})`);
-        circuitBreaker.recordFailure(agentId);
+        circuitBreaker.forceOpen(agentId);
       }
     } catch (e: any) {
       const failResult: HeartbeatStatus = {
@@ -89,7 +91,7 @@ export async function runHeartbeatCheck(): Promise<void> {
       };
       heartbeatStore.set(agentId, failResult);
       circuitBreaker.setHeartbeatStatus(agentId, "down", 0);
-      circuitBreaker.recordFailure(agentId);
+      circuitBreaker.forceOpen(agentId);
       issues.push(`${agentId}: down (${e.message})`);
     }
   }
@@ -112,7 +114,8 @@ export function startHeartbeat(
 ): void {
   systemPromptChecker = promptChecker;
   console.log("[HEARTBEAT] Agent heartbeat monitoring started");
-  setTimeout(async () => {
+  startupTimeout = setTimeout(async () => {
+    startupTimeout = null;
     await runHeartbeatCheck();
     heartbeatInterval = setInterval(() => {
       runHeartbeatCheck().catch(err =>
@@ -123,9 +126,13 @@ export function startHeartbeat(
 }
 
 export function stopHeartbeat(): void {
+  if (startupTimeout) {
+    clearTimeout(startupTimeout);
+    startupTimeout = null;
+  }
   if (heartbeatInterval) {
     clearInterval(heartbeatInterval);
     heartbeatInterval = null;
-    console.log("[HEARTBEAT] Agent heartbeat monitoring stopped");
   }
+  console.log("[HEARTBEAT] Agent heartbeat monitoring stopped");
 }

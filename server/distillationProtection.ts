@@ -120,6 +120,9 @@ export async function checkDistillation(
 }
 
 export function addWatermark(response: string, userId: number | null, clientIp: string): string {
+  if (!response || typeof response !== "string") {
+    return "Üzgünüm, şu anda yanıt oluşturamadım. Lütfen tekrar deneyin.";
+  }
   const fingerprint = crypto
     .createHash("sha256")
     .update(`${userId || "anon"}-${clientIp}-${Date.now()}`)

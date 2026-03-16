@@ -261,6 +261,9 @@ async function getDynamicLimit(agentType: string, period: "daily" | "weekly" | "
 }
 
 export function sanitizeOutput(output: string, agentType: string): string {
+  if (!output || typeof output !== "string") {
+    return "Üzgünüm, şu anda yanıt oluşturamadım. Lütfen tekrar deneyin.";
+  }
   const config = AGENT_CONFIGS[agentType] || DEFAULT_CONFIG;
   let sanitized = output;
 

@@ -74,13 +74,12 @@ function initPinecone(): ReturnType<Pinecone["Index"]> | null {
 
 function initOpenAI(): OpenAI | null {
   if (openaiClient) return openaiClient;
-  const apiKey = process.env.AI_INTEGRATIONS_OPENAI_API_KEY;
-  const baseURL = process.env.AI_INTEGRATIONS_OPENAI_BASE_URL;
+  const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
-    console.warn("[MuhasebeRetriever] AI_INTEGRATIONS_OPENAI_API_KEY not set");
+    console.warn("[MuhasebeRetriever] OPENAI_API_KEY not set for embeddings");
     return null;
   }
-  openaiClient = new OpenAI({ apiKey, baseURL });
+  openaiClient = new OpenAI({ apiKey });
   return openaiClient;
 }
 
@@ -203,11 +202,16 @@ function scoreChunk(chunk: Chunk, query: string, detectedCategories: string[]): 
       score += 3;
     }
   }
-  const queryWords = lower.split(/\s+/);
+  const queryWords = lower.split(/\s+/).filter(w => w.length > 2);
+  const chunkLower = chunk.text.toLowerCase();
   for (const word of queryWords) {
-    if (word.length > 2 && chunk.text.toLowerCase().includes(word)) {
-      score += 1;
+    if (chunkLower.includes(word)) {
+      score += 2;
     }
+  }
+  const matchedWordRatio = queryWords.filter(w => chunkLower.includes(w)).length / Math.max(queryWords.length, 1);
+  if (matchedWordRatio > 0.5) {
+    score += 3;
   }
   return score;
 }
@@ -222,7 +226,32 @@ function localKeywordSearch(query: string, topK: number): string {
     score: scoreChunk(chunk, query, detectedCategories),
   }));
   scored.sort((a, b) => b.score - a.score);
-  const topChunks = scored.filter(s => s.score > 0).slice(0, topK);
+  let topChunks = scored.filter(s => s.score > 0).slice(0, topK);
+  if (topChunks.length === 0) {
+    const queryWords = query.toLowerCase().split(/\s+/).filter(w => w.length > 2);
+    if (queryWords.length > 0) {
+      const broadScored = chunks.map(chunk => {
+        const chunkLower = chunk.text.toLowerCase();
+        let broadScore = 0;
+        for (const word of queryWords) {
+          if (chunkLower.includes(word)) broadScore += 1;
+        }
+        return { chunk, score: broadScore };
+      });
+      broadScored.sort((a, b) => b.score - a.score);
+      topChunks = broadScored.filter(s => s.score > 0).slice(0, topK);
+    }
+  }
+  if (topChunks.length === 0) {
+    const evergreenChunks = chunks
+      .filter(c => c.metadata.year === "evergreen")
+      .slice(0, Math.min(topK, 3));
+    if (evergreenChunks.length > 0) {
+      topChunks = evergreenChunks.map(chunk => ({ chunk, score: 0 }));
+    } else {
+      topChunks = chunks.slice(0, Math.min(topK, 3)).map(chunk => ({ chunk, score: 0 }));
+    }
+  }
   if (topChunks.length === 0) return "";
 
   const parts = ["<referans_bilgisi>"];

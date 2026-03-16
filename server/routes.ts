@@ -2293,7 +2293,7 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
         aiProvider: useAnthropic ? "anthropic" : "openai",
       }).catch(err => console.error("Token usage log error:", err.message));
 
-      const rawReply = assistantMessageContent ?? "Sorry, I couldn't generate a response. Please try again.";
+      const rawReply = assistantMessageContent ?? "Üzgünüm, şu anda yanıt oluşturamadım. Lütfen tekrar deneyin.";
       const sanitized = sanitizeOutput(rawReply, resolvedAgentType);
       let reply = addWatermark(sanitized, req.session.userId || null, clientIp);
 

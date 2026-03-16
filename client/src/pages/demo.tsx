@@ -631,17 +631,18 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
       });
       const data = await res.json();
       if (data.code === "GUARDRAIL_BLOCKED") {
-        setMessages((prev) => [...prev, { role: "assistant", content: `⚠️ ${data.reply}`, isLimitWarning: true }]);
+        setMessages((prev) => [...prev, { role: "assistant", content: `⚠️ ${data.reply || t("demoPage.somethingWrong")}`, isLimitWarning: true }]);
       } else if (data.limitReached) {
-        setMessages((prev) => [...prev, { role: "assistant", content: data.reply, isLimitWarning: true }]);
+        setMessages((prev) => [...prev, { role: "assistant", content: data.reply || t("demoPage.somethingWrong"), isLimitWarning: true }]);
       } else if (data.escalation) {
         setMessages((prev) => [...prev, { role: "system", content: data.escalation.message, isEscalation: true }]);
         setActiveEscalationId(data.escalation.id);
       } else if (data.escalationActive?.adminJoined) {
         setActiveEscalationId(data.escalationActive.id);
       } else {
+        const replyText = data.reply || t("demoPage.somethingWrong");
         const routingPrefix = data.routedToName ? `🔀 *Routed to ${data.routedToName}*\n\n` : "";
-        setMessages((prev) => [...prev, { role: "assistant", content: routingPrefix + data.reply, actions: data.actions }]);
+        setMessages((prev) => [...prev, { role: "assistant", content: routingPrefix + replyText, actions: data.actions }]);
       }
       queryClient.invalidateQueries({ queryKey: ["/api/token-spending"] });
       if (isSocialMediaAgent) {

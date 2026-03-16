@@ -229,7 +229,7 @@ export default function Workers() {
                   </SelectTrigger>
                   <SelectContent>
                     {categories.map((c) => (
-                      <SelectItem key={c} value={c}>{c}</SelectItem>
+                      <SelectItem key={c.key} value={c.key}>{c.label}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -254,7 +254,7 @@ export default function Workers() {
                   </SelectTrigger>
                   <SelectContent>
                     {categories.map((c) => (
-                      <SelectItem key={c} value={c}>{c}</SelectItem>
+                      <SelectItem key={c.key} value={c.key}>{c.label}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>

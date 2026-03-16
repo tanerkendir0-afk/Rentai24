@@ -3766,10 +3766,10 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
       const list = await storage.getFeedbackList({ type, limit, offset });
       const userIds = [...new Set(list.map(f => f.userId))];
       const usersMap: Record<number, { email: string; fullName: string }> = {};
-      for (const uid of userIds) {
-        const u = await storage.getUserById(uid);
-        if (u) usersMap[uid] = { email: u.email, fullName: u.fullName };
-      }
+      const userResults = await Promise.all(userIds.map(uid => storage.getUserById(uid)));
+      userResults.forEach(u => {
+        if (u) usersMap[u.id] = { email: u.email, fullName: u.fullName };
+      });
       const enriched = list.map(f => ({
         ...f,
         userEmail: usersMap[f.userId]?.email || "—",

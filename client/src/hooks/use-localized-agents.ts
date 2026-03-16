@@ -21,6 +21,8 @@ export function useLocalizedAgents() {
         responseTime: t(`${meta.id}.responseTime`, { defaultValue: "" }) || undefined,
         skills: t(`${meta.id}.skills`, { returnObjects: true }) as string[],
         useCases: t(`${meta.id}.useCases`, { returnObjects: true }) as string[],
+        integrations: t(`${meta.id}.integrations`, { returnObjects: true }) as string[],
+        languages: t(`${meta.id}.languages`, { returnObjects: true }) as string[],
         metrics: localizedMetrics,
       };
     });

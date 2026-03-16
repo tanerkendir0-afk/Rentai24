@@ -1613,7 +1613,11 @@
       "supportedFormats": "TXT, PDF, DOCX, CSV, MD desteklenir (max 10MB)",
       "addFromUrl": "URL'den Ekle",
       "extractDescription": "Herhangi bir web sayfasından içerik çıkar ve indeksle",
-      "knowledgeBase": "Bilgi Tabanı ({{count}} doküman)"
+      "knowledgeBase": "Bilgi Tabanı ({{count}} doküman)",
+      "chunks": "parça",
+      "unitB": "B",
+      "unitKB": "KB",
+      "unitMB": "MB"
     },
     "tokenOpt": {
       "noExpensiveRequests": "Henüz $0.01 üzerinde istek yok.",

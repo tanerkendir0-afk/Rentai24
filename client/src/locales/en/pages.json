@@ -1613,7 +1613,11 @@
       "supportedFormats": "Supports TXT, PDF, DOCX, CSV, MD (max 10MB)",
       "addFromUrl": "Add from URL",
       "extractDescription": "Extract and index content from any web page",
-      "knowledgeBase": "Knowledge Base ({{count}} documents)"
+      "knowledgeBase": "Knowledge Base ({{count}} documents)",
+      "chunks": "chunks",
+      "unitB": "B",
+      "unitKB": "KB",
+      "unitMB": "MB"
     },
     "tokenOpt": {
       "noExpensiveRequests": "No requests over $0.01 yet.",

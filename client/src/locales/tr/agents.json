@@ -37,8 +37,26 @@
         "value": "7"
       }
     },
-    "priceLabel": "$99/mo",
-    "responseTime": "<5 seconds"
+    "priceLabel": "$99/ay",
+    "responseTime": "<5 saniye",
+    "integrations": [
+      "WhatsApp",
+      "Intercom",
+      "Zendesk",
+      "Freshdesk",
+      "Instagram DM",
+      "Facebook Messenger",
+      "Slack"
+    ],
+    "languages": [
+      "İngilizce",
+      "İspanyolca",
+      "Fransızca",
+      "Almanca",
+      "Arapça",
+      "Türkçe",
+      "Portekizce"
+    ]
   },
   "sales-sdr": {
     "name": "Satış Geliştirme Temsilcisi",
@@ -78,7 +96,21 @@
         "value": "4"
       }
     },
-    "priceLabel": "$149/mo"
+    "priceLabel": "$149/ay",
+    "integrations": [
+      "HubSpot",
+      "Salesforce",
+      "Pipedrive",
+      "LinkedIn",
+      "Gmail",
+      "Calendly"
+    ],
+    "languages": [
+      "İngilizce",
+      "İspanyolca",
+      "Fransızca",
+      "Almanca"
+    ]
   },
   "social-media": {
     "name": "Sosyal Medya Yöneticisi",
@@ -117,7 +149,22 @@
         "value": "4"
       }
     },
-    "priceLabel": "$119/mo"
+    "priceLabel": "$119/ay",
+    "integrations": [
+      "Instagram",
+      "Twitter/X",
+      "Facebook",
+      "LinkedIn",
+      "TikTok",
+      "Buffer",
+      "Hootsuite"
+    ],
+    "languages": [
+      "İngilizce",
+      "İspanyolca",
+      "Fransızca",
+      "Portekizce"
+    ]
   },
   "bookkeeping": {
     "name": "Muhasebe Asistanı",
@@ -156,7 +203,19 @@
         "value": "2"
       }
     },
-    "priceLabel": "$129/mo"
+    "priceLabel": "$129/ay",
+    "integrations": [
+      "QuickBooks",
+      "Xero",
+      "FreshBooks",
+      "Excel",
+      "Stripe",
+      "PayPal"
+    ],
+    "languages": [
+      "İngilizce",
+      "İspanyolca"
+    ]
   },
   "scheduling": {
     "name": "Randevu ve Planlama Ajanı",
@@ -196,7 +255,23 @@
         "value": "6"
       }
     },
-    "priceLabel": "$79/mo"
+    "priceLabel": "$79/ay",
+    "integrations": [
+      "Google Calendar",
+      "Calendly",
+      "Acuity",
+      "WhatsApp",
+      "SMS",
+      "Email"
+    ],
+    "languages": [
+      "İngilizce",
+      "İspanyolca",
+      "Fransızca",
+      "Almanca",
+      "Arapça",
+      "Türkçe"
+    ]
   },
   "hr-recruiting": {
     "name": "İK ve İşe Alım Asistanı",
@@ -234,7 +309,20 @@
         "value": "3"
       }
     },
-    "priceLabel": "$139/mo"
+    "priceLabel": "$139/ay",
+    "integrations": [
+      "LinkedIn",
+      "Indeed",
+      "Greenhouse",
+      "Lever",
+      "Workable",
+      "BambooHR"
+    ],
+    "languages": [
+      "İngilizce",
+      "İspanyolca",
+      "Fransızca"
+    ]
   },
   "data-analyst": {
     "name": "Veri Analisti Ajanı",
@@ -274,7 +362,18 @@
         "value": "1"
       }
     },
-    "priceLabel": "$159/mo"
+    "priceLabel": "$159/ay",
+    "integrations": [
+      "Google Sheets",
+      "Excel",
+      "Tableau",
+      "Looker",
+      "SQL Databases",
+      "Airtable"
+    ],
+    "languages": [
+      "İngilizce"
+    ]
   },
   "ecommerce-ops": {
     "name": "E-Ticaret Operasyon Ajanı",
@@ -313,7 +412,20 @@
         "value": "4"
       }
     },
-    "priceLabel": "$129/mo"
+    "priceLabel": "$129/ay",
+    "integrations": [
+      "Shopify",
+      "WooCommerce",
+      "Amazon Seller",
+      "Etsy",
+      "eBay"
+    ],
+    "languages": [
+      "İngilizce",
+      "İspanyolca",
+      "Fransızca",
+      "Almanca"
+    ]
   },
   "real-estate": {
     "name": "Emlak ve Mülk Ajanı",
@@ -353,7 +465,20 @@
         "value": "4"
       }
     },
-    "priceLabel": "$139/mo"
+    "priceLabel": "$139/ay",
+    "integrations": [
+      "Zillow",
+      "Apartments.com",
+      "Redfin",
+      "Craigslist",
+      "Google Maps"
+    ],
+    "languages": [
+      "İngilizce",
+      "İspanyolca",
+      "Türkçe",
+      "Almanca"
+    ]
   },
   "categories": {
     "All": "Tümü",

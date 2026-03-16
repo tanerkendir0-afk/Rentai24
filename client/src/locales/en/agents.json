@@ -38,7 +38,25 @@
       }
     },
     "priceLabel": "$99/mo",
-    "responseTime": "<5 seconds"
+    "responseTime": "<5 seconds",
+    "integrations": [
+      "WhatsApp",
+      "Intercom",
+      "Zendesk",
+      "Freshdesk",
+      "Instagram DM",
+      "Facebook Messenger",
+      "Slack"
+    ],
+    "languages": [
+      "English",
+      "Spanish",
+      "French",
+      "German",
+      "Arabic",
+      "Turkish",
+      "Portuguese"
+    ]
   },
   "sales-sdr": {
     "name": "Sales Development Rep",
@@ -78,7 +96,21 @@
         "value": "4"
       }
     },
-    "priceLabel": "$149/mo"
+    "priceLabel": "$149/mo",
+    "integrations": [
+      "HubSpot",
+      "Salesforce",
+      "Pipedrive",
+      "LinkedIn",
+      "Gmail",
+      "Calendly"
+    ],
+    "languages": [
+      "English",
+      "Spanish",
+      "French",
+      "German"
+    ]
   },
   "social-media": {
     "name": "Social Media Manager",
@@ -117,7 +149,22 @@
         "value": "4"
       }
     },
-    "priceLabel": "$119/mo"
+    "priceLabel": "$119/mo",
+    "integrations": [
+      "Instagram",
+      "Twitter/X",
+      "Facebook",
+      "LinkedIn",
+      "TikTok",
+      "Buffer",
+      "Hootsuite"
+    ],
+    "languages": [
+      "English",
+      "Spanish",
+      "French",
+      "Portuguese"
+    ]
   },
   "bookkeeping": {
     "name": "Bookkeeping Assistant",
@@ -156,7 +203,19 @@
         "value": "2"
       }
     },
-    "priceLabel": "$129/mo"
+    "priceLabel": "$129/mo",
+    "integrations": [
+      "QuickBooks",
+      "Xero",
+      "FreshBooks",
+      "Excel",
+      "Stripe",
+      "PayPal"
+    ],
+    "languages": [
+      "English",
+      "Spanish"
+    ]
   },
   "scheduling": {
     "name": "Appointment & Scheduling Agent",
@@ -196,7 +255,23 @@
         "value": "6"
       }
     },
-    "priceLabel": "$79/mo"
+    "priceLabel": "$79/mo",
+    "integrations": [
+      "Google Calendar",
+      "Calendly",
+      "Acuity",
+      "WhatsApp",
+      "SMS",
+      "Email"
+    ],
+    "languages": [
+      "English",
+      "Spanish",
+      "French",
+      "German",
+      "Arabic",
+      "Turkish"
+    ]
   },
   "hr-recruiting": {
     "name": "HR & Recruiting Assistant",
@@ -234,7 +309,20 @@
         "value": "3"
       }
     },
-    "priceLabel": "$139/mo"
+    "priceLabel": "$139/mo",
+    "integrations": [
+      "LinkedIn",
+      "Indeed",
+      "Greenhouse",
+      "Lever",
+      "Workable",
+      "BambooHR"
+    ],
+    "languages": [
+      "English",
+      "Spanish",
+      "French"
+    ]
   },
   "data-analyst": {
     "name": "Data Analyst Agent",
@@ -274,7 +362,18 @@
         "value": "1"
       }
     },
-    "priceLabel": "$159/mo"
+    "priceLabel": "$159/mo",
+    "integrations": [
+      "Google Sheets",
+      "Excel",
+      "Tableau",
+      "Looker",
+      "SQL Databases",
+      "Airtable"
+    ],
+    "languages": [
+      "English"
+    ]
   },
   "ecommerce-ops": {
     "name": "E-Commerce Operations Agent",
@@ -313,7 +412,20 @@
         "value": "4"
       }
     },
-    "priceLabel": "$129/mo"
+    "priceLabel": "$129/mo",
+    "integrations": [
+      "Shopify",
+      "WooCommerce",
+      "Amazon Seller",
+      "Etsy",
+      "eBay"
+    ],
+    "languages": [
+      "English",
+      "Spanish",
+      "French",
+      "German"
+    ]
   },
   "real-estate": {
     "name": "Real Estate & Property Agent",
@@ -353,7 +465,20 @@
         "value": "4"
       }
     },
-    "priceLabel": "$139/mo"
+    "priceLabel": "$139/mo",
+    "integrations": [
+      "Zillow",
+      "Apartments.com",
+      "Redfin",
+      "Craigslist",
+      "Google Maps"
+    ],
+    "languages": [
+      "English",
+      "Spanish",
+      "Turkish",
+      "German"
+    ]
   },
   "categories": {
     "All": "All",

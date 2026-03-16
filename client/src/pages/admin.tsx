@@ -391,9 +391,9 @@ function DocumentsPanel({ agentType, token }: { agentType: string; token: string
   };
 
   const formatSize = (bytes: number) => {
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+    if (bytes < 1024) return `${bytes} ${t("adminPage.documents.unitB")}`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} ${t("adminPage.documents.unitKB")}`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} ${t("adminPage.documents.unitMB")}`;
   };
 
   return (
@@ -483,7 +483,7 @@ function DocumentsPanel({ agentType, token }: { agentType: string; token: string
                     <div className="min-w-0">
                       <p className="text-white text-sm truncate">{doc.filename}</p>
                       <p className="text-gray-500 text-xs">
-                        {doc.chunkCount} chunks · {formatSize(doc.fileSize || 0)} · {doc.contentType}
+                        {doc.chunkCount} {t("adminPage.documents.chunks")} · {formatSize(doc.fileSize || 0)} · {doc.contentType}
                       </p>
                     </div>
                   </div>

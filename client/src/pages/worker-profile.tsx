@@ -235,7 +235,7 @@ export default function WorkerProfile() {
                           </div>
                           <div>
                             <h4 className="font-medium text-foreground text-sm">{r.name}</h4>
-                            <p className="text-xs text-muted-foreground">${r.price}/mo</p>
+                            <p className="text-xs text-muted-foreground">${r.price}{t("workerProfile.perMonth")}</p>
                           </div>
                         </div>
                         <p className="text-xs text-muted-foreground">{r.shortDescription}</p>

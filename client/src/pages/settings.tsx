@@ -2110,7 +2110,7 @@ export default function Settings() {
                         </div>
                         <div className="text-left">
                           <p className={`text-sm font-medium ${cfg.color}`}>{cfg.name}</p>
-                          <p className="text-[10px] text-muted-foreground">{fieldList.length} credential{fieldList.length > 1 ? "s" : ""} stored</p>
+                          <p className="text-[10px] text-muted-foreground">{fieldList.length} {t("settingsPage.secrets.credentialsStored")}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">

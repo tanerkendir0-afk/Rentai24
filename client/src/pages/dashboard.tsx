@@ -437,7 +437,7 @@ export default function Dashboard() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <h4 className="text-sm font-semibold text-foreground truncate">{agent.name}</h4>
-                          <p className="text-xs text-muted-foreground">${agent.price}/mo</p>
+                          <p className="text-xs text-muted-foreground">${agent.price}{t("dashboard.perMonth")}</p>
                         </div>
                       </div>
                       <p className="text-xs text-muted-foreground mb-3 line-clamp-2">{agent.shortDescription}</p>

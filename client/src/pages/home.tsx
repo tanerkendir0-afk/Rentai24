@@ -1113,7 +1113,7 @@ export default function Home() {
                     <div className="mt-auto flex items-center justify-between gap-2 pt-3 sm:pt-4 border-t border-border/50">
                       <div>
                         <span className="text-lg sm:text-xl font-bold bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent">${agent.price}</span>
-                        <span className="text-[10px] sm:text-xs text-muted-foreground">/mo</span>
+                        <span className="text-[10px] sm:text-xs text-muted-foreground">{t("home.perMonth")}</span>
                       </div>
                       <Link href={`/workers/${agent.slug}`}>
                         <Button size="sm" variant="secondary" className="text-xs sm:text-sm" data-testid={`button-profile-${agent.id}`}>

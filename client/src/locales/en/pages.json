@@ -218,7 +218,8 @@
       "platformGuide": "Platform Guide",
       "howItWorks": "How It Works"
     },
-    "online": "Online"
+    "online": "Online",
+    "perMonth": "/mo"
   },
   "about": {
     "title": "We're Building the Future of Work",
@@ -521,7 +522,7 @@
     "integrationsTitle": "Integrations",
     "languagesTitle": "Languages",
     "pricingTitle": "Pricing",
-    "perMonth": "/month",
+    "perMonth": "/mo",
     "pricingDesc": "Includes all features, integrations, and 24/7 availability. 14-day free trial, no credit card required.",
     "useCasesTitle": "Use Cases",
     "relatedWorkers": "Related Workers",
@@ -584,7 +585,8 @@
       "checkIn": "Check In",
       "prioritize": "Prioritize"
     },
-    "processing": "Processing"
+    "processing": "Processing",
+    "perMonth": "/mo"
   },
   "guide": {
     "badgeLoggedIn": "Complete Guide",
@@ -1493,7 +1495,8 @@
       "current": "Current",
       "enter": "Enter",
       "updateSecrets": "Update Secrets",
-      "leaveEmpty": "Leave fields empty to keep current values. Only filled fields will be updated."
+      "leaveEmpty": "Leave fields empty to keep current values. Only filled fields will be updated.",
+      "credentialsStored": "credential(s) stored"
     }
   },
   "adminPage": {
@@ -1906,7 +1909,10 @@
       "costByModel": "Cost by Model",
       "costByOperation": "Cost by Operation",
       "dailyTrend": "Daily Trend (Last 30 Days)",
-      "liveData": "live data"
+      "liveData": "live data",
+      "in": "In",
+      "out": "Out",
+      "prompt": "Prompt"
     },
     "overview": {
       "totalUsers": "Total Users",

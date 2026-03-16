@@ -1818,8 +1818,8 @@ function CostTrackerPanel({ token }: { token: string }) {
                     </div>
                     <div className="flex items-center gap-3 mt-1">
                       <span className="text-xs text-gray-500">{row.model}</span>
-                      <span className="text-xs text-gray-500">In: {row.prompt_tokens.toLocaleString()}</span>
-                      <span className="text-xs text-gray-500">Out: {row.completion_tokens.toLocaleString()}</span>
+                      <span className="text-xs text-gray-500">{t("adminPage.spend.in")}: {row.prompt_tokens.toLocaleString()}</span>
+                      <span className="text-xs text-gray-500">{t("adminPage.spend.out")}: {row.completion_tokens.toLocaleString()}</span>
                       <span className="text-xs text-gray-500">{new Date(row.created_at).toLocaleString()}</span>
                     </div>
                   </div>
@@ -2374,7 +2374,7 @@ function SpendAnalysisPanel({ token }: { token: string }) {
           <CardContent className="p-4">
             <p className="text-xs text-gray-400">{t("adminPage.spend.totalTokens")}</p>
             <p className="text-2xl font-bold text-violet-400" data-testid="text-spend-tokens">{parseInt(data.overall.total_tokens).toLocaleString()}</p>
-            <p className="text-xs text-gray-500 mt-1">Prompt: {parseInt(data.overall.total_prompt_tokens).toLocaleString()}</p>
+            <p className="text-xs text-gray-500 mt-1">{t("adminPage.spend.prompt")}: {parseInt(data.overall.total_prompt_tokens).toLocaleString()}</p>
           </CardContent>
         </Card>
         <Card className="bg-[#0A0E27] border-[#1E2448]">

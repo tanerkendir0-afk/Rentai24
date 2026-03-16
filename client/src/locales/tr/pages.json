@@ -218,7 +218,8 @@
       "platformGuide": "Platform Rehberi",
       "howItWorks": "Nasıl Çalışır"
     },
-    "online": "Çevrimiçi"
+    "online": "Çevrimiçi",
+    "perMonth": "/ay"
   },
   "about": {
     "title": "İşin Geleceğini İnşa Ediyoruz",
@@ -584,7 +585,8 @@
       "checkIn": "Kontrol Et",
       "prioritize": "Önceliklendir"
     },
-    "processing": "İşleniyor"
+    "processing": "İşleniyor",
+    "perMonth": "/ay"
   },
   "guide": {
     "badgeLoggedIn": "Tam Rehber",
@@ -1493,7 +1495,8 @@
       "current": "Mevcut",
       "enter": "Girin",
       "updateSecrets": "Gizli Anahtarları Güncelle",
-      "leaveEmpty": "Mevcut değerleri korumak için alanları boş bırakın. Yalnızca doldurulan alanlar güncellenecektir."
+      "leaveEmpty": "Mevcut değerleri korumak için alanları boş bırakın. Yalnızca doldurulan alanlar güncellenecektir.",
+      "credentialsStored": "kimlik bilgisi kayıtlı"
     }
   },
   "adminPage": {
@@ -1906,7 +1909,10 @@
       "costByModel": "Modele Göre Maliyet",
       "costByOperation": "İşleme Göre Maliyet",
       "dailyTrend": "Günlük Trend (Son 30 Gün)",
-      "liveData": "canlı veri"
+      "liveData": "canlı veri",
+      "in": "Giriş",
+      "out": "Çıkış",
+      "prompt": "İstem"
     },
     "overview": {
       "totalUsers": "Toplam Kullanıcı",

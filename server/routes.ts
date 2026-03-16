@@ -863,7 +863,7 @@ export async function registerRoutes(
     if (!parsed.success) {
       return res.status(400).json({ error: msg("invalidInput", lang) });
     }
-    const updates: any = { ...parsed.data, onboardingCompleted: true };
+    const updates: { industry?: string | null; companySize?: string | null; country?: string | null; intendedAgents?: string[] | null; referralSource?: string | null; onboardingCompleted: boolean } = { ...parsed.data, onboardingCompleted: true };
     const updated = await storage.updateUserOnboarding(req.session.userId!, updates);
     if (!updated) {
       return res.status(404).json({ error: msg("userNotFound", lang) });

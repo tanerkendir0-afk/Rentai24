@@ -4,8 +4,22 @@ interface CircuitState {
   isOpen: boolean;
 }
 
+interface HeartbeatInfo {
+  status: "healthy" | "degraded" | "down";
+  lastCheck: number;
+  responseTimeMs: number;
+}
+
+interface AgentStatus {
+  failures: number;
+  lastFailure: number;
+  isOpen: boolean;
+  heartbeat?: HeartbeatInfo;
+}
+
 class CircuitBreaker {
   private circuits: Map<string, CircuitState> = new Map();
+  private heartbeats: Map<string, HeartbeatInfo> = new Map();
   private readonly maxFailures = 3;
   private readonly resetTimeout = 5 * 60 * 1000;
 
@@ -35,8 +49,26 @@ class CircuitBreaker {
     return false;
   }
 
-  getStatus(): Record<string, { failures: number; lastFailure: number; isOpen: boolean }> {
-    return Object.fromEntries(this.circuits);
+  setHeartbeatStatus(agentId: string, status: HeartbeatInfo["status"], responseTimeMs: number): void {
+    this.heartbeats.set(agentId, {
+      status,
+      lastCheck: Date.now(),
+      responseTimeMs,
+    });
+  }
+
+  getStatus(): Record<string, AgentStatus> {
+    const result: Record<string, AgentStatus> = {};
+    const allKeys = new Set([...this.circuits.keys(), ...this.heartbeats.keys()]);
+    for (const key of allKeys) {
+      const circuit = this.circuits.get(key) || { failures: 0, lastFailure: 0, isOpen: false };
+      const heartbeat = this.heartbeats.get(key);
+      result[key] = {
+        ...circuit,
+        ...(heartbeat ? { heartbeat } : {}),
+      };
+    }
+    return result;
   }
 }
 

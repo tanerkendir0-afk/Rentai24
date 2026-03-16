@@ -26,6 +26,7 @@ import { msg } from "./messages";
 import { checkDistillation, addWatermark } from "./distillationProtection";
 import { getImagePath, chatImageDir } from "./imageService";
 import { circuitBreaker } from "./services/circuitBreaker";
+import { getHeartbeatStatuses } from "./services/heartbeat";
 import { db } from "./db";
 import { sql, eq, desc } from "drizzle-orm";
 import multer from "multer";
@@ -706,16 +707,30 @@ export async function registerRoutes(
       openaiStatus = e?.status === 401 ? "auth_error" : "degraded";
     }
 
+    const activeConnections = await new Promise<number | null>((resolve) => {
+      httpServer.getConnections((err, count) => resolve(err ? null : count));
+    });
+
+    const agentStatuses = circuitBreaker.getStatus();
+    const heartbeatStatuses = getHeartbeatStatuses();
+    const anyAgentDown = Object.values(heartbeatStatuses).some(h => h.status === "down");
+    const overallStatus = dbStatus !== "healthy" ? "down"
+      : anyAgentDown ? "degraded"
+      : dbStatus === "healthy" && openaiStatus === "healthy" ? "healthy" : "degraded";
+
     res.json({
-      status: dbStatus === "healthy" && openaiStatus === "healthy" ? "healthy" : "degraded",
+      status: overallStatus,
       uptime: Math.floor(process.uptime()),
       memory: {
+        rss: Math.round(memUsage.rss / 1024 / 1024) + " MB",
         heapUsed: Math.round(memUsage.heapUsed / 1024 / 1024) + " MB",
         heapTotal: Math.round(memUsage.heapTotal / 1024 / 1024) + " MB",
-        rss: Math.round(memUsage.rss / 1024 / 1024) + " MB",
+        external: Math.round(memUsage.external / 1024 / 1024) + " MB",
       },
+      activeConnections,
       services: { database: dbStatus, openai: openaiStatus },
-      agents: circuitBreaker.getStatus(),
+      agents: agentStatuses,
+      heartbeat: heartbeatStatuses,
       timestamp: new Date().toISOString(),
     });
   });
@@ -5684,34 +5699,6 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
       console.error("Consent stats error:", error);
       res.status(500).json({ error: msg("internalServerError", req.lang!) });
     }
-  });
-
-  app.get("/api/diagnostics/health", (_req: Request, res: Response) => {
-    const mem = process.memoryUsage();
-    const connectionCount = new Promise<number | null>((resolve) => {
-      httpServer.getConnections((err, count) => {
-        resolve(err ? null : count);
-      });
-    });
-
-    connectionCount.then(connections => {
-      res.json({
-        status: "ok",
-        uptime: process.uptime(),
-        memoryUsage: {
-          rss: mem.rss,
-          heapUsed: mem.heapUsed,
-          heapTotal: mem.heapTotal,
-          external: mem.external,
-          rssMB: +(mem.rss / 1024 / 1024).toFixed(2),
-          heapUsedMB: +(mem.heapUsed / 1024 / 1024).toFixed(2),
-          heapTotalMB: +(mem.heapTotal / 1024 / 1024).toFixed(2),
-          externalMB: +(mem.external / 1024 / 1024).toFixed(2),
-        },
-        activeConnections: connections,
-        timestamp: new Date().toISOString(),
-      });
-    });
   });
 
   return httpServer;

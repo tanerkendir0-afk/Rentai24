@@ -11,6 +11,7 @@ import { runMigrations } from "stripe-replit-sync";
 import { getStripeSync } from "./stripeClient";
 import { WebhookHandlers } from "./webhookHandlers";
 import { pool } from "./db";
+import { startHeartbeat, stopHeartbeat } from "./services/heartbeat";
 
 process.on('uncaughtException', (err: Error) => {
   console.error('[FATAL] Uncaught Exception:', err.message, err.stack);
@@ -313,11 +314,13 @@ app.use((req, res, next) => {
     },
     () => {
       log(`serving on port ${port}`);
+      startHeartbeat();
     },
   );
 
   const gracefulShutdown = (signal: string) => {
     console.log(`[SERVER] ${signal} alındı, sunucu kapatılıyor...`);
+    stopHeartbeat();
     httpServer.close(() => {
       console.log('[SERVER] HTTP sunucusu kapatıldı');
       process.exit(0);

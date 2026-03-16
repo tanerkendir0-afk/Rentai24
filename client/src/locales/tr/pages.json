@@ -582,7 +582,8 @@
       "createProposal": "Teklif Oluştur",
       "checkIn": "Kontrol Et",
       "prioritize": "Önceliklendir"
-    }
+    },
+    "processing": "İşleniyor"
   },
   "guide": {
     "badgeLoggedIn": "Tam Rehber",
@@ -1896,7 +1897,12 @@
       "anthropicReqs": "Anthropic İstek",
       "difference": "Fark",
       "perAgentBreakdown": "Ajan Bazında Harcama Dağılımı",
-      "providerComparison": "Sağlayıcı Karşılaştırması (OpenAI vs Anthropic)"
+      "providerComparison": "Sağlayıcı Karşılaştırması (OpenAI vs Anthropic)",
+      "loading": "Harcama analizi yükleniyor...",
+      "costByModel": "Modele Göre Maliyet",
+      "costByOperation": "İşleme Göre Maliyet",
+      "dailyTrend": "Günlük Trend (Son 30 Gün)",
+      "liveData": "canlı veri"
     },
     "overview": {
       "totalUsers": "Toplam Kullanıcı",
@@ -1982,7 +1988,9 @@
       "startNew": "Yeni İnce Ayar Başlat",
       "uploadDesc": "Eğitim verisi ile JSONL dosyası yükleyin (OpenAI sohbet formatı)",
       "jobs": "İnce Ayar İşleri ({{count}})",
-      "resetToBase": "Temel Modele Sıfırla"
+      "resetToBase": "Temel Modele Sıfırla",
+      "sync": "Senkronize Et",
+      "activate": "Aktifleştir"
     },
     "costs": {
       "totalCost": "Toplam Maliyet",

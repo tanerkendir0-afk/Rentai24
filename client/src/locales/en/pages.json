@@ -582,7 +582,8 @@
       "createProposal": "Create Proposal",
       "checkIn": "Check In",
       "prioritize": "Prioritize"
-    }
+    },
+    "processing": "Processing"
   },
   "guide": {
     "badgeLoggedIn": "Complete Guide",
@@ -1896,7 +1897,12 @@
       "anthropicReqs": "Anthropic Reqs",
       "difference": "Difference",
       "perAgentBreakdown": "Per-Agent Spend Breakdown",
-      "providerComparison": "Provider Comparison (OpenAI vs Anthropic)"
+      "providerComparison": "Provider Comparison (OpenAI vs Anthropic)",
+      "loading": "Loading spend analysis...",
+      "costByModel": "Cost by Model",
+      "costByOperation": "Cost by Operation",
+      "dailyTrend": "Daily Trend (Last 30 Days)",
+      "liveData": "live data"
     },
     "overview": {
       "totalUsers": "Total Users",
@@ -1982,7 +1988,9 @@
       "startNew": "Start New Fine-Tuning",
       "uploadDesc": "Upload a JSONL file with training data (OpenAI chat format)",
       "jobs": "Fine-Tuning Jobs ({{count}})",
-      "resetToBase": "Reset to Base Model"
+      "resetToBase": "Reset to Base Model",
+      "sync": "Sync",
+      "activate": "Activate"
     },
     "costs": {
       "totalCost": "Total Cost",

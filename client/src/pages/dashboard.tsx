@@ -448,7 +448,7 @@ export default function Dashboard() {
                         data-testid={`button-install-${agent.id}`}
                       >
                         {installingAgent === agent.id ? (
-                          <><Loader2 className="w-3 h-3 mr-1 animate-spin" />Processing</>
+                          <><Loader2 className="w-3 h-3 mr-1 animate-spin" />{t("dashboard.processing")}</>
                         ) : (
                           <>
                             <Zap className="w-3 h-3 mr-1" />

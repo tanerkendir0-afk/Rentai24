@@ -2,16 +2,6 @@ import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { agents as agentsData, categories as categoriesData, type Agent } from "@/data/agents";
 
-const CATEGORY_KEY_MAP: Record<string, string> = {
-  "All": "All",
-  "Customer Support": "Customer Support",
-  "Sales": "Sales",
-  "Marketing": "Marketing",
-  "Finance": "Finance",
-  "HR": "HR",
-  "Operations": "Operations",
-};
-
 export function useLocalizedAgents() {
   const { t } = useTranslation("agents");
 

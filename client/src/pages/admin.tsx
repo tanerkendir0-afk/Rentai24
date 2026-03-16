@@ -1263,11 +1263,11 @@ function FineTuningPanel({ agentType, token }: { agentType: string; token: strin
                     </div>
                     <div className="flex gap-2">
                       <Button variant="ghost" size="sm" onClick={() => handleSync(job.id)} className="text-blue-400 hover:text-blue-300" data-testid={`button-sync-${job.id}`}>
-                        <RefreshCw className="w-4 h-4 mr-1" /> Sync
+                        <RefreshCw className="w-4 h-4 mr-1" /> {t("adminPage.fineTuning.sync")}
                       </Button>
                       {job.status === "succeeded" && !job.isActive && (
                         <Button variant="ghost" size="sm" onClick={() => handleActivate(job.id)} className="text-green-400 hover:text-green-300" data-testid={`button-activate-${job.id}`}>
-                          <ToggleRight className="w-4 h-4 mr-1" /> Activate
+                          <ToggleRight className="w-4 h-4 mr-1" /> {t("adminPage.fineTuning.activate")}
                         </Button>
                       )}
                     </div>
@@ -2350,7 +2350,7 @@ function SpendAnalysisPanel({ token }: { token: string }) {
   if (loading && !data) {
     return (
       <div className="flex items-center justify-center py-20 text-gray-400">
-        <Loader2 className="w-6 h-6 animate-spin mr-2" /> Loading spend analysis...
+        <Loader2 className="w-6 h-6 animate-spin mr-2" /> {t("adminPage.spend.loading")}
       </div>
     );
   }
@@ -2448,7 +2448,7 @@ function SpendAnalysisPanel({ token }: { token: string }) {
         <Card className="bg-[#0A0E27] border-[#1E2448]">
           <CardHeader>
             <CardTitle className="text-md text-white flex items-center gap-2">
-              <Cpu className="w-4 h-4 text-cyan-400" /> Cost by Model
+              <Cpu className="w-4 h-4 text-cyan-400" /> {t("adminPage.spend.costByModel")}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
@@ -2467,7 +2467,7 @@ function SpendAnalysisPanel({ token }: { token: string }) {
         <Card className="bg-[#0A0E27] border-[#1E2448]">
           <CardHeader>
             <CardTitle className="text-md text-white flex items-center gap-2">
-              <Activity className="w-4 h-4 text-yellow-400" /> Cost by Operation
+              <Activity className="w-4 h-4 text-yellow-400" /> {t("adminPage.spend.costByOperation")}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
@@ -2487,7 +2487,7 @@ function SpendAnalysisPanel({ token }: { token: string }) {
       <Card className="bg-[#0A0E27] border-[#1E2448]">
         <CardHeader>
           <CardTitle className="text-md text-white flex items-center gap-2">
-            <Clock className="w-4 h-4 text-blue-400" /> Daily Trend (Last 30 Days)
+            <Clock className="w-4 h-4 text-blue-400" /> {t("adminPage.spend.dailyTrend")}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -2990,7 +2990,7 @@ function BossAIPanel({ token }: { token: string }) {
                         <span className="text-xs font-medium text-amber-400">{t("adminPage.bossAi.boss")}</span>
                         {msg.toolsUsed && (
                           <Badge className="bg-violet-900/30 text-violet-400 border-violet-800 text-[10px] px-1.5 py-0 ml-1">
-                            <Database className="w-2.5 h-2.5 mr-0.5" /> live data
+                            <Database className="w-2.5 h-2.5 mr-0.5" /> {t("adminPage.spend.liveData")}
                           </Badge>
                         )}
                       </div>

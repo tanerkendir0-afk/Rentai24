@@ -269,7 +269,7 @@ function CheckoutModal({
         onSuccess();
       }
     } catch (error: any) {
-      const message = error?.message || "Payment failed. Please try again.";
+      const message = error?.message || t("pricingPage.paymentFailed");
       toast({ title: t("pricing.checkout.paymentFailed"), description: message, variant: "destructive" });
     } finally {
       setProcessing(false);
@@ -312,7 +312,7 @@ function CheckoutModal({
               <Label htmlFor="cardName" className="text-sm text-muted-foreground">{t("pricing.checkout.cardholderName")}</Label>
               <Input
                 id="cardName"
-                placeholder="John Doe"
+                placeholder={t("pricingPage.namePlaceholder")}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className="mt-1 bg-background/50"
@@ -325,7 +325,7 @@ function CheckoutModal({
               <div className="relative mt-1">
                 <Input
                   id="cardNumber"
-                  placeholder="4242 4242 4242 4242"
+                  placeholder={t("pricingPage.cardPlaceholder")}
                   value={cardNumber}
                   onChange={(e) => setCardNumber(formatCardNumber(e.target.value))}
                   className="bg-background/50 pr-10"
@@ -341,7 +341,7 @@ function CheckoutModal({
                 <Label htmlFor="expiry" className="text-sm text-muted-foreground">{t("pricing.checkout.expiry")}</Label>
                 <Input
                   id="expiry"
-                  placeholder="MM/YY"
+                  placeholder={t("pricingPage.expiryPlaceholder")}
                   value={expiry}
                   onChange={(e) => setExpiry(formatExpiry(e.target.value))}
                   className="mt-1 bg-background/50"
@@ -353,7 +353,7 @@ function CheckoutModal({
                 <Label htmlFor="cvc" className="text-sm text-muted-foreground">{t("pricing.checkout.cvc")}</Label>
                 <Input
                   id="cvc"
-                  placeholder="123"
+                  placeholder={t("pricingPage.cvcPlaceholder")}
                   value={cvc}
                   onChange={(e) => setCvc(e.target.value.replace(/\D/g, "").slice(0, 4))}
                   className="mt-1 bg-background/50"

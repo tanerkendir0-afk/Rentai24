@@ -47,16 +47,16 @@ const fadeUp = {
   transition: { duration: 0.6 },
 };
 
-const agentList = [
-  { name: "Ava", role: "Customer Support", icon: Headphones, desc: "Live chat, email, complaints, order tracking" },
-  { name: "Rex", role: "Sales SDR", icon: TrendingUp, desc: "Lead generation, cold outreach, proposals" },
-  { name: "Maya", role: "Social Media", icon: Share2, desc: "Content planning, posting, engagement" },
-  { name: "Finn", role: "Bookkeeping", icon: Calculator, desc: "Invoices, expenses, financial reports" },
-  { name: "Cal", role: "Scheduling", icon: CalendarCheck, desc: "Bookings, reminders, calendar management" },
-  { name: "Harper", role: "HR & Recruiting", icon: Users, desc: "Resume screening, interview scheduling" },
-  { name: "DataBot", role: "Data Analyst", icon: BarChart3, desc: "Reports, dashboards, KPI tracking" },
-  { name: "ShopBot", role: "E-Commerce", icon: Package, desc: "Product listings, inventory, reviews" },
-  { name: "Reno", role: "Real Estate", icon: Building2, desc: "Property search, lease review, market reports" },
+const getAgentList = (t: any) => [
+  { name: "Ava", role: t("guide.agents.ava.role"), icon: Headphones, desc: t("guide.agents.ava.desc") },
+  { name: "Rex", role: t("guide.agents.rex.role"), icon: TrendingUp, desc: t("guide.agents.rex.desc") },
+  { name: "Maya", role: t("guide.agents.maya.role"), icon: Share2, desc: t("guide.agents.maya.desc") },
+  { name: "Finn", role: t("guide.agents.finn.role"), icon: Calculator, desc: t("guide.agents.finn.desc") },
+  { name: "Cal", role: t("guide.agents.cal.role"), icon: CalendarCheck, desc: t("guide.agents.cal.desc") },
+  { name: "Harper", role: t("guide.agents.harper.role"), icon: Users, desc: t("guide.agents.harper.desc") },
+  { name: "DataBot", role: t("guide.agents.databot.role"), icon: BarChart3, desc: t("guide.agents.databot.desc") },
+  { name: "ShopBot", role: t("guide.agents.shopbot.role"), icon: Package, desc: t("guide.agents.shopbot.desc") },
+  { name: "Reno", role: t("guide.agents.reno.role"), icon: Building2, desc: t("guide.agents.reno.desc") },
 ];
 
 const features = [
@@ -68,231 +68,96 @@ const features = [
   { icon: Shield, titleKey: "security", descKey: "securityDesc" },
 ];
 
-const agentTutorials = [
+const getAgentTutorials = (t: any) => [
   {
     name: "Ava",
     slug: "customer-support-agent",
-    role: "Customer Support Agent",
+    role: t("guide.agents.ava.tutorialRole"),
     icon: Headphones,
     color: "from-blue-400 to-blue-600",
-    capabilities: [
-      "Handle live chat conversations with empathy and speed",
-      "Respond to customer emails automatically",
-      "Track and resolve complaint tickets",
-      "Process refunds and returns",
-      "Manage FAQ knowledge base",
-    ],
-    examplePrompts: [
-      "Handle all incoming support tickets for today",
-      "Draft a response to this customer complaint about a late delivery",
-      "Create a weekly support performance report",
-      "Set up auto-responses for common questions about our return policy",
-    ],
-    integrationTips: [
-      "Connect Zendesk or Intercom for seamless ticket management",
-      "Link WhatsApp Business for instant customer messaging",
-      "Integrate with your order management system for real-time tracking",
-    ],
+    capabilities: [t("guide.agents.ava.cap1"), t("guide.agents.ava.cap2"), t("guide.agents.ava.cap3"), t("guide.agents.ava.cap4"), t("guide.agents.ava.cap5")],
+    examplePrompts: [t("guide.agents.ava.prompt1"), t("guide.agents.ava.prompt2"), t("guide.agents.ava.prompt3"), t("guide.agents.ava.prompt4")],
+    integrationTips: [t("guide.agents.ava.tip1"), t("guide.agents.ava.tip2"), t("guide.agents.ava.tip3")],
   },
   {
     name: "Rex",
     slug: "sales-development-rep",
-    role: "Sales Development Rep",
+    role: t("guide.agents.rex.tutorialRole"),
     icon: TrendingUp,
     color: "from-violet-400 to-purple-600",
-    capabilities: [
-      "Research and qualify leads from multiple sources",
-      "Craft personalized cold outreach emails",
-      "Follow up with prospects automatically",
-      "Update CRM records with conversation notes",
-      "Schedule meetings with qualified leads",
-    ],
-    examplePrompts: [
-      "Find 50 tech CTOs in the Bay Area who might need our product",
-      "Draft a cold email sequence for our new SaaS launch",
-      "Follow up with all leads who opened our last email but didn't reply",
-      "Generate a pipeline report for this quarter",
-    ],
-    integrationTips: [
-      "Connect HubSpot or Salesforce for automatic CRM updates",
-      "Link Gmail for email sending and tracking",
-      "Integrate Calendly for seamless meeting scheduling",
-    ],
+    capabilities: [t("guide.agents.rex.cap1"), t("guide.agents.rex.cap2"), t("guide.agents.rex.cap3"), t("guide.agents.rex.cap4"), t("guide.agents.rex.cap5")],
+    examplePrompts: [t("guide.agents.rex.prompt1"), t("guide.agents.rex.prompt2"), t("guide.agents.rex.prompt3"), t("guide.agents.rex.prompt4")],
+    integrationTips: [t("guide.agents.rex.tip1"), t("guide.agents.rex.tip2"), t("guide.agents.rex.tip3")],
   },
   {
     name: "Maya",
     slug: "social-media-manager",
-    role: "Social Media Manager",
+    role: t("guide.agents.maya.tutorialRole"),
     icon: Share2,
     color: "from-fuchsia-400 to-pink-600",
-    capabilities: [
-      "Plan and schedule content across all platforms",
-      "Write engaging posts tailored to each network",
-      "Monitor and respond to comments and DMs",
-      "Research trending hashtags and topics",
-      "Generate analytics and engagement reports",
-    ],
-    examplePrompts: [
-      "Create a content calendar for next week across Instagram and Twitter",
-      "Write 5 LinkedIn posts about our company culture",
-      "Respond to all unanswered comments from the past 24 hours",
-      "Analyze our best-performing posts this month and suggest improvements",
-    ],
-    integrationTips: [
-      "Connect Buffer or Hootsuite for multi-platform scheduling",
-      "Link your brand assets folder for consistent visuals",
-      "Integrate analytics tools for detailed performance tracking",
-    ],
+    capabilities: [t("guide.agents.maya.cap1"), t("guide.agents.maya.cap2"), t("guide.agents.maya.cap3"), t("guide.agents.maya.cap4"), t("guide.agents.maya.cap5")],
+    examplePrompts: [t("guide.agents.maya.prompt1"), t("guide.agents.maya.prompt2"), t("guide.agents.maya.prompt3"), t("guide.agents.maya.prompt4")],
+    integrationTips: [t("guide.agents.maya.tip1"), t("guide.agents.maya.tip2"), t("guide.agents.maya.tip3")],
   },
   {
     name: "Finn",
     slug: "bookkeeping-assistant",
-    role: "Bookkeeping Assistant",
+    role: t("guide.agents.finn.tutorialRole"),
     icon: Calculator,
     color: "from-cyan-400 to-blue-500",
-    capabilities: [
-      "Process and categorize invoices automatically",
-      "Track expenses and flag anomalies",
-      "Generate financial statements and reports",
-      "Send tax deadline reminders",
-      "Reconcile accounts and balances",
-    ],
-    examplePrompts: [
-      "Process all pending invoices from this week",
-      "Generate a profit and loss statement for Q3",
-      "Categorize last month's credit card expenses",
-      "Set up reminders for upcoming tax deadlines",
-    ],
-    integrationTips: [
-      "Connect QuickBooks or Xero for automatic sync",
-      "Link Stripe or PayPal for payment tracking",
-      "Integrate receipt scanning for paperless expense management",
-    ],
+    capabilities: [t("guide.agents.finn.cap1"), t("guide.agents.finn.cap2"), t("guide.agents.finn.cap3"), t("guide.agents.finn.cap4"), t("guide.agents.finn.cap5")],
+    examplePrompts: [t("guide.agents.finn.prompt1"), t("guide.agents.finn.prompt2"), t("guide.agents.finn.prompt3"), t("guide.agents.finn.prompt4")],
+    integrationTips: [t("guide.agents.finn.tip1"), t("guide.agents.finn.tip2"), t("guide.agents.finn.tip3")],
   },
   {
     name: "Cal",
     slug: "appointment-scheduling-agent",
-    role: "Scheduling Agent",
+    role: t("guide.agents.cal.tutorialRole"),
     icon: CalendarCheck,
     color: "from-indigo-400 to-violet-500",
-    capabilities: [
-      "Manage online bookings and appointments",
-      "Send automated reminders via email and SMS",
-      "Handle rescheduling and cancellations",
-      "Follow up with no-shows",
-      "Manage waitlists and availability",
-    ],
-    examplePrompts: [
-      "Set up recurring weekly meetings with my team",
-      "Send reminders for all appointments tomorrow",
-      "Reschedule the 3pm meeting to next Tuesday",
-      "Show me my availability for next week",
-    ],
-    integrationTips: [
-      "Connect Google Calendar or Outlook for real-time sync",
-      "Link Calendly for external booking pages",
-      "Integrate SMS providers for text reminders",
-    ],
+    capabilities: [t("guide.agents.cal.cap1"), t("guide.agents.cal.cap2"), t("guide.agents.cal.cap3"), t("guide.agents.cal.cap4"), t("guide.agents.cal.cap5")],
+    examplePrompts: [t("guide.agents.cal.prompt1"), t("guide.agents.cal.prompt2"), t("guide.agents.cal.prompt3"), t("guide.agents.cal.prompt4")],
+    integrationTips: [t("guide.agents.cal.tip1"), t("guide.agents.cal.tip2"), t("guide.agents.cal.tip3")],
   },
   {
     name: "Harper",
     slug: "hr-recruiting-assistant",
-    role: "HR & Recruiting Assistant",
+    role: t("guide.agents.harper.tutorialRole"),
     icon: Users,
     color: "from-purple-400 to-fuchsia-500",
-    capabilities: [
-      "Screen resumes against your job requirements",
-      "Shortlist top candidates automatically",
-      "Schedule interviews with candidates",
-      "Prepare onboarding documents",
-      "Post jobs across multiple platforms",
-    ],
-    examplePrompts: [
-      "Screen these 100 resumes for our Senior Developer position",
-      "Schedule interviews with the top 5 candidates next week",
-      "Draft an onboarding checklist for new engineering hires",
-      "Post our open positions on LinkedIn and Indeed",
-    ],
-    integrationTips: [
-      "Connect LinkedIn Recruiter for direct sourcing",
-      "Link Greenhouse or Lever for ATS management",
-      "Integrate BambooHR for employee onboarding workflows",
-    ],
+    capabilities: [t("guide.agents.harper.cap1"), t("guide.agents.harper.cap2"), t("guide.agents.harper.cap3"), t("guide.agents.harper.cap4"), t("guide.agents.harper.cap5")],
+    examplePrompts: [t("guide.agents.harper.prompt1"), t("guide.agents.harper.prompt2"), t("guide.agents.harper.prompt3"), t("guide.agents.harper.prompt4")],
+    integrationTips: [t("guide.agents.harper.tip1"), t("guide.agents.harper.tip2"), t("guide.agents.harper.tip3")],
   },
   {
     name: "DataBot",
     slug: "data-analyst-agent",
-    role: "Data Analyst Agent",
+    role: t("guide.agents.databot.tutorialRole"),
     icon: BarChart3,
     color: "from-emerald-400 to-teal-600",
-    capabilities: [
-      "Clean and normalize data from multiple sources",
-      "Generate custom reports and dashboards",
-      "Track KPIs and alert on anomalies",
-      "Perform trend analysis and forecasting",
-      "Create data visualizations",
-    ],
-    examplePrompts: [
-      "Analyze our website traffic data for the past month",
-      "Create a dashboard tracking our top 5 KPIs",
-      "Compare this quarter's sales with last quarter",
-      "Find patterns in our customer churn data",
-    ],
-    integrationTips: [
-      "Connect Google Sheets or Excel for data import",
-      "Link Tableau or Looker for advanced visualizations",
-      "Integrate with your SQL databases for real-time queries",
-    ],
+    capabilities: [t("guide.agents.databot.cap1"), t("guide.agents.databot.cap2"), t("guide.agents.databot.cap3"), t("guide.agents.databot.cap4"), t("guide.agents.databot.cap5")],
+    examplePrompts: [t("guide.agents.databot.prompt1"), t("guide.agents.databot.prompt2"), t("guide.agents.databot.prompt3"), t("guide.agents.databot.prompt4")],
+    integrationTips: [t("guide.agents.databot.tip1"), t("guide.agents.databot.tip2"), t("guide.agents.databot.tip3")],
   },
   {
     name: "ShopBot",
     slug: "ecommerce-operations-agent",
-    role: "E-Commerce Operations",
+    role: t("guide.agents.shopbot.tutorialRole"),
     icon: Package,
     color: "from-amber-400 to-orange-500",
-    capabilities: [
-      "Optimize product listings and descriptions",
-      "Monitor inventory levels and send alerts",
-      "Track competitor prices in real-time",
-      "Respond to product reviews",
-      "Manage order tracking and updates",
-    ],
-    examplePrompts: [
-      "Rewrite product descriptions for our top 20 products",
-      "Alert me when any item drops below 10 units in stock",
-      "Compare our prices with top 3 competitors",
-      "Respond to all 1-2 star reviews from the past week",
-    ],
-    integrationTips: [
-      "Connect Shopify or WooCommerce for store management",
-      "Link Amazon Seller Central for marketplace operations",
-      "Integrate shipping providers for real-time tracking",
-    ],
+    capabilities: [t("guide.agents.shopbot.cap1"), t("guide.agents.shopbot.cap2"), t("guide.agents.shopbot.cap3"), t("guide.agents.shopbot.cap4"), t("guide.agents.shopbot.cap5")],
+    examplePrompts: [t("guide.agents.shopbot.prompt1"), t("guide.agents.shopbot.prompt2"), t("guide.agents.shopbot.prompt3"), t("guide.agents.shopbot.prompt4")],
+    integrationTips: [t("guide.agents.shopbot.tip1"), t("guide.agents.shopbot.tip2"), t("guide.agents.shopbot.tip3")],
   },
   {
     name: "Reno",
     slug: "real-estate-property-agent",
-    role: "Real Estate Agent",
+    role: t("guide.agents.reno.tutorialRole"),
     icon: Building2,
     color: "from-rose-400 to-red-500",
-    capabilities: [
-      "Search and filter property listings",
-      "Evaluate properties against your criteria",
-      "Analyze neighborhoods and market trends",
-      "Review lease agreements and contracts",
-      "Calculate costs of living and ROI",
-    ],
-    examplePrompts: [
-      "Find 2-bedroom apartments in Austin under $2000/month",
-      "Analyze the rental market in downtown Chicago",
-      "Review this lease agreement and flag potential issues",
-      "Compare the cost of living between these 3 neighborhoods",
-    ],
-    integrationTips: [
-      "Connect Zillow or Redfin for listing data",
-      "Link Google Maps for neighborhood analysis",
-      "Integrate with CRM for client management",
-    ],
+    capabilities: [t("guide.agents.reno.cap1"), t("guide.agents.reno.cap2"), t("guide.agents.reno.cap3"), t("guide.agents.reno.cap4"), t("guide.agents.reno.cap5")],
+    examplePrompts: [t("guide.agents.reno.prompt1"), t("guide.agents.reno.prompt2"), t("guide.agents.reno.prompt3"), t("guide.agents.reno.prompt4")],
+    integrationTips: [t("guide.agents.reno.tip1"), t("guide.agents.reno.tip2"), t("guide.agents.reno.tip3")],
   },
 ];
 
@@ -314,7 +179,7 @@ const advancedFeatures = [
   { icon: Shield, titleKey: "accessControls", descKey: "accessControlsDesc" },
 ];
 
-function AgentTutorialCard({ tutorial, index }: { tutorial: typeof agentTutorials[0]; index: number }) {
+function AgentTutorialCard({ tutorial, index }: { tutorial: ReturnType<typeof getAgentTutorials>[0]; index: number }) {
   const { t } = useTranslation("pages");
   const [expanded, setExpanded] = useState(false);
   const Icon = tutorial.icon;
@@ -515,7 +380,7 @@ function LoggedInGuide() {
           </motion.div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {agentTutorials.map((tutorial, i) => (
+            {getAgentTutorials(t).map((tutorial, i) => (
               <AgentTutorialCard key={tutorial.name} tutorial={tutorial} index={i} />
             ))}
           </div>
@@ -735,7 +600,7 @@ export default function GuidePage() {
           </motion.div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {agentList.map((agent, i) => {
+            {getAgentList(t).map((agent, i) => {
               const Icon = agent.icon;
               return (
                 <motion.div

@@ -364,7 +364,7 @@ export default function TasksPanel({ agentType, agentColor, onClose }: {
                         const statusConf = STATUS_CONFIG[task.status] || STATUS_CONFIG.todo;
                         const StatusIcon = statusConf.icon;
                         const dueDateStr = task.dueDate
-                          ? new Date(task.dueDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })
+                          ? new Date(task.dueDate).toLocaleDateString(undefined, { month: "short", day: "numeric" })
                           : null;
                         const isOverdue = task.dueDate && new Date(task.dueDate) < new Date() && task.status !== "done";
 

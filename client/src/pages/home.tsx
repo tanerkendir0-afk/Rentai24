@@ -421,7 +421,7 @@ function ResultsScene({ active }: { active: boolean }) {
       <div className="grid grid-cols-2 gap-3 w-full max-w-sm">
         {[
           { labelKey: "costSavings", value: `${counts.revenue}%`, icon: TrendingUp, color: "text-emerald-400", bg: "bg-emerald-500/10" },
-          { labelKey: "timeSaved", value: `${counts.time}hrs/mo`, icon: CalendarCheck, color: "text-blue-400", bg: "bg-blue-500/10" },
+          { labelKey: "timeSaved", value: `${counts.time}${t("homePage.stats.hrsMo")}`, icon: CalendarCheck, color: "text-blue-400", bg: "bg-blue-500/10" },
           { labelKey: "satisfaction", value: `${counts.satisfaction}%`, icon: Star, color: "text-amber-400", bg: "bg-amber-500/10" },
           { labelKey: "tasksDone", value: counts.tasks.toLocaleString(), icon: CheckCircle2, color: "text-violet-400", bg: "bg-violet-500/10" },
         ].map((stat, i) => (

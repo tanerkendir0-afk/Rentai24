@@ -685,7 +685,162 @@
     "startChatting": "Start Chatting",
     "goToDashboard": "Go to Dashboard",
     "viewWorkers": "View All Workers",
-    "getStartedFree": "Get Started Free"
+    "getStartedFree": "Get Started Free",
+    "agents": {
+      "ava": {
+        "role": "Customer Support",
+        "desc": "Live chat, email, complaints, order tracking",
+        "tutorialRole": "Customer Support Agent",
+        "cap1": "Handle live chat conversations with empathy and speed",
+        "cap2": "Respond to customer emails automatically",
+        "cap3": "Track and resolve complaint tickets",
+        "cap4": "Process refunds and returns",
+        "cap5": "Manage FAQ knowledge base",
+        "prompt1": "Handle all incoming support tickets for today",
+        "prompt2": "Draft a response to this customer complaint about a late delivery",
+        "prompt3": "Create a weekly support performance report",
+        "prompt4": "Set up auto-responses for common questions about our return policy",
+        "tip1": "Connect Zendesk or Intercom for seamless ticket management",
+        "tip2": "Link WhatsApp Business for instant customer messaging",
+        "tip3": "Integrate with your order management system for real-time tracking"
+      },
+      "rex": {
+        "role": "Sales SDR",
+        "desc": "Lead generation, cold outreach, proposals",
+        "tutorialRole": "Sales Development Rep",
+        "cap1": "Research and qualify leads from multiple sources",
+        "cap2": "Craft personalized cold outreach emails",
+        "cap3": "Follow up with prospects automatically",
+        "cap4": "Update CRM records with conversation notes",
+        "cap5": "Schedule meetings with qualified leads",
+        "prompt1": "Find 50 tech CTOs in the Bay Area who might need our product",
+        "prompt2": "Draft a cold email sequence for our new SaaS launch",
+        "prompt3": "Follow up with all leads who opened our last email but didn't reply",
+        "prompt4": "Generate a pipeline report for this quarter",
+        "tip1": "Connect HubSpot or Salesforce for automatic CRM updates",
+        "tip2": "Link Gmail for email sending and tracking",
+        "tip3": "Integrate Calendly for seamless meeting scheduling"
+      },
+      "maya": {
+        "role": "Social Media",
+        "desc": "Content planning, posting, engagement",
+        "tutorialRole": "Social Media Manager",
+        "cap1": "Plan and schedule content across all platforms",
+        "cap2": "Write engaging posts tailored to each network",
+        "cap3": "Monitor and respond to comments and DMs",
+        "cap4": "Research trending hashtags and topics",
+        "cap5": "Generate analytics and engagement reports",
+        "prompt1": "Create a content calendar for next week across Instagram and Twitter",
+        "prompt2": "Write 5 LinkedIn posts about our company culture",
+        "prompt3": "Respond to all unanswered comments from the past 24 hours",
+        "prompt4": "Analyze our best-performing posts this month and suggest improvements",
+        "tip1": "Connect Buffer or Hootsuite for multi-platform scheduling",
+        "tip2": "Link your brand assets folder for consistent visuals",
+        "tip3": "Integrate analytics tools for detailed performance tracking"
+      },
+      "finn": {
+        "role": "Bookkeeping",
+        "desc": "Invoices, expenses, financial reports",
+        "tutorialRole": "Bookkeeping Assistant",
+        "cap1": "Process and categorize invoices automatically",
+        "cap2": "Track expenses and flag anomalies",
+        "cap3": "Generate financial statements and reports",
+        "cap4": "Send tax deadline reminders",
+        "cap5": "Reconcile accounts and balances",
+        "prompt1": "Process all pending invoices from this week",
+        "prompt2": "Generate a profit and loss statement for Q3",
+        "prompt3": "Categorize last month's credit card expenses",
+        "prompt4": "Set up reminders for upcoming tax deadlines",
+        "tip1": "Connect QuickBooks or Xero for automatic sync",
+        "tip2": "Link Stripe or PayPal for payment tracking",
+        "tip3": "Integrate receipt scanning for paperless expense management"
+      },
+      "cal": {
+        "role": "Scheduling",
+        "desc": "Bookings, reminders, calendar management",
+        "tutorialRole": "Scheduling Agent",
+        "cap1": "Manage online bookings and appointments",
+        "cap2": "Send automated reminders via email and SMS",
+        "cap3": "Handle rescheduling and cancellations",
+        "cap4": "Follow up with no-shows",
+        "cap5": "Manage waitlists and availability",
+        "prompt1": "Set up recurring weekly meetings with my team",
+        "prompt2": "Send reminders for all appointments tomorrow",
+        "prompt3": "Reschedule the 3pm meeting to next Tuesday",
+        "prompt4": "Show me my availability for next week",
+        "tip1": "Connect Google Calendar or Outlook for real-time sync",
+        "tip2": "Link Calendly for external booking pages",
+        "tip3": "Integrate SMS providers for text reminders"
+      },
+      "harper": {
+        "role": "HR & Recruiting",
+        "desc": "Resume screening, interview scheduling",
+        "tutorialRole": "HR & Recruiting Assistant",
+        "cap1": "Screen resumes against your job requirements",
+        "cap2": "Shortlist top candidates automatically",
+        "cap3": "Schedule interviews with candidates",
+        "cap4": "Prepare onboarding documents",
+        "cap5": "Post jobs across multiple platforms",
+        "prompt1": "Screen these 100 resumes for our Senior Developer position",
+        "prompt2": "Schedule interviews with the top 5 candidates next week",
+        "prompt3": "Draft an onboarding checklist for new engineering hires",
+        "prompt4": "Post our open positions on LinkedIn and Indeed",
+        "tip1": "Connect LinkedIn Recruiter for direct sourcing",
+        "tip2": "Link Greenhouse or Lever for ATS management",
+        "tip3": "Integrate BambooHR for employee onboarding workflows"
+      },
+      "databot": {
+        "role": "Data Analyst",
+        "desc": "Reports, dashboards, KPI tracking",
+        "tutorialRole": "Data Analyst Agent",
+        "cap1": "Clean and normalize data from multiple sources",
+        "cap2": "Generate custom reports and dashboards",
+        "cap3": "Track KPIs and alert on anomalies",
+        "cap4": "Perform trend analysis and forecasting",
+        "cap5": "Create data visualizations",
+        "prompt1": "Analyze our website traffic data for the past month",
+        "prompt2": "Create a dashboard tracking our top 5 KPIs",
+        "prompt3": "Compare this quarter's sales with last quarter",
+        "prompt4": "Find patterns in our customer churn data",
+        "tip1": "Connect Google Sheets or Excel for data import",
+        "tip2": "Link Tableau or Looker for advanced visualizations",
+        "tip3": "Integrate with your SQL databases for real-time queries"
+      },
+      "shopbot": {
+        "role": "E-Commerce",
+        "desc": "Product listings, inventory, reviews",
+        "tutorialRole": "E-Commerce Operations",
+        "cap1": "Optimize product listings and descriptions",
+        "cap2": "Monitor inventory levels and send alerts",
+        "cap3": "Track competitor prices in real-time",
+        "cap4": "Respond to product reviews",
+        "cap5": "Manage order tracking and updates",
+        "prompt1": "Rewrite product descriptions for our top 20 products",
+        "prompt2": "Alert me when any item drops below 10 units in stock",
+        "prompt3": "Compare our prices with top 3 competitors",
+        "prompt4": "Respond to all 1-2 star reviews from the past week",
+        "tip1": "Connect Shopify or WooCommerce for store management",
+        "tip2": "Link Amazon Seller Central for marketplace operations",
+        "tip3": "Integrate shipping providers for real-time tracking"
+      },
+      "reno": {
+        "role": "Real Estate",
+        "desc": "Property search, lease review, market reports",
+        "tutorialRole": "Real Estate Agent",
+        "cap1": "Search and filter property listings",
+        "cap2": "Evaluate properties against your criteria",
+        "cap3": "Analyze neighborhoods and market trends",
+        "cap4": "Review lease agreements and contracts",
+        "cap5": "Calculate costs of living and ROI",
+        "prompt1": "Find 2-bedroom apartments in Austin under $2000/month",
+        "prompt2": "Analyze the rental market in downtown Chicago",
+        "prompt3": "Review this lease agreement and flag potential issues",
+        "prompt4": "Compare the cost of living between these 3 neighborhoods",
+        "tip1": "Connect Zillow or Redfin for listing data",
+        "tip2": "Link Google Maps for neighborhood analysis",
+        "tip3": "Integrate with CRM for client management"
+      }
+    }
   },
   "demoPage": {
     "yourWorkers": "Your Workers",
@@ -823,7 +978,8 @@
       "connection": "Connection",
       "suggestion": "Suggestion",
       "other": "Other"
-    }
+    },
+    "manager": "Manager"
   },
   "tasksPanel": {
     "projectsTasks": "Projects & Tasks",
@@ -929,6 +1085,16 @@
       "1": "Rex completed 50 emails",
       "2": "Ava resolved 12 tickets",
       "3": "Maya posted 5 updates"
+    },
+    "startHiring": "Start Hiring AI Workers",
+    "fullGuide": "Full Platform Guide",
+    "roles": {
+      "ava": "Support",
+      "rex": "Sales",
+      "maya": "Social",
+      "finn": "Finance",
+      "cal": "Schedule",
+      "harper": "HR"
     }
   },
   "settingsPage": {
@@ -1539,7 +1705,8 @@
       "edit": "Edit",
       "cancel": "Cancel",
       "userLimitOverride": "User-Based Limit Override",
-      "addOverride": "Add Override"
+      "addOverride": "Add Override",
+      "manager": "Manager"
     },
     "instructions": {
       "globalPlaceholder": "E.g.: All agents must respond in Turkish. Price information must be confirmed before sharing...",
@@ -1722,7 +1889,9 @@
       "fetchFailed": "Failed to fetch conversations",
       "rateFailed": "Failed to rate conversation",
       "title": "Conversation Review",
-      "description": "Review conversations and rate quality for fine-tuning data curation. Only conversations rated \"good\" are included in training data exports. Unrated and \"bad\" rated conversations are excluded."
+      "description": "Review conversations and rate quality for fine-tuning data curation. Only conversations rated \"good\" are included in training data exports. Unrated and \"bad\" rated conversations are excluded.",
+      "backToList": "Back to List",
+      "loadingMessages": "Loading messages..."
     },
     "trainingData": {
       "totalConversations": "Total Conversations",
@@ -1844,6 +2013,18 @@
       "loadingStats": "Loading stats...",
       "refresh": "Refresh",
       "cancel": "Cancel"
+    }
+  },
+  "pricingPage": {
+    "paymentFailed": "Payment failed. Please try again.",
+    "namePlaceholder": "John Doe",
+    "cardPlaceholder": "4242 4242 4242 4242",
+    "expiryPlaceholder": "MM/YY",
+    "cvcPlaceholder": "123"
+  },
+  "homePage": {
+    "stats": {
+      "hrsMo": "hrs/mo"
     }
   }
 }

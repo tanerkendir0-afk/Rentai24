@@ -39,12 +39,12 @@ const stepsConfig = [
 ];
 
 const agentMini = [
-  { name: "Ava", role: "Support", icon: Headphones, color: "from-blue-400 to-blue-600" },
-  { name: "Rex", role: "Sales", icon: TrendingUp, color: "from-violet-400 to-purple-600" },
-  { name: "Maya", role: "Social", icon: Share2, color: "from-fuchsia-400 to-pink-600" },
-  { name: "Finn", role: "Finance", icon: Calculator, color: "from-cyan-400 to-blue-500" },
-  { name: "Cal", role: "Schedule", icon: CalendarCheck, color: "from-indigo-400 to-violet-500" },
-  { name: "Harper", role: "HR", icon: Users, color: "from-purple-400 to-fuchsia-500" },
+  { name: "Ava", roleKey: "ava", icon: Headphones, color: "from-blue-400 to-blue-600" },
+  { name: "Rex", roleKey: "rex", icon: TrendingUp, color: "from-violet-400 to-purple-600" },
+  { name: "Maya", roleKey: "maya", icon: Share2, color: "from-fuchsia-400 to-pink-600" },
+  { name: "Finn", roleKey: "finn", icon: Calculator, color: "from-cyan-400 to-blue-500" },
+  { name: "Cal", roleKey: "cal", icon: CalendarCheck, color: "from-indigo-400 to-violet-500" },
+  { name: "Harper", roleKey: "harper", icon: Users, color: "from-purple-400 to-fuchsia-500" },
 ];
 
 function BrowseAnimation({ active }: { active: boolean }) {
@@ -89,7 +89,7 @@ function BrowseAnimation({ active }: { active: boolean }) {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-semibold text-foreground">{agent.name}</div>
-                  <div className="text-xs text-muted-foreground">{agent.role}</div>
+                  <div className="text-xs text-muted-foreground">{t("platformGuide.roles." + agent.roleKey)}</div>
                 </div>
                 {isHiredAgent ? (
                   <motion.div
@@ -529,14 +529,14 @@ export default function PlatformGuide({ variant = "home" }: PlatformGuideProps) 
                 data-testid="guide-cta-hire"
               >
                 <Sparkles className="w-4 h-4 mr-2" />
-                Start Hiring AI Workers
+                {t("platformGuide.startHiring")}
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
             </Link>
             <Link href="/guide">
               <Button variant="outline" className="text-sm px-6 border-border/30" data-testid="guide-cta-full">
                 <Bot className="w-4 h-4 mr-2" />
-                Full Platform Guide
+                {t("platformGuide.fullGuide")}
               </Button>
             </Link>
           </motion.div>

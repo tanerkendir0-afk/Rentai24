@@ -765,7 +765,7 @@ function ConversationReviewPanel({ token }: { token: string }) {
     return (
       <div className="space-y-4">
         <Button variant="outline" onClick={() => { setSelectedConv(null); setMessages([]); }} className="border-[#1E2448] text-gray-300" data-testid="button-back-to-list">
-          <ChevronLeft className="w-4 h-4 mr-1" /> Back to List
+          <ChevronLeft className="w-4 h-4 mr-1" /> {t("adminPage.convReview.backToList")}
         </Button>
         <Card className="bg-[#111633] border-[#1E2448]">
           <CardHeader>
@@ -781,20 +781,20 @@ function ConversationReviewPanel({ token }: { token: string }) {
                   className={selectedConv.quality_rating === "good" ? "bg-green-600 hover:bg-green-700" : "border-green-800 text-green-400 hover:bg-green-900/30"}
                   onClick={() => rateConversation(selectedConv.id, selectedConv.quality_rating === "good" ? null : "good")}
                   data-testid="button-rate-good">
-                  <CheckCircle className="w-4 h-4 mr-1" /> Good
+                  <CheckCircle className="w-4 h-4 mr-1" /> {t("adminPage.convReview.good")}
                 </Button>
                 <Button size="sm" variant={selectedConv.quality_rating === "bad" ? "default" : "outline"}
                   className={selectedConv.quality_rating === "bad" ? "bg-red-600 hover:bg-red-700" : "border-red-800 text-red-400 hover:bg-red-900/30"}
                   onClick={() => rateConversation(selectedConv.id, selectedConv.quality_rating === "bad" ? null : "bad")}
                   data-testid="button-rate-bad">
-                  <XCircle className="w-4 h-4 mr-1" /> Bad
+                  <XCircle className="w-4 h-4 mr-1" /> {t("adminPage.convReview.bad")}
                 </Button>
               </div>
             </div>
           </CardHeader>
           <CardContent>
             {loadingMsgs ? (
-              <div className="flex items-center gap-2 text-gray-400"><RefreshCw className="w-4 h-4 animate-spin" /> Loading messages...</div>
+              <div className="flex items-center gap-2 text-gray-400"><RefreshCw className="w-4 h-4 animate-spin" /> {t("adminPage.convReview.loadingMessages")}</div>
             ) : (
               <div className="space-y-3 max-h-[500px] overflow-y-auto">
                 {messages.map((msg, i) => (
@@ -3708,7 +3708,7 @@ function PackageManagementPanel({ token }: { token: string }) {
       "customer-support": "Ava", "sales-sdr": "Rex", "social-media": "Maya",
       "bookkeeping": "Finn", "scheduling": "Cal", "hr-recruiting": "Harper",
       "data-analyst": "DataBot", "ecommerce-ops": "ShopBot", "real-estate": "Reno",
-      "manager": "Manager",
+      "manager": t("adminPage.limits.manager"),
     };
     return map[slug] || slug;
   };

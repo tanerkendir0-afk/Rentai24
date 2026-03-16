@@ -685,7 +685,162 @@
     "startChatting": "Sohbet Başlat",
     "goToDashboard": "Panele Git",
     "viewWorkers": "Tüm Çalışanları Gör",
-    "getStartedFree": "Ücretsiz Başla"
+    "getStartedFree": "Ücretsiz Başla",
+    "agents": {
+      "ava": {
+        "role": "Müşteri Desteği",
+        "desc": "Canlı sohbet, e-posta, şikayetler, sipariş takibi",
+        "tutorialRole": "Müşteri Destek Ajanı",
+        "cap1": "Canlı sohbet konuşmalarını empati ve hızla yönetin",
+        "cap2": "Müşteri e-postalarına otomatik yanıt verin",
+        "cap3": "Şikayet taleplerini takip edin ve çözün",
+        "cap4": "İade ve geri ödemeleri işleyin",
+        "cap5": "SSS bilgi tabanını yönetin",
+        "prompt1": "Bugünkü tüm gelen destek taleplerini yönet",
+        "prompt2": "Geç teslimatla ilgili bu müşteri şikayetine yanıt taslağı oluştur",
+        "prompt3": "Haftalık destek performans raporu oluştur",
+        "prompt4": "İade politikamız hakkındaki sık sorulan sorulara otomatik yanıtlar ayarla",
+        "tip1": "Sorunsuz talep yönetimi için Zendesk veya Intercom bağlayın",
+        "tip2": "Anlık müşteri mesajlaşması için WhatsApp Business bağlayın",
+        "tip3": "Gerçek zamanlı takip için sipariş yönetim sisteminizle entegre edin"
+      },
+      "rex": {
+        "role": "Satış SDR",
+        "desc": "Potansiyel müşteri bulma, soğuk arama, teklifler",
+        "tutorialRole": "Satış Geliştirme Temsilcisi",
+        "cap1": "Birden fazla kaynaktan potansiyel müşteri araştırın ve nitelendirin",
+        "cap2": "Kişiselleştirilmiş soğuk e-postalar oluşturun",
+        "cap3": "Potansiyel müşterilerle otomatik takip yapın",
+        "cap4": "CRM kayıtlarını konuşma notlarıyla güncelleyin",
+        "cap5": "Nitelikli potansiyel müşterilerle toplantı planlayın",
+        "prompt1": "Ürünümüze ihtiyacı olabilecek Bay Area'daki 50 teknoloji CTO'su bul",
+        "prompt2": "Yeni SaaS lansmanımız için soğuk e-posta dizisi taslağı oluştur",
+        "prompt3": "Son e-postamızı açıp yanıt vermeyen tüm potansiyel müşterilere takip yap",
+        "prompt4": "Bu çeyrek için satış hattı raporu oluştur",
+        "tip1": "Otomatik CRM güncellemeleri için HubSpot veya Salesforce bağlayın",
+        "tip2": "E-posta gönderme ve takip için Gmail bağlayın",
+        "tip3": "Sorunsuz toplantı planlaması için Calendly entegre edin"
+      },
+      "maya": {
+        "role": "Sosyal Medya",
+        "desc": "İçerik planlama, paylaşım, etkileşim",
+        "tutorialRole": "Sosyal Medya Yöneticisi",
+        "cap1": "Tüm platformlarda içerik planlayın ve zamanlayın",
+        "cap2": "Her ağa özel ilgi çekici gönderiler yazın",
+        "cap3": "Yorumları ve DM'leri izleyin ve yanıtlayın",
+        "cap4": "Trend hashtag ve konuları araştırın",
+        "cap5": "Analiz ve etkileşim raporları oluşturun",
+        "prompt1": "Instagram ve Twitter için gelecek hafta içerik takvimi oluştur",
+        "prompt2": "Şirket kültürümüz hakkında 5 LinkedIn gönderisi yaz",
+        "prompt3": "Son 24 saatteki tüm yanıtlanmamış yorumlara cevap ver",
+        "prompt4": "Bu ayki en iyi performanslı gönderilerimizi analiz et ve iyileştirmeler öner",
+        "tip1": "Çoklu platform zamanlaması için Buffer veya Hootsuite bağlayın",
+        "tip2": "Tutarlı görseller için marka varlıkları klasörünüzü bağlayın",
+        "tip3": "Detaylı performans takibi için analiz araçları entegre edin"
+      },
+      "finn": {
+        "role": "Muhasebe",
+        "desc": "Faturalar, giderler, mali raporlar",
+        "tutorialRole": "Muhasebe Asistanı",
+        "cap1": "Faturaları otomatik olarak işleyin ve kategorize edin",
+        "cap2": "Giderleri takip edin ve anormallikleri işaretleyin",
+        "cap3": "Mali tablolar ve raporlar oluşturun",
+        "cap4": "Vergi son tarih hatırlatmaları gönderin",
+        "cap5": "Hesapları ve bakiyeleri uzlaştırın",
+        "prompt1": "Bu haftanın bekleyen tüm faturalarını işle",
+        "prompt2": "3. çeyrek için kar ve zarar tablosu oluştur",
+        "prompt3": "Geçen ayın kredi kartı giderlerini kategorize et",
+        "prompt4": "Yaklaşan vergi son tarihleri için hatırlatmalar ayarla",
+        "tip1": "Otomatik senkronizasyon için QuickBooks veya Xero bağlayın",
+        "tip2": "Ödeme takibi için Stripe veya PayPal bağlayın",
+        "tip3": "Kağıtsız gider yönetimi için fiş tarama entegre edin"
+      },
+      "cal": {
+        "role": "Planlama",
+        "desc": "Rezervasyonlar, hatırlatmalar, takvim yönetimi",
+        "tutorialRole": "Planlama Ajanı",
+        "cap1": "Online randevuları ve rezervasyonları yönetin",
+        "cap2": "E-posta ve SMS ile otomatik hatırlatmalar gönderin",
+        "cap3": "Yeniden planlama ve iptalleri yönetin",
+        "cap4": "Gelmeyen kişileri takip edin",
+        "cap5": "Bekleme listelerini ve müsaitliği yönetin",
+        "prompt1": "Ekibimle haftalık tekrarlayan toplantılar ayarla",
+        "prompt2": "Yarınki tüm randevular için hatırlatma gönder",
+        "prompt3": "Saat 15:00 toplantısını gelecek Salı'ya ertele",
+        "prompt4": "Gelecek hafta müsaitliğimi göster",
+        "tip1": "Gerçek zamanlı senkronizasyon için Google Calendar veya Outlook bağlayın",
+        "tip2": "Harici rezervasyon sayfaları için Calendly bağlayın",
+        "tip3": "SMS hatırlatmaları için SMS sağlayıcıları entegre edin"
+      },
+      "harper": {
+        "role": "İK & İşe Alım",
+        "desc": "Özgeçmiş tarama, mülakat planlama",
+        "tutorialRole": "İK & İşe Alım Asistanı",
+        "cap1": "Özgeçmişleri iş gereksinimlerinize göre tarayın",
+        "cap2": "En iyi adayları otomatik olarak listeleyin",
+        "cap3": "Adaylarla mülakat planlayın",
+        "cap4": "İşe alım belgelerini hazırlayın",
+        "cap5": "Birden fazla platformda iş ilanı yayınlayın",
+        "prompt1": "Senior Developer pozisyonu için bu 100 özgeçmişi tara",
+        "prompt2": "En iyi 5 adayla gelecek hafta mülakat planla",
+        "prompt3": "Yeni mühendislik işe alımları için işe alım kontrol listesi taslağı oluştur",
+        "prompt4": "Açık pozisyonlarımızı LinkedIn ve Indeed'de yayınla",
+        "tip1": "Doğrudan kaynak bulma için LinkedIn Recruiter bağlayın",
+        "tip2": "ATS yönetimi için Greenhouse veya Lever bağlayın",
+        "tip3": "Çalışan işe alım iş akışları için BambooHR entegre edin"
+      },
+      "databot": {
+        "role": "Veri Analisti",
+        "desc": "Raporlar, panolar, KPI takibi",
+        "tutorialRole": "Veri Analiz Ajanı",
+        "cap1": "Birden fazla kaynaktan verileri temizleyin ve normalize edin",
+        "cap2": "Özel raporlar ve panolar oluşturun",
+        "cap3": "KPI'ları takip edin ve anormalliklerde uyarın",
+        "cap4": "Trend analizi ve tahminleme yapın",
+        "cap5": "Veri görselleştirmeleri oluşturun",
+        "prompt1": "Son bir ayın web sitesi trafik verilerini analiz et",
+        "prompt2": "En önemli 5 KPI'mızı takip eden bir pano oluştur",
+        "prompt3": "Bu çeyreğin satışlarını geçen çeyrekle karşılaştır",
+        "prompt4": "Müşteri kayıp verilerimizde kalıpları bul",
+        "tip1": "Veri içe aktarma için Google Sheets veya Excel bağlayın",
+        "tip2": "Gelişmiş görselleştirmeler için Tableau veya Looker bağlayın",
+        "tip3": "Gerçek zamanlı sorgular için SQL veritabanlarınızla entegre edin"
+      },
+      "shopbot": {
+        "role": "E-Ticaret",
+        "desc": "Ürün listeleme, envanter, yorumlar",
+        "tutorialRole": "E-Ticaret Operasyonları",
+        "cap1": "Ürün listelerini ve açıklamalarını optimize edin",
+        "cap2": "Envanter seviyelerini izleyin ve uyarı gönderin",
+        "cap3": "Rakip fiyatlarını gerçek zamanlı takip edin",
+        "cap4": "Ürün yorumlarını yanıtlayın",
+        "cap5": "Sipariş takibi ve güncellemelerini yönetin",
+        "prompt1": "En çok satan 20 ürünümüzün açıklamalarını yeniden yaz",
+        "prompt2": "Herhangi bir ürün stokta 10 adet altına düşünce beni uyar",
+        "prompt3": "Fiyatlarımızı en iyi 3 rakiple karşılaştır",
+        "prompt4": "Son haftanın tüm 1-2 yıldızlı yorumlarını yanıtla",
+        "tip1": "Mağaza yönetimi için Shopify veya WooCommerce bağlayın",
+        "tip2": "Pazar yeri operasyonları için Amazon Seller Central bağlayın",
+        "tip3": "Gerçek zamanlı takip için kargo sağlayıcılarını entegre edin"
+      },
+      "reno": {
+        "role": "Gayrimenkul",
+        "desc": "Mülk arama, kira inceleme, pazar raporları",
+        "tutorialRole": "Gayrimenkul Ajanı",
+        "cap1": "Mülk ilanlarını arayın ve filtreleyin",
+        "cap2": "Mülkleri kriterlerinize göre değerlendirin",
+        "cap3": "Mahalleleri ve pazar trendlerini analiz edin",
+        "cap4": "Kira sözleşmelerini ve kontratları inceleyin",
+        "cap5": "Yaşam maliyetini ve ROI'yi hesaplayın",
+        "prompt1": "Austin'de aylık 2000$ altı 2 yatak odalı daire bul",
+        "prompt2": "Chicago şehir merkezindeki kira piyasasını analiz et",
+        "prompt3": "Bu kira sözleşmesini incele ve olası sorunları işaretle",
+        "prompt4": "Bu 3 mahalle arasındaki yaşam maliyetini karşılaştır",
+        "tip1": "İlan verileri için Zillow veya Redfin bağlayın",
+        "tip2": "Mahalle analizi için Google Maps bağlayın",
+        "tip3": "Müşteri yönetimi için CRM ile entegre edin"
+      }
+    }
   },
   "demoPage": {
     "yourWorkers": "Çalışanlarınız",
@@ -823,7 +978,8 @@
       "connection": "Bağlantı",
       "suggestion": "Öneri",
       "other": "Diğer"
-    }
+    },
+    "manager": "Yönetici"
   },
   "tasksPanel": {
     "projectsTasks": "Projeler & Görevler",
@@ -929,6 +1085,16 @@
       "1": "Rex 50 e-postayı tamamladı",
       "2": "Ava 12 talep çözdü",
       "3": "Maya 5 güncelleme paylaştı"
+    },
+    "startHiring": "AI İşçi Kiralamaya Başla",
+    "fullGuide": "Tam Platform Rehberi",
+    "roles": {
+      "ava": "Destek",
+      "rex": "Satış",
+      "maya": "Sosyal",
+      "finn": "Finans",
+      "cal": "Planlama",
+      "harper": "İK"
     }
   },
   "settingsPage": {
@@ -1539,7 +1705,8 @@
       "edit": "Düzenle",
       "cancel": "İptal",
       "userLimitOverride": "Kullanıcı Bazlı Limit Override",
-      "addOverride": "Override Ekle"
+      "addOverride": "Override Ekle",
+      "manager": "Yönetici"
     },
     "instructions": {
       "globalPlaceholder": "Örn: Tüm ajanlar Türkçe yanıt vermelidir. Fiyat bilgisi vermeden önce onay alınmalıdır...",
@@ -1722,7 +1889,9 @@
       "fetchFailed": "Konuşmalar alınamadı",
       "rateFailed": "Konuşma değerlendirilemedi",
       "title": "Konuşma İnceleme",
-      "description": "Konuşmaları inceleyin ve ince ayar veri küratörlüğü için kalite değerlendirmesi yapın. Yalnızca \"iyi\" olarak derecelendirilen konuşmalar eğitim verisi dışa aktarımlarına dahil edilir."
+      "description": "Konuşmaları inceleyin ve ince ayar veri küratörlüğü için kalite değerlendirmesi yapın. Yalnızca \"iyi\" olarak derecelendirilen konuşmalar eğitim verisi dışa aktarımlarına dahil edilir.",
+      "backToList": "Listeye Dön",
+      "loadingMessages": "Mesajlar yükleniyor..."
     },
     "trainingData": {
       "totalConversations": "Toplam Konuşma",
@@ -1844,6 +2013,18 @@
       "loadingStats": "İstatistikler yükleniyor...",
       "refresh": "Yenile",
       "cancel": "İptal"
+    }
+  },
+  "pricingPage": {
+    "paymentFailed": "Ödeme başarısız oldu. Lütfen tekrar deneyin.",
+    "namePlaceholder": "Ad Soyad",
+    "cardPlaceholder": "4242 4242 4242 4242",
+    "expiryPlaceholder": "AA/YY",
+    "cvcPlaceholder": "123"
+  },
+  "homePage": {
+    "stats": {
+      "hrsMo": "sa/ay"
     }
   }
 }

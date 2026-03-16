@@ -738,7 +738,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5">
-                        <span className="font-medium truncate text-[13px]">Manager</span>
+                        <span className="font-medium truncate text-[13px]">{t("demoPage.manager")}</span>
                         <Badge variant="outline" className={`text-[8px] px-1 py-0 h-3.5 ${selectedAgent === "manager" ? "border-white/30 text-white/80" : "border-amber-500/30 text-amber-400"}`}>AI</Badge>
                       </div>
                       <span className={`text-[10px] truncate block ${selectedAgent === "manager" ? "text-white/70" : "text-muted-foreground/60"}`}>

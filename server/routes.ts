@@ -5,7 +5,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import bcrypt from "bcrypt";
 import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
-import { chatMessageSchema, contactFormSchema, registerSchema, loginSchema, newsletterSchema, bossConversations, collaborationSessions, rentals, conversations, chatMessages, type User, type AgentTask } from "@shared/schema";
+import { chatMessageSchema, contactFormSchema, registerSchema, loginSchema, newsletterSchema, bossConversations, collaborationSessions, rentals, conversations, chatMessages, invoices, invoiceItems, type User, type AgentTask } from "@shared/schema";
 import { z } from "zod";
 import { storage } from "./storage";
 import { requireAuth } from "./auth";
@@ -16,6 +16,8 @@ import { processAndStoreDocument, processAndStoreUrl, retrieveRelevantChunks, ge
 import { createFineTuningJob, syncJobStatus, getJobsByAgent, toggleActiveModel, deactivateModel, getActiveModel } from "./fineTuningService";
 import { generateAgentRulesPDF, generateTrainingDataFromChatLogs, validateJSONL, getAgentDefinitions } from "./trainingDataService";
 import { getRelevantToolsForMessage, executeToolCall } from "./agentTools";
+import { generateInvoicePDF } from "./services/invoiceGenerator";
+import { generateInvoiceExcel } from "./services/invoiceExcelGenerator";
 import { getMuhasebeContext } from "./muhasebeRetriever";
 import { computeLeadScore } from "./leadScoring";
 import { checkInput, sanitizeOutput, logGuardrailBlock } from "./guardrails";
@@ -414,7 +416,7 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}${ONBOARDING_GUIDA
 ## ROL VE KAPSAM
 Fatura (KDV + tevkifat), gider, gelir takibi, bordro, vergi hesaplama, mali tablolar, borç-alacak, nakit akışı, TCMB kur işlemleri. Muhasebe soruları gizlilik kapsamında değil, doğrudan yanıtla. Kapsam dışı sorularda kibarca "Ben muhasebe ve vergi konularında uzmanım, bu konuda yardımcı olamıyorum" de.
 
-TOOLS: web_search, create_invoice (KDV + tevkifat destekli), log_expense, log_income, financial_summary, send_invoice_email, get_exchange_rate (TCMB), add_receivable, add_payable, list_debts, cash_flow_forecast, generate_balance_sheet, generate_income_statement, calculate_payroll (2026 SGK + vergi dilimleri), calculate_withholding (stopaj), list_inbox, read_email, reply_email. Always use tools for real operations.
+TOOLS: web_search, create_invoice (KDV + tevkifat destekli, PDF/Excel indirme linkli), log_expense, log_income, financial_summary, send_invoice_email, get_exchange_rate (TCMB), add_receivable, add_payable, list_debts, cash_flow_forecast, generate_balance_sheet, generate_income_statement, calculate_payroll (2026 SGK + vergi dilimleri), calculate_withholding (stopaj), generate_mizan (Excel), generate_bordro (Excel), generate_gelir_tablosu (Excel), generate_kdv_ozet (Excel), list_inbox, read_email, reply_email. Always use tools for real operations. Rapor/fatura oluşturduğunda indirme linkini mutlaka paylaş.
 
 ## PARA BİRİMİ VE FORMAT
 - ₺ default para birimi, Türk sayı formatı (1.250.000,50 ₺)
@@ -985,6 +987,75 @@ export async function registerRoutes(
     category: z.enum(ALLOWED_FEEDBACK_CATEGORIES).optional(),
   });
   const feedbackSchema = z.discriminatedUnion("type", [npsSchema, chatRatingSchema, generalFeedbackSchema]);
+
+  app.get("/api/invoices/:id/pdf", requireAuth, async (req, res) => {
+    try {
+      const invoiceId = Number(req.params.id);
+      const [invoice] = await db.select().from(invoices).where(eq(invoices.id, invoiceId));
+      if (!invoice) return res.status(404).json({ error: "Fatura bulunamadı" });
+      if (invoice.userId !== req.session.userId) return res.status(403).json({ error: "Yetkisiz" });
+
+      const items = await db.select().from(invoiceItems).where(eq(invoiceItems.invoiceId, invoiceId));
+      const pdf = await generateInvoicePDF(invoice, items);
+      res.set({
+        "Content-Type": "application/pdf",
+        "Content-Disposition": `attachment; filename="Fatura_${invoice.invoiceNo}.pdf"`,
+      });
+      res.send(pdf);
+    } catch (err: any) {
+      console.error("[Invoice PDF]", err.message);
+      res.status(500).json({ error: "PDF oluşturulamadı" });
+    }
+  });
+
+  app.get("/api/invoices/:id/excel", requireAuth, async (req, res) => {
+    try {
+      const invoiceId = Number(req.params.id);
+      const [invoice] = await db.select().from(invoices).where(eq(invoices.id, invoiceId));
+      if (!invoice) return res.status(404).json({ error: "Fatura bulunamadı" });
+      if (invoice.userId !== req.session.userId) return res.status(403).json({ error: "Yetkisiz" });
+
+      const items = await db.select().from(invoiceItems).where(eq(invoiceItems.invoiceId, invoiceId));
+      const excel = await generateInvoiceExcel(invoice, items);
+      res.set({
+        "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "Content-Disposition": `attachment; filename="Fatura_${invoice.invoiceNo}.xlsx"`,
+      });
+      res.send(excel);
+    } catch (err: any) {
+      console.error("[Invoice Excel]", err.message);
+      res.status(500).json({ error: "Excel oluşturulamadı" });
+    }
+  });
+
+  app.get("/api/reports/:reportId/download", requireAuth, async (req, res) => {
+    try {
+      const reportId = String(req.params.reportId);
+      const userId = req.session.userId!;
+
+      const allActions = await storage.getActionsByUser(userId);
+      const reportAction = allActions.find(
+        (a: any) => a.actionType === "report_generated" && a.metadata?.reportId === reportId
+      );
+
+      if (!reportAction || !reportAction.metadata?.excelBase64) {
+        return res.status(404).json({ error: "Rapor bulunamadı" });
+      }
+
+      const buf = Buffer.from(reportAction.metadata.excelBase64, "base64");
+      const reportType = reportAction.metadata.reportType || "rapor";
+      const filename = `${reportType}_${reportId}.xlsx`;
+
+      res.set({
+        "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "Content-Disposition": `attachment; filename="${filename}"`,
+      });
+      res.send(buf);
+    } catch (err: any) {
+      console.error("[Report Download]", err.message);
+      res.status(500).json({ error: "Rapor indirilemedi" });
+    }
+  });
 
   app.post("/api/feedback", requireAuth, async (req, res) => {
     const lang = await resolveUserLang(req);

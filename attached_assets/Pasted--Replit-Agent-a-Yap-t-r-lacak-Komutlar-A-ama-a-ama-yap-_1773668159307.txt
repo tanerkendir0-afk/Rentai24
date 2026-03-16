@@ -1,0 +1,161 @@
+# Replit Agent'a Yapıştırılacak Komutlar
+# Aşama aşama yapıştır — hepsini bir anda değil!
+
+# ============================================
+# AŞAMA 1: NPM Paketleri + Veritabanı
+# (Bunu önce yapıştır, tamamlanmasını bekle)
+# ============================================
+
+Finn ajanına fatura oluşturma ve Excel rapor üretme özelliği ekliyoruz. Adım adım gideceğiz.
+
+ADIM 1 — Paketleri kur:
+npm install exceljs puppeteer
+
+ADIM 2 — Veritabanına yeni tablolar ekle (Drizzle ORM kullanıyorsun):
+
+invoices tablosu:
+- id (serial, primary key)
+- user_id (integer, references users)
+- invoice_no (varchar 20, not null) — format: "FTR-2026-0001"
+- invoice_type (varchar 20, default 'satis') — satis, iade, tevkifat
+- invoice_date (date, not null)
+- due_date (date, nullable)
+- seller_name, seller_tax_office, seller_tax_no, seller_address
+- buyer_name (not null), buyer_tax_office, buyer_tax_no, buyer_address
+- subtotal (decimal 15,2) — KDV hariç
+- kdv_rate (integer, default 20)
+- kdv_amount (decimal 15,2)
+- tevkifat_rate (varchar 10, nullable) — "9/10", "5/10" gibi
+- tevkifat_amount (decimal 15,2, default 0)
+- total (decimal 15,2) — genel toplam
+- currency (varchar 3, default 'TRY')
+- notes (text, nullable)
+- status (varchar 20, default 'draft') — draft, sent, paid, cancelled
+- created_at (timestamp, default now)
+
+invoice_items tablosu:
+- id (serial, primary key)
+- invoice_id (integer, references invoices)
+- description (varchar 500, not null)
+- quantity (decimal 10,2, not null)
+- unit (varchar 20, default 'Adet') — Adet, Kg, Lt, Saat, Ay, M2, Paket
+- unit_price (decimal 15,2, not null)
+- kdv_rate (integer, default 20)
+- amount (decimal 15,2, not null) — quantity * unit_price
+- sort_order (integer, default 0)
+
+Migration'ı oluştur ve çalıştır. Henüz başka bir şey yapma, tamamlandığında bana göster.
+
+
+# ============================================
+# AŞAMA 2: Fatura PDF + Excel Üretme Servisi
+# (Aşama 1 tamamlandıktan sonra yapıştır)
+# ============================================
+
+Şimdi fatura üretme servislerini oluştur.
+
+1. server/services/invoiceGenerator.ts dosyası oluştur:
+   - generateInvoicePDF(invoice, items) fonksiyonu
+   - Puppeteer kullanarak HTML'den PDF üret
+   - Türk faturası formatında: üstte satıcı/alıcı bilgileri, ortada kalem tablosu, altta KDV + toplam
+   - Tevkifat desteği olsun
+   - Türk sayı formatı kullan (1.250.000,50 ₺)
+   - A4 boyutunda, profesyonel görünümlü
+   - Renk teması: mavi (#2563EB)
+   - Alt bilgide: "Bu fatura bilgilendirme amaçlıdır. E-Fatura mükellefiyetiniz varsa GİB portalı üzerinden resmi e-fatura düzenlemeniz gerekmektedir."
+
+2. server/services/invoiceExcelGenerator.ts dosyası oluştur:
+   - generateInvoiceExcel(invoice, items) fonksiyonu
+   - ExcelJS kullanarak profesyonel fatura oluştur
+   - Aynı layout: satıcı/alıcı, kalem tablosu, toplamlar
+   - Hücrelere numFmt '#,##0.00 ₺' formatı uygula
+   - Zebra striping, kalın başlıklar, mavi tema
+
+3. getNextInvoiceNo(userId) fonksiyonu — "FTR-2026-0001" formatında otomatik sıra numarası
+
+4. numberToWords(amount) fonksiyonu — Türkçe yazıyla tutar (örn: "Yüz Elli Bin Türk Lirası")
+
+Sadece servisleri oluştur, henüz route ekleme. Tamamlandığında göster.
+
+
+# ============================================
+# AŞAMA 3: Excel Rapor Üretme Servisi
+# (Aşama 2 tamamlandıktan sonra yapıştır)
+# ============================================
+
+Şimdi Excel rapor üretme servisini oluştur.
+
+server/services/reportGenerator.ts dosyası:
+
+Şu rapor türlerini desteklesin:
+
+1. generateMizan(data) — Geçici mizan
+   - Hesap kodu, hesap adı, borç toplamı, alacak toplamı, borç kalanı, alacak kalanı
+   - Sınıf başlıkları (1-7) kalın ve renkli arka plan
+   - Alt satırda SUM formülleriyle toplam
+   
+2. generateBordro(data) — Aylık bordro
+   - Çalışan listesi: ad, TC, brüt ücret
+   - Otomatik hesaplama formülleri: SGK işçi %14, işsizlik %1, GV matrahı, gelir vergisi, damga vergisi, net ücret
+   - İşveren maliyeti: SGK işveren %20,25, işveren işsizlik %2
+   - En alt satırda toplamlar
+
+3. generateGelirTablosu(data) — Gelir tablosu
+   - Satışlar, COGS, brüt kar, faaliyet giderleri, net kar
+   
+4. generateKdvOzet(data) — KDV beyanname hazırlık
+   - Hesaplanan KDV, indirilecek KDV, ödenecek/devreden KDV
+
+Her raporda:
+- Başlıkta firma adı ve dönem
+- Profesyonel formatlama (mavi tema, zebra striping)
+- Türk sayı formatı
+- Sütun genişlikleri uygun
+- Yazdırmaya uygun sayfa ayarları
+
+Tamamlandığında göster.
+
+
+# ============================================
+# AŞAMA 4: API Route'ları + Tool Tanımları
+# (Aşama 3 tamamlandıktan sonra yapıştır)
+# ============================================
+
+Şimdi her şeyi birleştir.
+
+1. server/routes.ts'e yeni endpoint'ler ekle:
+
+POST /api/invoices/generate — Fatura üretme
+- Body: invoice_data + format (pdf/excel/both)
+- Veritabanına kaydet, dosya üret, indirme URL'i dön
+
+POST /api/reports/generate — Rapor üretme  
+- Body: report_type + period + data + company_name
+- İlgili rapor fonksiyonunu çağır, dosya üret, URL dön
+
+POST /api/excel/read — Excel okuma (dosya upload)
+- Yüklenen Excel'i oku, sheet verilerini JSON olarak dön
+
+2. Finn'in OpenAI tool tanımlarına şu yeni tool'ları ekle:
+
+create_invoice tool:
+- buyer_name, buyer_tax_office, buyer_tax_no, buyer_address
+- items array: description, quantity, unit, unit_price, kdv_rate
+- invoice_date, due_date, tevkifat_rate, format (pdf/excel/both), notes, currency
+
+generate_report tool:
+- report_type (mizan/gelir_tablosu/bordro/kdv_beyanname vb.)
+- period, data, title, company_name
+
+read_excel tool:
+- file_id, sheet_name, action (read/analyze/validate/fix)
+
+3. Tool handler'larında:
+- create_invoice çağrıldığında → /api/invoices/generate endpoint'ini kullan
+- generate_report çağrıldığında → /api/reports/generate endpoint'ini kullan
+- Sonuçta kullanıcıya indirme linki ve özet bilgi dön
+
+4. Üretilen dosyaları geçici olarak /tmp/invoices/ ve /tmp/reports/ klasörlerine kaydet
+   GET /api/files/:filename endpoint'i ile indirilebilir yap
+
+Tamamlandığında test etmek için uygulamayı restart et.

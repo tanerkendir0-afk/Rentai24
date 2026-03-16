@@ -8,6 +8,11 @@ import type { SupportedLang } from "./i18n";
 import { generateAIImage, findStockImages } from "./imageService";
 import { isUserGmailReady, listInbox, readEmail, replyToEmail } from "./gmailService";
 import { computeLeadScore } from "./leadScoring";
+import { generateInvoicePDF } from "./services/invoiceGenerator";
+import { generateInvoiceExcel } from "./services/invoiceExcelGenerator";
+import { generateMizan, generateBordro, generateGelirTablosu, generateKdvOzet } from "./services/reportGenerator";
+import { db } from "./db";
+import { invoices, invoiceItems } from "@shared/schema";
 
 const aiClient = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -1056,6 +1061,79 @@ export const bookkeepingTools: OpenAI.ChatCompletionTool[] = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "generate_mizan",
+      description: "Geçici mizan raporu oluşturur (Excel). Hesap kodları, borç/alacak toplamları ve kalanlarıyla Excel çıktısı üretir.",
+      parameters: {
+        type: "object",
+        properties: {
+          entries: { type: "string", description: "Mizan kalemleri: 'HesapKodu|HesapAdı|BorçToplamı|AlacakToplamı' noktalı virgülle ayrılır. Örn: '100|Kasa|50000|30000;120|Bankalar|200000|80000'" },
+          period: { type: "string", description: "Dönem bilgisi (Örn: 'Ocak 2026')" },
+          company_name: { type: "string", description: "Firma adı" },
+        },
+        required: ["entries"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "generate_bordro",
+      description: "Aylık bordro raporu oluşturur (Excel). Çalışanların brüt/net maaş, SGK, vergi kesintileri ve işveren maliyetini hesaplar.",
+      parameters: {
+        type: "object",
+        properties: {
+          employees: { type: "string", description: "Çalışan listesi: 'AdSoyad|TCKimlik|BrütÜcret' noktalı virgülle ayrılır. TC opsiyoneldir. Örn: 'Ahmet Yılmaz|12345678901|35000;Ayşe Kaya||28000'" },
+          period: { type: "string", description: "Dönem bilgisi (Örn: 'Mart 2026')" },
+          company_name: { type: "string", description: "Firma adı" },
+        },
+        required: ["employees"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "generate_gelir_tablosu",
+      description: "Gelir tablosu raporu oluşturur (Excel). Satışlar, maliyet, brüt kâr, faaliyet giderleri ve net kâr formatında Excel çıktısı üretir.",
+      parameters: {
+        type: "object",
+        properties: {
+          satislar: { type: "number", description: "Brüt satış geliri (₺)" },
+          satis_indirimleri: { type: "number", description: "Satış indirimleri/iadeler (₺, opsiyonel)" },
+          satislarin_maliyeti: { type: "number", description: "Satışların maliyeti / SMM (₺)" },
+          faaliyet_giderleri: { type: "string", description: "Faaliyet giderleri: 'GiderAdı|Tutar' noktalı virgülle ayrılır. Örn: 'Genel Yönetim|45000;Pazarlama|20000;Ar-Ge|15000'" },
+          diger_gelirler: { type: "number", description: "Diğer gelirler (₺, opsiyonel)" },
+          diger_giderler: { type: "number", description: "Diğer giderler (₺, opsiyonel)" },
+          finansman_giderleri: { type: "number", description: "Finansman giderleri (₺, opsiyonel)" },
+          period: { type: "string", description: "Dönem bilgisi (Örn: 'Q1 2026')" },
+          company_name: { type: "string", description: "Firma adı" },
+        },
+        required: ["satislar", "satislarin_maliyeti", "faaliyet_giderleri"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "generate_kdv_ozet",
+      description: "KDV beyanname hazırlık özeti oluşturur (Excel). Hesaplanan KDV, indirilecek KDV, tevkifat ve ödenecek/devreden KDV hesaplar.",
+      parameters: {
+        type: "object",
+        properties: {
+          hesaplanan_kdv: { type: "number", description: "Hesaplanan KDV tutarı (₺)" },
+          indirilecek_kdv: { type: "number", description: "İndirilecek KDV tutarı (₺)" },
+          tevkifat_kdv: { type: "number", description: "Tevkifat yoluyla ödenen KDV (₺, opsiyonel)" },
+          ihracat_istisnasi: { type: "number", description: "İhracat istisnası KDV (₺, opsiyonel)" },
+          period: { type: "string", description: "Dönem bilgisi (Örn: 'Şubat 2026')" },
+          company_name: { type: "string", description: "Firma adı" },
+        },
+        required: ["hesaplanan_kdv", "indirilecek_kdv"],
+      },
+    },
+  },
 ];
 
 export const hrRecruitingTools: OpenAI.ChatCompletionTool[] = [
@@ -1458,6 +1536,10 @@ const TOOL_KEYWORD_MAP: Record<string, string[]> = {
   generate_income_statement: ["income statement", "gelir tablosu", "kâr zarar"],
   calculate_payroll: ["payroll", "bordro", "maaş", "brüt", "net", "SGK"],
   calculate_withholding: ["withholding", "stopaj", "tevkifat", "kesinti"],
+  generate_mizan: ["mizan", "hesap planı", "trial balance", "borç alacak"],
+  generate_bordro: ["bordro", "maaş bordro", "payroll report", "ücret bordro"],
+  generate_gelir_tablosu: ["gelir tablosu", "income statement", "kâr zarar", "kar zarar", "brüt kâr"],
+  generate_kdv_ozet: ["kdv", "beyanname", "vat", "katma değer", "KDV özet"],
   create_job_posting: ["job", "posting", "iş ilanı", "ilan", "pozisyon"],
   screen_resume: ["resume", "cv", "candidate", "aday", "screen", "değerlendir"],
   create_interview_kit: ["interview", "mülakat", "soru"],
@@ -3399,11 +3481,52 @@ ${activeRentals.map(r => `  ${r.agentType}: ${r.messagesUsed}/${r.messagesLimit}
         ? `\n\n💱 Döviz Kuru (TCMB Satış): 1 ${currency} = ₺${tcmbRate.toLocaleString("tr-TR", { minimumFractionDigits: 4 })}\nTL Karşılığı: ₺${formatNum(grandTotalTL)} (VUK md. 280)`
         : "";
 
+      const invoiceDate = new Date().toISOString().split("T")[0];
+      const dueDate = new Date(Date.now() + dueDays * 86400000).toISOString().split("T")[0];
+
+      let savedInvoiceId: number | null = null;
+      try {
+        const [savedInvoice] = await db.insert(invoices).values({
+          userId,
+          invoiceNo: invoiceNumber,
+          invoiceType: tevkifatRate !== "none" ? "tevkifat" : "satis",
+          invoiceDate,
+          dueDate,
+          buyerName: clientName,
+          subtotal: subtotal.toFixed(2),
+          kdvRate: defaultKdvRate,
+          kdvAmount: kdvAmount.toFixed(2),
+          tevkifatRate: tevkifatRate !== "none" ? tevkifatRate : null,
+          tevkifatAmount: tevkifatAmount.toFixed(2),
+          total: grandTotal.toFixed(2),
+          currency,
+          notes,
+          status: "sent",
+        }).returning();
+
+        savedInvoiceId = savedInvoice.id;
+
+        await db.insert(invoiceItems).values(
+          itemsWithKdv.map((item, i) => ({
+            invoiceId: savedInvoice.id,
+            description: item.description,
+            quantity: item.quantity.toFixed(2),
+            unit: "Adet",
+            unitPrice: item.price.toFixed(2),
+            kdvRate: item.kdvRate,
+            amount: item.lineSubtotal.toFixed(2),
+            sortOrder: i,
+          }))
+        );
+      } catch (dbErr: any) {
+        console.error("[Invoice] DB save error:", dbErr.message);
+      }
+
       await storage.createAgentAction({
         userId, agentType,
         actionType: "invoice_created",
         description: `🧾 Fatura ${invoiceNumber} — ${clientName} — ${currencySymbol}${formatNum(grandTotal)}${tcmbRate ? ` (₺${formatNum(grandTotalTL)})` : ""} (KDV${tevkifatRate !== "none" ? `, Tevkifat ${tevkifatRate}` : ""})`,
-        metadata: { invoiceNumber, clientName, clientEmail, subtotal, subtotalTL, kdvAmount, tevkifatRate, tevkifatAmount, grandTotal, grandTotalTL, items: itemsWithKdv, dueDays, notes, currency, tcmbRate, amount: grandTotalTL },
+        metadata: { invoiceNumber, invoiceId: savedInvoiceId, clientName, clientEmail, subtotal, subtotalTL, kdvAmount, tevkifatRate, tevkifatAmount, grandTotal, grandTotalTL, items: itemsWithKdv, dueDays, notes, currency, tcmbRate, amount: grandTotalTL },
       });
 
       if (clientEmail) {
@@ -3416,8 +3539,12 @@ ${activeRentals.map(r => `  ${r.agentType}: ${r.messagesUsed}/${r.messagesLimit}
         });
       }
 
+      const downloadLinks = savedInvoiceId
+        ? `\n\n📥 [PDF İndir](/api/invoices/${savedInvoiceId}/pdf) | [Excel İndir](/api/invoices/${savedInvoiceId}/excel)`
+        : "";
+
       return {
-        result: `Fatura ${invoiceNumber} oluşturuldu!\n\nMüşteri: ${clientName}${clientEmail ? `\nE-posta: ${clientEmail} (fatura gönderildi)` : ""}\n\nKalemler:\n${itemLines}\n\nAra Toplam: ${currencySymbol}${formatNum(subtotal)}\nKDV: ${currencySymbol}${formatNum(kdvAmount)}${tevkifatRate !== "none" ? `\nTevkifat (${tevkifatRate}): -${currencySymbol}${formatNum(tevkifatAmount)}` : ""}\nGenel Toplam: ${currencySymbol}${formatNum(grandTotal)}\nVade: ${dueDays} gün${fxNote}${notes ? `\nNotlar: ${notes}` : ""}`,
+        result: `Fatura ${invoiceNumber} oluşturuldu!\n\nMüşteri: ${clientName}${clientEmail ? `\nE-posta: ${clientEmail} (fatura gönderildi)` : ""}\n\nKalemler:\n${itemLines}\n\nAra Toplam: ${currencySymbol}${formatNum(subtotal)}\nKDV: ${currencySymbol}${formatNum(kdvAmount)}${tevkifatRate !== "none" ? `\nTevkifat (${tevkifatRate}): -${currencySymbol}${formatNum(tevkifatAmount)}` : ""}\nGenel Toplam: ${currencySymbol}${formatNum(grandTotal)}\nVade: ${dueDays} gün${fxNote}${notes ? `\nNotlar: ${notes}` : ""}${downloadLinks}`,
         actionType: "invoice_created",
         actionDescription: `🧾 Fatura ${invoiceNumber}: ${currencySymbol}${formatNum(grandTotal)}${tcmbRate ? ` (₺${formatNum(grandTotalTL)})` : ""} — ${clientName}`,
       };
@@ -4058,6 +4185,145 @@ ${activeRentals.map(r => `  ${r.agentType}: ${r.messagesUsed}/${r.messagesLimit}
         result: `📋 STOPAJ HESAPLAMA\n══════════════════════════════════\n\nTür: ${config.label}\nYasal Dayanak: ${config.law}\nOran: %${(config.rate * 100).toFixed(0)}\n\nBrüt Tutar: ₺${formatNum(grossAmount)}\nStopaj (${isGross ? "kesilen" : "hesaplanan"}): ₺${formatNum(withholdingAmount)}\nNet Tutar: ₺${formatNum(netAmount)}\n\n══════════════════════════════════\nMuhasebe Kaydı:\n  Borç: 770 GYG / 740 Hizmet Üretim — ₺${formatNum(grossAmount)}\n  Alacak: 360 Ödenecek Vergi — ₺${formatNum(withholdingAmount)}\n  Alacak: 320 Satıcılar / 102 Banka — ₺${formatNum(netAmount)}`,
         actionType: "withholding_calculated",
         actionDescription: `📋 Stopaj: ${config.label} — ₺${formatNum(withholdingAmount)}`,
+      };
+    }
+
+    case "generate_mizan": {
+      const entriesRaw = String(args.entries);
+      const period = args.period ? String(args.period) : "";
+      const companyName = args.company_name ? String(args.company_name) : "";
+
+      const entries = entriesRaw.split(";").filter(s => s.trim()).map(e => {
+        const p = e.trim().split("|");
+        return {
+          hesapKodu: p[0]?.trim() || "",
+          hesapAdi: p[1]?.trim() || "",
+          borcToplami: parseFloat(p[2]?.trim() || "0"),
+          alacakToplami: parseFloat(p[3]?.trim() || "0"),
+        };
+      });
+
+      const reportId = `MZN-${Date.now().toString(36).toUpperCase()}`;
+      const buf = await generateMizan({ entries, period, companyName });
+      const b64 = buf.toString("base64");
+
+      await storage.createAgentAction({
+        userId, agentType,
+        actionType: "report_generated",
+        description: `📊 Mizan raporu oluşturuldu — ${entries.length} hesap${period ? ` (${period})` : ""}`,
+        metadata: { reportId, reportType: "mizan", entries: entries.length, period, companyName, excelBase64: b64 },
+      });
+
+      return {
+        result: `📊 Mizan raporu oluşturuldu! (${reportId})\n\n${companyName ? `Firma: ${companyName}\n` : ""}${period ? `Dönem: ${period}\n` : ""}Hesap sayısı: ${entries.length}\n\n📥 Excel dosyası hazır — indirmek için aşağıdaki linki kullanın:\n[Excel İndir](/api/reports/${reportId}/download)`,
+        actionType: "report_generated",
+        actionDescription: `📊 Mizan raporu: ${entries.length} hesap`,
+      };
+    }
+
+    case "generate_bordro": {
+      const empRaw = String(args.employees);
+      const period = args.period ? String(args.period) : "";
+      const companyName = args.company_name ? String(args.company_name) : "";
+
+      const employees = empRaw.split(";").filter(s => s.trim()).map(e => {
+        const p = e.trim().split("|");
+        return {
+          ad: p[0]?.trim() || "",
+          tc: p[1]?.trim() || undefined,
+          brutUcret: parseFloat(p[2]?.trim() || "0"),
+        };
+      });
+
+      const reportId = `BRD-${Date.now().toString(36).toUpperCase()}`;
+      const buf = await generateBordro({ employees, period, companyName });
+      const b64 = buf.toString("base64");
+
+      const totalBrut = employees.reduce((s, e) => s + e.brutUcret, 0);
+      const formatNum = (n: number) => n.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+      await storage.createAgentAction({
+        userId, agentType,
+        actionType: "report_generated",
+        description: `📊 Bordro raporu oluşturuldu — ${employees.length} çalışan${period ? ` (${period})` : ""}`,
+        metadata: { reportId, reportType: "bordro", employees: employees.length, totalBrut, period, companyName, excelBase64: b64 },
+      });
+
+      return {
+        result: `📊 Bordro raporu oluşturuldu! (${reportId})\n\n${companyName ? `Firma: ${companyName}\n` : ""}${period ? `Dönem: ${period}\n` : ""}Çalışan sayısı: ${employees.length}\nToplam brüt: ₺${formatNum(totalBrut)}\n\n📥 Excel dosyası hazır — indirmek için aşağıdaki linki kullanın:\n[Excel İndir](/api/reports/${reportId}/download)`,
+        actionType: "report_generated",
+        actionDescription: `📊 Bordro: ${employees.length} çalışan — ₺${formatNum(totalBrut)}`,
+      };
+    }
+
+    case "generate_gelir_tablosu": {
+      const satislar = Number(args.satislar);
+      const satisIndirimleri = args.satis_indirimleri ? Number(args.satis_indirimleri) : undefined;
+      const satislarinMaliyeti = Number(args.satislarin_maliyeti);
+      const period = args.period ? String(args.period) : "";
+      const companyName = args.company_name ? String(args.company_name) : "";
+      const digerGelirler = args.diger_gelirler ? Number(args.diger_gelirler) : undefined;
+      const digerGiderler = args.diger_giderler ? Number(args.diger_giderler) : undefined;
+      const finansmanGiderleri = args.finansman_giderleri ? Number(args.finansman_giderleri) : undefined;
+
+      const faaliyetRaw = String(args.faaliyet_giderleri);
+      const faaliyetGiderleri = faaliyetRaw.split(";").filter(s => s.trim()).map(g => {
+        const p = g.trim().split("|");
+        return { ad: p[0]?.trim() || "", tutar: parseFloat(p[1]?.trim() || "0") };
+      });
+
+      const reportId = `GLT-${Date.now().toString(36).toUpperCase()}`;
+      const buf = await generateGelirTablosu({
+        financials: { satislar, satisIndirimleri, satislarinMaliyeti, faaliyet_giderleri: faaliyetGiderleri, diger_gelirler: digerGelirler, diger_giderler: digerGiderler, finansman_giderleri: finansmanGiderleri },
+        period, companyName,
+      });
+      const b64 = buf.toString("base64");
+
+      const formatNum = (n: number) => n.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+      await storage.createAgentAction({
+        userId, agentType,
+        actionType: "report_generated",
+        description: `📊 Gelir tablosu oluşturuldu${period ? ` (${period})` : ""}`,
+        metadata: { reportId, reportType: "gelir_tablosu", satislar, satislarinMaliyeti, period, companyName, excelBase64: b64 },
+      });
+
+      return {
+        result: `📊 Gelir tablosu oluşturuldu! (${reportId})\n\n${companyName ? `Firma: ${companyName}\n` : ""}${period ? `Dönem: ${period}\n` : ""}Brüt Satışlar: ₺${formatNum(satislar)}\nSMM: ₺${formatNum(satislarinMaliyeti)}\n\n📥 Excel dosyası hazır — indirmek için aşağıdaki linki kullanın:\n[Excel İndir](/api/reports/${reportId}/download)`,
+        actionType: "report_generated",
+        actionDescription: `📊 Gelir tablosu: Satışlar ₺${formatNum(satislar)}`,
+      };
+    }
+
+    case "generate_kdv_ozet": {
+      const hesaplananKdv = Number(args.hesaplanan_kdv);
+      const indirilecekKdv = Number(args.indirilecek_kdv);
+      const tevkifatKdv = args.tevkifat_kdv ? Number(args.tevkifat_kdv) : undefined;
+      const ihracatIstisnasi = args.ihracat_istisnasi ? Number(args.ihracat_istisnasi) : undefined;
+      const period = args.period ? String(args.period) : "";
+      const companyName = args.company_name ? String(args.company_name) : "";
+
+      const reportId = `KDV-${Date.now().toString(36).toUpperCase()}`;
+      const buf = await generateKdvOzet({
+        kdv: { hesaplananKdv, indirilecekKdv, tevkifatKdv, ihracatIstisnasi },
+        period, companyName,
+      });
+      const b64 = buf.toString("base64");
+
+      const formatNum = (n: number) => n.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      const odenecek = hesaplananKdv - indirilecekKdv - (tevkifatKdv || 0) - (ihracatIstisnasi || 0);
+
+      await storage.createAgentAction({
+        userId, agentType,
+        actionType: "report_generated",
+        description: `📊 KDV özet raporu oluşturuldu${period ? ` (${period})` : ""}`,
+        metadata: { reportId, reportType: "kdv_ozet", hesaplananKdv, indirilecekKdv, odenecek, period, companyName, excelBase64: b64 },
+      });
+
+      return {
+        result: `📊 KDV özet raporu oluşturuldu! (${reportId})\n\n${companyName ? `Firma: ${companyName}\n` : ""}${period ? `Dönem: ${period}\n` : ""}Hesaplanan KDV: ₺${formatNum(hesaplananKdv)}\nİndirilecek KDV: ₺${formatNum(indirilecekKdv)}\n${odenecek > 0 ? `Ödenecek KDV: ₺${formatNum(odenecek)}` : `Devreden KDV: ₺${formatNum(Math.abs(odenecek))}`}\n\n📥 Excel dosyası hazır — indirmek için aşağıdaki linki kullanın:\n[Excel İndir](/api/reports/${reportId}/download)`,
+        actionType: "report_generated",
+        actionDescription: `📊 KDV Özet: ${odenecek > 0 ? `Ödenecek ₺${formatNum(odenecek)}` : `Devreden ₺${formatNum(Math.abs(odenecek))}`}`,
       };
     }
 

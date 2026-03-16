@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { pgTable, serial, text, timestamp, integer, boolean, jsonb, customType } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, timestamp, integer, boolean, jsonb, customType, decimal, date, varchar } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { sql } from "drizzle-orm";
 
@@ -787,3 +787,57 @@ export const insertFeedbackSchema = createInsertSchema(feedback).omit({
 
 export type Feedback = typeof feedback.$inferSelect;
 export type InsertFeedback = z.infer<typeof insertFeedbackSchema>;
+
+export const invoices = pgTable("invoices", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id),
+  invoiceNo: varchar("invoice_no", { length: 20 }).notNull(),
+  invoiceType: varchar("invoice_type", { length: 20 }).default("satis"),
+  invoiceDate: date("invoice_date").notNull(),
+  dueDate: date("due_date"),
+  sellerName: text("seller_name"),
+  sellerTaxOffice: text("seller_tax_office"),
+  sellerTaxNo: text("seller_tax_no"),
+  sellerAddress: text("seller_address"),
+  buyerName: text("buyer_name").notNull(),
+  buyerTaxOffice: text("buyer_tax_office"),
+  buyerTaxNo: text("buyer_tax_no"),
+  buyerAddress: text("buyer_address"),
+  subtotal: decimal("subtotal", { precision: 15, scale: 2 }),
+  kdvRate: integer("kdv_rate").default(20),
+  kdvAmount: decimal("kdv_amount", { precision: 15, scale: 2 }),
+  tevkifatRate: varchar("tevkifat_rate", { length: 10 }),
+  tevkifatAmount: decimal("tevkifat_amount", { precision: 15, scale: 2 }).default("0"),
+  total: decimal("total", { precision: 15, scale: 2 }),
+  currency: varchar("currency", { length: 3 }).default("TRY"),
+  notes: text("notes"),
+  status: varchar("status", { length: 20 }).default("draft"),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
+export const insertInvoiceSchema = createInsertSchema(invoices).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type Invoice = typeof invoices.$inferSelect;
+export type InsertInvoice = z.infer<typeof insertInvoiceSchema>;
+
+export const invoiceItems = pgTable("invoice_items", {
+  id: serial("id").primaryKey(),
+  invoiceId: integer("invoice_id").references(() => invoices.id),
+  description: varchar("description", { length: 500 }).notNull(),
+  quantity: decimal("quantity", { precision: 10, scale: 2 }).notNull(),
+  unit: varchar("unit", { length: 20 }).default("Adet"),
+  unitPrice: decimal("unit_price", { precision: 15, scale: 2 }).notNull(),
+  kdvRate: integer("kdv_rate").default(20),
+  amount: decimal("amount", { precision: 15, scale: 2 }).notNull(),
+  sortOrder: integer("sort_order").default(0),
+});
+
+export const insertInvoiceItemSchema = createInsertSchema(invoiceItems).omit({
+  id: true,
+});
+
+export type InvoiceItem = typeof invoiceItems.$inferSelect;
+export type InsertInvoiceItem = z.infer<typeof insertInvoiceItemSchema>;

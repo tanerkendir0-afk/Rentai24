@@ -175,7 +175,7 @@ function OverviewPanel({ token }: { token: string }) {
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold text-white flex items-center gap-2">
           <BarChart3 className="w-5 h-5 text-blue-400" />
-          Platform Overview
+          {t("adminPage.overview.platformOverview")}
         </h3>
         <Button variant="ghost" size="sm" onClick={fetchData} disabled={loading} data-testid="button-refresh-overview">
           <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
@@ -271,7 +271,7 @@ function UsersPanel({ token }: { token: string }) {
                       {user.stripe_subscription_id ? (
                         <Badge className="bg-emerald-900/30 text-emerald-400 border-emerald-800 text-xs">
                           <CreditCard className="w-3 h-3 mr-1" />
-                          Subscribed
+                          {t("adminPage.users.subscribed")}
                         </Badge>
                       ) : (
                         <Badge variant="outline" className="border-[#1E2448] text-gray-500 text-xs">{t("adminPage.users.free")}</Badge>
@@ -5316,10 +5316,10 @@ function AdminGuidePanel() {
         <CardHeader>
           <CardTitle className="text-lg text-white flex items-center gap-2">
             <Bot className="w-5 h-5 text-blue-400" />
-            AI Ajan Rehberi
+            {t("adminPage.guide.agentGuide")}
           </CardTitle>
           <CardDescription className="text-gray-400">
-            Tüm ajanlar, görevleri ve özellikleri.
+            {t("adminPage.guide.agentGuideDesc")}
           </CardDescription>
         </CardHeader>
         <CardContent>

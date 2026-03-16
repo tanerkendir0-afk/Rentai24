@@ -1354,7 +1354,8 @@
       "description": "User accounts, subscriptions, and active rentals",
       "free": "Free",
       "noUsersYet": "No registered users yet",
-      "noUsersMatch": "No users match your search"
+      "noUsersMatch": "No users match your search",
+      "subscribed": "Subscribed"
     },
     "documents": {
       "urlPlaceholder": "https://example.com/docs/page",
@@ -1624,7 +1625,8 @@
       "contactMessages": "Contact Messages",
       "apiRequests": "API Requests",
       "noMessages": "No messages yet",
-      "noSubscribers": "No subscribers yet"
+      "noSubscribers": "No subscribers yet",
+      "platformOverview": "Platform Overview"
     },
     "performance": {
       "agent": "Agent",
@@ -1733,7 +1735,9 @@
       "step6": "6. User can chat",
       "step7": "7. messages_used increases with each message",
       "step8": "8. Chat stops when limit is reached",
-      "adminPermissions": "Admin Permissions"
+      "adminPermissions": "Admin Permissions",
+      "agentGuide": "AI Agent Guide",
+      "agentGuideDesc": "All agents, their roles and features."
     },
     "categories": {
       "dashboard": "Dashboard",

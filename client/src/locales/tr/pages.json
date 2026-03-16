@@ -1354,7 +1354,8 @@
       "description": "Kullanıcı hesapları, abonelikler ve aktif kiralamalar",
       "free": "Ücretsiz",
       "noUsersYet": "Henüz kayıtlı kullanıcı yok",
-      "noUsersMatch": "Aramanızla eşleşen kullanıcı yok"
+      "noUsersMatch": "Aramanızla eşleşen kullanıcı yok",
+      "subscribed": "Abone"
     },
     "documents": {
       "urlPlaceholder": "https://example.com/docs/page",
@@ -1624,7 +1625,8 @@
       "contactMessages": "İletişim Mesajları",
       "apiRequests": "API İstekleri",
       "noMessages": "Henüz mesaj yok",
-      "noSubscribers": "Henüz abone yok"
+      "noSubscribers": "Henüz abone yok",
+      "platformOverview": "Platform Genel Bakış"
     },
     "performance": {
       "agent": "Ajan",
@@ -1733,7 +1735,9 @@
       "step6": "6. Kullanıcı sohbet edebilir",
       "step7": "7. Her mesajda messages_used artar",
       "step8": "8. Limit dolunca sohbet durur",
-      "adminPermissions": "Admin Yetkiler"
+      "adminPermissions": "Admin Yetkiler",
+      "agentGuide": "AI Ajan Rehberi",
+      "agentGuideDesc": "Tüm ajanlar, görevleri ve özellikleri."
     },
     "categories": {
       "dashboard": "Dashboard",

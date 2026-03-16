@@ -9,6 +9,7 @@ import { AuthProvider } from "@/lib/auth";
 import { LanguageProvider } from "@/lib/language";
 import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
+import CookieConsent from "@/components/cookie-consent";
 import Home from "@/pages/home";
 import Workers from "@/pages/workers";
 import WorkerProfile from "@/pages/worker-profile";
@@ -85,6 +86,7 @@ function AppContent() {
           <Router />
         </main>
         {!hideFooter && <Footer />}
+        <CookieConsent />
       </div>
     </>
   );

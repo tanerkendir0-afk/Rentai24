@@ -9,6 +9,7 @@ import { Bot, Loader2, Eye, EyeOff } from "lucide-react";
 import { SiGoogle } from "react-icons/si";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "react-i18next";
+import { apiRequest } from "@/lib/queryClient";
 
 export default function Register() {
   const { register } = useAuth();
@@ -24,15 +25,20 @@ export default function Register() {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [kvkkConsent, setKvkkConsent] = useState(false);
 
   const update = (field: string) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm((prev) => ({ ...prev, [field]: e.target.value }));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!kvkkConsent) {
+      toast({ title: t("register.registerFailed"), description: t("register.kvkkRequired"), variant: "destructive" });
+      return;
+    }
     setLoading(true);
     try {
-      await register(form);
+      await register({ ...form, kvkkConsent: true, dataProcessingConsent: true });
       toast({ title: t("register.welcome"), description: t("register.registerSuccess") });
       setTimeout(() => setLocation("/dashboard"), 100);
     } catch (err: any) {
@@ -125,9 +131,26 @@ export default function Register() {
             />
           </div>
 
+          <div className="flex items-start gap-2">
+            <input
+              type="checkbox"
+              id="kvkkConsent"
+              checked={kvkkConsent}
+              onChange={(e) => setKvkkConsent(e.target.checked)}
+              className="mt-1 h-4 w-4 rounded border-border accent-blue-500"
+              data-testid="checkbox-kvkk-consent"
+            />
+            <label htmlFor="kvkkConsent" className="text-xs text-muted-foreground leading-relaxed">
+              {t("register.kvkkConsent")}{" "}
+              <Link href="/privacy" className="text-blue-400 hover:underline">
+                {t("register.kvkkLink")}
+              </Link>
+            </label>
+          </div>
+
           <Button
             type="submit"
-            disabled={loading}
+            disabled={loading || !kvkkConsent}
             className="w-full bg-gradient-to-r from-blue-500 to-violet-500 text-white border-0"
             data-testid="button-register-submit"
           >

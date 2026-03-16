@@ -41,7 +41,10 @@
     "signIn": "Giriş yap",
     "welcome": "RentAI 24'e hoş geldiniz!",
     "registerSuccess": "Hesabınız oluşturuldu.",
-    "registerFailed": "Kayıt başarısız"
+    "registerFailed": "Kayıt başarısız",
+    "kvkkConsent": "Okudum ve kabul ediyorum:",
+    "kvkkLink": "KVKK/GDPR Kişisel Verilerin İşlenmesi Politikası",
+    "kvkkRequired": "Hesap oluşturmak için kişisel verilerin işlenmesi politikasını kabul etmelisiniz"
   },
   "sectionCta": {
     "heading": "İlk Yapay Zeka Çalışanınızı Kiralamaya Hazır mısınız?",
@@ -1409,6 +1412,29 @@
       "changing": "Değiştiriliyor...",
       "changePassword": "Şifre Değiştir"
     },
+    "dataPrivacy": {
+      "title": "Veri ve Gizlilik",
+      "description": "KVKK/GDPR düzenlemelerine uygun olarak kişisel verilerinizi yönetin.",
+      "exportTitle": "Verilerimi Dışa Aktar",
+      "exportDesc": "Tüm kişisel verilerinizi JSON formatında indirin. Profiliniz, konuşmalarınız, görevleriniz ve onay geçmişiniz dahildir.",
+      "exportButton": "Verilerimi İndir",
+      "exporting": "Dışa aktarım hazırlanıyor...",
+      "exportSuccess": "Veri dışa aktarımı indirildi",
+      "exportSuccessDesc": "Verileriniz başarıyla dışa aktarıldı.",
+      "exportFailed": "Dışa aktarım başarısız",
+      "deleteTitle": "Hesabımı Sil",
+      "deleteDesc": "Hesabınızı ve tüm ilişkili verilerinizi kalıcı olarak silin. Bu işlem geri alınamaz.",
+      "deleteButton": "Hesabı Sil",
+      "deleteConfirmTitle": "Emin misiniz?",
+      "deleteConfirmDesc": "Bu işlem hesabınızı ve tüm verilerinizi kalıcı olarak silecektir. Onaylamak için DELETE yazın.",
+      "deleteConfirmPlaceholder": "Onaylamak için DELETE yazın",
+      "deleteConfirm": "Kalıcı Olarak Sil",
+      "deleteCancel": "İptal",
+      "deleting": "Siliniyor...",
+      "deleteSuccess": "Hesap silindi",
+      "deleteSuccessDesc": "Hesabınız ve tüm verileriniz kalıcı olarak silindi.",
+      "deleteFailed": "Silme başarısız"
+    },
     "toast": {
       "error": "Hata",
       "profileUpdated": "Profil güncellendi",
@@ -1582,7 +1608,8 @@
       "supportTickets": "Destek Biletleri",
       "security": "Güvenlik",
       "escalations": "Eskalasyonlar",
-      "collaboration": "İş Birliği"
+      "collaboration": "İş Birliği",
+      "consentStats": "KVKK/GDPR"
     },
     "login": {
       "passwordPlaceholder": "Admin Şifresi",
@@ -1660,6 +1687,24 @@
       "title": "Ajan İşbirliği — Beyin Fırtınası",
       "history": "Geçmiş",
       "pastSessions": "Geçmiş Beyin Fırtınası Oturumları"
+    },
+    "consentStats": {
+      "title": "KVKK/GDPR Onay İstatistikleri",
+      "description": "Platform genelindeki kullanıcı onay durumuna genel bakış.",
+      "totalUsers": "Toplam Kullanıcı",
+      "cookieConsent": "Çerez Onayı",
+      "dataProcessing": "Veri İşleme",
+      "consentRate": "Onay Oranı",
+      "granted": "Verildi",
+      "revoked": "İptal Edildi",
+      "total": "Toplam",
+      "consentType": "Onay Türü",
+      "cookie": "Çerez",
+      "dataProcessingType": "Veri İşleme",
+      "kvkk": "KVKK",
+      "noData": "Henüz onay verisi kaydedilmedi.",
+      "userConsentOverview": "Kullanıcı Onay Genel Görünümü",
+      "consentLogHistory": "Onay Günlük Geçmişi"
     },
     "bossAi": {
       "askPlaceholder": "Boss'a platform hakkında herhangi bir şey sorun...",

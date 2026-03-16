@@ -639,7 +639,18 @@ export async function registerRoutes(
       password: hashedPassword,
       fullName,
       company: company || null,
+      dataProcessingConsent: true,
     });
+
+    const ip = req.headers["x-forwarded-for"]?.toString().split(",")[0]?.trim() || req.socket.remoteAddress || "unknown";
+    const userAgent = req.headers["user-agent"] || "unknown";
+    try {
+      await storage.createConsentLog({ userId: user.id, consentType: "kvkk", granted: true, ip, userAgent });
+      await storage.createConsentLog({ userId: user.id, consentType: "dataProcessing", granted: true, ip, userAgent });
+      await storage.updateUserConsent(user.id, { dataProcessingConsent: true });
+    } catch (e) {
+      console.error("Failed to persist registration consent logs:", e);
+    }
 
     req.session.userId = user.id;
     req.session.save(() => {
@@ -4991,6 +5002,114 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
       res.json({ success: true });
     } catch (error: unknown) {
       console.error("Delete CRM document error:", error);
+      res.status(500).json({ error: msg("internalServerError", req.lang!) });
+    }
+  });
+
+  app.post("/api/consent", async (req, res) => {
+    try {
+      const { consentType, granted } = req.body;
+      if (!consentType) return res.status(400).json({ error: msg("consentTypeMissing", req.lang!) });
+      if (!["cookie", "dataProcessing", "kvkk"].includes(consentType)) {
+        return res.status(400).json({ error: msg("invalidConsentType", req.lang!) });
+      }
+      const userId = req.session?.userId || null;
+      const ipAddress = (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() || req.ip || null;
+      const userAgent = req.headers["user-agent"] || null;
+      await storage.createConsentLog({ userId, consentType, granted: !!granted, ipAddress, userAgent });
+      if (userId) {
+        const updates: { cookieConsent?: boolean; dataProcessingConsent?: boolean } = {};
+        if (consentType === "cookie") updates.cookieConsent = !!granted;
+        if (consentType === "dataProcessing" || consentType === "kvkk") updates.dataProcessingConsent = !!granted;
+        await storage.updateUserConsent(userId, updates);
+      }
+      res.json({ success: true, message: msg("consentSaved", req.lang!) });
+    } catch (error: unknown) {
+      console.error("Consent error:", error);
+      res.status(500).json({ error: msg("internalServerError", req.lang!) });
+    }
+  });
+
+  app.get("/api/user/data-export", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const user = await storage.getUserById(userId);
+      if (!user) return res.status(404).json({ error: msg("userNotFound", req.lang!) });
+      const rentalsData = await storage.getRentalsByUser(userId);
+      const teamMembersData = await storage.getTeamMembers(userId);
+      const leadsData = await storage.getLeadsByUser(userId);
+      const ticketsData = await storage.getTicketsByUser(userId);
+      const tasksData = await storage.getAgentTasksByUser(userId);
+      const socialData = await storage.getSocialAccounts(userId);
+      const consentData = await storage.getConsentLogs(userId);
+      const crmDocs = await storage.getCrmDocuments(userId);
+      const exportData = {
+        exportDate: new Date().toISOString(),
+        profile: {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          fullName: user.fullName,
+          company: user.company,
+          role: user.role,
+          language: user.language,
+          cookieConsent: user.cookieConsent,
+          dataProcessingConsent: user.dataProcessingConsent,
+          createdAt: user.createdAt,
+        },
+        rentals: rentalsData,
+        teamMembers: teamMembersData,
+        leads: leadsData.map(l => ({ ...l })),
+        supportTickets: ticketsData,
+        agentTasks: tasksData,
+        socialAccounts: socialData.map(s => ({ id: s.id, platform: s.platform, username: s.username, status: s.status, connectedAt: s.connectedAt })),
+        consentHistory: consentData,
+        crmDocuments: crmDocs.map(d => ({ id: d.id, originalName: d.originalName, fileType: d.fileType, fileSize: d.fileSize, uploadedAt: d.uploadedAt })),
+      };
+      res.setHeader("Content-Disposition", `attachment; filename="rentai24-data-export-${userId}.json"`);
+      res.setHeader("Content-Type", "application/json");
+      res.json(exportData);
+    } catch (error: unknown) {
+      console.error("Data export error:", error);
+      res.status(500).json({ error: msg("internalServerError", req.lang!) });
+    }
+  });
+
+  app.delete("/api/user/account", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const { confirmation } = req.body;
+      if (confirmation !== "DELETE") {
+        return res.status(400).json({ error: msg("confirmationRequired", req.lang!) });
+      }
+      const deleted = await storage.deleteUserAndData(userId);
+      if (!deleted) {
+        return res.status(500).json({ error: msg("accountDeletionFailed", req.lang!) });
+      }
+      req.session.destroy(() => {});
+      res.json({ success: true, message: msg("accountDeleted", req.lang!) });
+    } catch (error: unknown) {
+      console.error("Account deletion error:", error);
+      res.status(500).json({ error: msg("internalServerError", req.lang!) });
+    }
+  });
+
+  app.get(`/api/${ADMIN_PATH}/consent-stats`, requireAdmin, async (req, res) => {
+    try {
+      const stats = await storage.getConsentStats();
+      const totalUsers = (await storage.getAllUsers()).length;
+      const usersWithCookie = (await storage.getAllUsers()).filter(u => u.cookieConsent).length;
+      const usersWithProcessing = (await storage.getAllUsers()).filter(u => u.dataProcessingConsent).length;
+      res.json({
+        consentLogs: stats,
+        userConsent: {
+          totalUsers,
+          cookieConsent: usersWithCookie,
+          dataProcessingConsent: usersWithProcessing,
+        },
+      });
+    } catch (error: unknown) {
+      console.error("Consent stats error:", error);
       res.status(500).json({ error: msg("internalServerError", req.lang!) });
     }
   });

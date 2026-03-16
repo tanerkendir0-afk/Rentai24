@@ -41,7 +41,10 @@
     "signIn": "Sign in",
     "welcome": "Welcome to RentAI 24!",
     "registerSuccess": "Your account has been created.",
-    "registerFailed": "Registration failed"
+    "registerFailed": "Registration failed",
+    "kvkkConsent": "I have read and accept the",
+    "kvkkLink": "KVKK/GDPR Data Processing Policy",
+    "kvkkRequired": "You must accept the data processing policy to create an account"
   },
   "sectionCta": {
     "heading": "Ready to Hire Your First AI Worker?",
@@ -1409,6 +1412,29 @@
       "changing": "Changing...",
       "changePassword": "Change Password"
     },
+    "dataPrivacy": {
+      "title": "Data & Privacy",
+      "description": "Manage your personal data in compliance with KVKK/GDPR regulations.",
+      "exportTitle": "Export My Data",
+      "exportDesc": "Download all your personal data in JSON format. This includes your profile, conversations, tasks, and consent history.",
+      "exportButton": "Download My Data",
+      "exporting": "Preparing export...",
+      "exportSuccess": "Data export downloaded",
+      "exportSuccessDesc": "Your data has been exported successfully.",
+      "exportFailed": "Export failed",
+      "deleteTitle": "Delete My Account",
+      "deleteDesc": "Permanently delete your account and all associated data. This action cannot be undone.",
+      "deleteButton": "Delete Account",
+      "deleteConfirmTitle": "Are you sure?",
+      "deleteConfirmDesc": "This will permanently delete your account and all your data. Type DELETE to confirm.",
+      "deleteConfirmPlaceholder": "Type DELETE to confirm",
+      "deleteConfirm": "Permanently Delete",
+      "deleteCancel": "Cancel",
+      "deleting": "Deleting...",
+      "deleteSuccess": "Account deleted",
+      "deleteSuccessDesc": "Your account and all data have been permanently deleted.",
+      "deleteFailed": "Deletion failed"
+    },
     "toast": {
       "error": "Error",
       "profileUpdated": "Profile updated",
@@ -1582,7 +1608,8 @@
       "supportTickets": "Support Tickets",
       "security": "Security",
       "escalations": "Escalations",
-      "collaboration": "Collaboration"
+      "collaboration": "Collaboration",
+      "consentStats": "KVKK/GDPR"
     },
     "login": {
       "passwordPlaceholder": "Admin Password",
@@ -1660,6 +1687,24 @@
       "title": "Agent Collaboration — Brainstorming",
       "history": "History",
       "pastSessions": "Past Brainstorming Sessions"
+    },
+    "consentStats": {
+      "title": "KVKK/GDPR Consent Statistics",
+      "description": "Overview of user consent status across the platform.",
+      "totalUsers": "Total Users",
+      "cookieConsent": "Cookie Consent",
+      "dataProcessing": "Data Processing",
+      "consentRate": "Consent Rate",
+      "granted": "Granted",
+      "revoked": "Revoked",
+      "total": "Total",
+      "consentType": "Consent Type",
+      "cookie": "Cookie",
+      "dataProcessingType": "Data Processing",
+      "kvkk": "KVKK",
+      "noData": "No consent data recorded yet.",
+      "userConsentOverview": "User Consent Overview",
+      "consentLogHistory": "Consent Log History"
     },
     "bossAi": {
       "askPlaceholder": "Ask Boss anything about the platform...",

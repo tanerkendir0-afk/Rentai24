@@ -32,6 +32,8 @@ export const users = pgTable("users", {
   gmailAccessToken: text("gmail_access_token"),
   gmailTokenExpiry: timestamp("gmail_token_expiry"),
   language: text("language").notNull().default("en"),
+  cookieConsent: boolean("cookie_consent").notNull().default(false),
+  dataProcessingConsent: boolean("data_processing_consent").notNull().default(false),
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
 });
 
@@ -138,6 +140,8 @@ export const registerSchema = z.object({
   password: z.string().min(6, "Password must be at least 6 characters"),
   fullName: z.string().min(2, "Full name is required"),
   company: z.string().optional(),
+  kvkkConsent: z.boolean().refine(val => val === true, { message: "KVKK consent is required" }),
+  dataProcessingConsent: z.boolean().refine(val => val === true, { message: "Data processing consent is required" }),
 });
 
 export const loginSchema = z.object({
@@ -686,6 +690,24 @@ export const globalAgentInstructions = pgTable("global_agent_instructions", {
 });
 
 export type GlobalAgentInstruction = typeof globalAgentInstructions.$inferSelect;
+
+export const consentLogs = pgTable("consent_logs", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id),
+  consentType: text("consent_type", { enum: ["cookie", "dataProcessing", "kvkk"] }).notNull(),
+  granted: boolean("granted").notNull(),
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
+export const insertConsentLogSchema = createInsertSchema(consentLogs).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type ConsentLog = typeof consentLogs.$inferSelect;
+export type InsertConsentLog = z.infer<typeof insertConsentLogSchema>;
 
 export const crmDocuments = pgTable("crm_documents", {
   id: serial("id").primaryKey(),

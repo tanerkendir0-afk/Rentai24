@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { users, rentals, contactMessages, newsletterSubscribers, leads, agentActions, emailCampaigns, supportTickets, tokenUsage, agentTasks, chatMessages, conversations, teamMembers, bossNotifications, socialAccounts, shippingProviders, guardrailLogs, systemSettings, scheduledPosts, whatsappConfig, whatsappMessages, agentLimits, escalationRules, escalations, escalationMessages, agentInstructions, globalAgentInstructions, crmDocuments, type User, type InsertUser, type Rental, type InsertRental, type ContactMessage, type InsertContactMessage, type NewsletterSubscriber, type Lead, type InsertLead, type AgentAction, type InsertAgentAction, type EmailCampaign, type InsertEmailCampaign, type SupportTicket, type InsertSupportTicket, type TokenUsage, type InsertTokenUsage, type AgentTask, type InsertAgentTask, type ChatMessage, type InsertChatMessage, type ConversationRecord, type InsertConversation, type TeamMember, type InsertTeamMember, type BossNotification, type InsertBossNotification, type SocialAccount, type InsertSocialAccount, type ShippingProvider, type InsertShippingProvider, type GuardrailLog, type ScheduledPost, type InsertScheduledPost, type WhatsappConfig, type InsertWhatsappConfig, type WhatsappMessage, type InsertWhatsappMessage, type AgentLimit, type InsertAgentLimit, type EscalationRule, type InsertEscalationRule, type Escalation, type InsertEscalation, type EscalationMessage, type InsertEscalationMessage, type AgentInstruction, type InsertAgentInstruction, type GlobalAgentInstruction, type CrmDocument, type InsertCrmDocument } from "@shared/schema";
+import { users, rentals, contactMessages, newsletterSubscribers, leads, agentActions, emailCampaigns, supportTickets, tokenUsage, agentTasks, chatMessages, conversations, teamMembers, bossNotifications, socialAccounts, shippingProviders, guardrailLogs, systemSettings, scheduledPosts, whatsappConfig, whatsappMessages, agentLimits, escalationRules, escalations, escalationMessages, agentInstructions, globalAgentInstructions, consentLogs, crmDocuments, securityEvents, type User, type InsertUser, type Rental, type InsertRental, type ContactMessage, type InsertContactMessage, type NewsletterSubscriber, type Lead, type InsertLead, type AgentAction, type InsertAgentAction, type EmailCampaign, type InsertEmailCampaign, type SupportTicket, type InsertSupportTicket, type TokenUsage, type InsertTokenUsage, type AgentTask, type InsertAgentTask, type ChatMessage, type InsertChatMessage, type ConversationRecord, type InsertConversation, type TeamMember, type InsertTeamMember, type BossNotification, type InsertBossNotification, type SocialAccount, type InsertSocialAccount, type ShippingProvider, type InsertShippingProvider, type GuardrailLog, type ScheduledPost, type InsertScheduledPost, type WhatsappConfig, type InsertWhatsappConfig, type WhatsappMessage, type InsertWhatsappMessage, type AgentLimit, type InsertAgentLimit, type EscalationRule, type InsertEscalationRule, type Escalation, type InsertEscalation, type EscalationMessage, type InsertEscalationMessage, type AgentInstruction, type InsertAgentInstruction, type GlobalAgentInstruction, type ConsentLog, type InsertConsentLog, type CrmDocument, type InsertCrmDocument } from "@shared/schema";
 import { eq, and, sql, desc, gte, lte } from "drizzle-orm";
 import * as cryptoModule from "crypto";
 
@@ -156,6 +156,12 @@ export interface IStorage {
   getCrmDocumentById(id: number, userId: number): Promise<CrmDocument | undefined>;
   createCrmDocument(doc: InsertCrmDocument): Promise<CrmDocument>;
   deleteCrmDocument(id: number, userId: number): Promise<boolean>;
+
+  createConsentLog(log: InsertConsentLog): Promise<ConsentLog>;
+  getConsentLogs(userId: number): Promise<ConsentLog[]>;
+  getConsentStats(): Promise<{ consentType: string; granted: number; revoked: number; total: number }[]>;
+  updateUserConsent(userId: number, updates: { cookieConsent?: boolean; dataProcessingConsent?: boolean }): Promise<User | undefined>;
+  deleteUserAndData(userId: number): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1131,6 +1137,65 @@ export class DatabaseStorage implements IStorage {
   async deleteCrmDocument(id: number, userId: number): Promise<boolean> {
     const result = await db.delete(crmDocuments).where(and(eq(crmDocuments.id, id), eq(crmDocuments.userId, userId))).returning();
     return result.length > 0;
+  }
+
+  async createConsentLog(log: InsertConsentLog): Promise<ConsentLog> {
+    const [created] = await db.insert(consentLogs).values(log).returning();
+    return created;
+  }
+
+  async getConsentLogs(userId: number): Promise<ConsentLog[]> {
+    return db.select().from(consentLogs).where(eq(consentLogs.userId, userId)).orderBy(desc(consentLogs.createdAt));
+  }
+
+  async getConsentStats(): Promise<{ consentType: string; granted: number; revoked: number; total: number }[]> {
+    const result = await db.select({
+      consentType: consentLogs.consentType,
+      granted: sql<number>`count(*) filter (where ${consentLogs.granted} = true)`.as("granted"),
+      revoked: sql<number>`count(*) filter (where ${consentLogs.granted} = false)`.as("revoked"),
+      total: sql<number>`count(*)`.as("total"),
+    }).from(consentLogs).groupBy(consentLogs.consentType);
+    return result;
+  }
+
+  async updateUserConsent(userId: number, updates: { cookieConsent?: boolean; dataProcessingConsent?: boolean }): Promise<User | undefined> {
+    const [updated] = await db.update(users).set(updates).where(eq(users.id, userId)).returning();
+    return updated;
+  }
+
+  async deleteUserAndData(userId: number): Promise<boolean> {
+    try {
+      await db.delete(consentLogs).where(eq(consentLogs.userId, userId));
+      await db.delete(crmDocuments).where(eq(crmDocuments.userId, userId));
+      await db.delete(securityEvents).where(eq(securityEvents.userId, userId));
+      await db.delete(agentActions).where(eq(agentActions.userId, userId));
+      await db.delete(agentLimits).where(eq(agentLimits.userId, userId));
+      await db.delete(escalationMessages).where(
+        sql`${escalationMessages.escalationId} IN (SELECT id FROM escalations WHERE user_id = ${userId})`
+      );
+      await db.delete(escalations).where(eq(escalations.userId, userId));
+      await db.delete(whatsappMessages).where(eq(whatsappMessages.userId, userId));
+      await db.delete(whatsappConfig).where(eq(whatsappConfig.userId, userId));
+      await db.delete(scheduledPosts).where(eq(scheduledPosts.userId, userId));
+      await db.delete(guardrailLogs).where(eq(guardrailLogs.userId, userId));
+      await db.delete(bossNotifications).where(eq(bossNotifications.userId, userId));
+      await db.delete(shippingProviders).where(eq(shippingProviders.userId, userId));
+      await db.delete(socialAccounts).where(eq(socialAccounts.userId, userId));
+      await db.delete(teamMembers).where(eq(teamMembers.userId, userId));
+      await db.delete(agentTasks).where(eq(agentTasks.userId, userId));
+      await db.delete(emailCampaigns).where(eq(emailCampaigns.userId, userId));
+      await db.delete(leads).where(eq(leads.userId, userId));
+      await db.delete(supportTickets).where(eq(supportTickets.userId, userId));
+      await db.delete(tokenUsage).where(eq(tokenUsage.userId, userId));
+      await db.delete(chatMessages).where(eq(chatMessages.userId, userId));
+      await db.delete(conversations).where(eq(conversations.userId, userId));
+      await db.delete(rentals).where(eq(rentals.userId, userId));
+      await db.delete(users).where(eq(users.id, userId));
+      return true;
+    } catch (err) {
+      console.error("deleteUserAndData failed:", err);
+      return false;
+    }
   }
 }
 

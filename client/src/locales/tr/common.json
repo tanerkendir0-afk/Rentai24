@@ -79,5 +79,12 @@
     "preferenceDesc": "Arayüz için tercih ettiğiniz dili seçin.",
     "saved": "Dil tercihi kaydedildi",
     "savedDesc": "Arayüz dili güncellendi."
+  },
+  "cookieConsent": {
+    "title": "Çerez ve Gizlilik Bildirimi",
+    "description": "Deneyiminizi geliştirmek için çerezler ve benzer teknolojiler kullanıyoruz. Sitemizi kullanmaya devam ederek, çerez kullanımımıza onay vermiş olursunuz.",
+    "privacyLink": "Gizlilik Politikası",
+    "acceptAll": "Tümünü Kabul Et",
+    "rejectAll": "Tümünü Reddet"
   }
 }

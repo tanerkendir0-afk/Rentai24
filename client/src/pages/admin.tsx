@@ -5208,6 +5208,121 @@ function AIProviderPanel({ token }: { token: string }) {
   );
 }
 
+function ConsentStatsPanel({ token }: { token: string }) {
+  const { t } = useTranslation("pages");
+  const [stats, setStats] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const headers = { Authorization: `Bearer ${token}` };
+        const res = await fetch(`${ADMIN_API}/consent-stats`, { headers });
+        if (res.ok) {
+          const data = await res.json();
+          setStats(data);
+        }
+      } catch (err) {
+        console.error("Failed to fetch consent stats:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchStats();
+  }, [token]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-12">
+        <Loader2 className="w-6 h-6 animate-spin text-blue-400" />
+      </div>
+    );
+  }
+
+  const userConsent = stats?.userConsent || { totalUsers: 0, cookieConsent: 0, dataProcessingConsent: 0 };
+  const consentLogs = stats?.consentLogs || [];
+
+  return (
+    <div className="space-y-6">
+      <Card className="bg-gradient-to-r from-green-900/50 to-emerald-900/50 border-green-500/30">
+        <CardHeader>
+          <CardTitle className="text-xl text-white flex items-center gap-2">
+            <Shield className="w-5 h-5 text-green-400" />
+            {t("adminPage.consentStats.title")}
+          </CardTitle>
+          <CardDescription className="text-gray-300">
+            {t("adminPage.consentStats.description")}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div>
+            <h3 className="text-sm font-medium text-gray-300 mb-3">{t("adminPage.consentStats.userConsentOverview")}</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="p-4 bg-[#0A0E27] rounded-lg border border-[#1E2448] text-center">
+                <p className="text-2xl font-bold text-white">{userConsent.totalUsers}</p>
+                <p className="text-xs text-gray-400 mt-1">{t("adminPage.consentStats.totalUsers")}</p>
+              </div>
+              <div className="p-4 bg-[#0A0E27] rounded-lg border border-[#1E2448] text-center">
+                <p className="text-2xl font-bold text-green-400">{userConsent.cookieConsent}</p>
+                <p className="text-xs text-gray-400 mt-1">{t("adminPage.consentStats.cookieConsent")}</p>
+                <p className="text-xs text-emerald-500 mt-0.5">
+                  {userConsent.totalUsers > 0 ? `${Math.round((userConsent.cookieConsent / userConsent.totalUsers) * 100)}%` : "0%"} {t("adminPage.consentStats.consentRate")}
+                </p>
+              </div>
+              <div className="p-4 bg-[#0A0E27] rounded-lg border border-[#1E2448] text-center">
+                <p className="text-2xl font-bold text-blue-400">{userConsent.dataProcessingConsent}</p>
+                <p className="text-xs text-gray-400 mt-1">{t("adminPage.consentStats.dataProcessing")}</p>
+                <p className="text-xs text-blue-500 mt-0.5">
+                  {userConsent.totalUsers > 0 ? `${Math.round((userConsent.dataProcessingConsent / userConsent.totalUsers) * 100)}%` : "0%"} {t("adminPage.consentStats.consentRate")}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {consentLogs.length > 0 && (
+            <div>
+              <h3 className="text-sm font-medium text-gray-300 mb-3">{t("adminPage.consentStats.consentLogHistory")}</h3>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-[#1E2448]">
+                      <th className="text-left p-2 text-gray-400">{t("adminPage.consentStats.consentType")}</th>
+                      <th className="text-center p-2 text-gray-400">{t("adminPage.consentStats.granted")}</th>
+                      <th className="text-center p-2 text-gray-400">{t("adminPage.consentStats.revoked")}</th>
+                      <th className="text-center p-2 text-gray-400">{t("adminPage.consentStats.total")}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {consentLogs.map((log: any) => (
+                      <tr key={log.consentType} className="border-b border-[#1E2448]/50">
+                        <td className="p-2 text-white capitalize">
+                          {log.consentType === "cookie" ? t("adminPage.consentStats.cookie") :
+                           log.consentType === "dataProcessing" ? t("adminPage.consentStats.dataProcessingType") :
+                           t("adminPage.consentStats.kvkk")}
+                        </td>
+                        <td className="p-2 text-center text-green-400">{log.granted}</td>
+                        <td className="p-2 text-center text-red-400">{log.revoked}</td>
+                        <td className="p-2 text-center text-gray-300">{log.total}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {consentLogs.length === 0 && (
+            <div className="text-center py-8 text-gray-500">
+              <Shield className="w-10 h-10 mx-auto mb-2 opacity-30" />
+              <p className="text-sm">{t("adminPage.consentStats.noData")}</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 function AdminGuidePanel() {
   const { t } = useTranslation("pages");
   const AGENT_DETAILS = [
@@ -5470,7 +5585,7 @@ export default function AdminPage() {
             "messages": "analytics", "spend-analysis": "analytics", "token-optimization": "analytics",
             "costs": "analytics", "performance": "analytics", "conversation-review": "analytics",
             "limit-management": "limits", "packages": "limits",
-            "guardrails": "security", "support-tickets": "security", "security-report": "security", "escalations": "security", "collaboration": "security",
+            "guardrails": "security", "support-tickets": "security", "security-report": "security", "escalations": "security", "collaboration": "security", "consent-stats": "security",
             "admin-guide": "help",
           };
           if (tabToCategory[val]) setActiveCategory(tabToCategory[val]);
@@ -5625,6 +5740,10 @@ export default function AdminPage() {
                     <Brain className="w-3.5 h-3.5 mr-1" />
                     {t("adminPage.tabs.collaboration")}
                   </TabsTrigger>
+                  <TabsTrigger value="consent-stats" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-500 data-[state=active]:to-emerald-600 data-[state=active]:text-white" data-testid="tab-consent-stats">
+                    <Shield className="w-3.5 h-3.5 mr-1" />
+                    {t("adminPage.tabs.consentStats")}
+                  </TabsTrigger>
                 </>
               )}
               {activeCategory === "help" && (
@@ -5724,6 +5843,10 @@ export default function AdminPage() {
 
           <TabsContent value="ai-provider">
             <AIProviderPanel token={token} />
+          </TabsContent>
+
+          <TabsContent value="consent-stats">
+            <ConsentStatsPanel token={token} />
           </TabsContent>
 
           <TabsContent value="admin-guide">

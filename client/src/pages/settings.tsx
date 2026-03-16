@@ -48,6 +48,8 @@ import {
   FileText,
   Upload,
   Download,
+  AlertTriangle,
+  Database,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
@@ -404,6 +406,9 @@ export default function Settings() {
   const [secretForm, setSecretForm] = useState<Record<string, string>>({});
   const [secretSaving, setSecretSaving] = useState(false);
   const [visibleSecretFields, setVisibleSecretFields] = useState<Record<string, boolean>>({});
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [deletingAccount, setDeletingAccount] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -2375,6 +2380,106 @@ export default function Settings() {
                 </p>
               </div>
             )}
+          </div>
+        </Card>
+
+        <Card className="p-4 sm:p-6 bg-card border-border/50" data-testid="card-data-privacy">
+          <div className="flex items-center gap-2 mb-2">
+            <Database className="w-5 h-5 text-green-400" />
+            <h2 className="text-lg font-semibold text-foreground">{t("settingsPage.dataPrivacy.title")}</h2>
+          </div>
+          <p className="text-xs text-muted-foreground mb-4">
+            {t("settingsPage.dataPrivacy.description")}
+          </p>
+          <div className="space-y-4">
+            <div className="p-4 rounded-lg border border-border/50 bg-accent/10">
+              <div className="flex items-center gap-2 mb-1">
+                <Download className="w-4 h-4 text-blue-400" />
+                <h3 className="text-sm font-medium">{t("settingsPage.dataPrivacy.exportTitle")}</h3>
+              </div>
+              <p className="text-xs text-muted-foreground mb-3">{t("settingsPage.dataPrivacy.exportDesc")}</p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-blue-500/30 text-blue-400 hover:bg-blue-500/10"
+                data-testid="button-export-data"
+                onClick={async () => {
+                  try {
+                    const res = await fetch("/api/user/data-export", { credentials: "include" });
+                    if (!res.ok) throw new Error();
+                    const blob = await res.blob();
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = `rentai24-data-export.json`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    toast({ title: t("settingsPage.dataPrivacy.exportSuccess"), description: t("settingsPage.dataPrivacy.exportSuccessDesc") });
+                  } catch {
+                    toast({ title: t("settingsPage.dataPrivacy.exportFailed"), variant: "destructive" });
+                  }
+                }}
+              >
+                <Download className="w-4 h-4 mr-1.5" />
+                {t("settingsPage.dataPrivacy.exportButton")}
+              </Button>
+            </div>
+            <div className="p-4 rounded-lg border border-red-500/20 bg-red-500/5">
+              <div className="flex items-center gap-2 mb-1">
+                <AlertTriangle className="w-4 h-4 text-red-400" />
+                <h3 className="text-sm font-medium text-red-400">{t("settingsPage.dataPrivacy.deleteTitle")}</h3>
+              </div>
+              <p className="text-xs text-muted-foreground mb-3">{t("settingsPage.dataPrivacy.deleteDesc")}</p>
+              {showDeleteConfirm ? (
+                <div className="space-y-2">
+                  <p className="text-xs text-red-400 font-medium">{t("settingsPage.dataPrivacy.deleteConfirmDesc")}</p>
+                  <Input
+                    value={deleteConfirmText}
+                    onChange={(e) => setDeleteConfirmText(e.target.value)}
+                    placeholder={t("settingsPage.dataPrivacy.deleteConfirmPlaceholder")}
+                    className="h-8 text-sm"
+                    data-testid="input-delete-confirm"
+                  />
+                  <div className="flex gap-2">
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      disabled={deleteConfirmText !== "DELETE" || deletingAccount}
+                      data-testid="button-confirm-delete"
+                      onClick={async () => {
+                        setDeletingAccount(true);
+                        try {
+                          await apiRequest("DELETE", "/api/user/account", { confirmation: "DELETE" });
+                          toast({ title: t("settingsPage.dataPrivacy.deleteSuccess"), description: t("settingsPage.dataPrivacy.deleteSuccessDesc") });
+                          setTimeout(() => { window.location.href = "/"; }, 1000);
+                        } catch {
+                          toast({ title: t("settingsPage.dataPrivacy.deleteFailed"), variant: "destructive" });
+                        } finally {
+                          setDeletingAccount(false);
+                        }
+                      }}
+                    >
+                      {deletingAccount ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Trash2 className="w-4 h-4 mr-1" />}
+                      {t("settingsPage.dataPrivacy.deleteConfirm")}
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmText(""); }}>
+                      {t("settingsPage.dataPrivacy.deleteCancel")}
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-red-500/30 text-red-400 hover:bg-red-500/10"
+                  data-testid="button-delete-account"
+                  onClick={() => setShowDeleteConfirm(true)}
+                >
+                  <Trash2 className="w-4 h-4 mr-1.5" />
+                  {t("settingsPage.dataPrivacy.deleteButton")}
+                </Button>
+              )}
+            </div>
           </div>
         </Card>
 

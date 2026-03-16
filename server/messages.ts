@@ -507,6 +507,38 @@ const messages = {
     en: "Anthropic API key not configured",
     tr: "Anthropic API anahtarı yapılandırılmamış",
   },
+  consentSaved: {
+    en: "Consent preference saved",
+    tr: "Onay tercihi kaydedildi",
+  },
+  consentTypeMissing: {
+    en: "Consent type is required",
+    tr: "Onay türü gereklidir",
+  },
+  invalidConsentType: {
+    en: "Invalid consent type",
+    tr: "Geçersiz onay türü",
+  },
+  dataExportGenerated: {
+    en: "Data export generated successfully",
+    tr: "Veri dışa aktarımı başarıyla oluşturuldu",
+  },
+  accountDeleted: {
+    en: "Account and all associated data have been deleted",
+    tr: "Hesap ve tüm ilişkili veriler silindi",
+  },
+  accountDeletionFailed: {
+    en: "Failed to delete account",
+    tr: "Hesap silinemedi",
+  },
+  confirmationRequired: {
+    en: "Confirmation text is required",
+    tr: "Onay metni gereklidir",
+  },
+  consentStatsFetched: {
+    en: "Consent statistics fetched",
+    tr: "Onay istatistikleri alındı",
+  },
 } satisfies Record<string, MessageMap>;
 
 export type MessageKey = keyof typeof messages;

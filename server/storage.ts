@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { users, rentals, contactMessages, newsletterSubscribers, leads, agentActions, emailCampaigns, supportTickets, tokenUsage, agentTasks, chatMessages, conversations, teamMembers, bossNotifications, socialAccounts, shippingProviders, guardrailLogs, systemSettings, scheduledPosts, whatsappConfig, whatsappMessages, agentLimits, escalationRules, escalations, escalationMessages, agentInstructions, globalAgentInstructions, consentLogs, crmDocuments, securityEvents, pageViews, userEvents, feedback, type User, type InsertUser, type Rental, type InsertRental, type ContactMessage, type InsertContactMessage, type NewsletterSubscriber, type Lead, type InsertLead, type AgentAction, type InsertAgentAction, type EmailCampaign, type InsertEmailCampaign, type SupportTicket, type InsertSupportTicket, type TokenUsage, type InsertTokenUsage, type AgentTask, type InsertAgentTask, type ChatMessage, type InsertChatMessage, type ConversationRecord, type InsertConversation, type TeamMember, type InsertTeamMember, type BossNotification, type InsertBossNotification, type SocialAccount, type InsertSocialAccount, type ShippingProvider, type InsertShippingProvider, type GuardrailLog, type ScheduledPost, type InsertScheduledPost, type WhatsappConfig, type InsertWhatsappConfig, type WhatsappMessage, type InsertWhatsappMessage, type AgentLimit, type InsertAgentLimit, type EscalationRule, type InsertEscalationRule, type Escalation, type InsertEscalation, type EscalationMessage, type InsertEscalationMessage, type AgentInstruction, type InsertAgentInstruction, type GlobalAgentInstruction, type ConsentLog, type InsertConsentLog, type CrmDocument, type InsertCrmDocument, type PageView, type InsertPageView, type UserEvent, type InsertUserEvent, type Feedback, type InsertFeedback } from "@shared/schema";
+import { users, rentals, contactMessages, newsletterSubscribers, leads, agentActions, emailCampaigns, supportTickets, tokenUsage, agentTasks, chatMessages, conversations, teamMembers, bossNotifications, socialAccounts, shippingProviders, guardrailLogs, systemSettings, scheduledPosts, whatsappConfig, whatsappMessages, agentLimits, escalationRules, escalations, escalationMessages, agentInstructions, globalAgentInstructions, consentLogs, crmDocuments, securityEvents, pageViews, userEvents, feedback, rexContacts, rexDeals, rexActivities, rexSequences, rexStageHistory, rexScoreHistory, rexStageConfig, type User, type InsertUser, type Rental, type InsertRental, type ContactMessage, type InsertContactMessage, type NewsletterSubscriber, type Lead, type InsertLead, type AgentAction, type InsertAgentAction, type EmailCampaign, type InsertEmailCampaign, type SupportTicket, type InsertSupportTicket, type TokenUsage, type InsertTokenUsage, type AgentTask, type InsertAgentTask, type ChatMessage, type InsertChatMessage, type ConversationRecord, type InsertConversation, type TeamMember, type InsertTeamMember, type BossNotification, type InsertBossNotification, type SocialAccount, type InsertSocialAccount, type ShippingProvider, type InsertShippingProvider, type GuardrailLog, type ScheduledPost, type InsertScheduledPost, type WhatsappConfig, type InsertWhatsappConfig, type WhatsappMessage, type InsertWhatsappMessage, type AgentLimit, type InsertAgentLimit, type EscalationRule, type InsertEscalationRule, type Escalation, type InsertEscalation, type EscalationMessage, type InsertEscalationMessage, type AgentInstruction, type InsertAgentInstruction, type GlobalAgentInstruction, type ConsentLog, type InsertConsentLog, type CrmDocument, type InsertCrmDocument, type PageView, type InsertPageView, type UserEvent, type InsertUserEvent, type Feedback, type InsertFeedback, type RexContact, type InsertRexContact, type RexDeal, type InsertRexDeal, type RexActivity, type InsertRexActivity, type RexSequence, type InsertRexSequence, type RexStageHistory, type RexScoreHistory, type RexStageConfig } from "@shared/schema";
 import { eq, and, sql, desc, gte, lte } from "drizzle-orm";
 import * as cryptoModule from "crypto";
 
@@ -173,6 +173,29 @@ export interface IStorage {
   getFeedbackSummary(): Promise<{ npsAvg: number; npsCount: number; chatRatingAvg: number; chatRatingCount: number; generalCount: number; categoryDist: { category: string; count: number }[]; agentSatisfaction: { agentType: string; avgScore: number; count: number }[]; npsTrend: { month: string; avg: number; count: number }[] }>;
 
   deleteUserAndData(userId: number): Promise<boolean>;
+
+  createRexContact(data: InsertRexContact): Promise<RexContact>;
+  getRexContact(id: string, userId: number): Promise<RexContact | undefined>;
+  searchRexContacts(userId: number, filters: { query?: string; segment?: string; source?: string; minScore?: number; tags?: string[]; limit?: number; offset?: number }): Promise<RexContact[]>;
+  updateRexContact(id: string, userId: number, data: Partial<InsertRexContact>): Promise<RexContact | undefined>;
+  deleteRexContact(id: string, userId: number): Promise<boolean>;
+
+  createRexDeal(data: InsertRexDeal): Promise<RexDeal>;
+  getRexDeal(id: string, userId: number): Promise<RexDeal | undefined>;
+  getRexDealsByContact(contactId: string, userId: number): Promise<RexDeal[]>;
+  searchRexDeals(userId: number, filters: { stage?: string; minValue?: number; contactId?: string; limit?: number; offset?: number }): Promise<RexDeal[]>;
+  updateRexDeal(id: string, userId: number, data: Partial<InsertRexDeal>): Promise<RexDeal | undefined>;
+  updateRexDealStage(id: string, userId: number, newStage: string, notes?: string): Promise<RexDeal | undefined>;
+  getRexPipelineSummary(userId: number): Promise<{ stage: string; count: number; totalValue: number }[]>;
+
+  createRexActivity(data: InsertRexActivity): Promise<RexActivity>;
+  getRexActivities(userId: number, filters: { contactId?: string; dealId?: string; type?: string; limit?: number; offset?: number }): Promise<RexActivity[]>;
+
+  createRexSequence(data: InsertRexSequence): Promise<RexSequence>;
+  getRexSequences(userId: number, filters: { contactId?: string; status?: string; limit?: number }): Promise<RexSequence[]>;
+  updateRexSequence(id: string, userId: number, data: Partial<InsertRexSequence>): Promise<RexSequence | undefined>;
+
+  getRexStageConfig(): Promise<RexStageConfig[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1410,6 +1433,167 @@ export class DatabaseStorage implements IStorage {
       })),
       npsTrend: trendResult.rows as { month: string; avg: number; count: number }[],
     };
+  }
+  async createRexContact(data: InsertRexContact): Promise<RexContact> {
+    const [contact] = await db.insert(rexContacts).values(data).returning();
+    return contact;
+  }
+
+  async getRexContact(id: string, userId: number): Promise<RexContact | undefined> {
+    const [contact] = await db.select().from(rexContacts).where(and(eq(rexContacts.id, id), eq(rexContacts.userId, userId)));
+    return contact;
+  }
+
+  async searchRexContacts(userId: number, filters: { query?: string; segment?: string; source?: string; minScore?: number; tags?: string[]; limit?: number; offset?: number }): Promise<RexContact[]> {
+    const conditions = [eq(rexContacts.userId, userId)];
+    if (filters.segment) conditions.push(eq(rexContacts.segment, filters.segment as any));
+    if (filters.source) conditions.push(eq(rexContacts.source, filters.source as any));
+    if (filters.minScore) conditions.push(gte(rexContacts.leadScore, filters.minScore));
+    if (filters.query) {
+      conditions.push(sql`(${rexContacts.companyName} ILIKE ${'%' + filters.query + '%'} OR ${rexContacts.contactName} ILIKE ${'%' + filters.query + '%'} OR ${rexContacts.email} ILIKE ${'%' + filters.query + '%'} OR ${rexContacts.industry} ILIKE ${'%' + filters.query + '%'})`);
+    }
+    return db.select().from(rexContacts).where(and(...conditions)).orderBy(desc(rexContacts.leadScore)).limit(filters.limit || 50).offset(filters.offset || 0);
+  }
+
+  async updateRexContact(id: string, userId: number, data: Partial<InsertRexContact>): Promise<RexContact | undefined> {
+    const [contact] = await db.update(rexContacts).set({ ...data, updatedAt: new Date() }).where(and(eq(rexContacts.id, id), eq(rexContacts.userId, userId))).returning();
+    return contact;
+  }
+
+  async deleteRexContact(id: string, userId: number): Promise<boolean> {
+    const result = await db.delete(rexContacts).where(and(eq(rexContacts.id, id), eq(rexContacts.userId, userId))).returning();
+    return result.length > 0;
+  }
+
+  async createRexDeal(data: InsertRexDeal): Promise<RexDeal> {
+    const [deal] = await db.insert(rexDeals).values(data).returning();
+    await db.insert(rexStageHistory).values({
+      dealId: deal.id,
+      userId: data.userId,
+      fromStage: null,
+      toStage: data.stage || "new_lead",
+      changedBy: "rex",
+      notes: "Deal created",
+    });
+    return deal;
+  }
+
+  async getRexDeal(id: string, userId: number): Promise<RexDeal | undefined> {
+    const [deal] = await db.select().from(rexDeals).where(and(eq(rexDeals.id, id), eq(rexDeals.userId, userId)));
+    return deal;
+  }
+
+  async getRexDealsByContact(contactId: string, userId: number): Promise<RexDeal[]> {
+    return db.select().from(rexDeals).where(and(eq(rexDeals.contactId, contactId), eq(rexDeals.userId, userId))).orderBy(desc(rexDeals.createdAt));
+  }
+
+  async searchRexDeals(userId: number, filters: { stage?: string; minValue?: number; contactId?: string; limit?: number; offset?: number }): Promise<RexDeal[]> {
+    const conditions = [eq(rexDeals.userId, userId)];
+    if (filters.stage) conditions.push(eq(rexDeals.stage, filters.stage as any));
+    if (filters.minValue) conditions.push(gte(rexDeals.value, String(filters.minValue)));
+    if (filters.contactId) conditions.push(eq(rexDeals.contactId, filters.contactId));
+    return db.select().from(rexDeals).where(and(...conditions)).orderBy(desc(rexDeals.createdAt)).limit(filters.limit || 50).offset(filters.offset || 0);
+  }
+
+  async updateRexDeal(id: string, userId: number, data: Partial<InsertRexDeal>): Promise<RexDeal | undefined> {
+    const [deal] = await db.update(rexDeals).set({ ...data, updatedAt: new Date() }).where(and(eq(rexDeals.id, id), eq(rexDeals.userId, userId))).returning();
+    return deal;
+  }
+
+  async updateRexDealStage(id: string, userId: number, newStage: string, notes?: string): Promise<RexDeal | undefined> {
+    const existing = await this.getRexDeal(id, userId);
+    if (!existing) return undefined;
+
+    const stageConfigs = await this.getRexStageConfig();
+    const config = stageConfigs.find(c => c.stage === newStage);
+
+    const [deal] = await db.update(rexDeals).set({
+      stage: newStage as any,
+      probability: config?.defaultProbability || existing.probability,
+      stageEnteredAt: new Date(),
+      updatedAt: new Date(),
+      ...(newStage === "closed_won" ? { actualClose: new Date().toISOString().split("T")[0] } : {}),
+      ...(newStage === "closed_lost" ? { actualClose: new Date().toISOString().split("T")[0] } : {}),
+    }).where(and(eq(rexDeals.id, id), eq(rexDeals.userId, userId))).returning();
+
+    await db.insert(rexStageHistory).values({
+      dealId: id,
+      userId,
+      fromStage: existing.stage,
+      toStage: newStage as any,
+      changedBy: "rex",
+      notes,
+    });
+
+    await db.insert(rexActivities).values({
+      userId,
+      contactId: existing.contactId,
+      dealId: id,
+      type: "stage_change",
+      subject: `Stage: ${existing.stage} → ${newStage}`,
+      body: notes,
+      completedAt: new Date(),
+      generatedBy: "rex",
+    });
+
+    return deal;
+  }
+
+  async getRexPipelineSummary(userId: number): Promise<{ stage: string; count: number; totalValue: number }[]> {
+    const result = await db.execute(sql`
+      SELECT stage, COUNT(*)::int as count, COALESCE(SUM(value), 0)::float as total_value
+      FROM rex_deals WHERE user_id = ${userId}
+      GROUP BY stage ORDER BY
+        CASE stage
+          WHEN 'new_lead' THEN 1
+          WHEN 'contacted' THEN 2
+          WHEN 'qualified' THEN 3
+          WHEN 'proposal_sent' THEN 4
+          WHEN 'negotiation' THEN 5
+          WHEN 'closed_won' THEN 6
+          WHEN 'closed_lost' THEN 7
+        END
+    `);
+    return result.rows.map((r: Record<string, unknown>) => ({
+      stage: r.stage as string,
+      count: r.count as number,
+      totalValue: r.total_value as number,
+    }));
+  }
+
+  async createRexActivity(data: InsertRexActivity): Promise<RexActivity> {
+    const [activity] = await db.insert(rexActivities).values(data).returning();
+    await db.update(rexContacts).set({ lastContactedAt: new Date(), updatedAt: new Date() }).where(and(eq(rexContacts.id, data.contactId), eq(rexContacts.userId, data.userId)));
+    return activity;
+  }
+
+  async getRexActivities(userId: number, filters: { contactId?: string; dealId?: string; type?: string; limit?: number; offset?: number }): Promise<RexActivity[]> {
+    const conditions = [eq(rexActivities.userId, userId)];
+    if (filters.contactId) conditions.push(eq(rexActivities.contactId, filters.contactId));
+    if (filters.dealId) conditions.push(eq(rexActivities.dealId, filters.dealId));
+    if (filters.type) conditions.push(eq(rexActivities.type, filters.type as any));
+    return db.select().from(rexActivities).where(and(...conditions)).orderBy(desc(rexActivities.createdAt)).limit(filters.limit || 50).offset(filters.offset || 0);
+  }
+
+  async createRexSequence(data: InsertRexSequence): Promise<RexSequence> {
+    const [sequence] = await db.insert(rexSequences).values(data).returning();
+    return sequence;
+  }
+
+  async getRexSequences(userId: number, filters: { contactId?: string; status?: string; limit?: number }): Promise<RexSequence[]> {
+    const conditions = [eq(rexSequences.userId, userId)];
+    if (filters.contactId) conditions.push(eq(rexSequences.contactId, filters.contactId));
+    if (filters.status) conditions.push(eq(rexSequences.status, filters.status as any));
+    return db.select().from(rexSequences).where(and(...conditions)).orderBy(desc(rexSequences.createdAt)).limit(filters.limit || 50);
+  }
+
+  async updateRexSequence(id: string, userId: number, data: Partial<InsertRexSequence>): Promise<RexSequence | undefined> {
+    const [sequence] = await db.update(rexSequences).set({ ...data, updatedAt: new Date() }).where(and(eq(rexSequences.id, id), eq(rexSequences.userId, userId))).returning();
+    return sequence;
+  }
+
+  async getRexStageConfig(): Promise<RexStageConfig[]> {
+    return db.select().from(rexStageConfig);
   }
 }
 

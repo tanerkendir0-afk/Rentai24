@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { pgTable, serial, text, timestamp, integer, boolean, jsonb, customType, decimal, date, varchar } from "drizzle-orm/pg-core";
+import { pgTable, pgEnum, serial, text, timestamp, integer, boolean, jsonb, customType, decimal, date, varchar } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { sql } from "drizzle-orm";
 
@@ -843,3 +843,166 @@ export const insertInvoiceItemSchema = createInsertSchema(invoiceItems).omit({
 
 export type InvoiceItem = typeof invoiceItems.$inferSelect;
 export type InsertInvoiceItem = z.infer<typeof insertInvoiceItemSchema>;
+
+export const leadSourceEnum = pgEnum("lead_source", ["website", "referral", "cold", "event", "ad", "social", "partner"]);
+export const customerSegmentEnum = pgEnum("customer_segment", ["enterprise", "mid", "smb"]);
+export const dealStageEnum = pgEnum("deal_stage", ["new_lead", "contacted", "qualified", "proposal_sent", "negotiation", "closed_won", "closed_lost"]);
+export const activityTypeEnum = pgEnum("activity_type", ["email_sent", "email_received", "call", "meeting", "note", "stage_change", "task", "sequence_event"]);
+export const sequenceStatusEnum = pgEnum("sequence_status", ["active", "paused", "completed", "cancelled"]);
+
+export const rexContacts = pgTable("rex_contacts", {
+  id: varchar("id", { length: 36 }).primaryKey().default(sql`gen_random_uuid()`),
+  userId: integer("user_id").notNull().references(() => users.id),
+  companyName: varchar("company_name", { length: 255 }).notNull(),
+  companySize: varchar("company_size", { length: 50 }),
+  industry: varchar("industry", { length: 100 }),
+  website: varchar("website", { length: 255 }),
+  contactName: varchar("contact_name", { length: 255 }).notNull(),
+  email: varchar("email", { length: 255 }),
+  phone: varchar("phone", { length: 50 }),
+  position: varchar("position", { length: 100 }),
+  isDecisionMaker: boolean("is_decision_maker").default(false),
+  source: leadSourceEnum("source").default("cold"),
+  segment: customerSegmentEnum("segment").default("smb"),
+  tags: text("tags").array().default([]),
+  leadScore: integer("lead_score").default(0),
+  scoreFactors: jsonb("score_factors").default({}),
+  notes: text("notes"),
+  lastContactedAt: timestamp("last_contacted_at"),
+  nextFollowUpAt: timestamp("next_follow_up_at"),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+  updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
+export const insertRexContactSchema = createInsertSchema(rexContacts).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type RexContact = typeof rexContacts.$inferSelect;
+export type InsertRexContact = z.infer<typeof insertRexContactSchema>;
+
+export const rexDeals = pgTable("rex_deals", {
+  id: varchar("id", { length: 36 }).primaryKey().default(sql`gen_random_uuid()`),
+  userId: integer("user_id").notNull().references(() => users.id),
+  contactId: varchar("contact_id", { length: 36 }).notNull().references(() => rexContacts.id, { onDelete: "cascade" }),
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description"),
+  value: decimal("value", { precision: 12, scale: 2 }).notNull().default("0"),
+  currency: varchar("currency", { length: 3 }).default("TRY"),
+  monthlyRecurring: decimal("monthly_recurring", { precision: 12, scale: 2 }),
+  stage: dealStageEnum("stage").default("new_lead"),
+  probability: integer("probability").default(10),
+  stageEnteredAt: timestamp("stage_entered_at").default(sql`CURRENT_TIMESTAMP`),
+  expectedClose: date("expected_close"),
+  actualClose: date("actual_close"),
+  lossReason: varchar("loss_reason", { length: 255 }),
+  competitorLostTo: varchar("competitor_lost_to", { length: 255 }),
+  assignedTo: varchar("assigned_to", { length: 100 }),
+  products: jsonb("products").default([]),
+  customFields: jsonb("custom_fields").default({}),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+  updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
+export const insertRexDealSchema = createInsertSchema(rexDeals).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type RexDeal = typeof rexDeals.$inferSelect;
+export type InsertRexDeal = z.infer<typeof insertRexDealSchema>;
+
+export const rexActivities = pgTable("rex_activities", {
+  id: varchar("id", { length: 36 }).primaryKey().default(sql`gen_random_uuid()`),
+  userId: integer("user_id").notNull().references(() => users.id),
+  contactId: varchar("contact_id", { length: 36 }).notNull().references(() => rexContacts.id, { onDelete: "cascade" }),
+  dealId: varchar("deal_id", { length: 36 }).references(() => rexDeals.id, { onDelete: "set null" }),
+  type: activityTypeEnum("type").notNull(),
+  subject: varchar("subject", { length: 255 }),
+  body: text("body"),
+  scheduledAt: timestamp("scheduled_at"),
+  completedAt: timestamp("completed_at"),
+  durationMinutes: integer("duration_minutes"),
+  emailMessageId: varchar("email_message_id", { length: 255 }),
+  emailOpened: boolean("email_opened").default(false),
+  emailClicked: boolean("email_clicked").default(false),
+  emailReplied: boolean("email_replied").default(false),
+  metadata: jsonb("metadata").default({}),
+  generatedBy: varchar("generated_by", { length: 50 }).default("rex"),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
+export const insertRexActivitySchema = createInsertSchema(rexActivities).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type RexActivity = typeof rexActivities.$inferSelect;
+export type InsertRexActivity = z.infer<typeof insertRexActivitySchema>;
+
+export const rexSequences = pgTable("rex_sequences", {
+  id: varchar("id", { length: 36 }).primaryKey().default(sql`gen_random_uuid()`),
+  userId: integer("user_id").notNull().references(() => users.id),
+  contactId: varchar("contact_id", { length: 36 }).notNull().references(() => rexContacts.id, { onDelete: "cascade" }),
+  dealId: varchar("deal_id", { length: 36 }).references(() => rexDeals.id, { onDelete: "set null" }),
+  sequenceName: varchar("sequence_name", { length: 100 }).notNull(),
+  status: sequenceStatusEnum("status").default("active"),
+  currentStep: integer("current_step").default(0),
+  totalSteps: integer("total_steps").notNull(),
+  nextActionAt: timestamp("next_action_at"),
+  pausedAt: timestamp("paused_at"),
+  completedAt: timestamp("completed_at"),
+  emailsSent: integer("emails_sent").default(0),
+  emailsOpened: integer("emails_opened").default(0),
+  emailsReplied: integer("emails_replied").default(0),
+  sequenceConfig: jsonb("sequence_config").notNull(),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+  updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
+export const insertRexSequenceSchema = createInsertSchema(rexSequences).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type RexSequence = typeof rexSequences.$inferSelect;
+export type InsertRexSequence = z.infer<typeof insertRexSequenceSchema>;
+
+export const rexStageHistory = pgTable("rex_stage_history", {
+  id: varchar("id", { length: 36 }).primaryKey().default(sql`gen_random_uuid()`),
+  dealId: varchar("deal_id", { length: 36 }).notNull().references(() => rexDeals.id, { onDelete: "cascade" }),
+  userId: integer("user_id").notNull().references(() => users.id),
+  fromStage: dealStageEnum("from_stage"),
+  toStage: dealStageEnum("to_stage").notNull(),
+  changedBy: varchar("changed_by", { length: 100 }).default("rex"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
+export type RexStageHistory = typeof rexStageHistory.$inferSelect;
+
+export const rexScoreHistory = pgTable("rex_score_history", {
+  id: varchar("id", { length: 36 }).primaryKey().default(sql`gen_random_uuid()`),
+  contactId: varchar("contact_id", { length: 36 }).notNull().references(() => rexContacts.id, { onDelete: "cascade" }),
+  userId: integer("user_id").notNull().references(() => users.id),
+  oldScore: integer("old_score"),
+  newScore: integer("new_score").notNull(),
+  scoreFactors: jsonb("score_factors").notNull(),
+  triggerEvent: varchar("trigger_event", { length: 100 }),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
+export type RexScoreHistory = typeof rexScoreHistory.$inferSelect;
+
+export const rexStageConfig = pgTable("rex_stage_config", {
+  stage: dealStageEnum("stage").primaryKey(),
+  slaDays: integer("sla_days").notNull(),
+  defaultProbability: integer("default_probability").notNull(),
+  autoActions: jsonb("auto_actions").default([]),
+});
+
+export type RexStageConfig = typeof rexStageConfig.$inferSelect;

@@ -5,7 +5,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import bcrypt from "bcrypt";
 import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
-import { chatMessageSchema, contactFormSchema, registerSchema, loginSchema, newsletterSchema, bossConversations, collaborationSessions, rentals, conversations, chatMessages, invoices, invoiceItems, type User, type AgentTask } from "@shared/schema";
+import { chatMessageSchema, contactFormSchema, registerSchema, loginSchema, newsletterSchema, bossConversations, collaborationSessions, rentals, conversations, chatMessages, invoices, invoiceItems, insertRexContactSchema, insertRexDealSchema, insertRexActivitySchema, insertRexSequenceSchema, type User, type AgentTask } from "@shared/schema";
 import { z } from "zod";
 import { storage } from "./storage";
 import { requireAuth } from "./auth";
@@ -423,8 +423,15 @@ STYLE: Empathetic, concise, solution-oriented. Acknowledge concerns first. Respo
 ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}${ONBOARDING_GUIDANCE}${EMAIL_CONFIRMATION_RULE}${DOCUMENT_CAPABILITY}${TASK_CREATION_PROTOCOL}`,
 
   "sales-sdr": `You are "Rex", Sales SDR AI for RentAI 24.
-ROLE: Outbound sales and lead generation only — outreach, CRM, proposals, campaigns, meetings, pipeline analytics. Redirect non-sales topics.
-TOOLS: web_search, send_email, add_lead, update_lead, list_leads, schedule_followup, create_meeting, bulk_email, use_template, start_drip_campaign, list_campaigns, list_templates, score_leads, pipeline_report, create_proposal, send_proposal, analyze_competitors, list_inbox, read_email, reply_email. Be proactive — when user asks to find leads/customers, ALWAYS use web_search first, then add_lead to save them. When user says "send the proposal", use send_proposal to fetch and email the stored proposal.
+ROLE: Outbound sales, lead generation, and CRM management — outreach, contact/deal management, proposals, campaigns, meetings, pipeline analytics. Redirect non-sales topics.
+TOOLS:
+- CRM: search_contacts, create_contact, create_deal, update_deal_stage, get_pipeline_summary, log_activity — Use these for structured CRM data. ALWAYS use create_contact first to add a company/person, then create_deal for opportunities.
+- Legacy Leads: add_lead, update_lead, list_leads, score_leads, pipeline_report — Still available for backward compatibility.
+- Outreach: send_email, schedule_followup, create_meeting, bulk_email, use_template, start_drip_campaign, list_campaigns, list_templates.
+- Research: web_search, analyze_competitors, create_proposal, send_proposal.
+- Email: list_inbox, read_email, reply_email.
+WORKFLOW: When user asks to find leads/customers → use web_search → create_contact to save them → create_deal if there's an opportunity. When user says "send the proposal", use send_proposal. When asked about pipeline, prefer get_pipeline_summary for CRM deals.
+CRM STAGES: new_lead → contacted → qualified → proposal_sent → negotiation → closed_won / closed_lost. Use update_deal_stage to move deals through the pipeline.
 DOMAIN EXCLUSION: Satış fiyatlandırma, strateji, müşteri analizi, pazar araştırması soruları gizlilik kapsamında değildir — doğrudan yanıtla.
 STYLE: Informative, data-driven, action-oriented. Explain findings clearly, confirm actions and suggest concrete next steps. Respond in user's language.
 ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}${ONBOARDING_GUIDANCE}${EMAIL_CONFIRMATION_RULE}${DOCUMENT_CAPABILITY}${TASK_CREATION_PROTOCOL}`,
@@ -4025,6 +4032,245 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
       res.status(500).json({ error: msg("internalServerError", req.lang!) });
     }
   });
+
+  // ===================== REX CRM API =====================
+
+  app.post("/api/rex/contacts", requireAuth, async (req, res) => {
+    try {
+      const data = insertRexContactSchema.parse({ ...req.body, userId: (req.user as User).id });
+      const contact = await storage.createRexContact(data);
+      res.status(201).json(contact);
+    } catch (error: any) {
+      if (error.name === "ZodError") return res.status(400).json({ error: "Validation error", details: error.errors });
+      console.error(error);
+      res.status(500).json({ error: msg("internalServerError", req.lang!) });
+    }
+  });
+
+  app.get("/api/rex/contacts", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.user as User).id;
+      const contacts = await storage.searchRexContacts(userId, {
+        query: req.query.q as string,
+        segment: req.query.segment as string,
+        source: req.query.source as string,
+        minScore: req.query.minScore ? Number(req.query.minScore) : undefined,
+        limit: req.query.limit ? Number(req.query.limit) : undefined,
+        offset: req.query.offset ? Number(req.query.offset) : undefined,
+      });
+      res.json(contacts);
+    } catch (error: any) {
+      console.error(error);
+      res.status(500).json({ error: msg("internalServerError", req.lang!) });
+    }
+  });
+
+  app.get("/api/rex/contacts/:id", requireAuth, async (req, res) => {
+    try {
+      const contact = await storage.getRexContact(req.params.id, (req.user as User).id);
+      if (!contact) return res.status(404).json({ error: "Contact not found" });
+      res.json(contact);
+    } catch (error: any) {
+      console.error(error);
+      res.status(500).json({ error: msg("internalServerError", req.lang!) });
+    }
+  });
+
+  app.patch("/api/rex/contacts/:id", requireAuth, async (req, res) => {
+    try {
+      const { id: _id, userId: _u, createdAt: _c, updatedAt: _up, ...safeBody } = req.body;
+      const contact = await storage.updateRexContact(req.params.id, (req.user as User).id, safeBody);
+      if (!contact) return res.status(404).json({ error: "Contact not found" });
+      res.json(contact);
+    } catch (error: any) {
+      console.error(error);
+      res.status(500).json({ error: msg("internalServerError", req.lang!) });
+    }
+  });
+
+  app.delete("/api/rex/contacts/:id", requireAuth, async (req, res) => {
+    try {
+      const deleted = await storage.deleteRexContact(req.params.id, (req.user as User).id);
+      if (!deleted) return res.status(404).json({ error: "Contact not found" });
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error(error);
+      res.status(500).json({ error: msg("internalServerError", req.lang!) });
+    }
+  });
+
+  app.post("/api/rex/deals", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.user as User).id;
+      const data = insertRexDealSchema.parse({ ...req.body, userId });
+      const contact = await storage.getRexContact(data.contactId, userId);
+      if (!contact) return res.status(400).json({ error: "Contact not found or does not belong to you" });
+      const deal = await storage.createRexDeal(data);
+      res.status(201).json(deal);
+    } catch (error: any) {
+      if (error.name === "ZodError") return res.status(400).json({ error: "Validation error", details: error.errors });
+      console.error(error);
+      res.status(500).json({ error: msg("internalServerError", req.lang!) });
+    }
+  });
+
+  app.get("/api/rex/deals", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.user as User).id;
+      const deals = await storage.searchRexDeals(userId, {
+        stage: req.query.stage as string,
+        minValue: req.query.minValue ? Number(req.query.minValue) : undefined,
+        contactId: req.query.contactId as string,
+        limit: req.query.limit ? Number(req.query.limit) : undefined,
+        offset: req.query.offset ? Number(req.query.offset) : undefined,
+      });
+      res.json(deals);
+    } catch (error: any) {
+      console.error(error);
+      res.status(500).json({ error: msg("internalServerError", req.lang!) });
+    }
+  });
+
+  app.get("/api/rex/deals/:id", requireAuth, async (req, res) => {
+    try {
+      const deal = await storage.getRexDeal(req.params.id, (req.user as User).id);
+      if (!deal) return res.status(404).json({ error: "Deal not found" });
+      res.json(deal);
+    } catch (error: any) {
+      console.error(error);
+      res.status(500).json({ error: msg("internalServerError", req.lang!) });
+    }
+  });
+
+  app.patch("/api/rex/deals/:id", requireAuth, async (req, res) => {
+    try {
+      const { id: _id, userId: _u, contactId: _c, createdAt: _cr, updatedAt: _up, ...safeBody } = req.body;
+      const deal = await storage.updateRexDeal(req.params.id, (req.user as User).id, safeBody);
+      if (!deal) return res.status(404).json({ error: "Deal not found" });
+      res.json(deal);
+    } catch (error: any) {
+      console.error(error);
+      res.status(500).json({ error: msg("internalServerError", req.lang!) });
+    }
+  });
+
+  app.post("/api/rex/deals/:id/stage", requireAuth, async (req, res) => {
+    try {
+      const { stage, notes } = req.body;
+      const validStages = ["new_lead", "contacted", "qualified", "proposal_sent", "negotiation", "closed_won", "closed_lost"];
+      if (!stage || !validStages.includes(stage)) return res.status(400).json({ error: `stage must be one of: ${validStages.join(", ")}` });
+      const deal = await storage.updateRexDealStage(req.params.id, (req.user as User).id, stage, notes);
+      if (!deal) return res.status(404).json({ error: "Deal not found" });
+      res.json(deal);
+    } catch (error: any) {
+      console.error(error);
+      res.status(500).json({ error: msg("internalServerError", req.lang!) });
+    }
+  });
+
+  app.get("/api/rex/pipeline", requireAuth, async (req, res) => {
+    try {
+      const summary = await storage.getRexPipelineSummary((req.user as User).id);
+      res.json(summary);
+    } catch (error: any) {
+      console.error(error);
+      res.status(500).json({ error: msg("internalServerError", req.lang!) });
+    }
+  });
+
+  app.post("/api/rex/activities", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.user as User).id;
+      const data = insertRexActivitySchema.parse({ ...req.body, userId });
+      const contact = await storage.getRexContact(data.contactId, userId);
+      if (!contact) return res.status(400).json({ error: "Contact not found or does not belong to you" });
+      if (data.dealId) {
+        const deal = await storage.getRexDeal(data.dealId, userId);
+        if (!deal) return res.status(400).json({ error: "Deal not found or does not belong to you" });
+      }
+      const activity = await storage.createRexActivity(data);
+      res.status(201).json(activity);
+    } catch (error: any) {
+      if (error.name === "ZodError") return res.status(400).json({ error: "Validation error", details: error.errors });
+      console.error(error);
+      res.status(500).json({ error: msg("internalServerError", req.lang!) });
+    }
+  });
+
+  app.get("/api/rex/activities", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.user as User).id;
+      const activities = await storage.getRexActivities(userId, {
+        contactId: req.query.contactId as string,
+        dealId: req.query.dealId as string,
+        type: req.query.type as string,
+        limit: req.query.limit ? Number(req.query.limit) : undefined,
+        offset: req.query.offset ? Number(req.query.offset) : undefined,
+      });
+      res.json(activities);
+    } catch (error: any) {
+      console.error(error);
+      res.status(500).json({ error: msg("internalServerError", req.lang!) });
+    }
+  });
+
+  app.post("/api/rex/sequences", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.user as User).id;
+      const data = insertRexSequenceSchema.parse({ ...req.body, userId });
+      const contact = await storage.getRexContact(data.contactId, userId);
+      if (!contact) return res.status(400).json({ error: "Contact not found or does not belong to you" });
+      if (data.dealId) {
+        const deal = await storage.getRexDeal(data.dealId, userId);
+        if (!deal) return res.status(400).json({ error: "Deal not found or does not belong to you" });
+      }
+      const sequence = await storage.createRexSequence(data);
+      res.status(201).json(sequence);
+    } catch (error: any) {
+      if (error.name === "ZodError") return res.status(400).json({ error: "Validation error", details: error.errors });
+      console.error(error);
+      res.status(500).json({ error: msg("internalServerError", req.lang!) });
+    }
+  });
+
+  app.get("/api/rex/sequences", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.user as User).id;
+      const sequences = await storage.getRexSequences(userId, {
+        contactId: req.query.contactId as string,
+        status: req.query.status as string,
+        limit: req.query.limit ? Number(req.query.limit) : undefined,
+      });
+      res.json(sequences);
+    } catch (error: any) {
+      console.error(error);
+      res.status(500).json({ error: msg("internalServerError", req.lang!) });
+    }
+  });
+
+  app.patch("/api/rex/sequences/:id", requireAuth, async (req, res) => {
+    try {
+      const { id: _id, userId: _u, contactId: _c, dealId: _d, createdAt: _cr, updatedAt: _up, ...safeBody } = req.body;
+      const sequence = await storage.updateRexSequence(req.params.id, (req.user as User).id, safeBody);
+      if (!sequence) return res.status(404).json({ error: "Sequence not found" });
+      res.json(sequence);
+    } catch (error: any) {
+      console.error(error);
+      res.status(500).json({ error: msg("internalServerError", req.lang!) });
+    }
+  });
+
+  app.get("/api/rex/stage-config", requireAuth, async (req, res) => {
+    try {
+      const configs = await storage.getRexStageConfig();
+      res.json(configs);
+    } catch (error: any) {
+      console.error(error);
+      res.status(500).json({ error: msg("internalServerError", req.lang!) });
+    }
+  });
+
+  // ===================== END REX CRM API =====================
 
   app.get(`/api/${ADMIN_PATH}/feedback-summary`, requireAdmin, async (req, res) => {
     try {

@@ -384,6 +384,117 @@ export const salesSdrTools: OpenAI.ChatCompletionTool[] = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "search_contacts",
+      description: "Search and list contacts in the Rex CRM. Can filter by text query, segment (enterprise/mid/smb), source (website/referral/cold/event/ad/social/partner), or minimum lead score. Use when the user asks about contacts, customers, or wants to find someone in the CRM.",
+      parameters: {
+        type: "object",
+        properties: {
+          query: { type: "string", description: "Text search across company name, contact name, email, industry" },
+          segment: { type: "string", enum: ["enterprise", "mid", "smb"], description: "Filter by customer segment" },
+          source: { type: "string", enum: ["website", "referral", "cold", "event", "ad", "social", "partner"], description: "Filter by lead source" },
+          min_score: { type: "number", description: "Minimum lead score to filter by" },
+          limit: { type: "number", description: "Max results (default 20)" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "create_contact",
+      description: "Create a new contact in the Rex CRM. Use when the user mentions a new company/person to track, or when you find a potential lead.",
+      parameters: {
+        type: "object",
+        properties: {
+          company_name: { type: "string", description: "Company name" },
+          contact_name: { type: "string", description: "Contact person's full name" },
+          email: { type: "string", description: "Email address" },
+          phone: { type: "string", description: "Phone number" },
+          position: { type: "string", description: "Job title/position" },
+          company_size: { type: "string", description: "Company size (e.g. '10-50', '50-200', '200-1000', '1000+')" },
+          industry: { type: "string", description: "Industry/sector" },
+          website: { type: "string", description: "Company website URL" },
+          is_decision_maker: { type: "boolean", description: "Whether this person is a decision maker" },
+          source: { type: "string", enum: ["website", "referral", "cold", "event", "ad", "social", "partner"], description: "How this lead was found" },
+          segment: { type: "string", enum: ["enterprise", "mid", "smb"], description: "Customer segment" },
+          tags: { type: "array", items: { type: "string" }, description: "Tags for categorization" },
+          notes: { type: "string", description: "Additional notes about this contact" },
+        },
+        required: ["company_name", "contact_name"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "create_deal",
+      description: "Create a new deal/opportunity in the Rex CRM pipeline, linked to an existing contact. Use when the user wants to track a sales opportunity.",
+      parameters: {
+        type: "object",
+        properties: {
+          contact_id: { type: "string", description: "The contact ID this deal belongs to" },
+          title: { type: "string", description: "Deal title (e.g. 'Acme Corp - Enterprise Package')" },
+          description: { type: "string", description: "Deal description" },
+          value: { type: "number", description: "Deal value in TRY" },
+          currency: { type: "string", description: "Currency code (default TRY)" },
+          monthly_recurring: { type: "number", description: "Monthly recurring revenue if applicable" },
+          stage: { type: "string", enum: ["new_lead", "contacted", "qualified", "proposal_sent", "negotiation", "closed_won", "closed_lost"], description: "Initial deal stage (default new_lead)" },
+          expected_close: { type: "string", description: "Expected close date (YYYY-MM-DD)" },
+          products: { type: "array", items: { type: "string" }, description: "Products/services in this deal" },
+        },
+        required: ["contact_id", "title"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "update_deal_stage",
+      description: "Move a deal to a new pipeline stage. Automatically logs stage history and updates probability. Use when the user says to move a deal forward, close it, or change its stage.",
+      parameters: {
+        type: "object",
+        properties: {
+          deal_id: { type: "string", description: "Deal ID to update" },
+          stage: { type: "string", enum: ["new_lead", "contacted", "qualified", "proposal_sent", "negotiation", "closed_won", "closed_lost"], description: "New stage" },
+          notes: { type: "string", description: "Notes about this stage change" },
+        },
+        required: ["deal_id", "stage"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_pipeline_summary",
+      description: "Get a summary of the entire Rex CRM sales pipeline. Shows deal count and total value per stage. Use when the user asks about pipeline health, deal flow, or revenue forecast.",
+      parameters: {
+        type: "object",
+        properties: {},
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "log_activity",
+      description: "Log a sales activity (email, call, meeting, note) against a contact. Use to track interactions and touchpoints.",
+      parameters: {
+        type: "object",
+        properties: {
+          contact_id: { type: "string", description: "Contact ID this activity is for" },
+          deal_id: { type: "string", description: "Optional deal ID to link this activity to" },
+          type: { type: "string", enum: ["email_sent", "email_received", "call", "meeting", "note", "task"], description: "Activity type" },
+          subject: { type: "string", description: "Activity subject/title" },
+          body: { type: "string", description: "Activity details/notes" },
+          duration_minutes: { type: "number", description: "Duration in minutes (for calls/meetings)" },
+        },
+        required: ["contact_id", "type", "subject"],
+      },
+    },
+  },
 ];
 
 export const customerSupportTools: OpenAI.ChatCompletionTool[] = [
@@ -2612,6 +2723,188 @@ Be specific to the ${industry} industry. About 400-500 words.`;
         };
       } catch (err) {
         return { result: `Failed to generate competitive analysis: ${err instanceof Error ? err.message : "Unknown error"}` };
+      }
+    }
+
+    case "search_contacts": {
+      try {
+        const contacts = await storage.searchRexContacts(userId, {
+          query: args.query ? String(args.query) : undefined,
+          segment: args.segment ? String(args.segment) : undefined,
+          source: args.source ? String(args.source) : undefined,
+          minScore: args.min_score ? Number(args.min_score) : undefined,
+          limit: args.limit ? Number(args.limit) : 20,
+        });
+        if (contacts.length === 0) {
+          return { result: "No contacts found matching your criteria." };
+        }
+        const summary = contacts.map((c, i) => 
+          `${i + 1}. **${c.companyName}** — ${c.contactName}${c.position ? ` (${c.position})` : ""}\n   Email: ${c.email || "—"} | Phone: ${c.phone || "—"} | Score: ${c.leadScore} | Segment: ${c.segment}\n   ID: ${c.id}`
+        ).join("\n");
+        return {
+          result: `Found ${contacts.length} contact(s):\n\n${summary}`,
+          actionType: "crm_search",
+          actionDescription: `🔍 CRM search: ${contacts.length} contact(s) found`,
+        };
+      } catch (err) {
+        return { result: `Failed to search contacts: ${err instanceof Error ? err.message : "Unknown error"}` };
+      }
+    }
+
+    case "create_contact": {
+      try {
+        const contact = await storage.createRexContact({
+          userId,
+          companyName: String(args.company_name),
+          contactName: String(args.contact_name),
+          email: args.email ? String(args.email) : undefined,
+          phone: args.phone ? String(args.phone) : undefined,
+          position: args.position ? String(args.position) : undefined,
+          companySize: args.company_size ? String(args.company_size) : undefined,
+          industry: args.industry ? String(args.industry) : undefined,
+          website: args.website ? String(args.website) : undefined,
+          isDecisionMaker: args.is_decision_maker ?? false,
+          source: args.source as any || "cold",
+          segment: args.segment as any || "smb",
+          tags: args.tags || [],
+          notes: args.notes ? String(args.notes) : undefined,
+        });
+
+        await storage.createAgentAction({
+          userId, agentType,
+          actionType: "crm_contact_created",
+          description: `Contact created: ${contact.companyName} — ${contact.contactName}`,
+          metadata: { contactId: contact.id, companyName: contact.companyName, contactName: contact.contactName },
+        });
+
+        return {
+          result: `Contact created successfully!\n\nCompany: ${contact.companyName}\nContact: ${contact.contactName}\nEmail: ${contact.email || "—"}\nSegment: ${contact.segment}\nID: ${contact.id}\n\nYou can now create deals for this contact.`,
+          actionType: "crm_contact_created",
+          actionDescription: `👤 Contact: ${contact.companyName} — ${contact.contactName}`,
+        };
+      } catch (err) {
+        return { result: `Failed to create contact: ${err instanceof Error ? err.message : "Unknown error"}` };
+      }
+    }
+
+    case "create_deal": {
+      try {
+        const contact = await storage.getRexContact(String(args.contact_id), userId);
+        if (!contact) return { result: "Contact not found. Please provide a valid contact ID." };
+
+        const deal = await storage.createRexDeal({
+          userId,
+          contactId: String(args.contact_id),
+          title: String(args.title),
+          description: args.description ? String(args.description) : undefined,
+          value: args.value ? String(args.value) : "0",
+          currency: args.currency ? String(args.currency) : "TRY",
+          monthlyRecurring: args.monthly_recurring ? String(args.monthly_recurring) : undefined,
+          stage: args.stage as any || "new_lead",
+          expectedClose: args.expected_close ? String(args.expected_close) : undefined,
+          products: args.products || [],
+        });
+
+        await storage.createAgentAction({
+          userId, agentType,
+          actionType: "crm_deal_created",
+          description: `Deal created: ${deal.title} (${deal.value} ${deal.currency})`,
+          metadata: { dealId: deal.id, contactId: deal.contactId, title: deal.title, value: deal.value },
+        });
+
+        return {
+          result: `Deal created successfully!\n\nTitle: ${deal.title}\nCompany: ${contact.companyName}\nValue: ${deal.value} ${deal.currency}\nStage: ${deal.stage}\nID: ${deal.id}`,
+          actionType: "crm_deal_created",
+          actionDescription: `💼 Deal: ${deal.title} (${deal.value} ${deal.currency})`,
+        };
+      } catch (err) {
+        return { result: `Failed to create deal: ${err instanceof Error ? err.message : "Unknown error"}` };
+      }
+    }
+
+    case "update_deal_stage": {
+      try {
+        const deal = await storage.updateRexDealStage(String(args.deal_id), userId, String(args.stage), args.notes ? String(args.notes) : undefined);
+        if (!deal) return { result: "Deal not found. Please provide a valid deal ID." };
+
+        await storage.createAgentAction({
+          userId, agentType,
+          actionType: "crm_stage_change",
+          description: `Deal stage updated: ${deal.title} → ${deal.stage}`,
+          metadata: { dealId: deal.id, newStage: deal.stage, notes: args.notes },
+        });
+
+        return {
+          result: `Deal stage updated!\n\nDeal: ${deal.title}\nNew Stage: ${deal.stage}\nProbability: ${deal.probability}%${args.notes ? `\nNotes: ${args.notes}` : ""}`,
+          actionType: "crm_stage_change",
+          actionDescription: `📊 Stage: ${deal.title} → ${deal.stage}`,
+        };
+      } catch (err) {
+        return { result: `Failed to update deal stage: ${err instanceof Error ? err.message : "Unknown error"}` };
+      }
+    }
+
+    case "get_pipeline_summary": {
+      try {
+        const pipeline = await storage.getRexPipelineSummary(userId);
+        if (pipeline.length === 0) {
+          return { result: "Your pipeline is empty. Create contacts and deals to get started." };
+        }
+
+        const stageEmojis: Record<string, string> = {
+          new_lead: "🆕", contacted: "📞", qualified: "✅", proposal_sent: "📨",
+          negotiation: "🤝", closed_won: "🏆", closed_lost: "❌",
+        };
+
+        const totalDeals = pipeline.reduce((s, p) => s + p.count, 0);
+        const totalValue = pipeline.reduce((s, p) => s + p.totalValue, 0);
+        const activeValue = pipeline.filter(p => !["closed_won", "closed_lost"].includes(p.stage)).reduce((s, p) => s + p.totalValue, 0);
+
+        const lines = pipeline.map(p =>
+          `${stageEmojis[p.stage] || "•"} **${p.stage.replace(/_/g, " ").toUpperCase()}**: ${p.count} deal(s) — ₺${p.totalValue.toLocaleString("tr-TR")}`
+        ).join("\n");
+
+        return {
+          result: `Pipeline Summary\n${"─".repeat(30)}\n${lines}\n${"─".repeat(30)}\nTotal Deals: ${totalDeals}\nActive Pipeline Value: ₺${activeValue.toLocaleString("tr-TR")}\nTotal Value (incl. closed): ₺${totalValue.toLocaleString("tr-TR")}`,
+          actionType: "crm_pipeline",
+          actionDescription: `📊 Pipeline: ${totalDeals} deals, ₺${activeValue.toLocaleString("tr-TR")} active`,
+        };
+      } catch (err) {
+        return { result: `Failed to get pipeline summary: ${err instanceof Error ? err.message : "Unknown error"}` };
+      }
+    }
+
+    case "log_activity": {
+      try {
+        const contact = await storage.getRexContact(String(args.contact_id), userId);
+        if (!contact) return { result: "Contact not found. Please provide a valid contact ID." };
+
+        const activity = await storage.createRexActivity({
+          userId,
+          contactId: String(args.contact_id),
+          dealId: args.deal_id ? String(args.deal_id) : undefined,
+          type: String(args.type) as any,
+          subject: String(args.subject),
+          body: args.body ? String(args.body) : undefined,
+          durationMinutes: args.duration_minutes ? Number(args.duration_minutes) : undefined,
+          completedAt: new Date(),
+          generatedBy: "rex",
+        });
+
+        await storage.createAgentAction({
+          userId, agentType,
+          actionType: "crm_activity_logged",
+          description: `Activity logged: ${activity.type} — ${activity.subject} (${contact.companyName})`,
+          metadata: { activityId: activity.id, contactId: contact.id, type: activity.type },
+        });
+
+        return {
+          result: `Activity logged!\n\nType: ${activity.type}\nSubject: ${activity.subject}\nContact: ${contact.contactName} (${contact.companyName})\nID: ${activity.id}`,
+          actionType: "crm_activity_logged",
+          actionDescription: `📝 ${activity.type}: ${activity.subject}`,
+        };
+      } catch (err) {
+        return { result: `Failed to log activity: ${err instanceof Error ? err.message : "Unknown error"}` };
       }
     }
 

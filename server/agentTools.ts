@@ -1760,6 +1760,8 @@ const TOOL_KEYWORD_MAP: Record<string, string[]> = {
   pipeline_report: ["pipeline", "report", "stats", "analiz", "istatistik", "performans", "how many leads", "leads this", "conversion", "rate", "summary", "funnel", "kpi", "monthly", "weekly", "analytics", "overview", "numbers", "metrics"],
   create_proposal: ["proposal", "teklif", "create proposal", "draft proposal"],
   send_proposal: ["send proposal", "email proposal", "teklif gönder", "proposal"],
+  research_company: ["research", "araştır", "company", "firma", "şirket", "analyze", "incele", "website", "classify", "sınıflandır", "buyer", "seller", "alıcı", "satıcı"],
+  find_leads: ["find leads", "lead bul", "müşteri bul", "prospect", "potansiyel", "discover", "keşfet", "b2b", "buyer", "alıcı", "lead ara", "otomatik lead", "smart search"],
   analyze_competitors: ["competitor", "rakip", "competitive"],
   create_ticket: ["ticket", "issue", "sorun", "problem", "create", "oluştur"],
   list_tickets: ["tickets", "list", "open", "listele"],

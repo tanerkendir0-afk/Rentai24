@@ -17,7 +17,7 @@ export function FeedbackButton() {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <button
-          className="fixed bottom-4 left-4 z-40 w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-violet-500 text-white shadow-lg flex items-center justify-center hover:scale-110 transition-transform"
+          className="fixed bottom-20 left-4 z-40 w-11 h-11 rounded-full bg-gradient-to-r from-blue-500 to-violet-500 text-white shadow-xl shadow-blue-500/25 flex items-center justify-center hover:scale-110 hover:shadow-blue-500/40 transition-all duration-200 ring-2 ring-white/10"
           title={t("feedback.general.title")}
           data-testid="button-feedback-open"
         >

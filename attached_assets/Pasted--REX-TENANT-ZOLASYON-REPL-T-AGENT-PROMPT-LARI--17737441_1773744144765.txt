@@ -1,0 +1,637 @@
+# ============================================
+# REX TENANT İZOLASYON — REPLİT AGENT PROMPT'LARI
+# ============================================
+# 
+# Bu dosyadaki prompt'ları SIRAYLA Replit Agent'a yapıştır.
+# Her birini tamamladıktan sonra bir sonrakine geç.
+# 
+# Toplam 5 adım, tahmini süre: 1-2 saat
+# ============================================
+
+
+# ══════════════════════════════════════════
+# ADIM 0: MEVCUT DURUMU KONTROL ET (İLK BUNU YAPIŞTIR)
+# ══════════════════════════════════════════
+
+"""
+Mevcut projenin veritabanı ve session yapısını kontrol et. Şunları bul ve bana raporla:
+
+1. DATABASE:
+   - Hangi veritabanı kullanılıyor? (PostgreSQL, SQLite, başka?)
+   - Connection string nerede tanımlı? (.env, config dosyası?)
+   - Mevcut tablolar neler? (varsa listele)
+   - ORM kullanılıyor mu? (Prisma, Drizzle, Sequelize, SQLAlchemy?)
+
+2. SESSION/AUTH:
+   - Google OAuth nasıl implement edilmiş? (Passport.js, NextAuth, custom?)
+   - Session nerede saklanıyor? (Redis, cookie, PostgreSQL?)
+   - Session objesinde hangi fieldlar var? (user_id, email, role, tenant_id?)
+   - Mevcut auth middleware var mı? Nerede?
+
+3. API YAPISI:
+   - Backend framework ne? (Express, FastAPI, Next.js API routes?)
+   - Mevcut API endpoint'leri neler?
+   - Middleware chain nasıl? (auth, logging, error handling?)
+
+4. DOSYA YAPISI:
+   - server/ veya api/ klasör yapısını göster
+   - Mevcut model/schema dosyaları nerede?
+
+Sadece bul ve raporla, hiçbir şeyi değiştirme.
+"""
+
+
+# ══════════════════════════════════════════
+# ADIM 1: REX CRM TABLOLARINI OLUŞTUR
+# ══════════════════════════════════════════
+# (Adım 0'ın sonucuna göre DB tipini bileceksin.
+#  PostgreSQL ise direkt kullan, değilse önce PostgreSQL kur)
+
+"""
+Rex Sales Agent için CRM veritabanı tablolarını oluştur. Aşağıdaki SQL'i çalıştır.
+
+ÖNEMLİ KURALLAR:
+- Mevcut tabloları silme, sadece yeni tablolar ekle
+- Eğer PostgreSQL yoksa, önce PostgreSQL kur ve bağlantıyı ayarla
+- uuid-ossp extension'ı aktif et
+- Migration dosyası olarak da kaydet (server/migrations/ veya uygun klasöre)
+
+SQL içeriği:
+
+-- Enable UUID
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- ENUM Types
+CREATE TYPE lead_source AS ENUM ('website', 'referral', 'cold', 'event', 'ad', 'social', 'partner');
+CREATE TYPE customer_segment AS ENUM ('enterprise', 'mid', 'smb');
+CREATE TYPE deal_stage AS ENUM ('new_lead', 'contacted', 'qualified', 'proposal_sent', 'negotiation', 'closed_won', 'closed_lost');
+CREATE TYPE activity_type AS ENUM ('email_sent', 'email_received', 'call', 'meeting', 'note', 'stage_change', 'task', 'sequence_event');
+CREATE TYPE sequence_status AS ENUM ('active', 'paused', 'completed', 'cancelled');
+
+-- Contacts
+CREATE TABLE rex_contacts (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    tenant_id UUID NOT NULL,
+    company_name VARCHAR(255) NOT NULL,
+    company_size VARCHAR(50),
+    industry VARCHAR(100),
+    website VARCHAR(255),
+    contact_name VARCHAR(255) NOT NULL,
+    email VARCHAR(255),
+    phone VARCHAR(50),
+    position VARCHAR(100),
+    is_decision_maker BOOLEAN DEFAULT false,
+    source lead_source DEFAULT 'cold',
+    segment customer_segment DEFAULT 'smb',
+    tags TEXT[] DEFAULT '{}',
+    lead_score INT DEFAULT 0 CHECK (lead_score >= 0 AND lead_score <= 100),
+    score_factors JSONB DEFAULT '{}',
+    notes TEXT,
+    last_contacted_at TIMESTAMPTZ,
+    next_follow_up_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    CONSTRAINT unique_tenant_email UNIQUE (tenant_id, email)
+);
+
+-- Deals
+CREATE TABLE rex_deals (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    tenant_id UUID NOT NULL,
+    contact_id UUID NOT NULL REFERENCES rex_contacts(id) ON DELETE CASCADE,
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    value DECIMAL(12,2) NOT NULL DEFAULT 0,
+    currency VARCHAR(3) DEFAULT 'TRY',
+    monthly_recurring DECIMAL(12,2),
+    stage deal_stage DEFAULT 'new_lead',
+    probability INT DEFAULT 10 CHECK (probability >= 0 AND probability <= 100),
+    stage_entered_at TIMESTAMPTZ DEFAULT NOW(),
+    expected_close DATE,
+    actual_close DATE,
+    loss_reason VARCHAR(255),
+    competitor_lost_to VARCHAR(255),
+    assigned_to VARCHAR(100),
+    products JSONB DEFAULT '[]',
+    custom_fields JSONB DEFAULT '{}',
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Activities
+CREATE TABLE rex_activities (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    tenant_id UUID NOT NULL,
+    contact_id UUID NOT NULL REFERENCES rex_contacts(id) ON DELETE CASCADE,
+    deal_id UUID REFERENCES rex_deals(id) ON DELETE SET NULL,
+    type activity_type NOT NULL,
+    subject VARCHAR(255),
+    body TEXT,
+    scheduled_at TIMESTAMPTZ,
+    completed_at TIMESTAMPTZ,
+    duration_minutes INT,
+    email_message_id VARCHAR(255),
+    email_opened BOOLEAN DEFAULT false,
+    email_clicked BOOLEAN DEFAULT false,
+    email_replied BOOLEAN DEFAULT false,
+    metadata JSONB DEFAULT '{}',
+    generated_by VARCHAR(50) DEFAULT 'rex',
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Email Sequences
+CREATE TABLE rex_sequences (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    tenant_id UUID NOT NULL,
+    contact_id UUID NOT NULL REFERENCES rex_contacts(id) ON DELETE CASCADE,
+    deal_id UUID REFERENCES rex_deals(id) ON DELETE SET NULL,
+    sequence_name VARCHAR(100) NOT NULL,
+    status sequence_status DEFAULT 'active',
+    current_step INT DEFAULT 0,
+    total_steps INT NOT NULL,
+    next_action_at TIMESTAMPTZ,
+    paused_at TIMESTAMPTZ,
+    completed_at TIMESTAMPTZ,
+    emails_sent INT DEFAULT 0,
+    emails_opened INT DEFAULT 0,
+    emails_replied INT DEFAULT 0,
+    sequence_config JSONB NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Stage History
+CREATE TABLE rex_stage_history (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    deal_id UUID NOT NULL REFERENCES rex_deals(id) ON DELETE CASCADE,
+    tenant_id UUID NOT NULL,
+    from_stage deal_stage,
+    to_stage deal_stage NOT NULL,
+    changed_by VARCHAR(100) DEFAULT 'rex',
+    notes TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Score History
+CREATE TABLE rex_score_history (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    contact_id UUID NOT NULL REFERENCES rex_contacts(id) ON DELETE CASCADE,
+    tenant_id UUID NOT NULL,
+    old_score INT,
+    new_score INT NOT NULL,
+    score_factors JSONB NOT NULL,
+    trigger_event VARCHAR(100),
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Stage Config (shared, platform-wide)
+CREATE TABLE rex_stage_config (
+    stage deal_stage PRIMARY KEY,
+    sla_days INT NOT NULL,
+    default_probability INT NOT NULL,
+    auto_actions JSONB DEFAULT '[]'
+);
+
+INSERT INTO rex_stage_config (stage, sla_days, default_probability, auto_actions) VALUES
+    ('new_lead', 1, 10, '[{"action": "calculate_lead_score"}, {"action": "plan_first_outreach"}]'),
+    ('contacted', 3, 20, '[{"action": "schedule_follow_up", "delay_hours": 48}]'),
+    ('qualified', 5, 40, '[{"action": "match_products_rag"}, {"action": "prepare_proposal_brief"}]'),
+    ('proposal_sent', 7, 60, '[{"action": "schedule_follow_up", "delay_hours": 72}]'),
+    ('negotiation', 10, 80, '[{"action": "alert_decision_maker_contact"}]'),
+    ('closed_won', 0, 100, '[{"action": "trigger_onboarding"}, {"action": "notify_finn_invoice"}]'),
+    ('closed_lost', 0, 0, '[{"action": "log_loss_reason"}, {"action": "add_to_nurture"}]');
+
+-- INDEXES
+CREATE INDEX idx_contacts_tenant ON rex_contacts(tenant_id);
+CREATE INDEX idx_contacts_segment ON rex_contacts(tenant_id, segment);
+CREATE INDEX idx_contacts_score ON rex_contacts(tenant_id, lead_score DESC);
+CREATE INDEX idx_contacts_tags ON rex_contacts USING GIN(tags);
+CREATE INDEX idx_deals_tenant ON rex_deals(tenant_id);
+CREATE INDEX idx_deals_contact ON rex_deals(contact_id);
+CREATE INDEX idx_deals_stage ON rex_deals(tenant_id, stage);
+CREATE INDEX idx_deals_pipeline ON rex_deals(tenant_id, stage, value) WHERE stage NOT IN ('closed_won', 'closed_lost');
+CREATE INDEX idx_activities_tenant ON rex_activities(tenant_id);
+CREATE INDEX idx_activities_contact ON rex_activities(contact_id);
+CREATE INDEX idx_activities_deal ON rex_activities(deal_id) WHERE deal_id IS NOT NULL;
+CREATE INDEX idx_sequences_tenant ON rex_sequences(tenant_id);
+CREATE INDEX idx_sequences_active ON rex_sequences(tenant_id, status, next_action_at) WHERE status = 'active';
+CREATE INDEX idx_stage_history_deal ON rex_stage_history(deal_id);
+CREATE INDEX idx_score_history_contact ON rex_score_history(contact_id);
+
+-- TRIGGERS: auto-update updated_at
+CREATE OR REPLACE FUNCTION update_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_contacts_updated_at BEFORE UPDATE ON rex_contacts FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+CREATE TRIGGER trg_deals_updated_at BEFORE UPDATE ON rex_deals FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+CREATE TRIGGER trg_sequences_updated_at BEFORE UPDATE ON rex_sequences FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+
+-- TRIGGER: auto-log stage changes + update probability
+CREATE OR REPLACE FUNCTION log_stage_change()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF OLD.stage IS DISTINCT FROM NEW.stage THEN
+        INSERT INTO rex_stage_history (deal_id, tenant_id, from_stage, to_stage)
+        VALUES (NEW.id, NEW.tenant_id, OLD.stage, NEW.stage);
+        NEW.stage_entered_at = NOW();
+        NEW.probability = CASE NEW.stage
+            WHEN 'new_lead' THEN 10 WHEN 'contacted' THEN 20
+            WHEN 'qualified' THEN 40 WHEN 'proposal_sent' THEN 60
+            WHEN 'negotiation' THEN 80 WHEN 'closed_won' THEN 100
+            WHEN 'closed_lost' THEN 0
+        END;
+        IF NEW.stage IN ('closed_won', 'closed_lost') THEN
+            NEW.actual_close = CURRENT_DATE;
+        END IF;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_deal_stage_change BEFORE UPDATE ON rex_deals FOR EACH ROW EXECUTE FUNCTION log_stage_change();
+
+-- VIEWS
+CREATE OR REPLACE VIEW rex_pipeline_summary AS
+SELECT tenant_id, stage, COUNT(*) as deal_count, SUM(value) as total_value,
+    SUM(value * probability / 100) as weighted_value, AVG(value) as avg_deal_size
+FROM rex_deals WHERE stage NOT IN ('closed_won', 'closed_lost')
+GROUP BY tenant_id, stage;
+
+CREATE OR REPLACE VIEW rex_conversion_funnel AS
+SELECT tenant_id,
+    COUNT(*) FILTER (WHERE stage = 'closed_won') as won,
+    COUNT(*) FILTER (WHERE stage = 'closed_lost') as lost,
+    ROUND(COUNT(*) FILTER (WHERE stage = 'closed_won')::DECIMAL / 
+        NULLIF(COUNT(*) FILTER (WHERE stage IN ('closed_won', 'closed_lost')), 0) * 100, 1) as win_rate
+FROM rex_deals GROUP BY tenant_id;
+
+Tabloları oluşturduktan sonra bana doğrulama yap: kaç tablo oluştu, ENUM'lar doğru mu, trigger'lar aktif mi.
+"""
+
+
+# ══════════════════════════════════════════
+# ADIM 2: ROW LEVEL SECURITY (RLS) EKLE
+# ══════════════════════════════════════════
+# (Adım 1 başarılı olduktan sonra yapıştır)
+
+"""
+Rex CRM tablolarına Row Level Security (RLS) ekle. Bu, veritabanı seviyesinde tenant izolasyonu sağlayacak — yani bir müşterinin verileri başka müşteriye ASLA görünmeyecek.
+
+ÖNEMLİ: Bu SQL'i superuser/admin kullanıcı ile çalıştır (normal app kullanıcısı RLS enable edemez).
+
+SQL içeriği:
+
+-- Tenant ID helper fonksiyonu
+CREATE OR REPLACE FUNCTION current_tenant_id() 
+RETURNS UUID AS $$
+BEGIN
+    RETURN NULLIF(current_setting('app.current_tenant_id', true), '')::UUID;
+EXCEPTION
+    WHEN OTHERS THEN RETURN NULL;
+END;
+$$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
+
+-- Admin bypass fonksiyonu
+CREATE OR REPLACE FUNCTION is_admin_session()
+RETURNS BOOLEAN AS $$
+BEGIN
+    RETURN COALESCE(current_setting('app.is_admin', true), 'false')::BOOLEAN;
+EXCEPTION
+    WHEN OTHERS THEN RETURN false;
+END;
+$$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
+
+-- RLS'i her tabloya uygula
+ALTER TABLE rex_contacts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE rex_contacts FORCE ROW LEVEL SECURITY;
+CREATE POLICY tenant_isolation_contacts ON rex_contacts
+    USING (tenant_id = current_tenant_id() OR is_admin_session())
+    WITH CHECK (tenant_id = current_tenant_id());
+
+ALTER TABLE rex_deals ENABLE ROW LEVEL SECURITY;
+ALTER TABLE rex_deals FORCE ROW LEVEL SECURITY;
+CREATE POLICY tenant_isolation_deals ON rex_deals
+    USING (tenant_id = current_tenant_id() OR is_admin_session())
+    WITH CHECK (tenant_id = current_tenant_id());
+
+ALTER TABLE rex_activities ENABLE ROW LEVEL SECURITY;
+ALTER TABLE rex_activities FORCE ROW LEVEL SECURITY;
+CREATE POLICY tenant_isolation_activities ON rex_activities
+    USING (tenant_id = current_tenant_id() OR is_admin_session())
+    WITH CHECK (tenant_id = current_tenant_id());
+
+ALTER TABLE rex_sequences ENABLE ROW LEVEL SECURITY;
+ALTER TABLE rex_sequences FORCE ROW LEVEL SECURITY;
+CREATE POLICY tenant_isolation_sequences ON rex_sequences
+    USING (tenant_id = current_tenant_id() OR is_admin_session())
+    WITH CHECK (tenant_id = current_tenant_id());
+
+ALTER TABLE rex_stage_history ENABLE ROW LEVEL SECURITY;
+ALTER TABLE rex_stage_history FORCE ROW LEVEL SECURITY;
+CREATE POLICY tenant_isolation_stage_history ON rex_stage_history
+    USING (tenant_id = current_tenant_id() OR is_admin_session())
+    WITH CHECK (tenant_id = current_tenant_id());
+
+ALTER TABLE rex_score_history ENABLE ROW LEVEL SECURITY;
+ALTER TABLE rex_score_history FORCE ROW LEVEL SECURITY;
+CREATE POLICY tenant_isolation_score_history ON rex_score_history
+    USING (tenant_id = current_tenant_id() OR is_admin_session())
+    WITH CHECK (tenant_id = current_tenant_id());
+
+-- Stage config: herkes okuyabilir, sadece admin yazabilir
+ALTER TABLE rex_stage_config ENABLE ROW LEVEL SECURITY;
+ALTER TABLE rex_stage_config FORCE ROW LEVEL SECURITY;
+CREATE POLICY shared_read_stage_config ON rex_stage_config FOR SELECT USING (true);
+CREATE POLICY admin_write_stage_config ON rex_stage_config FOR ALL USING (is_admin_session()) WITH CHECK (is_admin_session());
+
+ÖNEMLİ NOT: Eğer uygulama PostgreSQL'e superuser (postgres) ile bağlanıyorsa, RLS bypasslanır. Bu durumda ayrı bir app kullanıcısı oluşturmalısın:
+
+CREATE ROLE rentai24_app LOGIN PASSWORD 'güvenli_şifre_koy';
+GRANT USAGE ON SCHEMA public TO rentai24_app;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO rentai24_app;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO rentai24_app;
+
+Sonra .env'deki DATABASE_URL'i bu yeni kullanıcıyla güncelle.
+
+Doğrulama: Tüm RLS policy'leri aktif mi kontrol et:
+SELECT tablename, policyname FROM pg_policies WHERE schemaname = 'public';
+"""
+
+
+# ══════════════════════════════════════════
+# ADIM 3: TENANT MIDDLEWARE EKLE
+# ══════════════════════════════════════════
+# (Adım 2 başarılı olduktan sonra yapıştır)
+# NOT: Backend'in Node.js/Express ise aşağıdaki prompt'u kullan.
+# Python/FastAPI ise 02_fastapi_middleware.py dosyasını direkt kullan.
+
+"""
+Mevcut API'ye tenant izolasyon middleware'i ekle. Bu middleware her API request'inde:
+1. Mevcut Google OAuth session'dan user bilgisini alır
+2. User'ın tenant_id'sini çıkarır
+3. Her veritabanı sorgusundan ÖNCE PostgreSQL'de SET app.current_tenant_id yapar
+4. Böylece RLS otomatik olarak sadece o tenant'ın verilerini gösterir
+
+KURALLAR:
+- Mevcut auth/session yapısını BOZMA, üzerine ekle
+- tenant_id ASLA request body veya query parameter'dan alınmayacak, SADECE session'dan
+- Public endpoint'ler (/health, /api/auth/*, /docs) bypass edilecek
+- Admin endpoint'leri için role kontrolü ekle
+
+Yapılacaklar:
+
+A) Eğer users tablosunda tenant_id yoksa ekle:
+   ALTER TABLE users ADD COLUMN tenant_id UUID DEFAULT uuid_generate_v4();
+   -- Mevcut kullanıcıların her birine unique tenant_id ata
+   UPDATE users SET tenant_id = uuid_generate_v4() WHERE tenant_id IS NULL;
+
+B) Tenant middleware oluştur (server/middleware/tenant.js veya uygun yere):
+
+   Middleware şunu yapmalı:
+   - req.session veya JWT'den user objesini al
+   - user.tenant_id'yi çıkar
+   - Her DB query öncesi: await db.query("SET app.current_tenant_id = $1", [tenantId])
+   - req.tenantId = tenantId olarak request'e ekle
+   - Eğer session yoksa veya tenant_id yoksa 401 döndür
+   - Public endpoint listesini bypass et
+
+C) Bu middleware'i app.use() ile auth middleware'den SONRA ekle
+
+D) Admin bypass: Eğer user.role === 'admin' ise, ek olarak:
+   await db.query("SET app.is_admin = 'true'")
+
+E) Her DB connection'ın sonunda (finally bloğu veya connection release):
+   await db.query("RESET app.current_tenant_id")
+   await db.query("RESET app.is_admin")
+
+Mevcut session yapısını kontrol et ve tenant_id'yi oradan çıkar. Eğer session'da tenant_id yoksa, users tablosundan user_id ile çek ve session'a ekle.
+
+Test: Middleware ekledikten sonra bir endpoint'e istek at ve logla:
+- tenant_id doğru mu?
+- RLS çalışıyor mu? (başka tenant'ın verisi gelmiyor mu?)
+"""
+
+
+# ══════════════════════════════════════════
+# ADIM 4: REX API ENDPOINT'LERİNİ OLUŞTUR
+# ══════════════════════════════════════════
+# (Adım 3 başarılı olduktan sonra yapıştır)
+
+"""
+Rex Sales Agent için CRM API endpoint'lerini oluştur. Tenant middleware zaten aktif olduğu için her sorguda RLS otomatik çalışacak — WHERE tenant_id = ... yazmana GEREK YOK.
+
+Endpoint'ler (server/routes/rex.js veya uygun yere):
+
+1. CONTACTS
+   GET    /api/rex/contacts          — Liste (search, segment filter, pagination)
+   GET    /api/rex/contacts/:id      — Tekil contact
+   POST   /api/rex/contacts          — Yeni contact oluştur
+   PUT    /api/rex/contacts/:id      — Contact güncelle
+   DELETE /api/rex/contacts/:id      — Contact sil
+
+2. DEALS  
+   GET    /api/rex/deals             — Liste (stage filter, sort by value)
+   GET    /api/rex/deals/:id         — Tekil deal
+   POST   /api/rex/deals             — Yeni deal oluştur
+   PUT    /api/rex/deals/:id         — Deal güncelle
+   PUT    /api/rex/deals/:id/stage   — Stage değiştir (trigger otomatik çalışır)
+   
+3. ACTIVITIES
+   GET    /api/rex/activities/:contactId  — Contact'ın aktivite geçmişi
+   POST   /api/rex/activities             — Yeni aktivite kaydet
+
+4. ANALYTICS
+   GET    /api/rex/analytics/pipeline     — Pipeline summary (rex_pipeline_summary view'dan)
+   GET    /api/rex/analytics/conversion   — Conversion funnel (rex_conversion_funnel view'dan)
+
+KURALLAR:
+- Her INSERT'te tenant_id'yi req.tenantId'den al: INSERT INTO rex_contacts (tenant_id, ...) VALUES (req.tenantId, ...)
+- SELECT'lerde tenant_id filtreleme YAPMA — RLS otomatik hallediyor
+- Input validation ekle (email format, required fields)
+- Error handling: try/catch, anlamlı error mesajları
+- Pagination: default limit=50, max limit=100
+- Search: ILIKE ile company_name ve contact_name'de arama
+
+Test: Her endpoint'i Postman veya curl ile test et. Özellikle:
+- Yeni contact oluştur
+- Deal oluştur ve stage'ini değiştir (rex_stage_history'ye otomatik kayıt düşmeli)
+- Pipeline summary'yi çek
+"""
+
+
+# ══════════════════════════════════════════
+# ADIM 5: REX AGENT'I BAĞLA (Claude Tool Calling)
+# ══════════════════════════════════════════
+# (Adım 4 başarılı olduktan sonra yapıştır)
+
+"""
+Rex ajanını Claude API ile CRM endpoint'lerine bağla. Rex, kullanıcının mesajını anlayıp uygun CRM işlemini yapacak.
+
+Mevcut ajan engine'ine (agent çağrı mekanizmasına) Rex için şu tool tanımlarını ekle:
+
+tools: [
+  {
+    name: "search_contacts",
+    description: "CRM'de müşteri/contact ara. İsim, şirket adı veya segmente göre arama yapar.",
+    input_schema: {
+      type: "object",
+      properties: {
+        query: { type: "string", description: "Arama terimi (isim veya şirket)" },
+        segment: { type: "string", enum: ["enterprise", "mid", "smb"] }
+      },
+      required: ["query"]
+    }
+  },
+  {
+    name: "create_contact",
+    description: "CRM'e yeni müşteri/contact ekle.",
+    input_schema: {
+      type: "object",
+      properties: {
+        company_name: { type: "string" },
+        contact_name: { type: "string" },
+        email: { type: "string" },
+        phone: { type: "string" },
+        position: { type: "string" },
+        segment: { type: "string", enum: ["enterprise", "mid", "smb"] },
+        source: { type: "string", enum: ["website", "referral", "cold", "event", "ad"] }
+      },
+      required: ["company_name", "contact_name"]
+    }
+  },
+  {
+    name: "create_deal",
+    description: "Yeni satış fırsatı oluştur.",
+    input_schema: {
+      type: "object",
+      properties: {
+        contact_id: { type: "string" },
+        title: { type: "string" },
+        value: { type: "number", description: "Deal değeri (TRY)" },
+        expected_close: { type: "string", description: "Tahmini kapanış tarihi YYYY-MM-DD" }
+      },
+      required: ["contact_id", "title", "value"]
+    }
+  },
+  {
+    name: "update_deal_stage",
+    description: "Mevcut bir deal'in pipeline aşamasını güncelle.",
+    input_schema: {
+      type: "object",
+      properties: {
+        deal_id: { type: "string" },
+        new_stage: { type: "string", enum: ["new_lead", "contacted", "qualified", "proposal_sent", "negotiation", "closed_won", "closed_lost"] },
+        notes: { type: "string" }
+      },
+      required: ["deal_id", "new_stage"]
+    }
+  },
+  {
+    name: "get_pipeline_summary",
+    description: "Satış pipeline özet raporu al. Stage bazlı deal sayısı, toplam değer ve weighted value gösterir.",
+    input_schema: {
+      type: "object",
+      properties: {}
+    }
+  },
+  {
+    name: "log_activity",
+    description: "Müşteriyle yapılan bir aktiviteyi kaydet (email, arama, toplantı, not).",
+    input_schema: {
+      type: "object",
+      properties: {
+        contact_id: { type: "string" },
+        deal_id: { type: "string" },
+        type: { type: "string", enum: ["email_sent", "email_received", "call", "meeting", "note"] },
+        subject: { type: "string" },
+        body: { type: "string" }
+      },
+      required: ["contact_id", "type", "subject"]
+    }
+  }
+]
+
+GÜVENLİK — ÇOK ÖNEMLİ:
+Her tool çağrısında, Claude'un gönderdiği input'u işlerken:
+1. tenant_id'yi ASLA Claude'un input'undan alma
+2. Her zaman req.tenantId (session'dan gelen) kullan
+3. Yani tool handler'da: input.tenant_id = req.tenantId (override)
+
+Tool handler örneği (search_contacts için):
+async function handleSearchContacts(input, tenantId) {
+    // tenant_id'yi session'dan al, Claude'un gönderdiğini IGNORE ET
+    const result = await db.query(
+        "SELECT * FROM rex_contacts WHERE (company_name ILIKE $1 OR contact_name ILIKE $1) LIMIT 20",
+        [`%${input.query}%`]
+    );
+    // RLS zaten tenant filtreleme yapıyor, ama biz yine de tenantId ile çalışıyoruz
+    return result.rows;
+}
+
+Rex'in system prompt'unu da güncelle (mevcut Rex prompt'unun başına ekle):
+
+"Sen Rex, rentai24.com platformunun B2B satış uzmanı AI ajanısın.
+
+## Görevlerin
+1. MÜŞTERİ YÖNETİMİ: search_contacts ve create_contact tool'larıyla CRM'de müşteri ara ve ekle
+2. PIPELINE YÖNETİMİ: create_deal ve update_deal_stage ile satış fırsatlarını yönet
+3. AKTİVİTE KAYDI: Her etkileşimi log_activity ile kaydet
+4. ANALİTİK: get_pipeline_summary ile satış durumunu raporla
+
+## Kurallar
+- Her yeni müşteri bilgisi aldığında create_contact çağır
+- Her deal güncellediğinde log_activity ile not düş
+- Fiyat ve ürün bilgilerini sadece bilgi tabanından (RAG) al, uydurma
+- Türk iş kültürüne uygun, profesyonel ama samimi konuş"
+
+Test: Rex'e şu mesajları gönder ve doğru tool'u çağırdığından emin ol:
+- "ABC Teknoloji'yi CRM'e ekle, Ahmet Bey ile görüştüm" → create_contact
+- "Pipeline durumum nasıl?" → get_pipeline_summary
+- "ABC deal'ini teklif aşamasına taşı" → update_deal_stage
+"""
+
+
+# ══════════════════════════════════════════
+# BONUS: RAG ENTEGRASYONU (Opsiyonel, Finn deneyiminden)
+# ══════════════════════════════════════════
+
+"""
+Rex'in bilgi tabanı (RAG) için Pinecone entegrasyonunu kur. Finn ajanında zaten Pinecone bağlantısı var — aynı index'i kullanacağız ama farklı namespace'lerle.
+
+Yapılacaklar:
+
+1. Mevcut Pinecone bağlantısını kontrol et (Finn için kullanılan)
+2. Rex için yeni namespace'ler oluştur:
+   - "rex_product_catalog" — rentai24 ürün/ajan bilgileri
+   - "rex_pricing" — fiyat listeleri
+   - "rex_sales_playbook" — satış taktikleri, itiraz yönetimi
+   - "rex_faq" — sık sorulan sorular
+
+3. Rex'in tool listesine search_knowledge ekle:
+   {
+     name: "search_knowledge",
+     description: "Satış bilgi tabanında ara. Ürün detayları, fiyatlar, satış taktikleri ve SSS bilgilerine erişir.",
+     input_schema: {
+       type: "object",
+       properties: {
+         query: { type: "string", description: "Arama sorgusu" },
+         namespace: { type: "string", enum: ["rex_product_catalog", "rex_pricing", "rex_sales_playbook", "rex_faq"] }
+       },
+       required: ["query"]
+     }
+   }
+
+4. Tool handler'da Pinecone query yap:
+   - Embedding oluştur (mevcut embedding fonksiyonunu kullan)
+   - İlgili namespace'te ara
+   - Top 5 sonucu döndür
+
+5. RAG sonuçlarını Rex'e context olarak ver (Finn'deki gibi)
+
+NOT: Şimdilik namespace'leri boş oluştur, chunk'ları sonra yükleyeceğiz.
+"""

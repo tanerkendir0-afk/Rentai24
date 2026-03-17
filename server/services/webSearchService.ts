@@ -1,8 +1,25 @@
 import OpenAI from "openai";
 
-// OpenAI SDK types don't yet include web_search_preview in the Responses API tool union.
-// Cast is required until SDK is updated to include this built-in tool type.
-const WEB_SEARCH_TOOL = { type: "web_search_preview" } as const;
+interface ResponseOutputItem {
+  type: string;
+  content?: ResponseContentBlock[];
+  status?: string;
+  action?: { type: string; queries?: string[]; query?: string };
+}
+
+interface ResponseContentBlock {
+  type: string;
+  text?: string;
+  annotations?: ResponseAnnotation[];
+}
+
+interface ResponseAnnotation {
+  type: string;
+  url?: string;
+  title?: string;
+  start_index?: number;
+  end_index?: number;
+}
 
 const directClient = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -44,8 +61,7 @@ export async function realWebSearch(query: string): Promise<WebSearchResponse> {
   try {
     const response = await directClient.responses.create({
       model: "gpt-4o-mini",
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      tools: [WEB_SEARCH_TOOL] as any,
+      tools: [{ type: "web_search_preview" }],
       input: query,
     });
 
@@ -53,24 +69,23 @@ export async function realWebSearch(query: string): Promise<WebSearchResponse> {
     const results: SearchResult[] = [];
     const seenUrls = new Set<string>();
 
-    if (response.output && Array.isArray(response.output)) {
-      for (const item of response.output) {
-        if ((item as any).type === "message" && (item as any).content) {
-          for (const block of (item as any).content) {
-            if (block.type === "output_text" || block.type === "text") {
-              answer += block.text || "";
-              if (block.annotations && Array.isArray(block.annotations)) {
-                for (const ann of block.annotations) {
-                  if (ann.type === "url_citation" && ann.url && !seenUrls.has(ann.url)) {
-                    const cleanUrl = ann.url.split("?utm_source=")[0];
-                    if (!seenUrls.has(cleanUrl)) {
-                      seenUrls.add(cleanUrl);
-                      results.push({
-                        title: ann.title || "",
-                        url: cleanUrl,
-                        snippet: "",
-                      });
-                    }
+    const outputItems = (response.output || []) as unknown as ResponseOutputItem[];
+    for (const item of outputItems) {
+      if (item.type === "message" && item.content) {
+        for (const block of item.content) {
+          if (block.type === "output_text" || block.type === "text") {
+            answer += block.text || "";
+            if (block.annotations) {
+              for (const ann of block.annotations) {
+                if (ann.type === "url_citation" && ann.url && !seenUrls.has(ann.url)) {
+                  const cleanUrl = ann.url.split("?utm_source=")[0];
+                  if (!seenUrls.has(cleanUrl)) {
+                    seenUrls.add(cleanUrl);
+                    results.push({
+                      title: ann.title || "",
+                      url: cleanUrl,
+                      snippet: "",
+                    });
                   }
                 }
               }
@@ -183,8 +198,14 @@ export async function analyzeCompany(
       const safeResult = searchResults.results.find(r => isAllowedUrl(r.url));
       if (safeResult) {
         websiteUrl = safeResult.url;
+        try {
+          webContent = await fetchWebPage(websiteUrl);
+        } catch {
+          webContent = searchResults.results.map(r => `${r.title}: ${r.snippet}`).join("\n");
+        }
+      } else {
+        webContent = searchResults.results.map(r => `${r.title}: ${r.snippet}`).join("\n");
       }
-      webContent = searchResults.results.map(r => `${r.title}: ${r.snippet}`).join("\n");
     }
   }
 

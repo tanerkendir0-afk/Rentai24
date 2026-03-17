@@ -2831,29 +2831,26 @@ Be specific to the ${industry} industry. About 400-500 words.`;
 
         const { leads, searchQueries } = await findLeads(product, industry, location, count);
 
-        let resultText = `🎯 **Lead Search Results for: "${product}"**\n\n`;
+        let resultText = `**Lead Search Results for: "${product}"**\n\n`;
         resultText += `**Search Strategy:** ${searchQueries.slice(0, 3).join(" | ")}\n`;
         resultText += `**Found:** ${leads.length} qualified potential buyers\n\n`;
 
         if (leads.length === 0) {
           resultText += "No qualifying leads found. Try:\n";
-          resultText += "• A different product description\n";
-          resultText += "• A specific industry or location\n";
-          resultText += "• More general terms\n";
+          resultText += "- A different product description\n";
+          resultText += "- A specific industry or location\n";
+          resultText += "- More general terms\n";
+        }
+
+        if (leads.length > 0) {
+          resultText += "| # | Company | Industry | Classification | Confidence | Website | Contact | CRM |\n";
+          resultText += "|---|---------|----------|----------------|------------|---------|---------|-----|\n";
         }
 
         const addedContacts: string[] = [];
         for (let i = 0; i < leads.length; i++) {
           const lead = leads[i];
-          resultText += `### ${i + 1}. ${lead.companyName}\n`;
-          resultText += `  🏭 **Industry:** ${lead.industry}\n`;
-          resultText += `  📋 **Description:** ${lead.description}\n`;
-          resultText += `  🔍 **Products:** ${lead.products.join(", ") || "N/A"}\n`;
-          resultText += `  📊 **Confidence:** ${Math.round(lead.classificationConfidence * 100)}%\n`;
-          if (lead.website) resultText += `  🌐 **Website:** ${lead.website}\n`;
-          if (lead.contactInfo.email) resultText += `  📧 ${lead.contactInfo.email}\n`;
-          if (lead.contactInfo.phone) resultText += `  📞 ${lead.contactInfo.phone}\n`;
-          resultText += `\n`;
+          let crmStatus = "-";
 
           try {
             const contact = await storage.createRexContact({
@@ -2871,13 +2868,20 @@ Be specific to the ${industry} industry. About 400-500 words.`;
               leadScore: Math.round(lead.classificationConfidence * 100),
             });
             addedContacts.push(contact.id);
+            crmStatus = "Added";
           } catch (e) {
             console.warn(`[find_leads] Failed to add ${lead.companyName} to CRM:`, (e as Error).message);
+            crmStatus = "Failed";
           }
+
+          const contactInfo = [lead.contactInfo.email, lead.contactInfo.phone].filter(Boolean).join(", ") || "-";
+          const websiteCol = lead.website || "-";
+          const confidence = `${Math.round(lead.classificationConfidence * 100)}%`;
+          resultText += `| ${i + 1} | ${lead.companyName} | ${lead.industry} | ${lead.classification} | ${confidence} | ${websiteCol} | ${contactInfo} | ${crmStatus} |\n`;
         }
 
         if (addedContacts.length > 0) {
-          resultText += `\n✅ **${addedContacts.length} leads automatically added to CRM.** Use \`search_contacts\` to view them.\n`;
+          resultText += `\n**${addedContacts.length} leads automatically added to CRM.** Use \`search_contacts\` to view them.\n`;
         }
 
         await storage.createAgentAction({

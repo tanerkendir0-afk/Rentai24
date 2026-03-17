@@ -4037,7 +4037,7 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
 
   app.post("/api/rex/contacts", requireAuth, async (req, res) => {
     try {
-      const data = insertRexContactSchema.parse({ ...req.body, userId: (req.user as User).id });
+      const data = insertRexContactSchema.parse({ ...req.body, userId: req.session.userId! });
       const contact = await storage.createRexContact(data);
       res.status(201).json(contact);
     } catch (error: any) {
@@ -4049,7 +4049,7 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
 
   app.get("/api/rex/contacts", requireAuth, async (req, res) => {
     try {
-      const userId = (req.user as User).id;
+      const userId = req.session.userId!;
       const segmentParam = req.query.segment as string | undefined;
       const sourceParam = req.query.source as string | undefined;
       const contacts = await storage.searchRexContacts(userId, {
@@ -4069,7 +4069,7 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
 
   app.get("/api/rex/contacts/:id", requireAuth, async (req, res) => {
     try {
-      const contact = await storage.getRexContact(req.params.id, (req.user as User).id);
+      const contact = await storage.getRexContact(req.params.id, req.session.userId!);
       if (!contact) return res.status(404).json({ error: "Contact not found" });
       res.json(contact);
     } catch (error: any) {
@@ -4081,7 +4081,7 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
   app.patch("/api/rex/contacts/:id", requireAuth, async (req, res) => {
     try {
       const { id: _id, userId: _u, createdAt: _c, updatedAt: _up, ...safeBody } = req.body;
-      const contact = await storage.updateRexContact(req.params.id, (req.user as User).id, safeBody);
+      const contact = await storage.updateRexContact(req.params.id, req.session.userId!, safeBody);
       if (!contact) return res.status(404).json({ error: "Contact not found" });
       res.json(contact);
     } catch (error: any) {
@@ -4092,7 +4092,7 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
 
   app.delete("/api/rex/contacts/:id", requireAuth, async (req, res) => {
     try {
-      const deleted = await storage.deleteRexContact(req.params.id, (req.user as User).id);
+      const deleted = await storage.deleteRexContact(req.params.id, req.session.userId!);
       if (!deleted) return res.status(404).json({ error: "Contact not found" });
       res.json({ success: true });
     } catch (error: any) {
@@ -4103,7 +4103,7 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
 
   app.post("/api/rex/deals", requireAuth, async (req, res) => {
     try {
-      const userId = (req.user as User).id;
+      const userId = req.session.userId!;
       const data = insertRexDealSchema.parse({ ...req.body, userId });
       const contact = await storage.getRexContact(data.contactId, userId);
       if (!contact) return res.status(400).json({ error: "Contact not found or does not belong to you" });
@@ -4118,7 +4118,7 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
 
   app.get("/api/rex/deals", requireAuth, async (req, res) => {
     try {
-      const userId = (req.user as User).id;
+      const userId = req.session.userId!;
       const stageParam = req.query.stage as string | undefined;
       const deals = await storage.searchRexDeals(userId, {
         stage: stageParam && DEAL_STAGE_VALUES.includes(stageParam as DealStageValue) ? stageParam as DealStageValue : undefined,
@@ -4136,7 +4136,7 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
 
   app.get("/api/rex/deals/:id", requireAuth, async (req, res) => {
     try {
-      const deal = await storage.getRexDeal(req.params.id, (req.user as User).id);
+      const deal = await storage.getRexDeal(req.params.id, req.session.userId!);
       if (!deal) return res.status(404).json({ error: "Deal not found" });
       res.json(deal);
     } catch (error: any) {
@@ -4148,7 +4148,7 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
   app.patch("/api/rex/deals/:id", requireAuth, async (req, res) => {
     try {
       const { id: _id, userId: _u, contactId: _c, createdAt: _cr, updatedAt: _up, ...safeBody } = req.body;
-      const deal = await storage.updateRexDeal(req.params.id, (req.user as User).id, safeBody);
+      const deal = await storage.updateRexDeal(req.params.id, req.session.userId!, safeBody);
       if (!deal) return res.status(404).json({ error: "Deal not found" });
       res.json(deal);
     } catch (error: any) {
@@ -4161,7 +4161,7 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
     try {
       const { stage, notes } = req.body;
       if (!stage || !DEAL_STAGE_VALUES.includes(stage as DealStageValue)) return res.status(400).json({ error: `stage must be one of: ${DEAL_STAGE_VALUES.join(", ")}` });
-      const deal = await storage.updateRexDealStage(req.params.id, (req.user as User).id, stage as DealStageValue, notes);
+      const deal = await storage.updateRexDealStage(req.params.id, req.session.userId!, stage as DealStageValue, notes);
       if (!deal) return res.status(404).json({ error: "Deal not found" });
       res.json(deal);
     } catch (error: any) {
@@ -4172,7 +4172,7 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
 
   app.get("/api/rex/pipeline", requireAuth, async (req, res) => {
     try {
-      const summary = await storage.getRexPipelineSummary((req.user as User).id);
+      const summary = await storage.getRexPipelineSummary(req.session.userId!);
       res.json(summary);
     } catch (error: any) {
       console.error(error);
@@ -4182,7 +4182,7 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
 
   app.post("/api/rex/activities", requireAuth, async (req, res) => {
     try {
-      const userId = (req.user as User).id;
+      const userId = req.session.userId!;
       const data = insertRexActivitySchema.parse({ ...req.body, userId });
       const contact = await storage.getRexContact(data.contactId, userId);
       if (!contact) return res.status(400).json({ error: "Contact not found or does not belong to you" });
@@ -4201,7 +4201,7 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
 
   app.get("/api/rex/activities", requireAuth, async (req, res) => {
     try {
-      const userId = (req.user as User).id;
+      const userId = req.session.userId!;
       const typeParam = req.query.type as string | undefined;
       const activities = await storage.getRexActivities(userId, {
         contactId: req.query.contactId as string,
@@ -4219,7 +4219,7 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
 
   app.post("/api/rex/sequences", requireAuth, async (req, res) => {
     try {
-      const userId = (req.user as User).id;
+      const userId = req.session.userId!;
       const data = insertRexSequenceSchema.parse({ ...req.body, userId });
       const contact = await storage.getRexContact(data.contactId, userId);
       if (!contact) return res.status(400).json({ error: "Contact not found or does not belong to you" });
@@ -4238,7 +4238,7 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
 
   app.get("/api/rex/sequences", requireAuth, async (req, res) => {
     try {
-      const userId = (req.user as User).id;
+      const userId = req.session.userId!;
       const statusParam = req.query.status as string | undefined;
       const sequences = await storage.getRexSequences(userId, {
         contactId: req.query.contactId as string,
@@ -4255,7 +4255,7 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
   app.patch("/api/rex/sequences/:id", requireAuth, async (req, res) => {
     try {
       const { id: _id, userId: _u, contactId: _c, dealId: _d, createdAt: _cr, updatedAt: _up, ...safeBody } = req.body;
-      const sequence = await storage.updateRexSequence(req.params.id, (req.user as User).id, safeBody);
+      const sequence = await storage.updateRexSequence(req.params.id, req.session.userId!, safeBody);
       if (!sequence) return res.status(404).json({ error: "Sequence not found" });
       res.json(sequence);
     } catch (error: any) {
@@ -4266,7 +4266,7 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
 
   app.get("/api/rex/analytics/pipeline", requireAuth, async (req, res) => {
     try {
-      const summary = await storage.getRexPipelineSummary((req.user as User).id);
+      const summary = await storage.getRexPipelineSummary(req.session.userId!);
       res.json(summary);
     } catch (error: any) {
       console.error(error);
@@ -4276,7 +4276,7 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
 
   app.get("/api/rex/analytics/conversion", requireAuth, async (req, res) => {
     try {
-      const funnel = await storage.getRexConversionFunnel((req.user as User).id);
+      const funnel = await storage.getRexConversionFunnel(req.session.userId!);
       res.json(funnel);
     } catch (error: any) {
       console.error(error);
@@ -4286,7 +4286,7 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
 
   app.get("/api/rex/activities/:contactId", requireAuth, async (req, res) => {
     try {
-      const userId = (req.user as User).id;
+      const userId = req.session.userId!;
       const activities = await storage.getRexActivitiesByContact(req.params.contactId, userId);
       res.json(activities);
     } catch (error: any) {
@@ -4298,7 +4298,7 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
   app.put("/api/rex/contacts/:id", requireAuth, async (req, res) => {
     try {
       const { id: _id, userId: _u, createdAt: _c, updatedAt: _up, ...safeBody } = req.body;
-      const contact = await storage.updateRexContact(req.params.id, (req.user as User).id, safeBody);
+      const contact = await storage.updateRexContact(req.params.id, req.session.userId!, safeBody);
       if (!contact) return res.status(404).json({ error: "Contact not found" });
       res.json(contact);
     } catch (error: any) {
@@ -4310,7 +4310,7 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
   app.put("/api/rex/deals/:id", requireAuth, async (req, res) => {
     try {
       const { id: _id, userId: _u, contactId: _c, createdAt: _cr, updatedAt: _up, ...safeBody } = req.body;
-      const deal = await storage.updateRexDeal(req.params.id, (req.user as User).id, safeBody);
+      const deal = await storage.updateRexDeal(req.params.id, req.session.userId!, safeBody);
       if (!deal) return res.status(404).json({ error: "Deal not found" });
       res.json(deal);
     } catch (error: any) {
@@ -4323,7 +4323,7 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
     try {
       const { stage, notes } = req.body;
       if (!stage || !DEAL_STAGE_VALUES.includes(stage as DealStageValue)) return res.status(400).json({ error: `stage must be one of: ${DEAL_STAGE_VALUES.join(", ")}` });
-      const deal = await storage.updateRexDealStage(req.params.id, (req.user as User).id, stage as DealStageValue, notes);
+      const deal = await storage.updateRexDealStage(req.params.id, req.session.userId!, stage as DealStageValue, notes);
       if (!deal) return res.status(404).json({ error: "Deal not found" });
       res.json(deal);
     } catch (error: any) {

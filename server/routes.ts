@@ -4264,10 +4264,68 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
     }
   });
 
-  app.get("/api/rex/analytics/funnel", requireAuth, async (req, res) => {
+  app.get("/api/rex/analytics/pipeline", requireAuth, async (req, res) => {
+    try {
+      const summary = await storage.getRexPipelineSummary((req.user as User).id);
+      res.json(summary);
+    } catch (error: any) {
+      console.error(error);
+      res.status(500).json({ error: msg("internalServerError", req.lang!) });
+    }
+  });
+
+  app.get("/api/rex/analytics/conversion", requireAuth, async (req, res) => {
     try {
       const funnel = await storage.getRexConversionFunnel((req.user as User).id);
       res.json(funnel);
+    } catch (error: any) {
+      console.error(error);
+      res.status(500).json({ error: msg("internalServerError", req.lang!) });
+    }
+  });
+
+  app.get("/api/rex/activities/:contactId", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.user as User).id;
+      const activities = await storage.getRexActivitiesByContact(req.params.contactId, userId);
+      res.json(activities);
+    } catch (error: any) {
+      console.error(error);
+      res.status(500).json({ error: msg("internalServerError", req.lang!) });
+    }
+  });
+
+  app.put("/api/rex/contacts/:id", requireAuth, async (req, res) => {
+    try {
+      const { id: _id, userId: _u, createdAt: _c, updatedAt: _up, ...safeBody } = req.body;
+      const contact = await storage.updateRexContact(req.params.id, (req.user as User).id, safeBody);
+      if (!contact) return res.status(404).json({ error: "Contact not found" });
+      res.json(contact);
+    } catch (error: any) {
+      console.error(error);
+      res.status(500).json({ error: msg("internalServerError", req.lang!) });
+    }
+  });
+
+  app.put("/api/rex/deals/:id", requireAuth, async (req, res) => {
+    try {
+      const { id: _id, userId: _u, contactId: _c, createdAt: _cr, updatedAt: _up, ...safeBody } = req.body;
+      const deal = await storage.updateRexDeal(req.params.id, (req.user as User).id, safeBody);
+      if (!deal) return res.status(404).json({ error: "Deal not found" });
+      res.json(deal);
+    } catch (error: any) {
+      console.error(error);
+      res.status(500).json({ error: msg("internalServerError", req.lang!) });
+    }
+  });
+
+  app.put("/api/rex/deals/:id/stage", requireAuth, async (req, res) => {
+    try {
+      const { stage, notes } = req.body;
+      if (!stage || !DEAL_STAGE_VALUES.includes(stage as DealStageValue)) return res.status(400).json({ error: `stage must be one of: ${DEAL_STAGE_VALUES.join(", ")}` });
+      const deal = await storage.updateRexDealStage(req.params.id, (req.user as User).id, stage as DealStageValue, notes);
+      if (!deal) return res.status(404).json({ error: "Deal not found" });
+      res.json(deal);
     } catch (error: any) {
       console.error(error);
       res.status(500).json({ error: msg("internalServerError", req.lang!) });

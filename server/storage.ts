@@ -176,12 +176,14 @@ export interface IStorage {
 
   createRexContact(data: InsertRexContact): Promise<RexContact>;
   getRexContact(id: string, userId: number): Promise<RexContact | undefined>;
+  getRexContactsByUser(userId: number): Promise<RexContact[]>;
   searchRexContacts(userId: number, filters: { query?: string; segment?: CustomerSegmentValue; source?: LeadSourceValue; minScore?: number; tags?: string[]; limit?: number; offset?: number }): Promise<RexContact[]>;
   updateRexContact(id: string, userId: number, data: Partial<InsertRexContact>): Promise<RexContact | undefined>;
   deleteRexContact(id: string, userId: number): Promise<boolean>;
 
   createRexDeal(data: InsertRexDeal): Promise<RexDeal>;
   getRexDeal(id: string, userId: number): Promise<RexDeal | undefined>;
+  getRexDealsByUser(userId: number): Promise<RexDeal[]>;
   getRexDealsByContact(contactId: string, userId: number): Promise<RexDeal[]>;
   searchRexDeals(userId: number, filters: { stage?: DealStageValue; minValue?: number; contactId?: string; limit?: number; offset?: number }): Promise<RexDeal[]>;
   updateRexDeal(id: string, userId: number, data: Partial<InsertRexDeal>): Promise<RexDeal | undefined>;
@@ -191,9 +193,11 @@ export interface IStorage {
 
   createRexActivity(data: InsertRexActivity): Promise<RexActivity>;
   getRexActivities(userId: number, filters: { contactId?: string; dealId?: string; type?: ActivityTypeValue; limit?: number; offset?: number }): Promise<RexActivity[]>;
+  getRexActivitiesByContact(contactId: string, userId: number): Promise<RexActivity[]>;
 
   createRexSequence(data: InsertRexSequence): Promise<RexSequence>;
   getRexSequences(userId: number, filters: { contactId?: string; status?: SequenceStatusValue; limit?: number }): Promise<RexSequence[]>;
+  getActiveSequences(userId: number): Promise<RexSequence[]>;
   updateRexSequence(id: string, userId: number, data: Partial<InsertRexSequence>): Promise<RexSequence | undefined>;
 
   getRexStageConfig(): Promise<RexStageConfig[]>;
@@ -1445,6 +1449,10 @@ export class DatabaseStorage implements IStorage {
     return contact;
   }
 
+  async getRexContactsByUser(userId: number): Promise<RexContact[]> {
+    return db.select().from(rexContacts).where(eq(rexContacts.userId, userId)).orderBy(desc(rexContacts.createdAt));
+  }
+
   async searchRexContacts(userId: number, filters: { query?: string; segment?: CustomerSegmentValue; source?: LeadSourceValue; minScore?: number; tags?: string[]; limit?: number; offset?: number }): Promise<RexContact[]> {
     const conditions = [eq(rexContacts.userId, userId)];
     if (filters.segment && CUSTOMER_SEGMENT_VALUES.includes(filters.segment)) conditions.push(eq(rexContacts.segment, filters.segment));
@@ -1482,6 +1490,10 @@ export class DatabaseStorage implements IStorage {
   async getRexDeal(id: string, userId: number): Promise<RexDeal | undefined> {
     const [deal] = await db.select().from(rexDeals).where(and(eq(rexDeals.id, id), eq(rexDeals.userId, userId)));
     return deal;
+  }
+
+  async getRexDealsByUser(userId: number): Promise<RexDeal[]> {
+    return db.select().from(rexDeals).where(eq(rexDeals.userId, userId)).orderBy(desc(rexDeals.createdAt));
   }
 
   async getRexDealsByContact(contactId: string, userId: number): Promise<RexDeal[]> {
@@ -1585,6 +1597,10 @@ export class DatabaseStorage implements IStorage {
     return activity;
   }
 
+  async getRexActivitiesByContact(contactId: string, userId: number): Promise<RexActivity[]> {
+    return db.select().from(rexActivities).where(and(eq(rexActivities.contactId, contactId), eq(rexActivities.userId, userId))).orderBy(desc(rexActivities.createdAt));
+  }
+
   async getRexActivities(userId: number, filters: { contactId?: string; dealId?: string; type?: ActivityTypeValue; limit?: number; offset?: number }): Promise<RexActivity[]> {
     const conditions = [eq(rexActivities.userId, userId)];
     if (filters.contactId) conditions.push(eq(rexActivities.contactId, filters.contactId));
@@ -1603,6 +1619,10 @@ export class DatabaseStorage implements IStorage {
     if (filters.contactId) conditions.push(eq(rexSequences.contactId, filters.contactId));
     if (filters.status && SEQUENCE_STATUS_VALUES.includes(filters.status)) conditions.push(eq(rexSequences.status, filters.status));
     return db.select().from(rexSequences).where(and(...conditions)).orderBy(desc(rexSequences.createdAt)).limit(filters.limit || 50);
+  }
+
+  async getActiveSequences(userId: number): Promise<RexSequence[]> {
+    return db.select().from(rexSequences).where(and(eq(rexSequences.userId, userId), eq(rexSequences.status, "active"))).orderBy(desc(rexSequences.createdAt));
   }
 
   async updateRexSequence(id: string, userId: number, data: Partial<InsertRexSequence>): Promise<RexSequence | undefined> {

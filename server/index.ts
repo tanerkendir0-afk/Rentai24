@@ -11,6 +11,8 @@ import { runMigrations } from "stripe-replit-sync";
 import { getStripeSync } from "./stripeClient";
 import { WebhookHandlers } from "./webhookHandlers";
 import { pool } from "./db";
+import { db } from "./db";
+import { rexStageConfig } from "@shared/schema";
 import { startHeartbeat, stopHeartbeat } from "./services/heartbeat";
 import { agentSystemPrompts } from "./routes";
 
@@ -304,6 +306,24 @@ app.use((req, res, next) => {
   } else {
     const { setupVite } = await import("./vite");
     await setupVite(httpServer, app);
+  }
+
+  try {
+    const existingStageConfig = await db.select().from(rexStageConfig);
+    if (existingStageConfig.length === 0) {
+      await db.insert(rexStageConfig).values([
+        { stage: "new_lead", slaDays: 1, defaultProbability: 10, autoActions: [{ action: "calculate_lead_score" }, { action: "plan_first_outreach" }] },
+        { stage: "contacted", slaDays: 3, defaultProbability: 20, autoActions: [{ action: "schedule_follow_up", delay_hours: 48 }] },
+        { stage: "qualified", slaDays: 5, defaultProbability: 40, autoActions: [{ action: "match_products" }, { action: "prepare_proposal_brief" }] },
+        { stage: "proposal_sent", slaDays: 7, defaultProbability: 60, autoActions: [{ action: "schedule_follow_up", delay_hours: 72 }] },
+        { stage: "negotiation", slaDays: 10, defaultProbability: 80, autoActions: [{ action: "alert_decision_maker_contact" }] },
+        { stage: "closed_won", slaDays: 0, defaultProbability: 100, autoActions: [{ action: "trigger_onboarding" }, { action: "notify_finn_invoice" }] },
+        { stage: "closed_lost", slaDays: 0, defaultProbability: 0, autoActions: [{ action: "log_loss_reason" }, { action: "add_to_nurture" }] },
+      ]).onConflictDoNothing();
+      console.log("[RexCRM] Stage config seeded (7 stages)");
+    }
+  } catch (err) {
+    console.warn("[RexCRM] Stage config seed skipped (table may not exist yet):", (err as Error).message);
   }
 
   const port = parseInt(process.env.PORT || "5000", 10);

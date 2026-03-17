@@ -191,6 +191,13 @@ const createComponents = (isUser: boolean, showToast?: (msg: string) => void): C
   a: ({ href, children }) => {
     const isDownloadLink = href && (href.match(/^\/api\/invoices\/\d+\/(pdf|excel)/) || href.match(/^\/api\/reports\/[^/]+\/download/));
     if (isDownloadLink) {
+      const childText = String(children || "");
+      const isExcel = href.includes("/reports/") || href.endsWith("/excel");
+      const isPdf = href.endsWith("/pdf");
+      const FileIcon = isExcel ? FileSpreadsheet : isPdf ? FileText : File;
+      const fileExt = isExcel ? "XLSX" : isPdf ? "PDF" : "FILE";
+      const displayName = childText || (isExcel ? "Rapor.xlsx" : "Dosya");
+
       return (
         <button
           type="button"
@@ -223,11 +230,25 @@ const createComponents = (isUser: boolean, showToast?: (msg: string) => void): C
               showToast?.("Dosya indirilemedi. Lütfen tekrar deneyin.");
             }
           }}
-          className={`inline-flex items-center gap-1 underline underline-offset-2 decoration-1 cursor-pointer ${isUser ? "text-blue-100 hover:text-white" : "text-blue-400 hover:text-blue-300"}`}
+          className={`my-2 flex items-center gap-3 px-4 py-3 rounded-xl border cursor-pointer transition-all hover:scale-[1.01] active:scale-[0.99] ${
+            isUser
+              ? "bg-white/10 border-white/20 hover:bg-white/15"
+              : "bg-gradient-to-r from-blue-500/10 to-indigo-500/10 border-blue-500/20 hover:border-blue-500/30"
+          }`}
           data-testid="button-download-file"
         >
-          <Download className="w-3 h-3" />
-          {children}
+          <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${
+            isUser ? "bg-white/15" : "bg-blue-500/15"
+          }`}>
+            <FileIcon className={`w-5 h-5 ${isUser ? "text-blue-200" : "text-blue-400"}`} />
+          </div>
+          <div className="min-w-0 text-left flex-1">
+            <p className="text-sm font-medium truncate max-w-[220px]">{displayName}</p>
+            <p className={`text-[11px] ${isUser ? "text-blue-200/60" : "text-muted-foreground"}`}>
+              {fileExt} dosyasi
+            </p>
+          </div>
+          <Download className={`w-4 h-4 shrink-0 ${isUser ? "text-blue-200/80" : "text-blue-400/80"}`} />
         </button>
       );
     }

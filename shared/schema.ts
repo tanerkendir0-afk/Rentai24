@@ -162,7 +162,7 @@ export const chatMessageSchema = z.object({
   agentType: z.string().min(1),
   conversationHistory: z.array(z.object({
     role: z.enum(["user", "assistant"]),
-    content: z.string().max(2000),
+    content: z.string().max(16000),
   })).max(50).optional(),
   sessionId: z.string().max(100).optional(),
 });

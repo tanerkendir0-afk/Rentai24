@@ -244,6 +244,133 @@ export async function generateGelirTablosu(data: {
   return Buffer.from(buf);
 }
 
+interface BilancoEntry {
+  hesapKodu: string;
+  hesapAdi: string;
+  tutar: number;
+}
+
+interface BilancoData {
+  donenVarliklar: BilancoEntry[];
+  duranVarliklar: BilancoEntry[];
+  kisaVadeliYukulumlukler: BilancoEntry[];
+  uzunVadeliYukulumlukler: BilancoEntry[];
+  ozkaynaklar: BilancoEntry[];
+}
+
+export async function generateBilanco(data: {
+  bilanco: BilancoData;
+  period?: string;
+  companyName?: string;
+  title?: string;
+}): Promise<{ buffer: Buffer; totals: { toplamAktif: number; toplamPasif: number; ozkaynakToplam: number } }> {
+  const wb = new ExcelJS.Workbook();
+  wb.creator = "RentAI 24 — Finn";
+  const ws = wb.addWorksheet("Bilanço", {
+    pageSetup: { paperSize: 9, orientation: "portrait", fitToPage: true },
+  });
+
+  ws.columns = [{ width: 14 }, { width: 38 }, { width: 22 }];
+
+  addTitle(ws, data.title || `${data.companyName || ""} Bilanço`.trim(), data.period || "", 3);
+
+  const addSectionHeader = (label: string) => {
+    const r = ws.addRow([label]);
+    ws.mergeCells(r.number, 1, r.number, 3);
+    r.getCell(1).font = { bold: true, size: 12, color: { argb: "FFFFFF" } };
+    r.getCell(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: BLUE } };
+    r.getCell(1).alignment = { horizontal: "center" };
+  };
+
+  const addGroupHeader = (label: string) => {
+    const r = ws.addRow([label]);
+    ws.mergeCells(r.number, 1, r.number, 3);
+    r.getCell(1).font = { bold: true, size: 11, color: { argb: BLUE } };
+    r.getCell(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "E8EDFB" } };
+  };
+
+  const addEntryRows = (entries: BilancoEntry[]) => {
+    let total = 0;
+    entries.forEach((e, i) => {
+      const r = ws.addRow([e.hesapKodu, e.hesapAdi, e.tutar]);
+      r.getCell(3).numFmt = MONEY_FMT;
+      zebraRow(r, i);
+      total += e.tutar;
+    });
+    return total;
+  };
+
+  const addTotalRow = (label: string, amount: number) => {
+    const r = ws.addRow(["", label, amount]);
+    r.getCell(2).font = { bold: true, size: 10 };
+    r.getCell(3).font = { bold: true, size: 10 };
+    r.getCell(3).numFmt = MONEY_FMT;
+    r.eachCell(c => {
+      c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "D6E4FF" } };
+    });
+  };
+
+  const b = data.bilanco;
+
+  addSectionHeader("AKTİF (VARLIKLAR)");
+  const hdr1 = ws.addRow(["Hesap Kodu", "Hesap Adı", "Tutar (₺)"]);
+  applyHeaderStyle(hdr1);
+
+  addGroupHeader("I — Dönen Varlıklar");
+  const donenTotal = addEntryRows(b.donenVarliklar);
+  addTotalRow("Dönen Varlıklar Toplamı", donenTotal);
+
+  ws.addRow([]);
+  addGroupHeader("II — Duran Varlıklar");
+  const duranTotal = addEntryRows(b.duranVarliklar);
+  addTotalRow("Duran Varlıklar Toplamı", duranTotal);
+
+  const toplamAktif = donenTotal + duranTotal;
+  ws.addRow([]);
+  const aktifRow = ws.addRow(["", "TOPLAM AKTİF", toplamAktif]);
+  aktifRow.eachCell(c => {
+    c.font = { bold: true, size: 11, color: { argb: "FFFFFF" } };
+    c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: BLUE } };
+  });
+  aktifRow.getCell(3).numFmt = MONEY_FMT;
+
+  ws.addRow([]);
+  ws.addRow([]);
+
+  addSectionHeader("PASİF (KAYNAKLAR)");
+  const hdr2 = ws.addRow(["Hesap Kodu", "Hesap Adı", "Tutar (₺)"]);
+  applyHeaderStyle(hdr2);
+
+  addGroupHeader("III — Kısa Vadeli Yabancı Kaynaklar");
+  const kisaTotal = addEntryRows(b.kisaVadeliYukulumlukler);
+  addTotalRow("Kısa Vadeli Yab. Kaynaklar Toplamı", kisaTotal);
+
+  ws.addRow([]);
+  addGroupHeader("IV — Uzun Vadeli Yabancı Kaynaklar");
+  const uzunTotal = addEntryRows(b.uzunVadeliYukulumlukler);
+  addTotalRow("Uzun Vadeli Yab. Kaynaklar Toplamı", uzunTotal);
+
+  ws.addRow([]);
+  addGroupHeader("V — Özkaynaklar");
+  const ozkaynakToplam = addEntryRows(b.ozkaynaklar);
+  addTotalRow("Özkaynaklar Toplamı", ozkaynakToplam);
+
+  const toplamPasif = kisaTotal + uzunTotal + ozkaynakToplam;
+  ws.addRow([]);
+  const pasifRow = ws.addRow(["", "TOPLAM PASİF", toplamPasif]);
+  pasifRow.eachCell(c => {
+    c.font = { bold: true, size: 11, color: { argb: "FFFFFF" } };
+    c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: BLUE } };
+  });
+  pasifRow.getCell(3).numFmt = MONEY_FMT;
+
+  const buf = await wb.xlsx.writeBuffer();
+  return {
+    buffer: Buffer.from(buf),
+    totals: { toplamAktif, toplamPasif, ozkaynakToplam },
+  };
+}
+
 interface KdvOzetData {
   hesaplananKdv: number;
   indirilecekKdv: number;

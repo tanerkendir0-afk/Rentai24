@@ -12,7 +12,7 @@ import { computeLeadScore } from "./leadScoring";
 import { realWebSearch, fetchWebPage, analyzeCompany, findLeads } from "./services/webSearchService";
 import { generateInvoicePDF } from "./services/invoiceGenerator";
 import { generateInvoiceExcel } from "./services/invoiceExcelGenerator";
-import { generateMizan, generateBordro, generateGelirTablosu, generateKdvOzet } from "./services/reportGenerator";
+import { generateMizan, generateBordro, generateGelirTablosu, generateKdvOzet, generateBilanco } from "./services/reportGenerator";
 import { hesaplaKDV, hesaplaBordro, hesaplaAmortisman, hesaplaKurDegerlemesi, hesaplaStopaj, formatYevmiyeKaydi, yevmiyeToMarkdown, formatTL } from "./services/calculationService";
 import { db } from "./db";
 import { invoices, invoiceItems } from "@shared/schema";
@@ -1152,12 +1152,19 @@ export const bookkeepingTools: OpenAI.ChatCompletionTool[] = [
     type: "function",
     function: {
       name: "generate_balance_sheet",
-      description: "Tekdüzen Hesap Planına uygun basit bilanço oluşturur. Kayıtlı varlık, borç ve özkaynak verilerini kullanır.",
+      description: "Tekdüzen Hesap Planına uygun bilanço oluşturur (Excel dosyası). Varlık, borç ve özkaynak kalemlerini pipe-separated formatında gönder. Her kalem: HesapKodu|HesapAdı|Tutar şeklinde, kalemler noktalı virgülle ayrılır. Örnek: entries_aktif_donen='100|Kasa|150000;102|Bankalar|500000'",
       parameters: {
         type: "object",
         properties: {
-          date: { type: "string", description: "Bilanço tarihi (YYYY-MM-DD, varsayılan: bugün)" },
+          entries_aktif_donen: { type: "string", description: "Dönen varlıklar: 'HesapKodu|HesapAdı|Tutar' şeklinde, ; ile ayrılmış" },
+          entries_aktif_duran: { type: "string", description: "Duran varlıklar: 'HesapKodu|HesapAdı|Tutar' şeklinde, ; ile ayrılmış" },
+          entries_kisa_vadeli: { type: "string", description: "Kısa vadeli yabancı kaynaklar: 'HesapKodu|HesapAdı|Tutar' şeklinde, ; ile ayrılmış" },
+          entries_uzun_vadeli: { type: "string", description: "Uzun vadeli yabancı kaynaklar: 'HesapKodu|HesapAdı|Tutar' şeklinde, ; ile ayrılmış (boş olabilir)" },
+          entries_ozkaynak: { type: "string", description: "Özkaynaklar: 'HesapKodu|HesapAdı|Tutar' şeklinde, ; ile ayrılmış" },
+          period: { type: "string", description: "Dönem (ör: '31 Aralık 2025')" },
+          company_name: { type: "string", description: "Firma adı" },
         },
+        required: ["entries_aktif_donen", "entries_ozkaynak"],
       },
     },
   },
@@ -4526,47 +4533,41 @@ ${activeRentals.map(r => `  ${r.agentType}: ${r.messagesUsed}/${r.messagesLimit}
     }
 
     case "generate_balance_sheet": {
-      const reportDate = args.date ? String(args.date) : new Date().toISOString().split("T")[0];
+      const parseEntries = (raw: string | undefined) => {
+        if (!raw) return [];
+        return raw.split(";").filter(s => s.trim()).map(e => {
+          const p = e.trim().split("|");
+          return { hesapKodu: p[0]?.trim() || "", hesapAdi: p[1]?.trim() || "", tutar: parseFloat(p[2]?.trim() || "0") };
+        });
+      };
+
+      const bilanco = {
+        donenVarliklar: parseEntries(args.entries_aktif_donen ? String(args.entries_aktif_donen) : undefined),
+        duranVarliklar: parseEntries(args.entries_aktif_duran ? String(args.entries_aktif_duran) : undefined),
+        kisaVadeliYukulumlukler: parseEntries(args.entries_kisa_vadeli ? String(args.entries_kisa_vadeli) : undefined),
+        uzunVadeliYukulumlukler: parseEntries(args.entries_uzun_vadeli ? String(args.entries_uzun_vadeli) : undefined),
+        ozkaynaklar: parseEntries(args.entries_ozkaynak ? String(args.entries_ozkaynak) : undefined),
+      };
+
+      const period = args.period ? String(args.period) : "";
+      const companyName = args.company_name ? String(args.company_name) : "";
+      const reportId = `BLN-${Date.now().toString(36).toUpperCase()}`;
+
+      const { buffer, totals } = await generateBilanco({ bilanco, period, companyName });
+      const b64 = buffer.toString("base64");
       const formatNum = (n: number) => n.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
-      const allActions = await storage.getActionsByUser(userId);
-
-      const totalIncome = allActions
-        .filter(a => a.actionType === "income_logged" || a.actionType === "invoice_created")
-        .reduce((s, a) => {
-          const meta = a.metadata as Record<string, unknown>;
-          return s + (Number(meta?.grandTotalTL) || Number(meta?.amount) || Number(meta?.grandTotal) || Number(meta?.subtotal) || 0);
-        }, 0);
-
-      const bsMeta = (a: typeof allActions[0]) => (a.metadata || {}) as Record<string, unknown>;
-
-      const totalExpenses = allActions
-        .filter(a => a.actionType === "expense_logged")
-        .reduce((s, a) => s + Number(bsMeta(a).amount || 0), 0);
-
-      const totalReceivables = allActions
-        .filter(a => a.actionType === "receivable_added")
-        .reduce((s, a) => s + Number(bsMeta(a).amount || 0), 0);
-
-      const totalPayables = allActions
-        .filter(a => a.actionType === "payable_added")
-        .reduce((s, a) => s + Number(bsMeta(a).amount || 0), 0);
-
-      const estimatedCash = totalIncome - totalExpenses - totalReceivables + totalPayables;
-      const totalAssets = (estimatedCash > 0 ? estimatedCash : 0) + totalReceivables;
-      const netEquity = totalAssets - totalPayables;
 
       await storage.createAgentAction({
         userId, agentType,
-        actionType: "balance_sheet_generated",
-        description: `📋 Bilanço oluşturuldu — ${reportDate}`,
-        metadata: { reportDate, totalAssets, totalPayables, netEquity, estimatedCash, totalReceivables },
+        actionType: "report_generated",
+        description: `Bilanco olusturuldu — Aktif: ${formatNum(totals.toplamAktif)} TL`,
+        metadata: { reportId, reportType: "bilanco", period, companyName, toplamAktif: totals.toplamAktif, toplamPasif: totals.toplamPasif, ozkaynakToplam: totals.ozkaynakToplam, excelBase64: b64 },
       });
 
       return {
-        result: `📋 BİLANÇO (${reportDate})\n══════════════════════════════════\n\nAKTİF (VARLIKLAR)\n──────────────────\n  1 — DÖNEN VARLIKLAR\n    100 Kasa / 102 Bankalar: ₺${formatNum(estimatedCash > 0 ? estimatedCash : 0)}\n    120 Alıcılar: ₺${formatNum(totalReceivables)}\n  DÖNEN VARLIK TOPLAMI: ₺${formatNum(totalAssets)}\n\nAKTİF TOPLAMI: ₺${formatNum(totalAssets)}\n\n══════════════════════════════════\n\nPASİF (KAYNAKLAR)\n──────────────────\n  3 — KISA VADELİ YABANCI KAYNAKLAR\n    320 Satıcılar / Borçlar: ₺${formatNum(totalPayables)}\n  5 — ÖZKAYNAKLAR\n    590 Dönem Net Kârı: ₺${formatNum(netEquity)}\n\nPASİF TOPLAMI: ₺${formatNum(totalAssets)}\n\n══════════════════════════════════\nNot: Bu basitleştirilmiş bilançodur. Detaylı bilanço için tüm hesap hareketlerinin kaydedilmesi gerekir.`,
+        result: `Bilanco raporu olusturuldu! (${reportId})\n\n${companyName ? `Firma: ${companyName}\n` : ""}${period ? `Donem: ${period}\n` : ""}Toplam Aktif: ${formatNum(totals.toplamAktif)} TL\nToplam Pasif: ${formatNum(totals.toplamPasif)} TL\nOzkaynaklar: ${formatNum(totals.ozkaynakToplam)} TL\n\nExcel dosyasi hazir — indirmek icin asagidaki linki kullanin:\n[Bilanco Excel Indir](/api/reports/${reportId}/download)`,
         actionType: "balance_sheet_generated",
-        actionDescription: `📋 Bilanço: Aktif ₺${formatNum(totalAssets)}`,
+        actionDescription: `Bilanco: Aktif ${formatNum(totals.toplamAktif)} TL`,
       };
     }
 
@@ -4609,22 +4610,33 @@ ${activeRentals.map(r => `  ${r.agentType}: ${r.messagesUsed}/${r.messagesLimit}
       const totalExpenses = Object.values(expensesByCategory).reduce((s, v) => s + v, 0);
       const operatingProfit = totalRevenue - totalExpenses;
 
-      const expenseLines = Object.entries(expensesByCategory)
-        .sort((a, b) => b[1] - a[1])
-        .map(([k, v]) => `    ${k}: ₺${formatNum(v)}`)
-        .join("\n");
+      const reportId = `GLR-${Date.now().toString(36).toUpperCase()}`;
+      const faaliyetGiderleri = Object.entries(expensesByCategory).map(([ad, tutar]) => ({ ad, tutar }));
+
+      const buf = await generateGelirTablosu({
+        financials: {
+          satislar: invoiceRevenue,
+          satisIndirimleri: 0,
+          satislarinMaliyeti: 0,
+          faaliyet_giderleri: faaliyetGiderleri,
+          diger_gelirler: otherIncome,
+        },
+        period: periodLabel,
+        companyName: "",
+      });
+      const b64 = buf.toString("base64");
 
       await storage.createAgentAction({
         userId, agentType,
-        actionType: "income_statement_generated",
-        description: `📊 ${periodLabel} gelir tablosu oluşturuldu`,
-        metadata: { period, totalRevenue, totalExpenses, operatingProfit },
+        actionType: "report_generated",
+        description: `${periodLabel} gelir tablosu olusturuldu`,
+        metadata: { reportId, reportType: "gelir_tablosu", period, totalRevenue, totalExpenses, operatingProfit, excelBase64: b64 },
       });
 
       return {
-        result: `📊 GELİR TABLOSU (${periodLabel})\n══════════════════════════════════\n\n  600 Yurtiçi Satışlar: ₺${formatNum(invoiceRevenue)}\n  602 Diğer Gelirler: ₺${formatNum(otherIncome)}\n  NET SATIŞLAR: ₺${formatNum(totalRevenue)}\n\n──────────────────\n  FAALİYET GİDERLERİ\n${expenseLines || "    Gider kaydı yok"}\n  TOPLAM GİDERLER: ₺${formatNum(totalExpenses)}\n\n══════════════════════════════════\n  FAALİYET KÂRI: ₺${formatNum(operatingProfit)}\n══════════════════════════════════\n${operatingProfit < 0 ? "\n⚠️ Dönem zararla kapanmıştır." : ""}`,
+        result: `Gelir Tablosu olusturuldu! (${reportId})\n\nDonem: ${periodLabel}\nNet Satislar: ${formatNum(totalRevenue)} TL\nToplam Giderler: ${formatNum(totalExpenses)} TL\nFaaliyet Kari: ${formatNum(operatingProfit)} TL${operatingProfit < 0 ? "\n\nDonem zararla kapanmistir." : ""}\n\nExcel dosyasi hazir:\n[Gelir Tablosu Excel Indir](/api/reports/${reportId}/download)`,
         actionType: "income_statement_generated",
-        actionDescription: `📊 ${periodLabel} gelir tablosu: Kâr ₺${formatNum(operatingProfit)}`,
+        actionDescription: `${periodLabel} gelir tablosu: Kar ${formatNum(operatingProfit)} TL`,
       };
     }
 

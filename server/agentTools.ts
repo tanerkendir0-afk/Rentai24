@@ -2882,6 +2882,11 @@ Be specific to the ${industry} industry. About 400-500 words.`;
         const contact = await storage.getRexContact(String(args.contact_id), userId);
         if (!contact) return { result: "Contact not found. Please provide a valid contact ID." };
 
+        if (args.deal_id) {
+          const deal = await storage.getRexDeal(String(args.deal_id), userId);
+          if (!deal) return { result: "Deal not found or does not belong to you. Please provide a valid deal ID." };
+        }
+
         const activity = await storage.createRexActivity({
           userId,
           contactId: String(args.contact_id),

@@ -1,5 +1,9 @@
 import OpenAI from "openai";
 
+// OpenAI SDK types don't yet include web_search_preview in the Responses API tool union.
+// Cast is required until SDK is updated to include this built-in tool type.
+const WEB_SEARCH_TOOL = { type: "web_search_preview" } as const;
+
 const directClient = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 const proxyClient = new OpenAI({
@@ -40,7 +44,8 @@ export async function realWebSearch(query: string): Promise<WebSearchResponse> {
   try {
     const response = await directClient.responses.create({
       model: "gpt-4o-mini",
-      tools: [{ type: "web_search_preview" as any }],
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      tools: [WEB_SEARCH_TOOL] as any,
       input: query,
     });
 
@@ -276,11 +281,20 @@ export async function findLeads(
   for (const result of allResults.slice(0, count * 2)) {
     if (leads.length >= count) break;
 
+    let pageContent: string | undefined;
+    if (result.url && isAllowedUrl(result.url)) {
+      try {
+        pageContent = await fetchWebPage(result.url);
+      } catch {
+        pageContent = result.snippet || undefined;
+      }
+    }
+
     const analysis = await analyzeCompany(
       result.title.split(" - ")[0].split(" | ")[0].trim(),
       result.url,
       product,
-      result.snippet
+      pageContent
     );
 
     if (analysis.potentialBuyer && analysis.classificationConfidence >= 0.4) {

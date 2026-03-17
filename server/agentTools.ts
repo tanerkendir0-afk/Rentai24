@@ -9,6 +9,7 @@ import type { SupportedLang } from "./i18n";
 import { generateAIImage, findStockImages } from "./imageService";
 import { isUserGmailReady, listInbox, readEmail, replyToEmail } from "./gmailService";
 import { computeLeadScore } from "./leadScoring";
+import { realWebSearch, fetchWebPage, analyzeCompany, findLeads } from "./services/webSearchService";
 import { generateInvoicePDF } from "./services/invoiceGenerator";
 import { generateInvoiceExcel } from "./services/invoiceExcelGenerator";
 import { generateMizan, generateBordro, generateGelirTablosu, generateKdvOzet } from "./services/reportGenerator";
@@ -382,6 +383,39 @@ export const salesSdrTools: OpenAI.ChatCompletionTool[] = [
           company_context: { type: "string", description: "Optional: the prospect's company name and what they do for more targeted analysis" },
         },
         required: ["industry"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "research_company",
+      description: "Research a specific company by searching the web and analyzing their website. Determines if they are a potential buyer, seller, manufacturer, or service provider for your product. Use when you want to qualify a lead or learn about a company before reaching out.",
+      parameters: {
+        type: "object",
+        properties: {
+          company_name: { type: "string", description: "The company name to research" },
+          website_url: { type: "string", description: "Optional: the company's website URL to analyze directly" },
+          product_context: { type: "string", description: "The product/service you are selling, used to classify the company (e.g. 'galvanized wire', 'steel pipes', 'packaging materials')" },
+        },
+        required: ["company_name", "product_context"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "find_leads",
+      description: "Intelligently search the web for potential B2B customers who USE/BUY your product (not who sell it). Automatically researches and qualifies companies, then adds qualifying leads to CRM. Use when the user asks to find new customers, leads, or buyers for their product.",
+      parameters: {
+        type: "object",
+        properties: {
+          product: { type: "string", description: "The product/raw material you are selling (e.g. 'galvanized wire', 'steel sheets', 'PVC pipes')" },
+          industry: { type: "string", description: "Optional: target industry to focus on (e.g. 'construction', 'agriculture', 'automotive')" },
+          location: { type: "string", description: "Optional: geographic location to focus on (e.g. 'Istanbul', 'Ankara', 'Marmara bölgesi')" },
+          count: { type: "number", description: "Number of leads to find (default 5, max 10)" },
+        },
+        required: ["product"],
       },
     },
   },
@@ -1861,43 +1895,49 @@ export async function executeToolCall(
     case "web_search": {
       const query = args.query as string;
       const context = (args.context as string) || "";
-      
-      const searchPrompt = `You are a web research assistant. The user (an AI agent named "${displayName}") needs real-time web research results.
 
-Search query: "${query}"
-${context ? `Context: ${context}` : ""}
+      try {
+        const searchResponse = await realWebSearch(query);
+        const resultCount = searchResponse.results.length;
 
-Generate comprehensive, realistic, and actionable research results as if you searched the web. Include:
-- Specific business names, locations, contact info where relevant
-- Real industry data, statistics, and trends
-- Actionable recommendations
-- Sources/references (create plausible ones)
+        let formattedResults = `🔍 **Web Search Results for: "${query}"**\n\n`;
 
-Format the results clearly with sections, bullet points, and bold text. Make the information specific, detailed, and immediately useful. 
-If the query is location-specific, include local businesses, demographics, and market data for that area.
-If the query is about finding potential customers/leads, provide specific company profiles with estimated contact details.
-Respond in the same language as the query.`;
+        if (searchResponse.answer) {
+          formattedResults += `**Summary:** ${searchResponse.answer}\n\n`;
+        }
 
-      const searchResult = await aiClient.chat.completions.create({
-        model: "gpt-4o-mini",
-        messages: [{ role: "user", content: searchPrompt }],
-        max_tokens: 2000,
-        temperature: 0.7,
-      });
+        if (resultCount > 0) {
+          formattedResults += `**Found ${resultCount} results:**\n\n`;
+          for (const result of searchResponse.results.slice(0, 8)) {
+            formattedResults += `• **[${result.title}](${result.url})**\n`;
+            if (result.snippet) {
+              formattedResults += `  ${result.snippet}\n`;
+            }
+            formattedResults += `\n`;
+          }
+        } else {
+          formattedResults += "No results found. Try a different or more specific search query.\n";
+        }
 
-      const searchResponse = searchResult.choices[0]?.message?.content || "No results found.";
-      
-      await storage.createAgentAction({
-        userId, agentType, actionType: "web_search",
-        description: `Web search: "${query}"`,
-        metadata: { query, context },
-      });
+        await storage.createAgentAction({
+          userId, agentType, actionType: "web_search",
+          description: `Web search: "${query}" — ${resultCount} results`,
+          metadata: { query, context, resultCount },
+        });
 
-      return { 
-        result: `🔍 **Web Search Results for: "${query}"**\n\n${searchResponse}`,
-        actionType: "web_search",
-        actionDescription: `🔍 Web search: "${query}"`
-      };
+        return {
+          result: formattedResults,
+          actionType: "web_search",
+          actionDescription: `🔍 Web search: "${query}" (${resultCount} results)`
+        };
+      } catch (err) {
+        console.error("[web_search] Error:", (err as Error).message);
+        return {
+          result: `Web search failed: ${(err as Error).message}. Please try again with a different query.`,
+          actionType: "web_search",
+          actionDescription: `🔍 Web search failed: "${query}"`
+        };
+      }
     }
 
     case "check_gmail_status": {
@@ -2724,6 +2764,136 @@ Be specific to the ${industry} industry. About 400-500 words.`;
         };
       } catch (err) {
         return { result: `Failed to generate competitive analysis: ${err instanceof Error ? err.message : "Unknown error"}` };
+      }
+    }
+
+    case "research_company": {
+      try {
+        const companyName = String(args.company_name);
+        const productContext = String(args.product_context);
+        const websiteUrl = args.website_url ? String(args.website_url) : undefined;
+
+        const analysis = await analyzeCompany(companyName, websiteUrl, productContext);
+
+        const classLabels: Record<string, string> = {
+          buyer: "🟢 Potansiyel Alıcı",
+          seller: "🔴 Satıcı (Rakip)",
+          manufacturer: "🟡 Üretici",
+          service_provider: "🔵 Hizmet Sağlayıcı",
+          unknown: "⚪ Belirlenemedi",
+        };
+
+        let resultText = `📊 **Company Research: ${analysis.companyName}**\n\n`;
+        resultText += `**Classification:** ${classLabels[analysis.classification] || analysis.classification}\n`;
+        resultText += `**Confidence:** ${Math.round(analysis.classificationConfidence * 100)}%\n`;
+        resultText += `**Industry:** ${analysis.industry}\n`;
+        if (analysis.website) resultText += `**Website:** ${analysis.website}\n`;
+        resultText += `\n**Description:** ${analysis.description}\n`;
+        resultText += `\n**Products/Services:** ${analysis.products.join(", ") || "N/A"}\n`;
+        resultText += `\n**Analysis:** ${analysis.reasoning}\n`;
+
+        if (analysis.contactInfo.email || analysis.contactInfo.phone || analysis.contactInfo.address) {
+          resultText += `\n**Contact Info:**\n`;
+          if (analysis.contactInfo.email) resultText += `  📧 ${analysis.contactInfo.email}\n`;
+          if (analysis.contactInfo.phone) resultText += `  📞 ${analysis.contactInfo.phone}\n`;
+          if (analysis.contactInfo.address) resultText += `  📍 ${analysis.contactInfo.address}\n`;
+        }
+
+        if (analysis.potentialBuyer) {
+          resultText += `\n✅ **This company is a potential buyer for ${productContext}.** Consider adding to CRM and starting outreach.`;
+        } else {
+          resultText += `\n❌ **Not a likely buyer for ${productContext}.** ${analysis.classification === "seller" ? "This appears to be a competitor." : ""}`;
+        }
+
+        await storage.createAgentAction({
+          userId, agentType, actionType: "research_company",
+          description: `Researched: ${companyName} — ${analysis.classification} (${Math.round(analysis.classificationConfidence * 100)}% confidence)`,
+          metadata: { companyName, classification: analysis.classification, potentialBuyer: analysis.potentialBuyer },
+        });
+
+        return {
+          result: resultText,
+          actionType: "research_company",
+          actionDescription: `🔬 Company research: ${companyName} — ${classLabels[analysis.classification]}`
+        };
+      } catch (err) {
+        console.error("[research_company] Error:", (err as Error).message);
+        return { result: `Company research failed: ${(err as Error).message}` };
+      }
+    }
+
+    case "find_leads": {
+      try {
+        const product = String(args.product);
+        const industry = args.industry ? String(args.industry) : undefined;
+        const location = args.location ? String(args.location) : undefined;
+        const count = Math.min(Math.max(Number(args.count) || 5, 1), 10);
+
+        const { leads, searchQueries } = await findLeads(product, industry, location, count);
+
+        let resultText = `🎯 **Lead Search Results for: "${product}"**\n\n`;
+        resultText += `**Search Strategy:** ${searchQueries.slice(0, 3).join(" | ")}\n`;
+        resultText += `**Found:** ${leads.length} qualified potential buyers\n\n`;
+
+        if (leads.length === 0) {
+          resultText += "No qualifying leads found. Try:\n";
+          resultText += "• A different product description\n";
+          resultText += "• A specific industry or location\n";
+          resultText += "• More general terms\n";
+        }
+
+        const addedContacts: string[] = [];
+        for (let i = 0; i < leads.length; i++) {
+          const lead = leads[i];
+          resultText += `### ${i + 1}. ${lead.companyName}\n`;
+          resultText += `  🏭 **Industry:** ${lead.industry}\n`;
+          resultText += `  📋 **Description:** ${lead.description}\n`;
+          resultText += `  🔍 **Products:** ${lead.products.join(", ") || "N/A"}\n`;
+          resultText += `  📊 **Confidence:** ${Math.round(lead.classificationConfidence * 100)}%\n`;
+          if (lead.website) resultText += `  🌐 **Website:** ${lead.website}\n`;
+          if (lead.contactInfo.email) resultText += `  📧 ${lead.contactInfo.email}\n`;
+          if (lead.contactInfo.phone) resultText += `  📞 ${lead.contactInfo.phone}\n`;
+          resultText += `\n`;
+
+          try {
+            const contact = await storage.createRexContact({
+              userId,
+              companyName: lead.companyName,
+              contactName: lead.companyName,
+              email: lead.contactInfo.email || undefined,
+              phone: lead.contactInfo.phone || undefined,
+              website: lead.website || undefined,
+              industry: lead.industry,
+              source: "cold",
+              segment: "smb",
+              tags: [product, lead.classification, "auto-found"],
+              notes: `Auto-found by Rex. ${lead.reasoning}. Products: ${lead.products.join(", ")}`,
+              leadScore: Math.round(lead.classificationConfidence * 100),
+            });
+            addedContacts.push(contact.id);
+          } catch (e) {
+            console.warn(`[find_leads] Failed to add ${lead.companyName} to CRM:`, (e as Error).message);
+          }
+        }
+
+        if (addedContacts.length > 0) {
+          resultText += `\n✅ **${addedContacts.length} leads automatically added to CRM.** Use \`search_contacts\` to view them.\n`;
+        }
+
+        await storage.createAgentAction({
+          userId, agentType, actionType: "find_leads",
+          description: `Lead search: "${product}" — found ${leads.length} qualified leads, added ${addedContacts.length} to CRM`,
+          metadata: { product, industry, location, leadsFound: leads.length, addedToCrm: addedContacts.length, contactIds: addedContacts },
+        });
+
+        return {
+          result: resultText,
+          actionType: "find_leads",
+          actionDescription: `🎯 Lead search: "${product}" — ${leads.length} leads found, ${addedContacts.length} added to CRM`
+        };
+      } catch (err) {
+        console.error("[find_leads] Error:", (err as Error).message);
+        return { result: `Lead search failed: ${(err as Error).message}` };
       }
     }
 

@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { users, rentals, contactMessages, newsletterSubscribers, leads, agentActions, emailCampaigns, supportTickets, tokenUsage, agentTasks, chatMessages, conversations, teamMembers, bossNotifications, socialAccounts, shippingProviders, guardrailLogs, systemSettings, scheduledPosts, whatsappConfig, whatsappMessages, agentLimits, escalationRules, escalations, escalationMessages, agentInstructions, globalAgentInstructions, consentLogs, crmDocuments, securityEvents, pageViews, userEvents, feedback, rexContacts, rexDeals, rexActivities, rexSequences, rexStageHistory, rexScoreHistory, rexStageConfig, type User, type InsertUser, type Rental, type InsertRental, type ContactMessage, type InsertContactMessage, type NewsletterSubscriber, type Lead, type InsertLead, type AgentAction, type InsertAgentAction, type EmailCampaign, type InsertEmailCampaign, type SupportTicket, type InsertSupportTicket, type TokenUsage, type InsertTokenUsage, type AgentTask, type InsertAgentTask, type ChatMessage, type InsertChatMessage, type ConversationRecord, type InsertConversation, type TeamMember, type InsertTeamMember, type BossNotification, type InsertBossNotification, type SocialAccount, type InsertSocialAccount, type ShippingProvider, type InsertShippingProvider, type GuardrailLog, type ScheduledPost, type InsertScheduledPost, type WhatsappConfig, type InsertWhatsappConfig, type WhatsappMessage, type InsertWhatsappMessage, type AgentLimit, type InsertAgentLimit, type EscalationRule, type InsertEscalationRule, type Escalation, type InsertEscalation, type EscalationMessage, type InsertEscalationMessage, type AgentInstruction, type InsertAgentInstruction, type GlobalAgentInstruction, type ConsentLog, type InsertConsentLog, type CrmDocument, type InsertCrmDocument, type PageView, type InsertPageView, type UserEvent, type InsertUserEvent, type Feedback, type InsertFeedback, type RexContact, type InsertRexContact, type RexDeal, type InsertRexDeal, type RexActivity, type InsertRexActivity, type RexSequence, type InsertRexSequence, type RexStageHistory, type RexScoreHistory, type RexStageConfig } from "@shared/schema";
+import { users, rentals, contactMessages, newsletterSubscribers, leads, agentActions, emailCampaigns, supportTickets, tokenUsage, agentTasks, chatMessages, conversations, teamMembers, bossNotifications, socialAccounts, shippingProviders, guardrailLogs, systemSettings, scheduledPosts, whatsappConfig, whatsappMessages, agentLimits, escalationRules, escalations, escalationMessages, agentInstructions, globalAgentInstructions, consentLogs, crmDocuments, securityEvents, pageViews, userEvents, feedback, rexContacts, rexDeals, rexActivities, rexSequences, rexStageHistory, rexScoreHistory, rexStageConfig, LEAD_SOURCE_VALUES, CUSTOMER_SEGMENT_VALUES, DEAL_STAGE_VALUES, ACTIVITY_TYPE_VALUES, SEQUENCE_STATUS_VALUES, type User, type InsertUser, type Rental, type InsertRental, type ContactMessage, type InsertContactMessage, type NewsletterSubscriber, type Lead, type InsertLead, type AgentAction, type InsertAgentAction, type EmailCampaign, type InsertEmailCampaign, type SupportTicket, type InsertSupportTicket, type TokenUsage, type InsertTokenUsage, type AgentTask, type InsertAgentTask, type ChatMessage, type InsertChatMessage, type ConversationRecord, type InsertConversation, type TeamMember, type InsertTeamMember, type BossNotification, type InsertBossNotification, type SocialAccount, type InsertSocialAccount, type ShippingProvider, type InsertShippingProvider, type GuardrailLog, type ScheduledPost, type InsertScheduledPost, type WhatsappConfig, type InsertWhatsappConfig, type WhatsappMessage, type InsertWhatsappMessage, type AgentLimit, type InsertAgentLimit, type EscalationRule, type InsertEscalationRule, type Escalation, type InsertEscalation, type EscalationMessage, type InsertEscalationMessage, type AgentInstruction, type InsertAgentInstruction, type GlobalAgentInstruction, type ConsentLog, type InsertConsentLog, type CrmDocument, type InsertCrmDocument, type PageView, type InsertPageView, type UserEvent, type InsertUserEvent, type Feedback, type InsertFeedback, type RexContact, type InsertRexContact, type RexDeal, type InsertRexDeal, type RexActivity, type InsertRexActivity, type RexSequence, type InsertRexSequence, type RexStageHistory, type RexScoreHistory, type RexStageConfig, type LeadSourceValue, type CustomerSegmentValue, type DealStageValue, type ActivityTypeValue, type SequenceStatusValue } from "@shared/schema";
 import { eq, and, sql, desc, gte, lte } from "drizzle-orm";
 import * as cryptoModule from "crypto";
 
@@ -176,23 +176,24 @@ export interface IStorage {
 
   createRexContact(data: InsertRexContact): Promise<RexContact>;
   getRexContact(id: string, userId: number): Promise<RexContact | undefined>;
-  searchRexContacts(userId: number, filters: { query?: string; segment?: string; source?: string; minScore?: number; tags?: string[]; limit?: number; offset?: number }): Promise<RexContact[]>;
+  searchRexContacts(userId: number, filters: { query?: string; segment?: CustomerSegmentValue; source?: LeadSourceValue; minScore?: number; tags?: string[]; limit?: number; offset?: number }): Promise<RexContact[]>;
   updateRexContact(id: string, userId: number, data: Partial<InsertRexContact>): Promise<RexContact | undefined>;
   deleteRexContact(id: string, userId: number): Promise<boolean>;
 
   createRexDeal(data: InsertRexDeal): Promise<RexDeal>;
   getRexDeal(id: string, userId: number): Promise<RexDeal | undefined>;
   getRexDealsByContact(contactId: string, userId: number): Promise<RexDeal[]>;
-  searchRexDeals(userId: number, filters: { stage?: string; minValue?: number; contactId?: string; limit?: number; offset?: number }): Promise<RexDeal[]>;
+  searchRexDeals(userId: number, filters: { stage?: DealStageValue; minValue?: number; contactId?: string; limit?: number; offset?: number }): Promise<RexDeal[]>;
   updateRexDeal(id: string, userId: number, data: Partial<InsertRexDeal>): Promise<RexDeal | undefined>;
-  updateRexDealStage(id: string, userId: number, newStage: string, notes?: string): Promise<RexDeal | undefined>;
+  updateRexDealStage(id: string, userId: number, newStage: DealStageValue, notes?: string): Promise<RexDeal | undefined>;
   getRexPipelineSummary(userId: number): Promise<{ stage: string; count: number; totalValue: number }[]>;
+  getRexConversionFunnel(userId: number): Promise<{ stage: string; count: number; dropoff: number }[]>;
 
   createRexActivity(data: InsertRexActivity): Promise<RexActivity>;
-  getRexActivities(userId: number, filters: { contactId?: string; dealId?: string; type?: string; limit?: number; offset?: number }): Promise<RexActivity[]>;
+  getRexActivities(userId: number, filters: { contactId?: string; dealId?: string; type?: ActivityTypeValue; limit?: number; offset?: number }): Promise<RexActivity[]>;
 
   createRexSequence(data: InsertRexSequence): Promise<RexSequence>;
-  getRexSequences(userId: number, filters: { contactId?: string; status?: string; limit?: number }): Promise<RexSequence[]>;
+  getRexSequences(userId: number, filters: { contactId?: string; status?: SequenceStatusValue; limit?: number }): Promise<RexSequence[]>;
   updateRexSequence(id: string, userId: number, data: Partial<InsertRexSequence>): Promise<RexSequence | undefined>;
 
   getRexStageConfig(): Promise<RexStageConfig[]>;
@@ -1444,10 +1445,10 @@ export class DatabaseStorage implements IStorage {
     return contact;
   }
 
-  async searchRexContacts(userId: number, filters: { query?: string; segment?: string; source?: string; minScore?: number; tags?: string[]; limit?: number; offset?: number }): Promise<RexContact[]> {
+  async searchRexContacts(userId: number, filters: { query?: string; segment?: CustomerSegmentValue; source?: LeadSourceValue; minScore?: number; tags?: string[]; limit?: number; offset?: number }): Promise<RexContact[]> {
     const conditions = [eq(rexContacts.userId, userId)];
-    if (filters.segment) conditions.push(eq(rexContacts.segment, filters.segment as any));
-    if (filters.source) conditions.push(eq(rexContacts.source, filters.source as any));
+    if (filters.segment && CUSTOMER_SEGMENT_VALUES.includes(filters.segment)) conditions.push(eq(rexContacts.segment, filters.segment));
+    if (filters.source && LEAD_SOURCE_VALUES.includes(filters.source)) conditions.push(eq(rexContacts.source, filters.source));
     if (filters.minScore) conditions.push(gte(rexContacts.leadScore, filters.minScore));
     if (filters.query) {
       conditions.push(sql`(${rexContacts.companyName} ILIKE ${'%' + filters.query + '%'} OR ${rexContacts.contactName} ILIKE ${'%' + filters.query + '%'} OR ${rexContacts.email} ILIKE ${'%' + filters.query + '%'} OR ${rexContacts.industry} ILIKE ${'%' + filters.query + '%'})`);
@@ -1487,9 +1488,9 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(rexDeals).where(and(eq(rexDeals.contactId, contactId), eq(rexDeals.userId, userId))).orderBy(desc(rexDeals.createdAt));
   }
 
-  async searchRexDeals(userId: number, filters: { stage?: string; minValue?: number; contactId?: string; limit?: number; offset?: number }): Promise<RexDeal[]> {
+  async searchRexDeals(userId: number, filters: { stage?: DealStageValue; minValue?: number; contactId?: string; limit?: number; offset?: number }): Promise<RexDeal[]> {
     const conditions = [eq(rexDeals.userId, userId)];
-    if (filters.stage) conditions.push(eq(rexDeals.stage, filters.stage as any));
+    if (filters.stage && DEAL_STAGE_VALUES.includes(filters.stage)) conditions.push(eq(rexDeals.stage, filters.stage));
     if (filters.minValue) conditions.push(gte(rexDeals.value, String(filters.minValue)));
     if (filters.contactId) conditions.push(eq(rexDeals.contactId, filters.contactId));
     return db.select().from(rexDeals).where(and(...conditions)).orderBy(desc(rexDeals.createdAt)).limit(filters.limit || 50).offset(filters.offset || 0);
@@ -1500,7 +1501,7 @@ export class DatabaseStorage implements IStorage {
     return deal;
   }
 
-  async updateRexDealStage(id: string, userId: number, newStage: string, notes?: string): Promise<RexDeal | undefined> {
+  async updateRexDealStage(id: string, userId: number, newStage: DealStageValue, notes?: string): Promise<RexDeal | undefined> {
     const existing = await this.getRexDeal(id, userId);
     if (!existing) return undefined;
 
@@ -1508,7 +1509,7 @@ export class DatabaseStorage implements IStorage {
     const config = stageConfigs.find(c => c.stage === newStage);
 
     const [deal] = await db.update(rexDeals).set({
-      stage: newStage as any,
+      stage: newStage,
       probability: config?.defaultProbability || existing.probability,
       stageEnteredAt: new Date(),
       updatedAt: new Date(),
@@ -1520,7 +1521,7 @@ export class DatabaseStorage implements IStorage {
       dealId: id,
       userId,
       fromStage: existing.stage,
-      toStage: newStage as any,
+      toStage: newStage,
       changedBy: "rex",
       notes,
     });
@@ -1561,17 +1562,34 @@ export class DatabaseStorage implements IStorage {
     }));
   }
 
+  async getRexConversionFunnel(userId: number): Promise<{ stage: string; count: number; dropoff: number }[]> {
+    const pipeline = await this.getRexPipelineSummary(userId);
+    const stageOrder: DealStageValue[] = ["new_lead", "contacted", "qualified", "proposal_sent", "negotiation", "closed_won"];
+    const funnel: { stage: string; count: number; dropoff: number }[] = [];
+    let prevCount = 0;
+    for (const stage of stageOrder) {
+      const found = pipeline.find(p => p.stage === stage);
+      const cumulativeCount = pipeline
+        .filter(p => stageOrder.indexOf(p.stage as DealStageValue) >= stageOrder.indexOf(stage))
+        .reduce((s, p) => s + p.count, 0);
+      const dropoff = prevCount > 0 ? Math.round((1 - cumulativeCount / prevCount) * 100) : 0;
+      funnel.push({ stage, count: cumulativeCount, dropoff });
+      prevCount = cumulativeCount || prevCount;
+    }
+    return funnel;
+  }
+
   async createRexActivity(data: InsertRexActivity): Promise<RexActivity> {
     const [activity] = await db.insert(rexActivities).values(data).returning();
     await db.update(rexContacts).set({ lastContactedAt: new Date(), updatedAt: new Date() }).where(and(eq(rexContacts.id, data.contactId), eq(rexContacts.userId, data.userId)));
     return activity;
   }
 
-  async getRexActivities(userId: number, filters: { contactId?: string; dealId?: string; type?: string; limit?: number; offset?: number }): Promise<RexActivity[]> {
+  async getRexActivities(userId: number, filters: { contactId?: string; dealId?: string; type?: ActivityTypeValue; limit?: number; offset?: number }): Promise<RexActivity[]> {
     const conditions = [eq(rexActivities.userId, userId)];
     if (filters.contactId) conditions.push(eq(rexActivities.contactId, filters.contactId));
     if (filters.dealId) conditions.push(eq(rexActivities.dealId, filters.dealId));
-    if (filters.type) conditions.push(eq(rexActivities.type, filters.type as any));
+    if (filters.type && ACTIVITY_TYPE_VALUES.includes(filters.type)) conditions.push(eq(rexActivities.type, filters.type));
     return db.select().from(rexActivities).where(and(...conditions)).orderBy(desc(rexActivities.createdAt)).limit(filters.limit || 50).offset(filters.offset || 0);
   }
 
@@ -1580,10 +1598,10 @@ export class DatabaseStorage implements IStorage {
     return sequence;
   }
 
-  async getRexSequences(userId: number, filters: { contactId?: string; status?: string; limit?: number }): Promise<RexSequence[]> {
+  async getRexSequences(userId: number, filters: { contactId?: string; status?: SequenceStatusValue; limit?: number }): Promise<RexSequence[]> {
     const conditions = [eq(rexSequences.userId, userId)];
     if (filters.contactId) conditions.push(eq(rexSequences.contactId, filters.contactId));
-    if (filters.status) conditions.push(eq(rexSequences.status, filters.status as any));
+    if (filters.status && SEQUENCE_STATUS_VALUES.includes(filters.status)) conditions.push(eq(rexSequences.status, filters.status));
     return db.select().from(rexSequences).where(and(...conditions)).orderBy(desc(rexSequences.createdAt)).limit(filters.limit || 50);
   }
 

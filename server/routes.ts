@@ -5,7 +5,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import bcrypt from "bcrypt";
 import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
-import { chatMessageSchema, contactFormSchema, registerSchema, loginSchema, newsletterSchema, bossConversations, collaborationSessions, rentals, conversations, chatMessages, invoices, invoiceItems, insertRexContactSchema, insertRexDealSchema, insertRexActivitySchema, insertRexSequenceSchema, type User, type AgentTask } from "@shared/schema";
+import { chatMessageSchema, contactFormSchema, registerSchema, loginSchema, newsletterSchema, bossConversations, collaborationSessions, rentals, conversations, chatMessages, invoices, invoiceItems, insertRexContactSchema, insertRexDealSchema, insertRexActivitySchema, insertRexSequenceSchema, DEAL_STAGE_VALUES, CUSTOMER_SEGMENT_VALUES, LEAD_SOURCE_VALUES, ACTIVITY_TYPE_VALUES, SEQUENCE_STATUS_VALUES, type DealStageValue, type CustomerSegmentValue, type LeadSourceValue, type ActivityTypeValue, type SequenceStatusValue, type User, type AgentTask } from "@shared/schema";
 import { z } from "zod";
 import { storage } from "./storage";
 import { requireAuth } from "./auth";
@@ -4050,10 +4050,12 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
   app.get("/api/rex/contacts", requireAuth, async (req, res) => {
     try {
       const userId = (req.user as User).id;
+      const segmentParam = req.query.segment as string | undefined;
+      const sourceParam = req.query.source as string | undefined;
       const contacts = await storage.searchRexContacts(userId, {
         query: req.query.q as string,
-        segment: req.query.segment as string,
-        source: req.query.source as string,
+        segment: segmentParam && CUSTOMER_SEGMENT_VALUES.includes(segmentParam as CustomerSegmentValue) ? segmentParam as CustomerSegmentValue : undefined,
+        source: sourceParam && LEAD_SOURCE_VALUES.includes(sourceParam as LeadSourceValue) ? sourceParam as LeadSourceValue : undefined,
         minScore: req.query.minScore ? Number(req.query.minScore) : undefined,
         limit: req.query.limit ? Number(req.query.limit) : undefined,
         offset: req.query.offset ? Number(req.query.offset) : undefined,
@@ -4117,8 +4119,9 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
   app.get("/api/rex/deals", requireAuth, async (req, res) => {
     try {
       const userId = (req.user as User).id;
+      const stageParam = req.query.stage as string | undefined;
       const deals = await storage.searchRexDeals(userId, {
-        stage: req.query.stage as string,
+        stage: stageParam && DEAL_STAGE_VALUES.includes(stageParam as DealStageValue) ? stageParam as DealStageValue : undefined,
         minValue: req.query.minValue ? Number(req.query.minValue) : undefined,
         contactId: req.query.contactId as string,
         limit: req.query.limit ? Number(req.query.limit) : undefined,
@@ -4157,9 +4160,8 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
   app.post("/api/rex/deals/:id/stage", requireAuth, async (req, res) => {
     try {
       const { stage, notes } = req.body;
-      const validStages = ["new_lead", "contacted", "qualified", "proposal_sent", "negotiation", "closed_won", "closed_lost"];
-      if (!stage || !validStages.includes(stage)) return res.status(400).json({ error: `stage must be one of: ${validStages.join(", ")}` });
-      const deal = await storage.updateRexDealStage(req.params.id, (req.user as User).id, stage, notes);
+      if (!stage || !DEAL_STAGE_VALUES.includes(stage as DealStageValue)) return res.status(400).json({ error: `stage must be one of: ${DEAL_STAGE_VALUES.join(", ")}` });
+      const deal = await storage.updateRexDealStage(req.params.id, (req.user as User).id, stage as DealStageValue, notes);
       if (!deal) return res.status(404).json({ error: "Deal not found" });
       res.json(deal);
     } catch (error: any) {
@@ -4200,10 +4202,11 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
   app.get("/api/rex/activities", requireAuth, async (req, res) => {
     try {
       const userId = (req.user as User).id;
+      const typeParam = req.query.type as string | undefined;
       const activities = await storage.getRexActivities(userId, {
         contactId: req.query.contactId as string,
         dealId: req.query.dealId as string,
-        type: req.query.type as string,
+        type: typeParam && ACTIVITY_TYPE_VALUES.includes(typeParam as ActivityTypeValue) ? typeParam as ActivityTypeValue : undefined,
         limit: req.query.limit ? Number(req.query.limit) : undefined,
         offset: req.query.offset ? Number(req.query.offset) : undefined,
       });
@@ -4236,9 +4239,10 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
   app.get("/api/rex/sequences", requireAuth, async (req, res) => {
     try {
       const userId = (req.user as User).id;
+      const statusParam = req.query.status as string | undefined;
       const sequences = await storage.getRexSequences(userId, {
         contactId: req.query.contactId as string,
-        status: req.query.status as string,
+        status: statusParam && SEQUENCE_STATUS_VALUES.includes(statusParam as SequenceStatusValue) ? statusParam as SequenceStatusValue : undefined,
         limit: req.query.limit ? Number(req.query.limit) : undefined,
       });
       res.json(sequences);
@@ -4254,6 +4258,16 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
       const sequence = await storage.updateRexSequence(req.params.id, (req.user as User).id, safeBody);
       if (!sequence) return res.status(404).json({ error: "Sequence not found" });
       res.json(sequence);
+    } catch (error: any) {
+      console.error(error);
+      res.status(500).json({ error: msg("internalServerError", req.lang!) });
+    }
+  });
+
+  app.get("/api/rex/analytics/funnel", requireAuth, async (req, res) => {
+    try {
+      const funnel = await storage.getRexConversionFunnel((req.user as User).id);
+      res.json(funnel);
     } catch (error: any) {
       console.error(error);
       res.status(500).json({ error: msg("internalServerError", req.lang!) });

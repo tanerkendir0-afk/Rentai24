@@ -844,11 +844,23 @@ export const insertInvoiceItemSchema = createInsertSchema(invoiceItems).omit({
 export type InvoiceItem = typeof invoiceItems.$inferSelect;
 export type InsertInvoiceItem = z.infer<typeof insertInvoiceItemSchema>;
 
-export const leadSourceEnum = pgEnum("lead_source", ["website", "referral", "cold", "event", "ad", "social", "partner"]);
-export const customerSegmentEnum = pgEnum("customer_segment", ["enterprise", "mid", "smb"]);
-export const dealStageEnum = pgEnum("deal_stage", ["new_lead", "contacted", "qualified", "proposal_sent", "negotiation", "closed_won", "closed_lost"]);
-export const activityTypeEnum = pgEnum("activity_type", ["email_sent", "email_received", "call", "meeting", "note", "stage_change", "task", "sequence_event"]);
-export const sequenceStatusEnum = pgEnum("sequence_status", ["active", "paused", "completed", "cancelled"]);
+export const LEAD_SOURCE_VALUES = ["website", "referral", "cold", "event", "ad", "social", "partner"] as const;
+export const CUSTOMER_SEGMENT_VALUES = ["enterprise", "mid", "smb"] as const;
+export const DEAL_STAGE_VALUES = ["new_lead", "contacted", "qualified", "proposal_sent", "negotiation", "closed_won", "closed_lost"] as const;
+export const ACTIVITY_TYPE_VALUES = ["email_sent", "email_received", "call", "meeting", "note", "stage_change", "task", "sequence_event"] as const;
+export const SEQUENCE_STATUS_VALUES = ["active", "paused", "completed", "cancelled"] as const;
+
+export type LeadSourceValue = typeof LEAD_SOURCE_VALUES[number];
+export type CustomerSegmentValue = typeof CUSTOMER_SEGMENT_VALUES[number];
+export type DealStageValue = typeof DEAL_STAGE_VALUES[number];
+export type ActivityTypeValue = typeof ACTIVITY_TYPE_VALUES[number];
+export type SequenceStatusValue = typeof SEQUENCE_STATUS_VALUES[number];
+
+export const leadSourceEnum = pgEnum("lead_source", LEAD_SOURCE_VALUES);
+export const customerSegmentEnum = pgEnum("customer_segment", CUSTOMER_SEGMENT_VALUES);
+export const dealStageEnum = pgEnum("deal_stage", DEAL_STAGE_VALUES);
+export const activityTypeEnum = pgEnum("activity_type", ACTIVITY_TYPE_VALUES);
+export const sequenceStatusEnum = pgEnum("sequence_status", SEQUENCE_STATUS_VALUES);
 
 export const rexContacts = pgTable("rex_contacts", {
   id: varchar("id", { length: 36 }).primaryKey().default(sql`gen_random_uuid()`),

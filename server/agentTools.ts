@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import { storage } from "./storage";
+import { LEAD_SOURCE_VALUES, CUSTOMER_SEGMENT_VALUES, DEAL_STAGE_VALUES, ACTIVITY_TYPE_VALUES, type LeadSourceValue, type CustomerSegmentValue, type DealStageValue, type ActivityTypeValue } from "@shared/schema";
 import { sendEmail } from "./emailService";
 import { scheduleFollowup } from "./followupScheduler";
 import { createCalendarEvent } from "./calendarService";
@@ -2764,8 +2765,8 @@ Be specific to the ${industry} industry. About 400-500 words.`;
           industry: args.industry ? String(args.industry) : undefined,
           website: args.website ? String(args.website) : undefined,
           isDecisionMaker: args.is_decision_maker ?? false,
-          source: args.source as any || "cold",
-          segment: args.segment as any || "smb",
+          source: (args.source && LEAD_SOURCE_VALUES.includes(args.source as LeadSourceValue) ? args.source as LeadSourceValue : "cold"),
+          segment: (args.segment && CUSTOMER_SEGMENT_VALUES.includes(args.segment as CustomerSegmentValue) ? args.segment as CustomerSegmentValue : "smb"),
           tags: args.tags || [],
           notes: args.notes ? String(args.notes) : undefined,
         });
@@ -2800,7 +2801,7 @@ Be specific to the ${industry} industry. About 400-500 words.`;
           value: args.value ? String(args.value) : "0",
           currency: args.currency ? String(args.currency) : "TRY",
           monthlyRecurring: args.monthly_recurring ? String(args.monthly_recurring) : undefined,
-          stage: args.stage as any || "new_lead",
+          stage: (args.stage && DEAL_STAGE_VALUES.includes(args.stage as DealStageValue) ? args.stage as DealStageValue : "new_lead"),
           expectedClose: args.expected_close ? String(args.expected_close) : undefined,
           products: args.products || [],
         });
@@ -2824,7 +2825,9 @@ Be specific to the ${industry} industry. About 400-500 words.`;
 
     case "update_deal_stage": {
       try {
-        const deal = await storage.updateRexDealStage(String(args.deal_id), userId, String(args.stage), args.notes ? String(args.notes) : undefined);
+        const stageVal = String(args.stage) as DealStageValue;
+        if (!DEAL_STAGE_VALUES.includes(stageVal)) return { result: `Invalid stage. Must be one of: ${DEAL_STAGE_VALUES.join(", ")}` };
+        const deal = await storage.updateRexDealStage(String(args.deal_id), userId, stageVal, args.notes ? String(args.notes) : undefined);
         if (!deal) return { result: "Deal not found. Please provide a valid deal ID." };
 
         await storage.createAgentAction({
@@ -2883,7 +2886,7 @@ Be specific to the ${industry} industry. About 400-500 words.`;
           userId,
           contactId: String(args.contact_id),
           dealId: args.deal_id ? String(args.deal_id) : undefined,
-          type: String(args.type) as any,
+          type: (ACTIVITY_TYPE_VALUES.includes(String(args.type) as ActivityTypeValue) ? String(args.type) as ActivityTypeValue : "note"),
           subject: String(args.subject),
           body: args.body ? String(args.body) : undefined,
           durationMinutes: args.duration_minutes ? Number(args.duration_minutes) : undefined,

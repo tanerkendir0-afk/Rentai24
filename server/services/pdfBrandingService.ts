@@ -109,7 +109,9 @@ interface ReportData {
   date?: string;
 }
 
-export function generateBrandedInvoicePDF(data: InvoiceData, branding?: UserBranding): Buffer {
+export function generateBrandedInvoicePDF(data: InvoiceData, branding?: UserBranding): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+  try {
   const theme = branding?.theme || DEFAULT_THEME;
   const currency = data.currency || "₺";
 
@@ -120,6 +122,8 @@ export function generateBrandedInvoicePDF(data: InvoiceData, branding?: UserBran
 
   const chunks: Buffer[] = [];
   doc.on("data", (chunk: Buffer) => chunks.push(chunk));
+  doc.on("end", () => resolve(Buffer.concat(chunks)));
+  doc.on("error", reject);
 
   const pageWidth = doc.page.width;
   const marginLeft = 50;
@@ -321,11 +325,13 @@ export function generateBrandedInvoicePDF(data: InvoiceData, branding?: UserBran
   }
 
   doc.end();
-
-  return Buffer.concat(chunks);
+  } catch (err) { reject(err); }
+  });
 }
 
-export function generateBrandedReportPDF(data: ReportData, branding?: UserBranding): Buffer {
+export function generateBrandedReportPDF(data: ReportData, branding?: UserBranding): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+  try {
   const theme = branding?.theme || DEFAULT_THEME;
 
   const doc = new PDFDocument({ size: "A4", margin: 50 });
@@ -336,6 +342,8 @@ export function generateBrandedReportPDF(data: ReportData, branding?: UserBrandi
 
   const chunks: Buffer[] = [];
   doc.on("data", (chunk: Buffer) => chunks.push(chunk));
+  doc.on("end", () => resolve(Buffer.concat(chunks)));
+  doc.on("error", reject);
 
   const pageWidth = doc.page.width;
   const marginLeft = 50;
@@ -447,7 +455,8 @@ export function generateBrandedReportPDF(data: ReportData, branding?: UserBrandi
   }
 
   doc.end();
-  return Buffer.concat(chunks);
+  } catch (err) { reject(err); }
+  });
 }
 
 export interface GeneratePdfInput {
@@ -456,13 +465,13 @@ export interface GeneratePdfInput {
   filename?: string;
 }
 
-export function handleGeneratePdf(input: GeneratePdfInput, branding?: UserBranding): {
+export async function handleGeneratePdf(input: GeneratePdfInput, branding?: UserBranding): Promise<{
   success: boolean;
   filename?: string;
   base64_pdf?: string;
   error?: string;
   message?: string;
-} {
+}> {
   const docType = input.document_type;
   const data = input.data || {};
   const filename = input.filename || `${docType}_${Date.now()}.pdf`;
@@ -475,9 +484,9 @@ export function handleGeneratePdf(input: GeneratePdfInput, branding?: UserBrandi
     let pdfBuffer: Buffer;
 
     if (docType === "invoice" || docType === "receipt") {
-      pdfBuffer = generateBrandedInvoicePDF(data as InvoiceData, branding);
+      pdfBuffer = await generateBrandedInvoicePDF(data as InvoiceData, branding);
     } else if (docType === "report" || docType === "proposal") {
-      pdfBuffer = generateBrandedReportPDF(data as ReportData, branding);
+      pdfBuffer = await generateBrandedReportPDF(data as ReportData, branding);
     } else {
       return { success: false, error: `Desteklenmeyen belge tipi: ${docType}` };
     }
@@ -491,6 +500,7 @@ export function handleGeneratePdf(input: GeneratePdfInput, branding?: UserBrandi
       message: `PDF oluşturuldu: ${filename} (${Math.round(pdfBuffer.length / 1024)} KB)`,
     };
   } catch (err: any) {
+    console.error("[PDF Generation Error]", err.message, err.stack);
     return { success: false, error: err.message || String(err) };
   }
 }

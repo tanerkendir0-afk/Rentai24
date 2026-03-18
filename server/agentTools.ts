@@ -2575,7 +2575,7 @@ export async function executeToolCall(
       try {
         const user = await storage.getUserById(userId);
         const branding = (user?.branding as UserBranding) || undefined;
-        const pdfResult = handleGeneratePdf(
+        const pdfResult = await handleGeneratePdf(
           {
             document_type: args.document_type as any,
             data: args.data as Record<string, any>,

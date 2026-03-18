@@ -191,7 +191,7 @@ const createComponents = (isUser: boolean, showToast?: (msg: string) => void): C
   ),
   hr: () => <hr className="my-3 border-current/10" />,
   a: ({ href, children }) => {
-    const isDownloadLink = href && (href.match(/^\/api\/invoices\/\d+\/(pdf|excel)/) || href.match(/^\/api\/reports\/[^/]+\/download/));
+    const isDownloadLink = href && href.match(/^\/api\/.*\/(download|pdf|excel)$/);
     if (isDownloadLink) {
       const childText = String(children || "");
       const isExcel = href.includes("/reports/") || href.endsWith("/excel");

@@ -179,7 +179,7 @@ export function generateBrandedInvoicePDF(data: InvoiceData, branding?: UserBran
   y += 8;
 
   const colWidths = [25, 160, 70, 80, 50, contentWidth - 385];
-  const headers = ["#", "Urun / Hizmet", "Miktar", "Birim Fiyat", "KDV %", "Tutar"];
+  const headers = ["#", "Ürün / Hizmet", "Miktar", "Birim Fiyat", "KDV %", "Tutar"];
 
   doc.rect(marginLeft, y, contentWidth, 22).fill(theme.primary || DEFAULT_THEME.primary);
   doc.font(FONT_BOLD).fontSize(8).fillColor("white");
@@ -268,7 +268,7 @@ export function generateBrandedInvoicePDF(data: InvoiceData, branding?: UserBran
 
   if (data.bank_info && (data.bank_info.bank_name || data.bank_info.iban)) {
     doc.font(FONT_BOLD).fontSize(10).fillColor(theme.primary || DEFAULT_THEME.primary)
-      .text("BANKA BILGILERI", marginLeft, y);
+      .text("BANKA BİLGİLERİ", marginLeft, y);
     y += 16;
     doc.font(FONT).fontSize(9).fillColor(theme.text || "#1B1B1B");
     if (data.bank_info.bank_name) { doc.text(`Banka: ${data.bank_info.bank_name}`, marginLeft, y); y += 14; }
@@ -279,7 +279,7 @@ export function generateBrandedInvoicePDF(data: InvoiceData, branding?: UserBran
 
   if (data.payment_terms) {
     doc.font(FONT_BOLD).fontSize(10).fillColor(theme.primary || DEFAULT_THEME.primary)
-      .text("ODEME KOSULLARI", marginLeft, y);
+      .text("ÖDEME KOŞULLARI", marginLeft, y);
     y += 16;
     doc.font(FONT).fontSize(9).fillColor(theme.text || "#1B1B1B")
       .text(`Vade: ${data.payment_terms}`, marginLeft, y);
@@ -358,7 +358,7 @@ export function generateBrandedReportPDF(data: ReportData, branding?: UserBrandi
 
   if (data.author) {
     doc.font(FONT_OBLIQUE).fontSize(9).fillColor(theme.accent || DEFAULT_THEME.accent)
-      .text(`Hazirlayan: ${data.author}`, marginLeft, y);
+      .text(`Hazırlayan: ${data.author}`, marginLeft, y);
     y += 16;
   }
 
@@ -471,7 +471,7 @@ export function handleGeneratePdf(input: GeneratePdfInput, branding?: UserBrandi
       success: true,
       filename,
       base64_pdf: base64Pdf,
-      message: `PDF olusturuldu: ${filename} (${Math.round(pdfBuffer.length / 1024)} KB)`,
+      message: `PDF oluşturuldu: ${filename} (${Math.round(pdfBuffer.length / 1024)} KB)`,
     };
   } catch (err: any) {
     return { success: false, error: err.message || String(err) };

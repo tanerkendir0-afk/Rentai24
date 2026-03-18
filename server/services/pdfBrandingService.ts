@@ -1,12 +1,25 @@
 import PDFDocument from "pdfkit";
 import path from "path";
 import fs from "fs";
-import { fileURLToPath } from "url";
 import type { UserBranding } from "@shared/schema";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const FONT_DIR = path.join(__dirname, "..", "fonts");
+function findFontDir(): string {
+  const candidates = [
+    path.join(process.cwd(), "server", "fonts"),
+    path.join(process.cwd(), "fonts"),
+  ];
+  try {
+    if (typeof __dirname !== "undefined") {
+      candidates.unshift(path.join(__dirname, "..", "fonts"));
+    }
+  } catch {}
+  for (const dir of candidates) {
+    if (fs.existsSync(path.join(dir, "DejaVuSans.ttf"))) return dir;
+  }
+  return candidates[0];
+}
+
+const FONT_DIR = findFontDir();
 
 const DEFAULT_THEME = {
   primary: "#2C3E50",

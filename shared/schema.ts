@@ -1,7 +1,13 @@
 import { z } from "zod";
-import { pgTable, pgEnum, serial, text, timestamp, integer, boolean, jsonb, customType, decimal, date, varchar } from "drizzle-orm/pg-core";
+import { pgTable, pgEnum, serial, text, timestamp, integer, boolean, jsonb, customType, decimal, date, varchar, json } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { sql } from "drizzle-orm";
+
+export const session = pgTable("session", {
+  sid: varchar("sid").primaryKey(),
+  sess: json("sess").notNull(),
+  expire: timestamp("expire", { precision: 6 }).notNull(),
+});
 
 const vector = customType<{ data: number[]; driverParam: string }>({
   dataType() {

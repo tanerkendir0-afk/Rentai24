@@ -2073,14 +2073,14 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                   placeholder={!user ? t("demoPage.askPlaceholder", { agent: currentAgent.persona }) : t("demoPage.messagePlaceholder", { agent: currentAgent.persona })}
                   disabled={loading}
                   rows={2}
-                  className="w-full min-h-[52px] max-h-[120px] px-3 sm:px-4 pr-11 sm:pr-12 py-2.5 rounded-xl bg-muted/50 border border-border/50 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 transition-all disabled:opacity-50 resize-none"
+                  className="w-full min-h-[52px] max-h-[120px] px-3 sm:px-4 pr-12 sm:pr-14 py-2.5 pb-3 rounded-xl bg-muted/50 border border-border/50 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 transition-all disabled:opacity-50 resize-none"
                   data-testid="input-chat"
                 />
                 {loading ? (
                   <button
                     type="button"
                     onClick={() => abortControllerRef.current?.abort()}
-                    className="absolute right-1.5 top-1/2 -translate-y-1/2 w-8 h-8 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 rounded-lg bg-gradient-to-r from-red-500 to-orange-500 flex items-center justify-center text-white transition-opacity animate-pulse"
+                    className="absolute right-1.5 bottom-1.5 w-8 h-8 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 rounded-lg bg-gradient-to-r from-red-500 to-orange-500 flex items-center justify-center text-white transition-opacity animate-pulse"
                     data-testid="button-stop-chat"
                     title={t("demoPage.stopResponse")}
                   >
@@ -2090,7 +2090,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                   <button
                     type="submit"
                     disabled={!input.trim() && !uploadedFile}
-                    className="absolute right-1.5 top-1/2 -translate-y-1/2 w-8 h-8 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 rounded-lg bg-gradient-to-r from-blue-500 to-violet-500 flex items-center justify-center text-white disabled:opacity-30 transition-opacity"
+                    className="absolute right-1.5 bottom-1.5 w-8 h-8 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 rounded-lg bg-gradient-to-r from-blue-500 to-violet-500 flex items-center justify-center text-white disabled:opacity-30 transition-opacity"
                     data-testid="button-send-chat"
                   >
                     <Send className="w-4 h-4" />

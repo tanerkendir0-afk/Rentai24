@@ -1119,6 +1119,7 @@
     "noTasks": "No tasks yet",
     "createFirst": "Create your first task",
     "noTasksInGroup": "No tasks",
+    "time": "Time",
     "clearDate": "Clear date",
     "markAs": "Mark as {{status}}",
     "months": {

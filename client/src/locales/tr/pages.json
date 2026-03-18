@@ -1119,6 +1119,7 @@
     "noTasks": "Henüz görev yok",
     "createFirst": "İlk görevinizi oluşturun",
     "noTasksInGroup": "Görev yok",
+    "time": "Saat",
     "clearDate": "Tarihi temizle",
     "markAs": "{{status}} olarak işaretle",
     "months": {

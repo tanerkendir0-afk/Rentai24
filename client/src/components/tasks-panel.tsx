@@ -27,10 +27,10 @@ const PRIORITY_COLORS: Record<string, string> = {
   urgent: "text-red-400",
 };
 
-const STATUS_CONFIG: Record<string, { icon: typeof Circle; labelKey: string; color: string }> = {
-  todo: { icon: Circle, labelKey: "tasksPanel.toDo", color: "text-muted-foreground" },
-  "in-progress": { icon: Clock, labelKey: "tasksPanel.inProgress", color: "text-blue-400" },
-  done: { icon: Check, labelKey: "tasksPanel.done", color: "text-emerald-400" },
+const STATUS_CONFIG: Record<string, { icon: typeof Circle; labelKey: string; color: string; bgColor: string; borderColor: string }> = {
+  todo: { icon: Circle, labelKey: "tasksPanel.toDo", color: "text-muted-foreground", bgColor: "bg-muted/40", borderColor: "border-border/50" },
+  "in-progress": { icon: Clock, labelKey: "tasksPanel.inProgress", color: "text-blue-400", bgColor: "bg-blue-500/10", borderColor: "border-blue-500/20" },
+  done: { icon: Check, labelKey: "tasksPanel.done", color: "text-emerald-400", bgColor: "bg-emerald-500/10", borderColor: "border-emerald-500/20" },
 };
 
 function MiniCalendar({ selectedDate, onSelect, taskDates, t }: {
@@ -123,6 +123,50 @@ function MiniCalendar({ selectedDate, onSelect, taskDates, t }: {
   );
 }
 
+function TimePicker({ selectedDate, selectedTime, onTimeChange, t }: {
+  selectedDate: string | null;
+  selectedTime: string;
+  onTimeChange: (time: string) => void;
+  t: (key: string, options?: Record<string, unknown>) => string;
+}) {
+  if (!selectedDate) return null;
+
+  const hours = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, "0"));
+  const minutes = ["00", "15", "30", "45"];
+
+  const [selectedHour, selectedMinute] = selectedTime.split(":") as [string, string];
+
+  return (
+    <div className="flex items-center gap-2 px-1 py-2" data-testid="time-picker">
+      <Clock className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+      <span className="text-[10px] text-muted-foreground shrink-0">{t("tasksPanel.time") || "Saat"}</span>
+      <div className="flex items-center gap-1 flex-1">
+        <select
+          value={selectedHour}
+          onChange={e => onTimeChange(`${e.target.value}:${selectedMinute}`)}
+          className="flex-1 h-7 text-xs bg-muted/50 border border-border/50 rounded-md px-1.5 text-foreground focus:outline-none focus:ring-1 focus:ring-blue-500/50"
+          data-testid="select-hour"
+        >
+          {hours.map(h => (
+            <option key={h} value={h}>{h}</option>
+          ))}
+        </select>
+        <span className="text-xs text-muted-foreground">:</span>
+        <select
+          value={selectedMinute}
+          onChange={e => onTimeChange(`${selectedHour}:${e.target.value}`)}
+          className="flex-1 h-7 text-xs bg-muted/50 border border-border/50 rounded-md px-1.5 text-foreground focus:outline-none focus:ring-1 focus:ring-blue-500/50"
+          data-testid="select-minute"
+        >
+          {minutes.map(m => (
+            <option key={m} value={m}>{m}</option>
+          ))}
+        </select>
+      </div>
+    </div>
+  );
+}
+
 export default function TasksPanel({ agentType, agentColor, onClose }: {
   agentType: string;
   agentColor: string;
@@ -135,6 +179,7 @@ export default function TasksPanel({ agentType, agentColor, onClose }: {
   const [priority, setPriority] = useState("medium");
   const [project, setProject] = useState("");
   const [dueDate, setDueDate] = useState<string | null>(null);
+  const [dueTime, setDueTime] = useState("09:00");
   const [filter, setFilter] = useState<string>("all");
 
   const { data: tasks = [], isLoading } = useQuery<AgentTask[]>({
@@ -144,6 +189,11 @@ export default function TasksPanel({ agentType, agentColor, onClose }: {
       return res.json();
     },
   });
+
+  const buildDueDateWithTime = (date: string | null, time: string): string | null => {
+    if (!date) return null;
+    return `${date}T${time}:00`;
+  };
 
   const createMutation = useMutation({
     mutationFn: async (data: { title: string; description: string; agentType: string; priority: string; project: string; dueDate: string | null }) => {
@@ -157,6 +207,7 @@ export default function TasksPanel({ agentType, agentColor, onClose }: {
       setPriority("medium");
       setProject("");
       setDueDate(null);
+      setDueTime("09:00");
       setShowForm(false);
     },
   });
@@ -198,6 +249,20 @@ export default function TasksPanel({ agentType, agentColor, onClose }: {
   };
 
   const projects = [...new Set(tasks.map(t => t.project).filter(Boolean))];
+
+  const formatDueDate = (dueDate: string | Date | null | undefined): string | null => {
+    if (!dueDate) return null;
+    const d = new Date(dueDate);
+    const month = d.toLocaleDateString(undefined, { month: "short" });
+    const day = d.getDate();
+    const hours = d.getHours();
+    const minutes = d.getMinutes();
+    const hasTime = hours !== 0 || minutes !== 0;
+    if (hasTime) {
+      return `${day} ${month} ${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+    }
+    return `${day} ${month}`;
+  };
 
   return (
     <div className="flex flex-col bg-background lg:bg-card/50 border-t lg:border-t-0 lg:border-l border-border/50 w-full fixed bottom-0 left-0 right-0 h-[60vh] lg:h-full lg:w-[320px] shrink-0 lg:relative lg:inset-auto z-[60] lg:z-auto rounded-t-2xl lg:rounded-none shadow-2xl lg:shadow-none" data-testid="tasks-panel">
@@ -278,12 +343,26 @@ export default function TasksPanel({ agentType, agentColor, onClose }: {
               t={t}
             />
 
+            <TimePicker
+              selectedDate={dueDate}
+              selectedTime={dueTime}
+              onTimeChange={setDueTime}
+              t={t}
+            />
+
             <div className="flex gap-1.5">
               <Button
                 size="sm"
                 className={`flex-1 h-7 text-xs bg-gradient-to-r ${agentColor} text-white`}
                 disabled={!title.trim() || createMutation.isPending}
-                onClick={() => createMutation.mutate({ title, description, agentType, priority, project, dueDate })}
+                onClick={() => createMutation.mutate({
+                  title,
+                  description,
+                  agentType,
+                  priority,
+                  project,
+                  dueDate: buildDueDateWithTime(dueDate, dueTime),
+                })}
                 data-testid="button-save-task"
               >
                 {createMutation.isPending ? t("tasksPanel.saving") : t("tasksPanel.addTask")}
@@ -340,7 +419,7 @@ export default function TasksPanel({ agentType, agentColor, onClose }: {
             </button>
           </div>
         ) : (
-          <div>
+          <div className="space-y-0">
             {(filter === "all" ? ["todo", "in-progress", "done"] : [filter]).map(statusKey => {
               const groupTasks = filteredTasks.filter(t => t.status === statusKey);
               if (groupTasks.length === 0 && filter === "all") return null;
@@ -348,28 +427,26 @@ export default function TasksPanel({ agentType, agentColor, onClose }: {
               const GroupIcon = groupConf.icon;
 
               return (
-                <div key={statusKey} data-testid={`task-group-${statusKey}`}>
+                <div key={statusKey} className="mb-1" data-testid={`task-group-${statusKey}`}>
                   {filter === "all" && (
-                    <div className="flex items-center gap-1.5 px-3 py-1.5 bg-muted/20 border-b border-border/30">
-                      <GroupIcon className={`w-3 h-3 ${groupConf.color}`} />
-                      <span className={`text-[10px] font-semibold uppercase tracking-wider ${groupConf.color}`}>{t(groupConf.labelKey)}</span>
-                      <span className="text-[10px] text-muted-foreground/50">({groupTasks.length})</span>
+                    <div className={`flex items-center gap-2 px-3 py-2 ${groupConf.bgColor} border-y ${groupConf.borderColor} sticky top-0 z-10`}>
+                      <GroupIcon className={`w-3.5 h-3.5 ${groupConf.color} shrink-0`} />
+                      <span className={`text-[11px] font-bold uppercase tracking-widest ${groupConf.color} flex-1`}>{t(groupConf.labelKey)}</span>
+                      <span className={`text-[10px] font-semibold ${groupConf.color} opacity-60`}>{groupTasks.length}</span>
                     </div>
                   )}
                   {groupTasks.length === 0 ? (
                     <div className="px-3 py-2 text-[10px] text-muted-foreground/50 italic">{t("tasksPanel.noTasksInGroup")}</div>
                   ) : (
-                    <div className="divide-y divide-border/30">
+                    <div className="divide-y divide-border/20">
                       {groupTasks.map(task => {
                         const statusConf = STATUS_CONFIG[task.status] || STATUS_CONFIG.todo;
                         const StatusIcon = statusConf.icon;
-                        const dueDateStr = task.dueDate
-                          ? new Date(task.dueDate).toLocaleDateString(undefined, { month: "short", day: "numeric" })
-                          : null;
+                        const dueDateStr = formatDueDate(task.dueDate);
                         const isOverdue = task.dueDate && new Date(task.dueDate) < new Date() && task.status !== "done";
 
                         return (
-                          <div key={task.id} className="px-3 py-2 hover:bg-muted/30 transition-colors group" data-testid={`task-item-${task.id}`}>
+                          <div key={task.id} className="px-3 py-2.5 hover:bg-muted/20 transition-colors group" data-testid={`task-item-${task.id}`}>
                             <div className="flex items-start gap-2">
                               <button
                                 onClick={() => updateMutation.mutate({ id: task.id, status: statusCycle(task.status) })}
@@ -380,22 +457,22 @@ export default function TasksPanel({ agentType, agentColor, onClose }: {
                                 <StatusIcon className="w-4 h-4" />
                               </button>
                               <div className="flex-1 min-w-0">
-                                <p className={`text-xs font-medium leading-tight ${task.status === "done" ? "line-through text-muted-foreground" : "text-foreground"}`}>
+                                <p className={`text-xs font-semibold leading-tight truncate ${task.status === "done" ? "line-through text-muted-foreground/60" : "text-foreground"}`}>
                                   {task.title}
                                 </p>
                                 {task.description && (
-                                  <p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-2">{task.description}</p>
+                                  <p className="text-[10px] text-muted-foreground/70 mt-0.5 line-clamp-1 leading-relaxed">{task.description}</p>
                                 )}
-                                <div className="flex items-center gap-2 mt-1">
+                                <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                                   {task.project && (
-                                    <Badge variant="secondary" className="text-[9px] h-3.5 px-1.5">{task.project}</Badge>
+                                    <Badge variant="secondary" className="text-[9px] h-4 px-1.5 shrink-0 max-w-[80px] truncate">{task.project}</Badge>
                                   )}
-                                  <span className={`text-[10px] flex items-center gap-0.5 ${PRIORITY_COLORS[task.priority]}`}>
+                                  <span className={`text-[10px] flex items-center gap-0.5 shrink-0 ${PRIORITY_COLORS[task.priority]}`}>
                                     <Flag className="w-2.5 h-2.5" />
                                     {t("tasksPanel.priorities." + task.priority)}
                                   </span>
                                   {dueDateStr && (
-                                    <span className={`text-[10px] flex items-center gap-0.5 ${isOverdue ? "text-red-400" : "text-muted-foreground"}`}>
+                                    <span className={`text-[10px] flex items-center gap-0.5 shrink-0 font-medium ${isOverdue ? "text-red-400" : "text-muted-foreground"}`}>
                                       <Calendar className="w-2.5 h-2.5" />
                                       {dueDateStr}
                                     </span>
@@ -404,7 +481,7 @@ export default function TasksPanel({ agentType, agentColor, onClose }: {
                               </div>
                               <button
                                 onClick={() => deleteMutation.mutate(task.id)}
-                                className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-red-400 transition-all shrink-0"
+                                className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-red-400 transition-all shrink-0 mt-0.5"
                                 data-testid={`button-delete-task-${task.id}`}
                               >
                                 <Trash2 className="w-3 h-3" />

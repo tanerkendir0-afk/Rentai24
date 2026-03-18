@@ -1,4 +1,6 @@
 import OpenAI from "openai";
+import fs from "fs";
+import path from "path";
 import { storage } from "./storage";
 import { LEAD_SOURCE_VALUES, CUSTOMER_SEGMENT_VALUES, DEAL_STAGE_VALUES, ACTIVITY_TYPE_VALUES, type LeadSourceValue, type CustomerSegmentValue, type DealStageValue, type ActivityTypeValue } from "@shared/schema";
 import { sendEmail } from "./emailService";
@@ -3972,6 +3974,356 @@ ${activeRentals.map(r => `  ${r.agentType}: ${r.messagesUsed}/${r.messagesLimit}
         actionType: "report_generated",
         actionDescription: `📊 ${reportType.replace(/_/g, " ")} report generated`,
       };
+    }
+
+    case "list_uploaded_files": {
+      const { uploadedFiles } = await import("@shared/schema");
+      const { db } = await import("./db");
+      const { eq } = await import("drizzle-orm");
+      const files = await db.select().from(uploadedFiles).where(eq(uploadedFiles.userId, userId));
+      if (files.length === 0) {
+        return { result: "Henüz yüklenmiş dosya yok. Chat'teki 📎 butonu ile Excel veya CSV dosyanızı yükleyebilirsiniz.", actionType: "list_files", actionDescription: "📁 Uploaded files listed" };
+      }
+      const list = files.map(f => `• [ID: ${f.id}] ${f.originalName} — ${f.rowCount || "?"} satır, ${(f.columnNames as string[] || []).length} kolon (${f.fileType})`).join("\n");
+      return { result: `Yüklenen dosyalar:\n${list}`, actionType: "list_files", actionDescription: `📁 ${files.length} files listed` };
+    }
+
+    case "analyze_file": {
+      try {
+      const { uploadedFiles } = await import("@shared/schema");
+      const { db } = await import("./db");
+      const { eq, and: andOp } = await import("drizzle-orm");
+      const fileId = Number(args.file_id);
+      const [file] = await db.select().from(uploadedFiles).where(andOp(eq(uploadedFiles.id, fileId), eq(uploadedFiles.userId, userId)));
+      if (!file) return { result: "Dosya bulunamadı. Önce list_uploaded_files ile dosyalarınızı kontrol edin.", actionType: "analyze_file", actionDescription: "❌ File not found" };
+
+      const { parseFile, analyzeData, formatTR } = await import("./services/dataAnalysisService");
+      const rawData = parseFile(file.storedPath);
+      const analysis = analyzeData(rawData);
+
+      let result = `📊 DOSYA ANALİZİ: ${file.originalName}\n\n`;
+      result += `📋 Genel: ${analysis.summary.rowCount} satır × ${analysis.summary.columnCount} kolon\n\n`;
+      result += `📑 Kolonlar:\n`;
+      for (const col of analysis.summary.columns) {
+        result += `  • ${col.name} (${col.type}) — ${col.uniqueCount} benzersiz, ${col.nullCount} boş\n`;
+      }
+
+      result += `\n📈 İstatistikler:\n`;
+      for (const [name, stats] of Object.entries(analysis.statistics)) {
+        if (stats.sum !== undefined) {
+          result += `  • ${name}: Min=${formatTR(stats.min!)} Max=${formatTR(stats.max!)} Ort=${formatTR(stats.mean!)} Top=${formatTR(stats.sum!)}\n`;
+        } else if (stats.topValues) {
+          result += `  • ${name}: ${stats.topValues.slice(0, 3).map(tv => `${tv.value}(${tv.count})`).join(", ")}\n`;
+        }
+      }
+
+      if (analysis.insights.length > 0) {
+        result += `\n💡 İçgörüler:\n${analysis.insights.map(i => `  • ${i}`).join("\n")}`;
+      }
+
+      const { suggestCharts } = await import("./services/chartService");
+      const suggestions = suggestCharts(analysis);
+      if (suggestions.length > 0) {
+        result += `\n\n📊 Önerilen Grafikler:\n${suggestions.map(s => `  • ${s.type}: "${s.title}"`).join("\n")}`;
+      }
+
+      return { result, actionType: "analyze_file", actionDescription: `📊 Analyzed: ${file.originalName}` };
+      } catch (err: any) {
+        return { result: `Dosya analizi sırasında hata: ${err.message}`, actionType: "analyze_file", actionDescription: "❌ Analysis error" };
+      }
+    }
+
+    case "query_file_data": {
+      try {
+      const { uploadedFiles } = await import("@shared/schema");
+      const { db } = await import("./db");
+      const { eq, and: andOp } = await import("drizzle-orm");
+      const fileId = Number(args.file_id);
+      const [file] = await db.select().from(uploadedFiles).where(andOp(eq(uploadedFiles.id, fileId), eq(uploadedFiles.userId, userId)));
+      if (!file) return { result: "Dosya bulunamadı.", actionType: "query_file", actionDescription: "❌ File not found" };
+
+      const { parseFile, groupByData, filterData, formatTR } = await import("./services/dataAnalysisService");
+      let rawData = parseFile(file.storedPath);
+
+      if (args.filter_column && args.filter_operator && args.filter_value) {
+        rawData = filterData(rawData, String(args.filter_column), String(args.filter_operator), args.filter_value);
+      }
+
+      if (args.group_by) {
+        const aggCol = args.aggregate_column ? String(args.aggregate_column) : args.group_by as string;
+        const aggFunc = (args.aggregate_function || "sum") as any;
+        const grouped = groupByData(rawData, String(args.group_by), aggCol, aggFunc);
+        const limit = args.limit ? Number(args.limit) : 20;
+        const sorted = args.sort_order === "asc" ? grouped.reverse() : grouped;
+        const limited = sorted.slice(0, limit);
+        let result = `📊 ${args.group_by} bazında ${aggCol} (${aggFunc}):\n\n`;
+        result += limited.map(g => `  ${g.label}: ${formatTR(g.value)}`).join("\n");
+        result += `\n\nToplam: ${formatTR(grouped.reduce((s, g) => s + g.value, 0))} (${grouped.length} grup)`;
+        return { result, actionType: "query_file", actionDescription: `📊 Queried: ${args.group_by} by ${aggCol}` };
+      }
+
+      const limit = args.limit ? Number(args.limit) : 20;
+      const headers = rawData[0];
+      const dataRows = rawData.slice(1, limit + 1);
+      let result = `📋 Veri (${rawData.length - 1} satır${args.filter_column ? ", filtrelenmiş" : ""}):\n\n`;
+      result += `| ${headers.join(" | ")} |\n`;
+      result += `| ${headers.map(() => "---").join(" | ")} |\n`;
+      for (const row of dataRows) {
+        result += `| ${row.join(" | ")} |\n`;
+      }
+      if (rawData.length - 1 > limit) result += `\n...ve ${rawData.length - 1 - limit} satır daha`;
+      return { result, actionType: "query_file", actionDescription: `📊 Queried ${file.originalName}` };
+      } catch (err: any) {
+        return { result: `Veri sorgusu sırasında hata: ${err.message}`, actionType: "query_file", actionDescription: "❌ Query error" };
+      }
+    }
+
+    case "create_chart": {
+      try {
+      const { uploadedFiles } = await import("@shared/schema");
+      const { db } = await import("./db");
+      const { eq, and: andOp } = await import("drizzle-orm");
+      const fileId = Number(args.file_id);
+      const [file] = await db.select().from(uploadedFiles).where(andOp(eq(uploadedFiles.id, fileId), eq(uploadedFiles.userId, userId)));
+      if (!file) return { result: "Dosya bulunamadı.", actionType: "create_chart", actionDescription: "❌ File not found" };
+
+      const { parseFile } = await import("./services/dataAnalysisService");
+      const { createChartFromData, createTrendChart } = await import("./services/chartService");
+      const rawData = parseFile(file.storedPath);
+
+      let chartConfig;
+      if (args.chart_type === "line" || args.chart_type === "area") {
+        chartConfig = createTrendChart(rawData, String(args.x_column), String(args.y_column), args.title as string | undefined);
+        if (args.chart_type === "area") chartConfig.type = "area";
+      } else {
+        chartConfig = createChartFromData(rawData, {
+          type: String(args.chart_type),
+          xColumn: String(args.x_column),
+          yColumn: String(args.y_column),
+          groupColumn: args.group_column as string | undefined,
+          title: args.title as string | undefined,
+          aggregate: args.aggregate as string | undefined,
+        });
+      }
+
+      return {
+        result: `[CHART]${JSON.stringify(chartConfig)}[/CHART]\n\n📊 "${chartConfig.title}" grafiği oluşturuldu.`,
+        actionType: "create_chart",
+        actionDescription: `📊 Chart: ${chartConfig.title}`,
+      };
+      } catch (err: any) {
+        return { result: `Grafik oluşturma hatası: ${err.message}`, actionType: "create_chart", actionDescription: "❌ Chart error" };
+      }
+    }
+
+    case "compare_columns": {
+      try {
+      const { uploadedFiles } = await import("@shared/schema");
+      const { db } = await import("./db");
+      const { eq, and: andOp } = await import("drizzle-orm");
+      const fileId = Number(args.file_id);
+      const [file] = await db.select().from(uploadedFiles).where(andOp(eq(uploadedFiles.id, fileId), eq(uploadedFiles.userId, userId)));
+      if (!file) return { result: "Dosya bulunamadı.", actionType: "compare_columns", actionDescription: "❌ File not found" };
+
+      const { parseFile, correlate: correlateFn } = await import("./services/dataAnalysisService");
+      const rawData = parseFile(file.storedPath);
+      const result = correlateFn(rawData, String(args.column_1), String(args.column_2));
+
+      return {
+        result: `📊 Korelasyon Analizi: ${args.column_1} ↔ ${args.column_2}\n\nKorelasyon katsayısı: ${result.correlation}\nYorum: ${result.interpretation}`,
+        actionType: "compare_columns",
+        actionDescription: `📊 Correlation: ${args.column_1} vs ${args.column_2}`,
+      };
+      } catch (err: any) {
+        return { result: `Korelasyon analizi hatası: ${err.message}`, actionType: "compare_columns", actionDescription: "❌ Correlation error" };
+      }
+    }
+
+    case "detect_anomalies": {
+      try {
+      const { uploadedFiles } = await import("@shared/schema");
+      const { db } = await import("./db");
+      const { eq, and: andOp } = await import("drizzle-orm");
+      const fileId = Number(args.file_id);
+      const [file] = await db.select().from(uploadedFiles).where(andOp(eq(uploadedFiles.id, fileId), eq(uploadedFiles.userId, userId)));
+      if (!file) return { result: "Dosya bulunamadı.", actionType: "detect_anomalies", actionDescription: "❌ File not found" };
+
+      const { parseFile, detectAnomalies: detectFn, formatTR } = await import("./services/dataAnalysisService");
+      const rawData = parseFile(file.storedPath);
+      const sensitivity = (args.sensitivity || "medium") as "low" | "medium" | "high";
+      const result = detectFn(rawData, String(args.column), sensitivity);
+
+      if (result.anomalies.length === 0) {
+        return { result: `✅ "${args.column}" kolonunda anomali tespit edilmedi (ortalama: ${formatTR(result.mean)}, std: ${formatTR(result.stddev)}).`, actionType: "detect_anomalies", actionDescription: `✅ No anomalies in ${args.column}` };
+      }
+
+      let text = `⚠️ ${result.anomalies.length} anomali tespit edildi (${args.column}):\n\n`;
+      text += `Ortalama: ${formatTR(result.mean)} | Std: ${formatTR(result.stddev)} | Eşik: ±${formatTR(result.threshold)}\n\n`;
+      text += result.anomalies.map(a => `  • Satır ${a.row}: ${formatTR(a.value)} (sapma: ${formatTR(Math.abs(a.value - result.mean))})`).join("\n");
+
+      return { result: text, actionType: "detect_anomalies", actionDescription: `⚠️ ${result.anomalies.length} anomalies in ${args.column}` };
+      } catch (err: any) {
+        return { result: `Anomali tespiti hatası: ${err.message}`, actionType: "detect_anomalies", actionDescription: "❌ Anomaly error" };
+      }
+    }
+
+    case "trend_analysis": {
+      try {
+      const { uploadedFiles } = await import("@shared/schema");
+      const { db } = await import("./db");
+      const { eq, and: andOp } = await import("drizzle-orm");
+      const fileId = Number(args.file_id);
+      const [file] = await db.select().from(uploadedFiles).where(andOp(eq(uploadedFiles.id, fileId), eq(uploadedFiles.userId, userId)));
+      if (!file) return { result: "Dosya bulunamadı.", actionType: "trend_analysis", actionDescription: "❌ File not found" };
+
+      const { parseFile, trendAnalysis: trendFn, formatTR } = await import("./services/dataAnalysisService");
+      const rawData = parseFile(file.storedPath);
+      const period = (args.period || "monthly") as any;
+      const result = trendFn(rawData, String(args.date_column), String(args.value_column), period);
+
+      let text = `📈 TREND ANALİZİ: ${args.value_column}\n\n`;
+      text += `Trend: ${result.trend} (${result.change > 0 ? "+" : ""}${result.change}%)\n\n`;
+      text += `Periyot Detayı:\n`;
+      text += result.periods.map(p => `  ${p.period}: ${formatTR(p.value)}`).join("\n");
+
+      const { createTrendChart } = await import("./services/chartService");
+      const chartConfig = createTrendChart(rawData, String(args.date_column), String(args.value_column), `${args.value_column} Trend`, period);
+      text += `\n\n[CHART]${JSON.stringify(chartConfig)}[/CHART]`;
+
+      return { result: text, actionType: "trend_analysis", actionDescription: `📈 Trend: ${result.trend} (${result.change}%)` };
+      } catch (err: any) {
+        return { result: `Trend analizi hatası: ${err.message}`, actionType: "trend_analysis", actionDescription: "❌ Trend error" };
+      }
+    }
+
+    case "generate_analysis_report": {
+      try {
+      const { uploadedFiles } = await import("@shared/schema");
+      const { db } = await import("./db");
+      const { eq, and: andOp } = await import("drizzle-orm");
+      const fileId = Number(args.file_id);
+      const [file] = await db.select().from(uploadedFiles).where(andOp(eq(uploadedFiles.id, fileId), eq(uploadedFiles.userId, userId)));
+      if (!file) return { result: "Dosya bulunamadı.", actionType: "generate_report", actionDescription: "❌ File not found" };
+
+      const { parseFile, analyzeData, formatTR } = await import("./services/dataAnalysisService");
+      const rawData = parseFile(file.storedPath);
+      const analysis = analyzeData(rawData);
+      const title = args.report_title ? String(args.report_title) : `${file.originalName} Analiz Raporu`;
+
+      let reportContent = `# ${title}\n\n`;
+      reportContent += `## Veri Özeti\n`;
+      reportContent += `- Dosya: ${file.originalName}\n`;
+      reportContent += `- Toplam Satır: ${analysis.summary.rowCount}\n`;
+      reportContent += `- Kolon Sayısı: ${analysis.summary.columnCount}\n\n`;
+
+      reportContent += `## Kolonlar\n`;
+      for (const col of analysis.summary.columns) {
+        reportContent += `- **${col.name}** (${col.type}): ${col.uniqueCount} benzersiz değer, ${col.nullCount} boş\n`;
+      }
+
+      reportContent += `\n## İstatistikler\n`;
+      for (const [name, stats] of Object.entries(analysis.statistics)) {
+        if (stats.sum !== undefined) {
+          reportContent += `### ${name}\n- Min: ${formatTR(stats.min!)} | Max: ${formatTR(stats.max!)} | Ortalama: ${formatTR(stats.mean!)} | Toplam: ${formatTR(stats.sum!)}\n\n`;
+        } else if (stats.topValues) {
+          reportContent += `### ${name}\n- En sık: ${stats.topValues.map(tv => `${tv.value} (${tv.count})`).join(", ")}\n\n`;
+        }
+      }
+
+      if (analysis.insights.length > 0) {
+        reportContent += `## İçgörüler\n`;
+        reportContent += analysis.insights.map(i => `- ${i}`).join("\n");
+      }
+
+      await storage.createAgentAction({
+        userId, agentType,
+        actionType: "analysis_report_generated",
+        description: `📊 Analiz raporu oluşturuldu: ${title}`,
+        metadata: { fileId, title, rowCount: analysis.summary.rowCount },
+      });
+
+      return {
+        result: reportContent,
+        actionType: "analysis_report_generated",
+        actionDescription: `📊 Report: ${title}`,
+      };
+      } catch (err: any) {
+        return { result: `Rapor oluşturma hatası: ${err.message}`, actionType: "generate_report", actionDescription: "❌ Report error" };
+      }
+    }
+
+    case "export_filtered_data": {
+      try {
+      const { uploadedFiles } = await import("@shared/schema");
+      const { db } = await import("./db");
+      const { eq, and: andOp } = await import("drizzle-orm");
+      const fileId = Number(args.file_id);
+      const [file] = await db.select().from(uploadedFiles).where(andOp(eq(uploadedFiles.id, fileId), eq(uploadedFiles.userId, userId)));
+      if (!file) return { result: "Dosya bulunamadı.", actionType: "export_data", actionDescription: "❌ File not found" };
+
+      const { parseFile, filterData, groupByData } = await import("./services/dataAnalysisService");
+      let rawData = parseFile(file.storedPath);
+
+      if (args.filter_column && args.filter_operator && args.filter_value) {
+        rawData = filterData(rawData, String(args.filter_column), String(args.filter_operator), args.filter_value);
+      }
+
+      const format = (args.format || "xlsx") as string;
+      if (!["xlsx", "csv"].includes(format)) {
+        return { result: "Desteklenmeyen format. Sadece xlsx veya csv kullanılabilir.", actionType: "export_data", actionDescription: "❌ Invalid format" };
+      }
+      const rawFilename = args.filename ? String(args.filename) : `export_${Date.now()}`;
+      const sanitized = path.basename(rawFilename).replace(/[^a-zA-Z0-9_\-çğıöşüÇĞIÖŞÜ]/g, "_").slice(0, 100);
+      const filename = sanitized || `export_${Date.now()}`;
+      const uploadsDir = path.join(process.cwd(), "uploads", "data-analyst");
+      const exportPath = path.join(uploadsDir, `${filename}.${format}`);
+      const resolved = path.resolve(exportPath);
+      if (!resolved.startsWith(path.resolve(uploadsDir))) {
+        return { result: "Geçersiz dosya adı.", actionType: "export_data", actionDescription: "❌ Invalid filename" };
+      }
+
+      if (args.group_by) {
+        const aggCol = args.aggregate_column ? String(args.aggregate_column) : "";
+        const aggFunc = (args.aggregate_function || "sum") as any;
+        const grouped = groupByData(rawData, String(args.group_by), aggCol, aggFunc);
+        rawData = [
+          [args.group_by, aggCol || "Count"],
+          ...grouped.map(g => [g.label, g.value]),
+        ];
+      }
+
+      const XLSX = await import("xlsx");
+      const ws = XLSX.utils.aoa_to_sheet(rawData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Data");
+
+      if (format === "csv") {
+        const csv = XLSX.utils.sheet_to_csv(ws);
+        fs.writeFileSync(exportPath, csv, "utf-8");
+      } else {
+        XLSX.writeFile(wb, exportPath);
+      }
+
+      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+      const [saved] = await db.insert(uploadedFiles).values({
+        userId,
+        originalName: `${filename}.${format}`,
+        storedPath: exportPath,
+        fileType: format,
+        fileSize: fs.statSync(exportPath).size,
+        rowCount: rawData.length - 1,
+        columnNames: rawData[0],
+        expiresAt,
+      }).returning();
+
+      return {
+        result: `✅ Veri dışa aktarıldı: ${filename}.${format} (${rawData.length - 1} satır)\nDosya ID: ${saved.id} — /api/files/${saved.id}/download adresinden indirilebilir.`,
+        actionType: "export_data",
+        actionDescription: `📥 Exported: ${filename}.${format}`,
+      };
+      } catch (err: any) {
+        return { result: `Veri dışa aktarma hatası: ${err.message}`, actionType: "export_data", actionDescription: "❌ Export error" };
+      }
     }
 
     case "generate_image": {

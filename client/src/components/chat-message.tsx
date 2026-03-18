@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
@@ -8,6 +8,8 @@ import type { Components } from "react-markdown";
 import { Download, X, ImageOff, Loader2, FileText, FileSpreadsheet, File } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useToast } from "@/hooks/use-toast";
+
+const ChartRenderer = lazy(() => import("./chart-renderer"));
 
 function getDownloadUrl(src: string): string {
   const match = src?.match(/\/api\/images\/([^/]+)$/);
@@ -280,6 +282,32 @@ interface ChatMessageContentProps {
   isUser: boolean;
 }
 
+function parseChartBlocks(text: string): Array<{ type: "text"; content: string } | { type: "chart"; config: any }> {
+  const parts: Array<{ type: "text"; content: string } | { type: "chart"; config: any }> = [];
+  const regex = /\[CHART\]([\s\S]*?)\[\/CHART\]/g;
+  let lastIndex = 0;
+  let match;
+
+  while ((match = regex.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push({ type: "text", content: text.slice(lastIndex, match.index) });
+    }
+    try {
+      const config = JSON.parse(match[1].trim());
+      parts.push({ type: "chart", config });
+    } catch {
+      parts.push({ type: "text", content: match[0] });
+    }
+    lastIndex = regex.lastIndex;
+  }
+
+  if (lastIndex < text.length) {
+    parts.push({ type: "text", content: text.slice(lastIndex) });
+  }
+
+  return parts;
+}
+
 export default function ChatMessageContent({ content, isUser }: ChatMessageContentProps) {
   const { toast } = useToast();
   const docMatch = content.match(/📎 \*\*(.+?)\*\*(?:\s*\((.+?)\))?$/m);
@@ -289,15 +317,51 @@ export default function ChatMessageContent({ content, isUser }: ChatMessageConte
     toast({ title: msg, variant: "destructive" });
   };
 
+  const parts = parseChartBlocks(textWithoutDoc);
+  const hasCharts = parts.some(p => p.type === "chart");
+
+  if (!hasCharts) {
+    return (
+      <div className="prose-chat text-sm leading-relaxed [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
+        <ReactMarkdown
+          remarkPlugins={[remarkGfm, remarkMath]}
+          rehypePlugins={[rehypeKatex]}
+          components={createComponents(isUser, showToast)}
+        >
+          {textWithoutDoc}
+        </ReactMarkdown>
+        {docMatch && <DocumentCard filename={docMatch[1]} sizeInfo={docMatch[2]} isUser={isUser} />}
+      </div>
+    );
+  }
+
   return (
     <div className="prose-chat text-sm leading-relaxed [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
-      <ReactMarkdown
-        remarkPlugins={[remarkGfm, remarkMath]}
-        rehypePlugins={[rehypeKatex]}
-        components={createComponents(isUser, showToast)}
-      >
-        {textWithoutDoc}
-      </ReactMarkdown>
+      {parts.map((part, i) => {
+        if (part.type === "chart") {
+          return (
+            <Suspense key={i} fallback={
+              <div className="my-3 h-[280px] rounded-xl border border-border/40 bg-muted/20 flex items-center justify-center" data-testid="status-chart-loading">
+                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+              </div>
+            }>
+              <ChartRenderer config={part.config} />
+            </Suspense>
+          );
+        }
+        const trimmed = part.content.trim();
+        if (!trimmed) return null;
+        return (
+          <ReactMarkdown
+            key={i}
+            remarkPlugins={[remarkGfm, remarkMath]}
+            rehypePlugins={[rehypeKatex]}
+            components={createComponents(isUser, showToast)}
+          >
+            {trimmed}
+          </ReactMarkdown>
+        );
+      })}
       {docMatch && <DocumentCard filename={docMatch[1]} sizeInfo={docMatch[2]} isUser={isUser} />}
     </div>
   );

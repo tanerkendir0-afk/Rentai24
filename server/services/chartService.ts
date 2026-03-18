@@ -1,31 +1,29 @@
-import { AnalysisResult, groupByData, trendAnalysis, parseFile } from "./dataAnalysisService";
+import { AnalysisResult, groupByData, trendAnalysis } from "./dataAnalysisService";
 
-export interface ChartConfig {
+export interface ChartSuggestion {
+  type: string;
+  title: string;
+  xColumn: string;
+  yColumn: string;
+}
+
+export interface RechartsConfig {
   type: "bar" | "line" | "pie" | "doughnut" | "scatter" | "area" | "horizontal_bar";
   title: string;
-  data: {
-    labels: string[];
-    datasets: {
-      label: string;
-      data: number[];
-      backgroundColor?: string[];
-    }[];
-  };
-  options?: {
-    currency?: boolean;
-    percentage?: boolean;
-    stacked?: boolean;
-  };
+  data: Record<string, any>[];
+  xKey: string;
+  yKey: string;
+  series?: { key: string; name: string; color?: string }[];
+  colors?: string[];
 }
 
 const COLORS = [
-  "#6366f1", "#8b5cf6", "#a855f7", "#ec4899", "#f43f5e",
-  "#f97316", "#eab308", "#22c55e", "#14b8a6", "#3b82f6",
-  "#06b6d4", "#84cc16", "#e879f9", "#fb923c", "#64748b",
+  "#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6",
+  "#06b6d4", "#f97316", "#ec4899", "#14b8a6", "#6366f1",
 ];
 
-export function suggestCharts(analysis: AnalysisResult): ChartConfig[] {
-  const suggestions: ChartConfig[] = [];
+export function suggestCharts(analysis: AnalysisResult): ChartSuggestion[] {
+  const suggestions: ChartSuggestion[] = [];
   const { columns } = analysis.summary;
 
   const numCols = columns.filter(c => c.type === "number");
@@ -36,7 +34,8 @@ export function suggestCharts(analysis: AnalysisResult): ChartConfig[] {
     suggestions.push({
       type: "bar",
       title: `${textCols[0].name} bazında ${numCols[0].name}`,
-      data: { labels: [], datasets: [] },
+      xColumn: textCols[0].name,
+      yColumn: numCols[0].name,
     });
   }
 
@@ -44,7 +43,8 @@ export function suggestCharts(analysis: AnalysisResult): ChartConfig[] {
     suggestions.push({
       type: "line",
       title: `${numCols[0].name} — Zaman Trendi`,
-      data: { labels: [], datasets: [] },
+      xColumn: dateCols[0].name,
+      yColumn: numCols[0].name,
     });
   }
 
@@ -52,7 +52,8 @@ export function suggestCharts(analysis: AnalysisResult): ChartConfig[] {
     suggestions.push({
       type: "pie",
       title: `${textCols[0].name} Dağılımı`,
-      data: { labels: [], datasets: [] },
+      xColumn: textCols[0].name,
+      yColumn: numCols.length > 0 ? numCols[0].name : "count",
     });
   }
 
@@ -69,29 +70,26 @@ export function createChartFromData(
     title?: string;
     aggregate?: string;
   }
-): ChartConfig {
+): RechartsConfig {
   const aggFunc = (config.aggregate || "sum") as "sum" | "avg" | "count" | "min" | "max";
   const grouped = groupByData(rawData, config.xColumn, config.yColumn, aggFunc);
 
-  const labels = grouped.map(g => g.label);
-  const data = grouped.map(g => g.value);
-  const chartType = (config.type || "bar") as ChartConfig["type"];
+  const chartType = (config.type || "bar") as RechartsConfig["type"];
+  const xKey = config.xColumn;
+  const yKey = config.yColumn;
 
-  const bgColors = chartType === "pie" || chartType === "doughnut"
-    ? labels.map((_, i) => COLORS[i % COLORS.length])
-    : [COLORS[0]];
+  const data = grouped.map(g => ({
+    [xKey]: g.label,
+    [yKey]: g.value,
+  }));
 
   return {
     type: chartType,
-    title: config.title || `${config.xColumn} vs ${config.yColumn}`,
-    data: {
-      labels,
-      datasets: [{
-        label: config.yColumn,
-        data,
-        backgroundColor: bgColors,
-      }],
-    },
+    title: config.title || `${xKey} vs ${yKey}`,
+    data,
+    xKey,
+    yKey,
+    colors: COLORS,
   };
 }
 
@@ -101,19 +99,20 @@ export function createTrendChart(
   valueCol: string,
   title?: string,
   period?: string
-): ChartConfig {
+): RechartsConfig {
   const result = trendAnalysis(rawData, dateCol, valueCol, (period || "monthly") as any);
+
+  const data = result.periods.map(p => ({
+    [dateCol]: p.period,
+    [valueCol]: p.value,
+  }));
 
   return {
     type: "line",
     title: title || `${valueCol} — Trend Analizi`,
-    data: {
-      labels: result.periods.map(p => p.period),
-      datasets: [{
-        label: valueCol,
-        data: result.periods.map(p => p.value),
-        backgroundColor: [COLORS[0]],
-      }],
-    },
+    data,
+    xKey: dateCol,
+    yKey: valueCol,
+    colors: COLORS,
   };
 }

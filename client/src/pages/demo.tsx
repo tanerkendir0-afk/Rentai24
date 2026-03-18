@@ -551,6 +551,19 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
           setUploadedFile({ url: data.imageUrl, name: data.filename, type: "image" });
         } else {
           setUploadedFile({ url: data.fileUrl, name: data.filename, type: "document", size: data.fileSize, documentContent: data.documentContent });
+          const dataExts = [".xlsx", ".xls", ".csv", ".tsv"];
+          if (selectedAgent === "data-analyst" && dataExts.includes(ext)) {
+            try {
+              const dataForm = new FormData();
+              dataForm.append("file", file);
+              const dataRes = await fetch("/api/files/upload", { method: "POST", body: dataForm, credentials: "include" });
+              const dataResult = await dataRes.json();
+              if (dataResult.id) {
+                const extra = `\n\n[Dosya analiz sistemine kaydedildi: ID=${dataResult.id}, ${dataResult.rowCount} satır, ${dataResult.columnCount} kolon]`;
+                setUploadedFile(prev => prev ? { ...prev, documentContent: (prev.documentContent || "") + extra } : prev);
+              }
+            } catch {}
+          }
         }
       } else {
         toast({ title: t("demoPage.toast.uploadFailed"), description: data.error || t("demoPage.toast.uploadFailedDesc"), variant: "destructive" });

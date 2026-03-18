@@ -91,19 +91,79 @@ function calculateTokenCost(model: string, promptTokens: number, completionToken
   return inputCost + outputCost;
 }
 
-async function resolveAiProvider(agentType: string): Promise<"openai" | "anthropic"> {
+async function resolveAiProvider(agentType: string): Promise<"openai" | "anthropic" | "auto"> {
   try {
     const agentOverride = await storage.getSystemSetting(`ai_provider_${agentType}`);
-    if (agentOverride && (agentOverride === "openai" || agentOverride === "anthropic")) {
+    if (agentOverride && (agentOverride === "openai" || agentOverride === "anthropic" || agentOverride === "auto")) {
       return agentOverride;
     }
     const defaultProvider = await storage.getSystemSetting("default_ai_provider");
-    if (defaultProvider === "anthropic") {
-      return "anthropic";
+    if (defaultProvider === "anthropic" || defaultProvider === "auto") {
+      return defaultProvider as "openai" | "anthropic" | "auto";
     }
   } catch {
   }
   return "openai";
+}
+
+async function isFallbackEnabled(): Promise<boolean> {
+  try {
+    const setting = await storage.getSystemSetting("ai_fallback_enabled");
+    return setting !== "false";
+  } catch {
+    return true;
+  }
+}
+
+const DEEP_ANALYSIS_INDICATORS = [
+  "analyze", "analiz", "compare", "karşılaştır", "evaluate", "değerlendir",
+  "strategy", "strateji", "optimize", "optimize et", "plan",
+  "review", "incele", "audit", "denetle", "draft", "taslak",
+  "research", "araştır", "report", "rapor",
+  "bilanço", "balance sheet", "gelir tablosu", "income statement",
+  "mizan", "bordro", "payroll", "financial", "mali",
+  "proposal", "teklif", "pricing", "fiyatlandırma",
+  "competitor", "rakip", "market analysis", "pazar analizi",
+  "forecast", "tahmin", "projection", "projeksiyon",
+  "legal", "hukuk", "contract", "sözleşme",
+  "complex", "karmaşık", "detailed", "detaylı", "comprehensive", "kapsamlı",
+];
+
+interface SmartRouteResult {
+  provider: "openai" | "anthropic";
+  model: string;
+  routingReason: string;
+}
+
+function smartRouteByComplexity(message: string, hasTools: boolean): SmartRouteResult {
+  const msgLower = message.toLowerCase().trim();
+
+  if (SIMPLE_MESSAGE_PATTERNS.some((p) => p.test(msgLower))) {
+    return { provider: "openai", model: "gpt-4o-mini", routingReason: "simple_greeting" };
+  }
+
+  const deepIndicatorCount = DEEP_ANALYSIS_INDICATORS.filter(k => msgLower.includes(k)).length;
+
+  if (deepIndicatorCount >= 2 || (msgLower.length > 300 && deepIndicatorCount >= 1)) {
+    if (anthropicClient) {
+      return { provider: "anthropic", model: "claude-sonnet-4-20250514", routingReason: "deep_analysis" };
+    }
+    return { provider: "openai", model: "gpt-4o", routingReason: "deep_analysis_no_anthropic" };
+  }
+
+  if (hasTools && TOOL_INTENT_KEYWORDS.some((k) => msgLower.includes(k))) {
+    return { provider: "openai", model: "gpt-4o", routingReason: "tool_intent" };
+  }
+
+  if (hasTools && COMPLEX_MESSAGE_INDICATORS.some((k) => msgLower.includes(k))) {
+    return { provider: "openai", model: "gpt-4o", routingReason: "complex_with_tools" };
+  }
+
+  if (msgLower.length > 200) {
+    return { provider: "openai", model: "gpt-4o", routingReason: "long_message" };
+  }
+
+  return { provider: "openai", model: "gpt-4o-mini", routingReason: "default_simple" };
 }
 
 function convertToolsToAnthropic(tools: OpenAI.ChatCompletionTool[]): Anthropic.Tool[] {
@@ -2429,14 +2489,27 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
       const agentTools = hasActiveRental ? getRelevantToolsForMessage(resolvedAgentType, message) : undefined;
       const isAgenticAgent = !!agentTools;
 
-      const aiProvider = fineTunedModel ? "openai" : await resolveAiProvider(resolvedAgentType);
-      const useAnthropic = aiProvider === "anthropic" && anthropicClient && !fineTunedModel;
+      const aiProviderSetting = fineTunedModel ? "openai" : await resolveAiProvider(resolvedAgentType);
+      let resolvedProvider: "openai" | "anthropic" = "openai";
+      let routingReason = "default";
+      let useAnthropic = false;
 
       if (!fineTunedModel) {
-        if (useAnthropic) {
+        if (aiProviderSetting === "auto") {
+          const smartResult = smartRouteByComplexity(message, !!agentTools);
+          resolvedProvider = smartResult.provider;
+          modelToUse = smartResult.model;
+          routingReason = smartResult.routingReason;
+          useAnthropic = resolvedProvider === "anthropic" && !!anthropicClient;
+        } else if (aiProviderSetting === "anthropic" && anthropicClient) {
+          resolvedProvider = "anthropic";
           modelToUse = "claude-sonnet-4-20250514";
+          useAnthropic = true;
+          routingReason = "provider_override";
         } else {
+          resolvedProvider = "openai";
           modelToUse = routeModel(message, !!agentTools);
+          routingReason = "provider_override";
         }
       }
 
@@ -2464,8 +2537,15 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
       let operationType = "chat";
       let assistantMessageContent: string | null = null;
       const actions: Array<{ type: string; description: string }> = [];
+      let fallbackUsed = false;
+      let fallbackFrom = "";
 
-      if (useAnthropic && anthropicClient) {
+      const executeWithProvider = async (providerIsAnthropic: boolean, currentModel: string) => {
+        totalPromptTokens = 0;
+        totalCompletionTokens = 0;
+        assistantMessageContent = null;
+
+      if (providerIsAnthropic && anthropicClient) {
         const { system: anthropicSystem, messages: anthropicMessages } = convertMessagesToAnthropic(messages);
         const anthropicTools = agentTools ? convertToolsToAnthropic(agentTools) : undefined;
 
@@ -2684,6 +2764,40 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
 
         assistantMessageContent = assistantMessage?.content ?? null;
       }
+      };
+
+      const fallbackEnabled = await isFallbackEnabled();
+
+      try {
+        await executeWithProvider(useAnthropic, modelToUse);
+      } catch (primaryErr: any) {
+        if (fallbackEnabled) {
+          const canFallbackToAnthropic = !useAnthropic && !!anthropicClient;
+          const canFallbackToOpenai = useAnthropic;
+
+          if (canFallbackToAnthropic || canFallbackToOpenai) {
+            fallbackFrom = useAnthropic ? "anthropic" : "openai";
+            const fallbackProvider = useAnthropic ? false : true;
+            const fallbackModel = fallbackProvider ? "claude-sonnet-4-20250514" : routeModel(message, !!agentTools);
+            console.log(`[FALLBACK] ${fallbackFrom} failed (${primaryErr?.message}), falling back to ${fallbackProvider ? "anthropic" : "openai"} with model ${fallbackModel}`);
+
+            try {
+              useAnthropic = fallbackProvider;
+              modelToUse = fallbackModel;
+              resolvedProvider = fallbackProvider ? "anthropic" : "openai";
+              await executeWithProvider(fallbackProvider, fallbackModel);
+              fallbackUsed = true;
+            } catch (fallbackErr: any) {
+              console.error(`[FALLBACK FAILED] Both providers failed. Primary: ${primaryErr?.message}, Fallback: ${fallbackErr?.message}`);
+              throw primaryErr;
+            }
+          } else {
+            throw primaryErr;
+          }
+        } else {
+          throw primaryErr;
+        }
+      }
 
       const totalTokens = totalPromptTokens + totalCompletionTokens;
       const costUsd = calculateTokenCost(modelToUse, totalPromptTokens, totalCompletionTokens);
@@ -2819,6 +2933,12 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
       } else {
         responsePayload.reply = reply;
         responsePayload.actions = actions.length > 0 ? actions : undefined;
+        responsePayload.aiMeta = {
+          provider: resolvedProvider,
+          model: modelToUse,
+          routing: aiProviderSetting === "auto" ? routingReason : undefined,
+          fallback: fallbackUsed ? { from: fallbackFrom, to: resolvedProvider } : undefined,
+        };
         if (managerRoutedTo) {
           responsePayload.routedTo = managerRoutedTo;
           responsePayload.routedToName = agentPersonaMap[managerRoutedTo] || managerRoutedTo;
@@ -5710,10 +5830,13 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
         const val = await storage.getSystemSetting(`ai_provider_${slug}`);
         if (val) agentProviders[slug] = val;
       }
+      const fallbackSetting = await storage.getSystemSetting("ai_fallback_enabled");
+      const fallbackEnabled = fallbackSetting !== "false";
       res.json({
         defaultProvider,
         agentProviders,
         anthropicConfigured: !!process.env.ANTHROPIC_API_KEY,
+        fallbackEnabled,
       });
     } catch (error: unknown) {
       console.error("Get AI provider error:", error);
@@ -5721,23 +5844,36 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
     }
   });
 
+  app.get(`/api/${ADMIN_PATH}/ai-provider/stats`, requireAdmin, async (_req, res) => {
+    try {
+      const stats = await storage.getProviderComparisonStats();
+      res.json(stats);
+    } catch (error: unknown) {
+      console.error("Get AI provider stats error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   app.put(`/api/${ADMIN_PATH}/ai-provider`, requireAdmin, async (req, res) => {
     try {
-      const validProviders = ["openai", "anthropic"];
+      const validProviders = ["openai", "anthropic", "auto"];
       const validAgentSlugs = new Set([
         "customer-support", "sales-sdr", "social-media", "bookkeeping",
         "scheduling", "hr-recruiting", "data-analyst", "ecommerce-ops",
         "real-estate", "manager"
       ]);
-      const { defaultProvider, agentProviders } = req.body;
+      const { defaultProvider, agentProviders, fallbackEnabled } = req.body;
       if (defaultProvider && validProviders.includes(defaultProvider)) {
         await storage.setSystemSetting("default_ai_provider", defaultProvider);
+      }
+      if (typeof fallbackEnabled === "boolean") {
+        await storage.setSystemSetting("ai_fallback_enabled", fallbackEnabled ? "true" : "false");
       }
       if (agentProviders && typeof agentProviders === "object") {
         for (const [agentSlug, provider] of Object.entries(agentProviders)) {
           if (!validAgentSlugs.has(agentSlug)) continue;
           const prov = provider as string;
-          if (prov === "openai" || prov === "anthropic" || prov === "default") {
+          if (prov === "openai" || prov === "anthropic" || prov === "auto" || prov === "default") {
             await storage.setSystemSetting(
               `ai_provider_${agentSlug}`,
               prov === "default" ? "" : prov

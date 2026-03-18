@@ -66,6 +66,7 @@ export interface IStorage {
   getTokenUsageSummary(): Promise<any[]>;
   getTokenUsageDetailed(minCostUsd?: number): Promise<any[]>;
   getTokenSpending(userId: number | null, agentType?: string): Promise<number>;
+  getProviderComparisonStats(): Promise<any>;
 
   saveChatMessage(message: InsertChatMessage): Promise<ChatMessage>;
   getChatMessagesByAgent(agentType: string, filters?: { startDate?: Date; endDate?: Date }): Promise<ChatMessage[]>;
@@ -515,6 +516,55 @@ export class DatabaseStorage implements IStorage {
       ORDER BY SUM(CAST(t.cost_usd AS DECIMAL(10,6))) DESC
     `);
     return result.rows;
+  }
+
+  async getProviderComparisonStats(): Promise<any> {
+    const byProvider = await db.execute(sql`
+      SELECT
+        COALESCE(ai_provider, 'openai') as provider,
+        model,
+        COUNT(*)::int as request_count,
+        SUM(prompt_tokens)::int as total_prompt_tokens,
+        SUM(completion_tokens)::int as total_completion_tokens,
+        SUM(total_tokens)::int as total_tokens,
+        SUM(CAST(cost_usd AS DECIMAL(10,6)))::text as total_cost,
+        AVG(CAST(cost_usd AS DECIMAL(10,6)))::text as avg_cost_per_request
+      FROM token_usage
+      WHERE created_at > NOW() - INTERVAL '30 days'
+      GROUP BY COALESCE(ai_provider, 'openai'), model
+      ORDER BY SUM(CAST(cost_usd AS DECIMAL(10,6))) DESC
+    `);
+
+    const byAgent = await db.execute(sql`
+      SELECT
+        agent_type,
+        COALESCE(ai_provider, 'openai') as provider,
+        COUNT(*)::int as request_count,
+        SUM(CAST(cost_usd AS DECIMAL(10,6)))::text as total_cost,
+        AVG(total_tokens)::int as avg_tokens
+      FROM token_usage
+      WHERE created_at > NOW() - INTERVAL '30 days'
+      GROUP BY agent_type, COALESCE(ai_provider, 'openai')
+      ORDER BY agent_type, provider
+    `);
+
+    const daily = await db.execute(sql`
+      SELECT
+        DATE(created_at) as date,
+        COALESCE(ai_provider, 'openai') as provider,
+        COUNT(*)::int as request_count,
+        SUM(CAST(cost_usd AS DECIMAL(10,6)))::text as total_cost
+      FROM token_usage
+      WHERE created_at > NOW() - INTERVAL '14 days'
+      GROUP BY DATE(created_at), COALESCE(ai_provider, 'openai')
+      ORDER BY date DESC, provider
+    `);
+
+    return {
+      byProvider: byProvider.rows,
+      byAgent: byAgent.rows,
+      daily: daily.rows,
+    };
   }
 
   async getTokenUsageDetailed(minCostUsd = 0): Promise<any[]> {

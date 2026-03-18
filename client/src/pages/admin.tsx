@@ -5221,8 +5221,11 @@ function AIProviderPanel({ token }: { token: string }) {
   const [defaultProvider, setDefaultProvider] = useState("openai");
   const [agentProviders, setAgentProviders] = useState<Record<string, string>>({});
   const [anthropicConfigured, setAnthropicConfigured] = useState(false);
+  const [fallbackEnabled, setFallbackEnabled] = useState(true);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [statsData, setStatsData] = useState<any>(null);
+  const [statsLoading, setStatsLoading] = useState(false);
   const { toast } = useToast();
 
   const headers = { Authorization: `Bearer ${token}` };
@@ -5235,13 +5238,28 @@ function AIProviderPanel({ token }: { token: string }) {
       setDefaultProvider(data.defaultProvider || "openai");
       setAgentProviders(data.agentProviders || {});
       setAnthropicConfigured(data.anthropicConfigured || false);
+      setFallbackEnabled(data.fallbackEnabled !== false);
     } catch {
     } finally {
       setLoading(false);
     }
   }, [token]);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  const fetchStats = useCallback(async () => {
+    setStatsLoading(true);
+    try {
+      const res = await fetch(`${ADMIN_API}/ai-provider/stats`, { headers });
+      if (res.ok) {
+        const data = await res.json();
+        setStatsData(data);
+      }
+    } catch {
+    } finally {
+      setStatsLoading(false);
+    }
+  }, [token]);
+
+  useEffect(() => { fetchData(); fetchStats(); }, [fetchData, fetchStats]);
 
   const handleSave = async () => {
     setSaving(true);
@@ -5249,7 +5267,7 @@ function AIProviderPanel({ token }: { token: string }) {
       const res = await fetch(`${ADMIN_API}/ai-provider`, {
         method: "PUT",
         headers: { ...headers, "Content-Type": "application/json" },
-        body: JSON.stringify({ defaultProvider, agentProviders }),
+        body: JSON.stringify({ defaultProvider, agentProviders, fallbackEnabled }),
       });
       if (!res.ok) throw new Error(t("adminPage.toast.saveFailed"));
       toast({ title: t("adminPage.toast.aiProviderSaved") });
@@ -5270,6 +5288,19 @@ function AIProviderPanel({ token }: { token: string }) {
       }
       return updated;
     });
+  };
+
+  const openaiStats = statsData?.byProvider?.filter((r: any) => r.provider === "openai") || [];
+  const anthropicStats = statsData?.byProvider?.filter((r: any) => r.provider === "anthropic") || [];
+  const openaiTotal = openaiStats.reduce((s: number, r: any) => s + parseFloat(r.total_cost || "0"), 0);
+  const anthropicTotal = anthropicStats.reduce((s: number, r: any) => s + parseFloat(r.total_cost || "0"), 0);
+  const openaiRequests = openaiStats.reduce((s: number, r: any) => s + (r.request_count || 0), 0);
+  const anthropicRequests = anthropicStats.reduce((s: number, r: any) => s + (r.request_count || 0), 0);
+
+  const providerLabel = (val: string) => {
+    if (val === "auto") return "Auto (Smart)";
+    if (val === "anthropic") return "Anthropic";
+    return "OpenAI";
   };
 
   return (
@@ -5309,8 +5340,43 @@ function AIProviderPanel({ token }: { token: string }) {
               <SelectContent>
                 <SelectItem value="openai">{t("adminPage.select.openaiModels")}</SelectItem>
                 <SelectItem value="anthropic">{t("adminPage.select.anthropicSonnet")}</SelectItem>
+                <SelectItem value="auto" data-testid="option-auto-routing">Auto - Akıllı Yönlendirme</SelectItem>
               </SelectContent>
             </Select>
+            {defaultProvider === "auto" && (
+              <div className="mt-3 p-3 bg-blue-900/15 border border-blue-800/30 rounded-lg">
+                <p className="text-blue-300 text-xs leading-relaxed">
+                  <strong>Akıllı Yönlendirme:</strong> Basit mesajlar (selam, teşekkür) → GPT-4o-mini (ucuz), orta karmaşıklık → GPT-4o, derin analiz/rapor/strateji → Claude Sonnet 4 (en güçlü). Maliyet optimize edilirken kalite korunur.
+                </p>
+              </div>
+            )}
+          </div>
+
+          <div className="p-4 bg-[#111633] rounded-lg border border-[#1E2448]">
+            <h4 className="text-white font-medium mb-3 flex items-center gap-2">
+              <Shield className="w-4 h-4 text-emerald-400" />
+              Fallback (Yedek Sistem)
+            </h4>
+            <p className="text-gray-400 text-sm mb-3">
+              Birincil sağlayıcı hata verdiğinde otomatik olarak diğerine geçiş yapar. Hizmet kesintisi olmaz.
+            </p>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setFallbackEnabled(!fallbackEnabled)}
+                className={`relative w-12 h-6 rounded-full transition-colors ${fallbackEnabled ? "bg-emerald-500" : "bg-gray-600"}`}
+                data-testid="toggle-fallback"
+              >
+                <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${fallbackEnabled ? "translate-x-6" : "translate-x-0.5"}`} />
+              </button>
+              <span className={`text-sm ${fallbackEnabled ? "text-emerald-400" : "text-gray-500"}`}>
+                {fallbackEnabled ? "Aktif" : "Devre Dışı"}
+              </span>
+            </div>
+            {fallbackEnabled && (
+              <div className="mt-2 text-[11px] text-gray-500">
+                OpenAI hata → Claude devreye girer | Claude hata → OpenAI devreye girer
+              </div>
+            )}
           </div>
 
           <div className="p-4 bg-[#111633] rounded-lg border border-[#1E2448]">
@@ -5333,9 +5399,10 @@ function AIProviderPanel({ token }: { token: string }) {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="default">{t("adminPage.aiProvider.default")} ({defaultProvider === "openai" ? "OpenAI" : "Anthropic"})</SelectItem>
+                      <SelectItem value="default">{t("adminPage.aiProvider.default")} ({providerLabel(defaultProvider)})</SelectItem>
                       <SelectItem value="openai">OpenAI</SelectItem>
                       <SelectItem value="anthropic">Anthropic</SelectItem>
+                      <SelectItem value="auto">Auto (Akıllı)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -5375,6 +5442,136 @@ function AIProviderPanel({ token }: { token: string }) {
           >
             {saving ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> {t("adminPage.aiProvider.saving")}</> : t("adminPage.aiProvider.saveSettings")}
           </Button>
+        </CardContent>
+      </Card>
+
+      <Card className="bg-[#0A0E27] border-[#1E2448]">
+        <CardHeader>
+          <CardTitle className="text-lg text-white flex items-center gap-2">
+            <BarChart3 className="w-5 h-5 text-blue-400" />
+            Sağlayıcı Maliyet Karşılaştırması
+          </CardTitle>
+          <CardDescription className="text-gray-400">
+            Son 30 günlük AI sağlayıcı kullanım ve maliyet analizi
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {statsLoading ? (
+            <div className="flex items-center justify-center p-8">
+              <Loader2 className="w-6 h-6 animate-spin text-blue-400" />
+            </div>
+          ) : !statsData ? (
+            <p className="text-gray-500 text-sm text-center py-6">Veri bulunamadı</p>
+          ) : (
+            <div className="space-y-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="p-4 bg-[#111633] rounded-lg border border-green-800/30" data-testid="stats-openai">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Badge className="bg-green-900/30 text-green-400 border-green-800 text-xs">OpenAI</Badge>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <p className="text-[11px] text-gray-500 uppercase tracking-wider">Toplam Maliyet</p>
+                      <p className="text-xl font-bold text-green-400">${openaiTotal.toFixed(4)}</p>
+                    </div>
+                    <div>
+                      <p className="text-[11px] text-gray-500 uppercase tracking-wider">İstek Sayısı</p>
+                      <p className="text-xl font-bold text-white">{openaiRequests.toLocaleString()}</p>
+                    </div>
+                  </div>
+                  {openaiRequests > 0 && (
+                    <p className="text-[11px] text-gray-500 mt-2">
+                      Ort. ${(openaiTotal / openaiRequests).toFixed(6)} / istek
+                    </p>
+                  )}
+                  {openaiStats.length > 0 && (
+                    <div className="mt-3 space-y-1">
+                      {openaiStats.map((s: any, i: number) => (
+                        <div key={i} className="flex justify-between text-[11px]">
+                          <span className="text-gray-400">{s.model}</span>
+                          <span className="text-white">{s.request_count} istek · ${parseFloat(s.total_cost || "0").toFixed(4)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="p-4 bg-[#111633] rounded-lg border border-violet-800/30" data-testid="stats-anthropic">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Badge className="bg-violet-900/30 text-violet-400 border-violet-800 text-xs">Anthropic</Badge>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <p className="text-[11px] text-gray-500 uppercase tracking-wider">Toplam Maliyet</p>
+                      <p className="text-xl font-bold text-violet-400">${anthropicTotal.toFixed(4)}</p>
+                    </div>
+                    <div>
+                      <p className="text-[11px] text-gray-500 uppercase tracking-wider">İstek Sayısı</p>
+                      <p className="text-xl font-bold text-white">{anthropicRequests.toLocaleString()}</p>
+                    </div>
+                  </div>
+                  {anthropicRequests > 0 && (
+                    <p className="text-[11px] text-gray-500 mt-2">
+                      Ort. ${(anthropicTotal / anthropicRequests).toFixed(6)} / istek
+                    </p>
+                  )}
+                  {anthropicStats.length > 0 && (
+                    <div className="mt-3 space-y-1">
+                      {anthropicStats.map((s: any, i: number) => (
+                        <div key={i} className="flex justify-between text-[11px]">
+                          <span className="text-gray-400">{s.model}</span>
+                          <span className="text-white">{s.request_count} istek · ${parseFloat(s.total_cost || "0").toFixed(4)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {(openaiRequests > 0 && anthropicRequests > 0) && (
+                <div className="p-4 bg-[#111633] rounded-lg border border-[#1E2448]">
+                  <h5 className="text-white text-sm font-medium mb-3">Maliyet Dağılımı</h5>
+                  <div className="h-3 bg-[#0A0E27] rounded-full overflow-hidden flex">
+                    <div
+                      className="h-full bg-gradient-to-r from-green-500 to-green-600 transition-all"
+                      style={{ width: `${(openaiTotal / (openaiTotal + anthropicTotal)) * 100}%` }}
+                    />
+                    <div
+                      className="h-full bg-gradient-to-r from-violet-500 to-violet-600 transition-all"
+                      style={{ width: `${(anthropicTotal / (openaiTotal + anthropicTotal)) * 100}%` }}
+                    />
+                  </div>
+                  <div className="flex justify-between mt-2 text-[11px]">
+                    <span className="text-green-400">OpenAI {((openaiTotal / (openaiTotal + anthropicTotal)) * 100).toFixed(1)}%</span>
+                    <span className="text-violet-400">Anthropic {((anthropicTotal / (openaiTotal + anthropicTotal)) * 100).toFixed(1)}%</span>
+                  </div>
+                </div>
+              )}
+
+              {statsData.byAgent && statsData.byAgent.length > 0 && (
+                <div className="p-4 bg-[#111633] rounded-lg border border-[#1E2448]">
+                  <h5 className="text-white text-sm font-medium mb-3">Ajan Bazlı Kullanım</h5>
+                  <div className="space-y-2">
+                    {Array.from(new Set(statsData.byAgent.map((r: any) => r.agent_type))).map((agentType: any) => {
+                      const agentRows = statsData.byAgent.filter((r: any) => r.agent_type === agentType);
+                      return (
+                        <div key={agentType} className="flex items-center justify-between p-2 bg-[#0A0E27] rounded-lg" data-testid={`stats-agent-${agentType}`}>
+                          <span className="text-white text-xs font-medium capitalize">{agentType.replace(/-/g, " ")}</span>
+                          <div className="flex gap-2">
+                            {agentRows.map((r: any, i: number) => (
+                              <Badge key={i} className={`text-[10px] ${r.provider === "anthropic" ? "bg-violet-900/30 text-violet-400 border-violet-800" : "bg-green-900/30 text-green-400 border-green-800"}`}>
+                                {r.provider === "anthropic" ? "Claude" : "GPT"} · {r.request_count} · ${parseFloat(r.total_cost || "0").toFixed(4)}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

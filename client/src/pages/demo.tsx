@@ -271,6 +271,8 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
 
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [slowResponseHint, setSlowResponseHint] = useState(false);
+  const slowResponseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
@@ -641,10 +643,15 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
 
     setMessages((prev) => [...prev, { role: "user", content: displayContent }]);
     setLoading(true);
+    setSlowResponseHint(false);
     trackEvent("chat_message_sent", "agent", { agentType: selectedAgent });
 
     const controller = new AbortController();
     abortControllerRef.current = controller;
+
+    if (messageToSend.length > 500) {
+      slowResponseTimerRef.current = setTimeout(() => setSlowResponseHint(true), 8000);
+    }
 
     try {
       const res = await fetch("/api/chat", {
@@ -692,6 +699,11 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
     } finally {
       abortControllerRef.current = null;
       setLoading(false);
+      setSlowResponseHint(false);
+      if (slowResponseTimerRef.current) {
+        clearTimeout(slowResponseTimerRef.current);
+        slowResponseTimerRef.current = null;
+      }
     }
   };
 
@@ -1866,6 +1878,11 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                         <span className="w-2 h-2 rounded-full bg-muted-foreground/40 animate-bounce" style={{ animationDelay: "150ms" }} />
                         <span className="w-2 h-2 rounded-full bg-muted-foreground/40 animate-bounce" style={{ animationDelay: "300ms" }} />
                       </div>
+                      {slowResponseHint && (
+                        <p className="text-[11px] text-muted-foreground mt-2">
+                          Yanıt biraz uzun sürebilir, lütfen bekleyin...
+                        </p>
+                      )}
                     </div>
                   </div>
                 </motion.div>

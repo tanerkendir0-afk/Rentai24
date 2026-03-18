@@ -2926,7 +2926,25 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}${QUICK_REPLY_BUTT
     }
 
     try {
-      const ragChunks = await retrieveRelevantChunks(resolvedAgentType, message, 3).catch(() => []);
+      const MAX_TOTAL_CHARS = 24000;
+      const systemPromptBaseChars = systemPrompt.length;
+      const messageChars = message.length;
+      const historyChars = conversationHistory
+        ? conversationHistory.reduce((sum: number, m: any) => sum + (m.content?.length || 0), 0)
+        : 0;
+      const usedChars = systemPromptBaseChars + messageChars + historyChars;
+      const remainingForRag = MAX_TOTAL_CHARS - usedChars;
+
+      let ragChunkCount = 3;
+      if (remainingForRag < 2000) {
+        ragChunkCount = 0;
+      } else if (remainingForRag < 4000) {
+        ragChunkCount = 1;
+      }
+
+      const ragChunks = ragChunkCount > 0
+        ? await retrieveRelevantChunks(resolvedAgentType, message, ragChunkCount).catch(() => [])
+        : [];
       if (ragChunks.length > 0) {
         const context = ragChunks.join("\n\n---\n\n");
         systemPrompt += `\n\n## KNOWLEDGE BASE\n${context}`;
@@ -2989,6 +3007,24 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}${QUICK_REPLY_BUTT
         messages.push(...processedHistory);
       }
 
+      const HARD_CHAR_LIMIT = 28000;
+      const totalCharsBeforeUser = messages.reduce((sum, m) => sum + (typeof m.content === "string" ? m.content.length : 0), 0);
+      if (totalCharsBeforeUser + message.length > HARD_CHAR_LIMIT) {
+        const systemMsg = messages[0];
+        const historyMessages = messages.slice(1);
+        let trimmedHistory = [...historyMessages];
+        while (trimmedHistory.length > 0) {
+          const totalChars = (typeof systemMsg.content === "string" ? systemMsg.content.length : 0) +
+            trimmedHistory.reduce((sum, m) => sum + (typeof m.content === "string" ? m.content.length : 0), 0) +
+            message.length;
+          if (totalChars <= HARD_CHAR_LIMIT) break;
+          trimmedHistory = trimmedHistory.slice(2);
+        }
+        messages.length = 0;
+        messages.push(systemMsg, ...trimmedHistory);
+        console.log(`[CONTEXT TRIM] Trimmed history to ${trimmedHistory.length} messages to fit within char limit`);
+      }
+
       messages.push({ role: "user", content: message });
 
       let totalPromptTokens = 0;
@@ -3012,10 +3048,10 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}${QUICK_REPLY_BUTT
           model: modelToUse,
           system: anthropicSystem,
           messages: anthropicMessages,
-          max_tokens: 800,
+          max_tokens: 2048,
           temperature: 0.7,
           ...(anthropicTools && anthropicTools.length > 0 ? { tools: anthropicTools } : {}),
-        }, { timeout: 30000 });
+        }, { timeout: 60000 });
 
         totalPromptTokens = anthropicResponse.usage?.input_tokens || 0;
         totalCompletionTokens = anthropicResponse.usage?.output_tokens || 0;
@@ -3103,10 +3139,10 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}${QUICK_REPLY_BUTT
               model: modelToUse,
               system: anthropicSystem,
               messages: runningMessages,
-              max_tokens: 800,
+              max_tokens: 2048,
               temperature: 0.7,
               ...(anthropicTools && anthropicTools.length > 0 ? { tools: anthropicTools } : {}),
-            }, { timeout: 30000 });
+            }, { timeout: 60000 });
 
             totalPromptTokens += followUp.usage?.input_tokens || 0;
             totalCompletionTokens += followUp.usage?.output_tokens || 0;
@@ -3137,10 +3173,10 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}${QUICK_REPLY_BUTT
         const response = await chatClient.chat.completions.create({
           model: modelToUse,
           messages,
-          max_tokens: 800,
+          max_tokens: 2048,
           temperature: 0.7,
           ...(agentTools ? { tools: agentTools } : {}),
-        }, { timeout: 30000 });
+        }, { timeout: 60000 });
 
         totalPromptTokens = response.usage?.prompt_tokens || 0;
         totalCompletionTokens = response.usage?.completion_tokens || 0;
@@ -3212,9 +3248,9 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}${QUICK_REPLY_BUTT
           const followUp = await chatClient.chat.completions.create({
             model: modelToUse,
             messages,
-            max_tokens: 800,
+            max_tokens: 2048,
             temperature: 0.7,
-          }, { timeout: 30000 });
+          }, { timeout: 60000 });
 
           totalPromptTokens += followUp.usage?.prompt_tokens || 0;
           totalCompletionTokens += followUp.usage?.completion_tokens || 0;
@@ -3411,10 +3447,24 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}${QUICK_REPLY_BUTT
     } catch (error: any) {
       console.error(`[AGENT ERROR] ${agentType}:`, error?.message || error);
       circuitBreaker.recordFailure(agentType);
-      const isTimeout = error?.name === "AbortError" || error?.message?.includes("timeout");
+      const errMsg: string = error?.message || "";
+      const isTimeout =
+        error?.name === "AbortError" ||
+        errMsg.includes("timeout") ||
+        errMsg.includes("Timeout") ||
+        errMsg.includes("ETIMEDOUT") ||
+        errMsg.includes("timed out") ||
+        error?.code === "ETIMEDOUT" ||
+        error?.type === "request-timeout";
+      const isContextLength =
+        errMsg.includes("context_length_exceeded") ||
+        errMsg.includes("maximum context length") ||
+        errMsg.includes("token limit");
       res.status(502).json({
         reply: isTimeout
-          ? "AI yanıt süresi aşıldı. Lütfen tekrar deneyin."
+          ? "AI yanıt süresi aşıldı. Lütfen biraz bekleyip tekrar deneyin."
+          : isContextLength
+          ? "Mesaj çok uzun olduğu için işlenemedi. Lütfen mesajınızı kısaltın."
           : "Bir hata oluştu. Lütfen tekrar deneyin.",
       });
     }

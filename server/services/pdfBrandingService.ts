@@ -464,10 +464,14 @@ export function handleGeneratePdf(input: GeneratePdfInput, branding?: UserBrandi
   message?: string;
 } {
   const docType = input.document_type;
-  const data = input.data;
+  const data = input.data || {};
   const filename = input.filename || `${docType}_${Date.now()}.pdf`;
 
   try {
+    if (!data || typeof data !== "object" || Object.keys(data).length === 0) {
+      return { success: false, error: "PDF için data alanı boş veya eksik. Lütfen gerekli bilgileri (items, client_name, vb.) sağlayın." };
+    }
+
     let pdfBuffer: Buffer;
 
     if (docType === "invoice" || docType === "receipt") {

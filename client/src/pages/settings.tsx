@@ -51,6 +51,7 @@ import {
   Download,
   AlertTriangle,
   Database,
+  Store,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
@@ -395,6 +396,259 @@ function LanguagePreferenceCard() {
           {t("language.turkish")}
         </Button>
       </div>
+    </Card>
+  );
+}
+
+function MarketplaceConnectionsCard() {
+  const { t } = useTranslation("pages");
+  const { toast } = useToast();
+  const [showForm, setShowForm] = useState(false);
+  const [platform, setPlatform] = useState<"trendyol" | "shopify">("trendyol");
+  const [storeName, setStoreName] = useState("");
+  const [creds, setCreds] = useState<Record<string, string>>({});
+  const [testingId, setTestingId] = useState<number | null>(null);
+
+  const { data: connectionsData, isLoading } = useQuery<{ connections: any[] }>({
+    queryKey: ["/api/marketplace/connections"],
+  });
+
+  const createMutation = useMutation({
+    mutationFn: async (body: any) => {
+      const res = await apiRequest("POST", "/api/marketplace/connections", body);
+      return res.json();
+    },
+    onSuccess: (data) => {
+      toast({ title: data.message || "Bağlantı oluşturuldu" });
+      queryClient.invalidateQueries({ queryKey: ["/api/marketplace/connections"] });
+      setShowForm(false);
+      setCreds({});
+      setStoreName("");
+    },
+    onError: (err: any) => {
+      toast({ title: "Hata", description: err.message, variant: "destructive" });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await apiRequest("DELETE", `/api/marketplace/connections/${id}`);
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Bağlantı kaldırıldı" });
+      queryClient.invalidateQueries({ queryKey: ["/api/marketplace/connections"] });
+    },
+  });
+
+  const testMutation = useMutation({
+    mutationFn: async (id: number) => {
+      setTestingId(id);
+      const res = await apiRequest("POST", `/api/marketplace/connections/${id}/test`);
+      return res.json();
+    },
+    onSuccess: (data) => {
+      toast({ title: data.success ? "Bağlantı başarılı" : "Bağlantı hatası", description: data.message, variant: data.success ? "default" : "destructive" });
+      setTestingId(null);
+    },
+    onError: (err: any) => {
+      toast({ title: "Test hatası", description: err.message, variant: "destructive" });
+      setTestingId(null);
+    },
+  });
+
+  const handleSubmit = () => {
+    if (platform === "trendyol" && (!creds.sellerId || !creds.apiKey || !creds.apiSecret)) {
+      toast({ title: "Tüm alanları doldurun", variant: "destructive" });
+      return;
+    }
+    if (platform === "shopify" && (!creds.storeUrl || !creds.accessToken)) {
+      toast({ title: "Tüm alanları doldurun", variant: "destructive" });
+      return;
+    }
+    createMutation.mutate({ platform, storeName, credentials: creds });
+  };
+
+  const connections = connectionsData?.connections || [];
+
+  return (
+    <Card className="p-4 sm:p-6 bg-card border-border/50" data-testid="card-marketplace-connections">
+      <div className="flex items-center justify-between mb-5">
+        <div className="flex items-center gap-2">
+          <Store className="w-5 h-5 text-purple-400" />
+          <h2 className="text-lg font-semibold text-foreground">Pazaryeri Bağlantıları</h2>
+          {connections.length > 0 && (
+            <Badge variant="secondary" className="text-xs">{connections.length}</Badge>
+          )}
+        </div>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => setShowForm(!showForm)}
+          data-testid="button-add-marketplace"
+        >
+          <Plus className="w-4 h-4 mr-1" />
+          Bağlantı Ekle
+        </Button>
+      </div>
+
+      {showForm && (
+        <div className="mb-5 p-4 border rounded-lg bg-muted/30 space-y-3">
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant={platform === "trendyol" ? "default" : "outline"}
+              onClick={() => { setPlatform("trendyol"); setCreds({}); }}
+              data-testid="button-platform-trendyol"
+            >
+              Trendyol
+            </Button>
+            <Button
+              size="sm"
+              variant={platform === "shopify" ? "default" : "outline"}
+              onClick={() => { setPlatform("shopify"); setCreds({}); }}
+              data-testid="button-platform-shopify"
+            >
+              Shopify
+            </Button>
+          </div>
+
+          <div>
+            <Label>Mağaza Adı</Label>
+            <Input
+              value={storeName}
+              onChange={(e) => setStoreName(e.target.value)}
+              placeholder="Mağazanızın adı"
+              data-testid="input-marketplace-store-name"
+            />
+          </div>
+
+          {platform === "trendyol" ? (
+            <>
+              <div>
+                <Label>Satıcı ID (Seller ID)</Label>
+                <Input
+                  value={creds.sellerId || ""}
+                  onChange={(e) => setCreds({ ...creds, sellerId: e.target.value })}
+                  placeholder="Trendyol Satıcı ID"
+                  data-testid="input-trendyol-seller-id"
+                />
+              </div>
+              <div>
+                <Label>API Key</Label>
+                <Input
+                  value={creds.apiKey || ""}
+                  onChange={(e) => setCreds({ ...creds, apiKey: e.target.value })}
+                  placeholder="Trendyol API Key"
+                  data-testid="input-trendyol-api-key"
+                />
+              </div>
+              <div>
+                <Label>API Secret</Label>
+                <Input
+                  type="password"
+                  value={creds.apiSecret || ""}
+                  onChange={(e) => setCreds({ ...creds, apiSecret: e.target.value })}
+                  placeholder="Trendyol API Secret"
+                  data-testid="input-trendyol-api-secret"
+                />
+              </div>
+            </>
+          ) : (
+            <>
+              <div>
+                <Label>Mağaza URL</Label>
+                <Input
+                  value={creds.storeUrl || ""}
+                  onChange={(e) => setCreds({ ...creds, storeUrl: e.target.value })}
+                  placeholder="magazaniz.myshopify.com"
+                  data-testid="input-shopify-store-url"
+                />
+              </div>
+              <div>
+                <Label>Access Token</Label>
+                <Input
+                  type="password"
+                  value={creds.accessToken || ""}
+                  onChange={(e) => setCreds({ ...creds, accessToken: e.target.value })}
+                  placeholder="Shopify Access Token"
+                  data-testid="input-shopify-access-token"
+                />
+              </div>
+            </>
+          )}
+
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              onClick={handleSubmit}
+              disabled={createMutation.isPending}
+              data-testid="button-save-marketplace"
+            >
+              {createMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Save className="w-4 h-4 mr-1" />}
+              Kaydet
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setShowForm(false)}
+              data-testid="button-cancel-marketplace"
+            >
+              İptal
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {isLoading ? (
+        <div className="flex justify-center py-4">
+          <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+        </div>
+      ) : connections.length === 0 ? (
+        <p className="text-sm text-muted-foreground text-center py-4">
+          Henüz bağlı pazaryeri yok. Trendyol veya Shopify mağazanızı bağlayın.
+        </p>
+      ) : (
+        <div className="space-y-3">
+          {connections.map((conn: any) => (
+            <div
+              key={conn.id}
+              className="flex items-center justify-between p-3 border rounded-lg bg-background/50"
+              data-testid={`marketplace-connection-${conn.id}`}
+            >
+              <div className="flex items-center gap-3">
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${conn.platform === "trendyol" ? "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300" : "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300"}`}>
+                  {conn.platform === "trendyol" ? "TY" : "SP"}
+                </div>
+                <div>
+                  <p className="font-medium text-sm">{conn.storeName || conn.platform}</p>
+                  <p className="text-xs text-muted-foreground capitalize">{conn.platform}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => testMutation.mutate(conn.id)}
+                  disabled={testingId === conn.id}
+                  data-testid={`button-test-marketplace-${conn.id}`}
+                >
+                  {testingId === conn.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Zap className="w-3 h-3" />}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="text-destructive hover:text-destructive"
+                  onClick={() => deleteMutation.mutate(conn.id)}
+                  data-testid={`button-delete-marketplace-${conn.id}`}
+                >
+                  <Trash2 className="w-3 h-3" />
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </Card>
   );
 }
@@ -2085,6 +2339,8 @@ export default function Settings() {
             </div>
           )}
         </Card>
+
+        <MarketplaceConnectionsCard />
 
         <Card className="p-4 sm:p-6 bg-card border-border/50" data-testid="card-shipping-providers">
           <div className="flex items-center justify-between mb-5">

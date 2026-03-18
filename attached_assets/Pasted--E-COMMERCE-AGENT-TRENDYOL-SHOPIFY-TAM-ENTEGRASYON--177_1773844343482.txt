@@ -1,0 +1,164 @@
+# E-COMMERCE AGENT — TRENDYOL + SHOPIFY TAM ENTEGRASYON
+# ========================================================
+
+E-Commerce Operations Agent'ını (ecommerce-ops) gerçek marketplace entegrasyonlarıyla güçlendirmek istiyorum. Şu an sadece optimize_listing, price_analysis, draft_review_response gibi text-only tool'lar var. Gerçek Trendyol ve Shopify API bağlantısı ekleyeceğiz.
+
+## MİMARİ
+
+Direkt Trendyol/Shopify API çağrısı yapmayacağız çünkü her müşterinin kendi API key'leri olacak:
+1. Müşteri dashboard'unda Trendyol/Shopify bağlantı ayarları
+2. Backend'de marketplace servis katmanı (server/services/marketplace/)
+3. Agent tool'ları bu servisleri çağırır
+4. Credentials şifreli olarak DB'de
+
+## ADIM 1: DATABASE
+
+```sql
+CREATE TABLE marketplace_connections (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id),
+  platform VARCHAR(50) NOT NULL,
+  store_name VARCHAR(255),
+  credentials_encrypted TEXT NOT NULL,
+  is_active BOOLEAN DEFAULT true,
+  last_sync_at TIMESTAMP,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+CREATE UNIQUE INDEX idx_marketplace_user_platform ON marketplace_connections(user_id, platform);
+
+CREATE TABLE marketplace_orders_cache (
+  id SERIAL PRIMARY KEY,
+  connection_id INTEGER REFERENCES marketplace_connections(id),
+  platform_order_id VARCHAR(255),
+  order_number VARCHAR(100),
+  status VARCHAR(50),
+  customer_name VARCHAR(255),
+  total_price DECIMAL(12,2),
+  currency VARCHAR(10) DEFAULT 'TRY',
+  order_date TIMESTAMP,
+  items JSONB,
+  shipping_info JSONB,
+  last_synced_at TIMESTAMP,
+  raw_data JSONB
+);
+```
+
+## ADIM 2: MÜŞTERİ DASHBOARD
+
+customer-settings sayfasına "Marketplace Bağlantıları" bölümü ekle:
+
+Trendyol Bağlantısı: Supplier ID, API Key, API Secret
+Shopify Bağlantısı: Store URL, Access Token
+
+UI: Platform kartları, bağlantı durumu, "Bağlan"/"Test Et" butonları
+
+## ADIM 3: BACKEND SERVİSLER
+
+### 3A: Encryption (server/services/encryption.ts)
+AES-256-GCM ile credential şifreleme. ENCRYPTION_KEY env'den.
+
+### 3B: Trendyol (server/services/marketplace/trendyolService.ts)
+Base URL: https://apigw.trendyol.com
+Auth: Basic Auth (API Key:API Secret base64)
+
+Fonksiyonlar:
+- getProducts(page, size) → GET /integration/product/sellers/{sellerId}/products
+- updateStockAndPrice(items) → PUT /integration/product/sellers/{sellerId}/products
+- getOrders(startDate, endDate, status, page) → GET /integration/order/sellers/{sellerId}/orders
+- getOrderDetail(shipmentPackageId)
+- updateTrackingNumber(packageId, trackingNumber, cargoProvider) → PUT .../shipment-packages/{id}/tracking-number
+- getCategories() → GET /integration/product/sellers/{sellerId}/category-tree
+- getBrands(name) → GET /integration/product/sellers/{sellerId}/brands
+- getCustomerQuestions(status)
+- answerQuestion(questionId, answer)
+- testConnection()
+
+### 3C: Shopify (server/services/marketplace/shopifyService.ts)
+Base URL: https://{store}.myshopify.com/admin/api/2024-01/
+Auth: Header X-Shopify-Access-Token
+
+Fonksiyonlar:
+- getProducts(limit) → GET /products.json
+- getOrders(status, limit) → GET /orders.json
+- updateInventory(inventoryItemId, locationId, quantity)
+- fulfillOrder(orderId, trackingNumber, trackingCompany)
+- testConnection()
+
+### 3D: Coordinator (server/services/marketplace/marketplaceCoordinator.ts)
+- getMarketplaceService(userId, platform) → credentials DB'den çek, servis oluştur
+- getAllOrders(userId, days) → tüm platformlardan birleşik
+- getAllProducts(userId) → tüm platformlardan birleşik
+
+## ADIM 4: API ENDPOINT'LERİ
+
+```
+GET    /api/marketplace/connections
+POST   /api/marketplace/connections
+DELETE /api/marketplace/connections/:id
+POST   /api/marketplace/connections/:id/test
+GET    /api/marketplace/trendyol/products
+GET    /api/marketplace/trendyol/orders
+PUT    /api/marketplace/trendyol/stock
+GET    /api/marketplace/shopify/products
+GET    /api/marketplace/shopify/orders
+PUT    /api/marketplace/shopify/inventory
+```
+
+## ADIM 5: AGENT TOOL'LARI
+
+server/agentTools.ts ecommerceOpsTools'a EKLE (mevcutlar kalacak):
+
+1. list_marketplace_connections — bağlı platformları listele
+2. get_marketplace_orders — sipariş listesi (platform, status, days filtresi)
+3. get_order_detail — sipariş detayı
+4. update_order_tracking — kargo takip no ekle
+5. get_marketplace_products — ürün listesi
+6. update_stock — stok güncelle (barkod + miktar)
+7. update_price — fiyat güncelle (barkod + fiyat)
+8. marketplace_sales_summary — satış özeti rapor
+9. low_stock_alert — düşük stok uyarısı
+10. get_customer_questions — Trendyol müşteri soruları
+11. answer_customer_question — soruyu yanıtla
+
+Her tool'un tam tanımı (OpenAI function calling formatında):
+
+list_marketplace_connections: parametresiz
+get_marketplace_orders: platform(trendyol/shopify/all), status(all/new/processing/shipped/delivered/cancelled/returned), days(number), limit(number)
+get_order_detail: platform(trendyol/shopify), order_id(string) — required
+update_order_tracking: platform, order_id, tracking_number, cargo_company — all required
+get_marketplace_products: platform, search(string), limit
+update_stock: platform, items[{barcode, quantity}] — required
+update_price: platform, items[{barcode, sale_price, list_price}] — required
+marketplace_sales_summary: platform, period(today/week/month/quarter)
+low_stock_alert: platform, threshold(number, default 5)
+get_customer_questions: status(unanswered/answered/all), limit
+answer_customer_question: question_id, answer — required
+
+## ADIM 6: TOOL HANDLER'LAR
+
+executeToolForAgent'a handler ekle — her tool marketplace servisini çağırır.
+Önemli: handler'da önce kullanıcının o platforma bağlı olup olmadığını kontrol et.
+Bağlı değilse: "Henüz Trendyol bağlantınız yok. Settings > Marketplace bölümünden bağlayabilirsiniz."
+
+## ADIM 7: SYSTEM PROMPT
+
+E-commerce agent system prompt'una marketplace kullanım talimatları ekle:
+- Önce list_marketplace_connections ile bağlantıyı kontrol et
+- Bağlı değilse yönlendir
+- Sipariş/stok/fiyat/soru tool'larını nasıl kullanacağını açıkla
+
+## ADIM 8: ENV
+
+Replit Secrets: ENCRYPTION_KEY=<32 byte random hex>
+
+## İMPLEMENTASYON SIRASI
+
+1. Database tabloları
+2. Encryption servisi
+3. Bağlantı API + dashboard UI
+4. TrendyolService
+5. Tool tanımları + handler'lar
+6. ShopifyService
+7. System prompt
+8. Test akışı

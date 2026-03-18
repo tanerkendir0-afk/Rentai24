@@ -1032,3 +1032,42 @@ export const rexStageConfig = pgTable("rex_stage_config", {
 });
 
 export type RexStageConfig = typeof rexStageConfig.$inferSelect;
+
+export const marketplaceConnections = pgTable("marketplace_connections", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  platform: varchar("platform", { length: 50 }).notNull(),
+  storeName: varchar("store_name", { length: 255 }),
+  credentialsEncrypted: text("credentials_encrypted").notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
+  lastSyncAt: timestamp("last_sync_at"),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+  updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
+export const insertMarketplaceConnectionSchema = createInsertSchema(marketplaceConnections).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type MarketplaceConnection = typeof marketplaceConnections.$inferSelect;
+export type InsertMarketplaceConnection = z.infer<typeof insertMarketplaceConnectionSchema>;
+
+export const marketplaceOrdersCache = pgTable("marketplace_orders_cache", {
+  id: serial("id").primaryKey(),
+  connectionId: integer("connection_id").references(() => marketplaceConnections.id),
+  platformOrderId: varchar("platform_order_id", { length: 255 }),
+  orderNumber: varchar("order_number", { length: 100 }),
+  status: varchar("status", { length: 50 }),
+  customerName: varchar("customer_name", { length: 255 }),
+  totalPrice: decimal("total_price", { precision: 12, scale: 2 }),
+  currency: varchar("currency", { length: 10 }).default("TRY"),
+  orderDate: timestamp("order_date"),
+  items: jsonb("items"),
+  shippingInfo: jsonb("shipping_info"),
+  lastSyncedAt: timestamp("last_synced_at"),
+  rawData: jsonb("raw_data"),
+});
+
+export type MarketplaceOrderCache = typeof marketplaceOrdersCache.$inferSelect;

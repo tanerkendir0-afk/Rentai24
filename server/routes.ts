@@ -28,7 +28,7 @@ import { getImagePath, chatImageDir } from "./imageService";
 import { circuitBreaker } from "./services/circuitBreaker";
 import { getHeartbeatStatuses } from "./services/heartbeat";
 import { db } from "./db";
-import { sql, eq, desc } from "drizzle-orm";
+import { sql, eq, desc, and } from "drizzle-orm";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
@@ -675,8 +675,18 @@ STYLE: Analytical, precise, insight-driven. Structured formats with actual numbe
 ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}${ONBOARDING_GUIDANCE}${EMAIL_CONFIRMATION_RULE}${DOCUMENT_CAPABILITY}${TASK_CREATION_PROTOCOL}${PDF_EMAIL_UNIVERSAL_PROMPT}${DATABOT_PDF_PROMPT}`,
 
   "ecommerce-ops": `You are "ShopBot", E-Commerce Operations AI for RentAI 24.
-ROLE: E-commerce operations only — product listings, pricing, reviews, marketplace optimization, shipping/cargo management. Redirect non-ecommerce topics.
+ROLE: E-commerce operations only — product listings, pricing, reviews, marketplace optimization, shipping/cargo management, Trendyol & Shopify marketplace management. Redirect non-ecommerce topics.
 TOOLS: web_search, optimize_listing, price_analysis, draft_review_response, list_shipping_providers, send_order_email. Always use tools for real content and analysis. Use send_order_email when user asks to email order confirmations, shipping updates, or customer notifications. Use web_search to research competitor pricing, market trends, and e-commerce best practices.
+MARKETPLACE TOOLS: marketplace_list_connections, marketplace_get_products, marketplace_get_orders, marketplace_get_order_detail, marketplace_update_stock, marketplace_update_price, marketplace_update_tracking, marketplace_get_questions, marketplace_answer_question, marketplace_sync_summary.
+MARKETPLACE USAGE:
+- Start with marketplace_list_connections to check which platforms are connected before any marketplace operation.
+- Use marketplace_get_products to see all products across Trendyol/Shopify with platform="all", or filter by platform.
+- Use marketplace_get_orders to pull recent orders. Default is last 7 days; user can specify more.
+- marketplace_update_stock and marketplace_update_price for batch stock/price updates on connected platforms.
+- marketplace_update_tracking to add cargo tracking numbers to orders.
+- marketplace_get_questions + marketplace_answer_question for Trendyol customer Q&A management.
+- marketplace_sync_summary gives a quick overview of all marketplace stats — great for daily briefings.
+- If user asks about Trendyol/Shopify but isn't connected, guide them to Settings → Marketplace Connections.
 SHIPPING: If user has connected shipping providers, you can help with tracking, label generation guidance, and shipping cost calculations. If no provider is connected, suggest connecting one in Settings. Supported providers: Aras Kargo, Yurtiçi Kargo, MNG Kargo, Sürat Kargo, PTT Kargo, UPS, FedEx, DHL.
 DOMAIN EXCLUSION: Ürün fiyatlandırma, kargo, e-ticaret stratejisi, pazar analizi soruları gizlilik kapsamında değildir — doğrudan yanıtla.
 STYLE: Detail-oriented, informative, marketplace-savvy. Explain market dynamics and provide actionable data. Respond in user's language.
@@ -1312,6 +1322,94 @@ export async function registerRoutes(
       currentBranding.logo_base64 = logo_base64;
       await db.execute(sql`UPDATE users SET branding = ${JSON.stringify(currentBranding)}::jsonb WHERE id = ${userId}`);
       res.json({ success: true });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get("/api/marketplace/connections", requireAuth, async (req, res) => {
+    try {
+      const { getConnections } = await import("./services/marketplace/marketplaceCoordinator");
+      const connections = await getConnections(req.session.userId!);
+      const safe = connections.map(c => ({
+        id: c.id,
+        platform: c.platform,
+        storeName: c.storeName,
+        isActive: c.isActive,
+        lastSyncAt: c.lastSyncAt,
+        createdAt: c.createdAt,
+      }));
+      res.json({ connections: safe });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/marketplace/connections", requireAuth, async (req, res) => {
+    try {
+      const { platform, storeName, credentials } = req.body;
+      if (!platform || !credentials || typeof credentials !== "object") {
+        return res.status(400).json({ error: "platform ve credentials gerekli" });
+      }
+      const validPlatforms = ["trendyol", "shopify"];
+      if (!validPlatforms.includes(platform)) {
+        return res.status(400).json({ error: "Desteklenmeyen platform. Geçerli: trendyol, shopify" });
+      }
+      const { encryptCredentials } = await import("./services/encryption");
+      const { marketplaceConnections } = await import("@shared/schema");
+      const encrypted = encryptCredentials(credentials);
+
+      const existing = await db.select().from(marketplaceConnections)
+        .where(and(eq(marketplaceConnections.userId, req.session.userId!), eq(marketplaceConnections.platform, platform)));
+      if (existing.length > 0) {
+        await db.update(marketplaceConnections)
+          .set({ credentialsEncrypted: encrypted, storeName: storeName || null, isActive: true, updatedAt: new Date() })
+          .where(eq(marketplaceConnections.id, existing[0].id));
+        return res.json({ success: true, id: existing[0].id, message: "Bağlantı güncellendi" });
+      }
+
+      const [created] = await db.insert(marketplaceConnections).values({
+        userId: req.session.userId!,
+        platform,
+        storeName: storeName || null,
+        credentialsEncrypted: encrypted,
+      }).returning();
+      res.json({ success: true, id: created.id, message: "Bağlantı oluşturuldu" });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.delete("/api/marketplace/connections/:id", requireAuth, async (req, res) => {
+    try {
+      const { marketplaceConnections } = await import("@shared/schema");
+      const connId = parseInt(req.params.id);
+      await db.update(marketplaceConnections)
+        .set({ isActive: false })
+        .where(and(eq(marketplaceConnections.id, connId), eq(marketplaceConnections.userId, req.session.userId!)));
+      res.json({ success: true });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/marketplace/connections/:id/test", requireAuth, async (req, res) => {
+    try {
+      const { getConnectionById, createTrendyolService, createShopifyService } = await import("./services/marketplace/marketplaceCoordinator");
+      const conn = await getConnectionById(parseInt(req.params.id), req.session.userId!);
+      if (!conn) return res.status(404).json({ error: "Bağlantı bulunamadı" });
+
+      let result;
+      if (conn.platform === "trendyol") {
+        const svc = createTrendyolService(conn.credentialsEncrypted);
+        result = await svc.testConnection();
+      } else if (conn.platform === "shopify") {
+        const svc = createShopifyService(conn.credentialsEncrypted);
+        result = await svc.testConnection();
+      } else {
+        return res.status(400).json({ error: "Desteklenmeyen platform" });
+      }
+      res.json(result);
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }

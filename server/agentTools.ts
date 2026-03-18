@@ -1608,6 +1608,166 @@ export const ecommerceOpsTools: OpenAI.ChatCompletionTool[] = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "marketplace_list_connections",
+      description: "List all connected marketplace platforms (Trendyol, Shopify) for this user. Shows connection status and store names.",
+      parameters: { type: "object", properties: {}, required: [] },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "marketplace_get_products",
+      description: "Fetch product list from a connected marketplace. Returns product names, prices, stock levels, and status.",
+      parameters: {
+        type: "object",
+        properties: {
+          platform: { type: "string", enum: ["trendyol", "shopify", "all"], description: "Which marketplace to query. Use 'all' to get from all connected platforms." },
+          search: { type: "string", description: "Search/filter keyword for product name" },
+        },
+        required: ["platform"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "marketplace_get_orders",
+      description: "Fetch recent orders from a connected marketplace. Returns order details, status, customer info, and totals.",
+      parameters: {
+        type: "object",
+        properties: {
+          platform: { type: "string", enum: ["trendyol", "shopify", "all"], description: "Which marketplace to query" },
+          status: { type: "string", description: "Filter by order status (e.g. Created, Picking, Shipped, Delivered, Cancelled)" },
+          days: { type: "number", description: "How many days back to look (default: 7)" },
+        },
+        required: ["platform"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "marketplace_get_order_detail",
+      description: "Get detailed information about a specific order including items, shipping, and customer details.",
+      parameters: {
+        type: "object",
+        properties: {
+          platform: { type: "string", enum: ["trendyol", "shopify"], description: "Which marketplace" },
+          order_id: { type: "string", description: "Order ID or shipment package ID" },
+        },
+        required: ["platform", "order_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "marketplace_update_stock",
+      description: "Update product stock/inventory on a marketplace. Supports batch updates.",
+      parameters: {
+        type: "object",
+        properties: {
+          platform: { type: "string", enum: ["trendyol", "shopify"], description: "Which marketplace" },
+          updates: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                barcode: { type: "string", description: "Product barcode (Trendyol) or inventory_item_id (Shopify)" },
+                quantity: { type: "number", description: "New stock quantity" },
+              },
+              required: ["barcode", "quantity"],
+            },
+            description: "List of stock updates",
+          },
+        },
+        required: ["platform", "updates"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "marketplace_update_price",
+      description: "Update product prices on Trendyol marketplace.",
+      parameters: {
+        type: "object",
+        properties: {
+          updates: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                barcode: { type: "string", description: "Product barcode" },
+                salePrice: { type: "number", description: "New sale price" },
+                listPrice: { type: "number", description: "New list price (must be >= sale price)" },
+              },
+              required: ["barcode", "salePrice", "listPrice"],
+            },
+            description: "Price update items",
+          },
+        },
+        required: ["updates"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "marketplace_update_tracking",
+      description: "Update shipping/tracking information for an order. Notifies the customer automatically.",
+      parameters: {
+        type: "object",
+        properties: {
+          platform: { type: "string", enum: ["trendyol", "shopify"], description: "Which marketplace" },
+          order_id: { type: "string", description: "Order ID or package ID" },
+          tracking_number: { type: "string", description: "Cargo tracking number" },
+          cargo_company: { type: "string", description: "Shipping company name (e.g. Yurtiçi Kargo, Aras Kargo, MNG)" },
+        },
+        required: ["platform", "order_id", "tracking_number", "cargo_company"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "marketplace_get_questions",
+      description: "Fetch customer questions from Trendyol marketplace that need answers.",
+      parameters: {
+        type: "object",
+        properties: {
+          status: { type: "string", enum: ["WAITING_FOR_ANSWER", "ANSWERED", "ALL"], description: "Filter by answer status" },
+        },
+        required: [],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "marketplace_answer_question",
+      description: "Answer a customer question on Trendyol marketplace.",
+      parameters: {
+        type: "object",
+        properties: {
+          question_id: { type: "string", description: "The question ID from Trendyol" },
+          answer: { type: "string", description: "Professional answer text" },
+        },
+        required: ["question_id", "answer"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "marketplace_sync_summary",
+      description: "Get a summary overview of all connected marketplaces — total products, recent orders count, revenue summary. Good for daily briefings.",
+      parameters: { type: "object", properties: {}, required: [] },
+    },
+  },
 ];
 
 export const realEstateTools: OpenAI.ChatCompletionTool[] = [
@@ -1875,6 +2035,16 @@ const TOOL_KEYWORD_MAP: Record<string, string[]> = {
   optimize_listing: ["listing", "product", "ürün", "optimize", "seo"],
   price_analysis: ["price", "fiyat", "pricing", "margin", "maliyet"],
   draft_review_response: ["review", "yorum", "response", "yanıt"],
+  marketplace_list_connections: ["marketplace", "pazaryeri", "trendyol", "shopify", "bağlantı", "connection", "mağaza", "store"],
+  marketplace_get_products: ["ürünler", "products", "stok", "stock", "envanter", "inventory", "ürün listesi"],
+  marketplace_get_orders: ["siparişler", "orders", "sipariş", "order", "satış", "sales"],
+  marketplace_get_order_detail: ["sipariş detay", "order detail"],
+  marketplace_update_stock: ["stok güncelle", "stock update", "envanter güncelle"],
+  marketplace_update_price: ["fiyat güncelle", "price update", "fiyatlandır"],
+  marketplace_update_tracking: ["kargo takip", "tracking", "takip numarası", "cargo"],
+  marketplace_get_questions: ["müşteri soruları", "questions", "sorular", "soru"],
+  marketplace_answer_question: ["soru yanıtla", "answer question", "cevapla"],
+  marketplace_sync_summary: ["özet", "summary", "dashboard", "genel durum", "rapor"],
   query_leads: ["leads", "data", "analyze", "analiz", "veri"],
   query_actions: ["actions", "activity", "aktivite", "log"],
   query_campaigns: ["campaign", "kampanya", "performance"],
@@ -1952,6 +2122,7 @@ export async function executeToolCall(
     if (u?.language === "tr") userLang = "tr";
   } catch {}
 
+  try {
   switch (toolName) {
     case "web_search": {
       const query = args.query as string;
@@ -5364,6 +5535,168 @@ ${activeRentals.map(r => `  ${r.agentType}: ${r.messagesUsed}/${r.messagesLimit}
       };
     }
 
+    case "marketplace_list_connections": {
+      const { getConnections } = await import("./services/marketplace/marketplaceCoordinator");
+      const connections = await getConnections(userId);
+      if (connections.length === 0) {
+        return { result: "Henüz bağlı pazaryeri platformu yok. Ayarlar sayfasından Trendyol veya Shopify bağlantısı ekleyebilirsiniz.", actionType: "marketplace_list", actionDescription: "🏪 Marketplace connections listed" };
+      }
+      const list = connections.map(c => `• ${c.platform.toUpperCase()} — ${c.storeName || "Store"} (${c.isActive ? "✅ Active" : "❌ Inactive"})`).join("\n");
+      return { result: `Bağlı pazaryerleri:\n${list}`, actionType: "marketplace_list", actionDescription: "🏪 Marketplace connections listed" };
+    }
+
+    case "marketplace_get_products": {
+      const { getMarketplaceService, getAllProducts } = await import("./services/marketplace/marketplaceCoordinator");
+      const platform = String(args.platform);
+      let products: any[] = [];
+      if (platform === "all") {
+        products = await getAllProducts(userId);
+      } else {
+        const svc = await getMarketplaceService(userId, platform as any);
+        if (!svc) return { result: `${platform} bağlantısı bulunamadı. Önce Ayarlar sayfasından bağlantı kurmalısınız.`, actionType: "marketplace_products", actionDescription: `🏪 ${platform} products — not connected` };
+        if (platform === "trendyol") {
+          const result = await (svc as any).getProducts(0, 50);
+          products = (result?.content || []).map((p: any) => ({ ...p, _platform: "trendyol" }));
+        } else {
+          const result = await (svc as any).getProducts(50, args.search);
+          products = (result?.products || []).map((p: any) => ({ ...p, _platform: "shopify" }));
+        }
+      }
+      const summary = products.slice(0, 20).map((p: any) => {
+        if (p._platform === "trendyol") return `[Trendyol] ${p.title || p.productName} — ₺${p.salePrice || "?"} — Stok: ${p.quantity ?? "?"}`;
+        return `[Shopify] ${p.title} — ${p.variants?.[0]?.price || "?"} — Stok: ${p.variants?.[0]?.inventory_quantity ?? "?"}`;
+      }).join("\n");
+      return { result: `${products.length} ürün bulundu:\n${summary}${products.length > 20 ? `\n...ve ${products.length - 20} ürün daha` : ""}`, actionType: "marketplace_products", actionDescription: `🏪 ${platform} products fetched (${products.length})` };
+    }
+
+    case "marketplace_get_orders": {
+      const { getMarketplaceService, getAllOrders } = await import("./services/marketplace/marketplaceCoordinator");
+      const platform = String(args.platform);
+      const days = args.days ? Number(args.days) : 7;
+      let orders: any[] = [];
+      if (platform === "all") {
+        orders = await getAllOrders(userId, days);
+      } else {
+        const svc = await getMarketplaceService(userId, platform as any);
+        if (!svc) return { result: `${platform} bağlantısı bulunamadı.`, actionType: "marketplace_orders", actionDescription: `🏪 ${platform} orders — not connected` };
+        if (platform === "trendyol") {
+          const startDate = Date.now() - days * 86400000;
+          const result = await (svc as any).getOrders({ startDate, endDate: Date.now(), status: args.status });
+          orders = (result?.content || []).map((o: any) => ({ ...o, _platform: "trendyol" }));
+        } else {
+          const result = await (svc as any).getOrders({ status: args.status });
+          orders = (result?.orders || []).map((o: any) => ({ ...o, _platform: "shopify" }));
+        }
+      }
+      const summary = orders.slice(0, 15).map((o: any) => {
+        if (o._platform === "trendyol") return `[Trendyol] #${o.orderNumber} — ${o.status} — ₺${o.totalPrice || "?"}`;
+        return `[Shopify] #${o.order_number || o.name} — ${o.financial_status} — ${o.total_price} ${o.currency}`;
+      }).join("\n");
+      return { result: `Son ${days} gün: ${orders.length} sipariş\n${summary}${orders.length > 15 ? `\n...ve ${orders.length - 15} sipariş daha` : ""}`, actionType: "marketplace_orders", actionDescription: `📦 ${platform} orders fetched (${orders.length})` };
+    }
+
+    case "marketplace_get_order_detail": {
+      const { getMarketplaceService } = await import("./services/marketplace/marketplaceCoordinator");
+      const platform = String(args.platform);
+      const orderId = String(args.order_id);
+      const svc = await getMarketplaceService(userId, platform as any);
+      if (!svc) return { result: `${platform} bağlantısı bulunamadı.`, actionType: "marketplace_order_detail", actionDescription: `📦 Order detail — not connected` };
+      let detail;
+      if (platform === "trendyol") {
+        detail = await (svc as any).getOrderDetail(orderId);
+      } else {
+        detail = await (svc as any).getOrderDetail(orderId);
+      }
+      return { result: `Sipariş detayı (${platform}):\n${JSON.stringify(detail, null, 2).substring(0, 2000)}`, actionType: "marketplace_order_detail", actionDescription: `📦 Order #${orderId} detail fetched` };
+    }
+
+    case "marketplace_update_stock": {
+      const { getMarketplaceService } = await import("./services/marketplace/marketplaceCoordinator");
+      const platform = String(args.platform);
+      const updates = args.updates as any[];
+      const svc = await getMarketplaceService(userId, platform as any);
+      if (!svc) return { result: `${platform} bağlantısı bulunamadı.`, actionType: "marketplace_stock", actionDescription: `📦 Stock update — not connected` };
+      let result;
+      if (platform === "trendyol") {
+        const items = updates.map(u => ({ barcode: u.barcode, quantity: u.quantity }));
+        result = await (svc as any).updateStockAndPrice(items);
+      } else {
+        const locations = await (svc as any).getLocations();
+        const locationId = locations?.locations?.[0]?.id;
+        for (const u of updates) {
+          await (svc as any).updateInventory(u.barcode, String(locationId), u.quantity);
+        }
+        result = { success: true };
+      }
+      await storage.createAgentAction({ userId, agentType, actionType: "stock_updated", description: `📦 ${updates.length} ürün stok güncellendi (${platform})`, metadata: { platform, updates } });
+      return { result: `✅ ${updates.length} ürün stok güncellendi (${platform})`, actionType: "stock_updated", actionDescription: `📦 Stock updated: ${updates.length} items (${platform})` };
+    }
+
+    case "marketplace_update_price": {
+      const { getMarketplaceService } = await import("./services/marketplace/marketplaceCoordinator");
+      const updates = args.updates as any[];
+      const svc = await getMarketplaceService(userId, "trendyol");
+      if (!svc) return { result: "Trendyol bağlantısı bulunamadı.", actionType: "marketplace_price", actionDescription: "💲 Price update — not connected" };
+      const items = updates.map(u => ({ barcode: u.barcode, salePrice: u.salePrice, listPrice: u.listPrice }));
+      await (svc as any).updateStockAndPrice(items);
+      await storage.createAgentAction({ userId, agentType, actionType: "price_updated", description: `💲 ${updates.length} ürün fiyat güncellendi (Trendyol)`, metadata: { updates } });
+      return { result: `✅ ${updates.length} ürün fiyatı güncellendi (Trendyol)`, actionType: "price_updated", actionDescription: `💲 Price updated: ${updates.length} items` };
+    }
+
+    case "marketplace_update_tracking": {
+      const { getMarketplaceService } = await import("./services/marketplace/marketplaceCoordinator");
+      const platform = String(args.platform);
+      const svc = await getMarketplaceService(userId, platform as any);
+      if (!svc) return { result: `${platform} bağlantısı bulunamadı.`, actionType: "marketplace_tracking", actionDescription: "🚚 Tracking — not connected" };
+      if (platform === "trendyol") {
+        await (svc as any).updateTrackingNumber(String(args.order_id), String(args.tracking_number), String(args.cargo_company));
+      } else {
+        await (svc as any).fulfillOrder(String(args.order_id), String(args.tracking_number), String(args.cargo_company));
+      }
+      await storage.createAgentAction({ userId, agentType, actionType: "tracking_updated", description: `🚚 Kargo takip güncellendi: ${args.tracking_number} (${platform})`, metadata: { platform, orderId: args.order_id, trackingNumber: args.tracking_number, cargoCompany: args.cargo_company } });
+      return { result: `✅ Kargo takip güncellendi: ${args.tracking_number} (${args.cargo_company})`, actionType: "tracking_updated", actionDescription: `🚚 Tracking updated: ${args.tracking_number}` };
+    }
+
+    case "marketplace_get_questions": {
+      const { getMarketplaceService } = await import("./services/marketplace/marketplaceCoordinator");
+      const svc = await getMarketplaceService(userId, "trendyol");
+      if (!svc) return { result: "Trendyol bağlantısı bulunamadı.", actionType: "marketplace_questions", actionDescription: "❓ Questions — not connected" };
+      const status = args.status || "WAITING_FOR_ANSWER";
+      const result = await (svc as any).getCustomerQuestions(status === "ALL" ? undefined : status);
+      const questions = Array.isArray(result) ? result : (result?.content || []);
+      const summary = questions.slice(0, 10).map((q: any, i: number) => `${i + 1}. [ID: ${q.id}] "${q.text?.substring(0, 100)}" — ${q.status}`).join("\n");
+      return { result: `${questions.length} müşteri sorusu:\n${summary}`, actionType: "marketplace_questions", actionDescription: `❓ ${questions.length} questions fetched` };
+    }
+
+    case "marketplace_answer_question": {
+      const { getMarketplaceService } = await import("./services/marketplace/marketplaceCoordinator");
+      const svc = await getMarketplaceService(userId, "trendyol");
+      if (!svc) return { result: "Trendyol bağlantısı bulunamadı.", actionType: "marketplace_answer", actionDescription: "❓ Answer — not connected" };
+      await (svc as any).answerQuestion(String(args.question_id), String(args.answer));
+      await storage.createAgentAction({ userId, agentType, actionType: "question_answered", description: `💬 Trendyol müşteri sorusu yanıtlandı: ${args.question_id}`, metadata: { questionId: args.question_id, answer: args.answer } });
+      return { result: `✅ Soru yanıtlandı (ID: ${args.question_id})`, actionType: "question_answered", actionDescription: `💬 Question answered: ${args.question_id}` };
+    }
+
+    case "marketplace_sync_summary": {
+      const { getAllProducts, getAllOrders, getConnections } = await import("./services/marketplace/marketplaceCoordinator");
+      const connections = await getConnections(userId);
+      if (connections.length === 0) {
+        return { result: "Henüz bağlı pazaryeri platformu yok.", actionType: "marketplace_summary", actionDescription: "🏪 Marketplace summary — no connections" };
+      }
+      const products = await getAllProducts(userId);
+      const orders = await getAllOrders(userId, 7);
+      const totalRevenue = orders.reduce((sum: number, o: any) => {
+        const price = o._platform === "trendyol" ? Number(o.totalPrice || 0) : Number(o.total_price || 0);
+        return sum + price;
+      }, 0);
+      const platforms = connections.map(c => c.platform).join(", ");
+      return {
+        result: `📊 PAZARYERI ÖZETİ\n\nBağlı platformlar: ${platforms}\nToplam ürün: ${products.length}\nSon 7 gün sipariş: ${orders.length}\nToplam ciro: ₺${totalRevenue.toLocaleString("tr-TR", { minimumFractionDigits: 2 })}`,
+        actionType: "marketplace_summary",
+        actionDescription: `📊 Marketplace summary: ${products.length} products, ${orders.length} orders`,
+      };
+    }
+
     case "search_properties": {
       const city = String(args.city);
       const bedrooms = args.bedrooms ? Number(args.bedrooms) : null;
@@ -5548,5 +5881,16 @@ ${activeRentals.map(r => `  ${r.agentType}: ${r.messagesUsed}/${r.messagesLimit}
 
     default:
       return { result: `Unknown tool: ${toolName}` };
+  }
+  } catch (marketplaceErr: any) {
+    if (toolName.startsWith("marketplace_")) {
+      console.error(`[Marketplace Tool Error] ${toolName}:`, marketplaceErr.message);
+      return {
+        result: `Pazaryeri işlemi başarısız: ${marketplaceErr.message}. Lütfen bağlantı ayarlarınızı kontrol edin.`,
+        actionType: "marketplace_error",
+        actionDescription: `❌ ${toolName} failed: ${marketplaceErr.message?.substring(0, 100)}`,
+      };
+    }
+    throw marketplaceErr;
   }
 }

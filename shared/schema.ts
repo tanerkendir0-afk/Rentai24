@@ -41,6 +41,7 @@ export const users = pgTable("users", {
   referralSource: text("referral_source"),
   onboardingCompleted: boolean("onboarding_completed").notNull().default(false),
   branding: jsonb("branding").default({}),
+  tokenSpendingLimit: decimal("token_spending_limit", { precision: 10, scale: 2 }).notNull().default("5.00"),
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
 });
 

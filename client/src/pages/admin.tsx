@@ -12,7 +12,7 @@ import {
   Lock, Brain, Database, Zap, MessageSquare, Mail, DollarSign, AlertTriangle, HelpCircle,
   Users, BarChart3, CreditCard, LogOut, Activity, ShoppingCart, UserCheck,
   Download, FileDown, CheckCircle, XCircle, Filter, Send, Crown, Bot, Loader2,
-  Plus, Clock, ChevronLeft, MoreVertical, History, FlaskConical, ArrowLeftRight
+  Plus, Clock, ChevronLeft, MoreVertical, History, FlaskConical, ArrowLeftRight, Pencil, Check, X
 } from "lucide-react";
 
 const ADMIN_API = `/api/${import.meta.env.VITE_ADMIN_PATH}`;
@@ -77,6 +77,7 @@ interface AdminUser {
   image_credits: number;
   created_at: string;
   active_rentals: number;
+  token_spending_limit: string;
   rentals: { agentType: string; plan: string; status: string; messagesUsed: number; messagesLimit: number }[];
 }
 
@@ -207,6 +208,10 @@ function UsersPanel({ token }: { token: string }) {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
+  const [editingLimit, setEditingLimit] = useState<number | null>(null);
+  const [limitValue, setLimitValue] = useState("");
+  const [savingLimit, setSavingLimit] = useState(false);
+  const { toast } = useToast();
 
   const headers = { Authorization: `Bearer ${token}` };
 
@@ -221,6 +226,34 @@ function UsersPanel({ token }: { token: string }) {
       setLoading(false);
     }
   }, [token]);
+
+  const saveTokenLimit = async (userId: number) => {
+    const val = parseFloat(limitValue);
+    if (isNaN(val) || val < 0) {
+      toast({ title: "Geçersiz değer", description: "Lütfen 0 veya daha büyük bir sayı girin.", variant: "destructive" });
+      return;
+    }
+    setSavingLimit(true);
+    try {
+      const res = await fetch(`${ADMIN_API}/users/${userId}/token-limit`, {
+        method: "PATCH",
+        headers: { ...headers, "Content-Type": "application/json" },
+        body: JSON.stringify({ tokenSpendingLimit: val }),
+      });
+      if (res.ok) {
+        setUsers(prev => prev.map(u => u.id === userId ? { ...u, token_spending_limit: val.toFixed(2) } : u));
+        setEditingLimit(null);
+        toast({ title: "Kaydedildi", description: `Token limiti $${val.toFixed(2)} olarak güncellendi.` });
+      } else {
+        const err = await res.json().catch(() => null);
+        toast({ title: "Hata", description: err?.error || "Limit güncellenemedi.", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Hata", description: "Limit güncellenemedi.", variant: "destructive" });
+    } finally {
+      setSavingLimit(false);
+    }
+  };
 
   useEffect(() => { fetchUsers(); }, [fetchUsers]);
 
@@ -295,6 +328,57 @@ function UsersPanel({ token }: { token: string }) {
                       ))}
                     </div>
                   )}
+                  <div className="flex items-center gap-2 mt-2 pt-2 border-t border-[#1E2448]">
+                    <DollarSign className="w-3.5 h-3.5 text-yellow-400" />
+                    <span className="text-gray-400 text-xs">Token Limiti:</span>
+                    {editingLimit === user.id ? (
+                      <div className="flex items-center gap-1">
+                        <span className="text-yellow-400 text-xs">$</span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={limitValue}
+                          onChange={e => setLimitValue(e.target.value)}
+                          className="w-20 h-6 px-1 text-xs bg-[#0A0E27] border border-[#1E2448] text-white rounded"
+                          data-testid={`input-token-limit-${user.id}`}
+                          autoFocus
+                          onKeyDown={e => {
+                            if (e.key === "Enter") saveTokenLimit(user.id);
+                            if (e.key === "Escape") setEditingLimit(null);
+                          }}
+                        />
+                        <button
+                          onClick={() => saveTokenLimit(user.id)}
+                          disabled={savingLimit}
+                          className="p-0.5 text-emerald-400 hover:text-emerald-300"
+                          data-testid={`button-save-limit-${user.id}`}
+                        >
+                          <Check className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => setEditingLimit(null)}
+                          className="p-0.5 text-gray-400 hover:text-gray-300"
+                          data-testid={`button-cancel-limit-${user.id}`}
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1">
+                        <span className="text-yellow-400 text-xs font-medium" data-testid={`text-token-limit-${user.id}`}>
+                          ${parseFloat(user.token_spending_limit || "5.00").toFixed(2)}
+                        </span>
+                        <button
+                          onClick={() => { setEditingLimit(user.id); setLimitValue(parseFloat(user.token_spending_limit || "5.00").toFixed(2)); }}
+                          className="p-0.5 text-gray-500 hover:text-gray-300"
+                          data-testid={`button-edit-limit-${user.id}`}
+                        >
+                          <Pencil className="w-3 h-3" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
                   <p className="text-gray-600 text-xs mt-2">{t("adminPage.users.joined")}: {new Date(user.created_at).toLocaleDateString()}</p>
                 </div>
               ))}

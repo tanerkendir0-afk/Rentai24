@@ -2586,7 +2586,14 @@ ${userEmail ? `- When they say "send to me", "email me", "bana gönder", "bana a
       }
     }
 
-    const TOKEN_SPENDING_LIMIT_USD = 5.00;
+    const DEFAULT_TOKEN_SPENDING_LIMIT_USD = 5.00;
+    let userTokenLimit = DEFAULT_TOKEN_SPENDING_LIMIT_USD;
+    if (req.session.userId) {
+      const userRow = await db.execute(sql`SELECT token_spending_limit FROM users WHERE id = ${req.session.userId}`);
+      if (userRow.rows.length > 0 && userRow.rows[0].token_spending_limit != null) {
+        userTokenLimit = parseFloat(userRow.rows[0].token_spending_limit as string);
+      }
+    }
 
     let hasActiveRental = false;
     let isLoggedIn = !!req.session.userId;
@@ -2661,12 +2668,12 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
             });
           }
           const userSpending = await storage.getTokenSpending(req.session.userId, resolvedAgentType);
-          if (userSpending >= TOKEN_SPENDING_LIMIT_USD) {
+          if (userSpending >= userTokenLimit) {
             return res.status(403).json({
               reply: `Token spending limit reached for ${agentPersonaMap[resolvedAgentType] || resolvedAgentType}. Please upgrade your plan.`,
               limitReached: true,
               spent: userSpending,
-              limit: TOKEN_SPENDING_LIMIT_USD,
+              limit: userTokenLimit,
             });
           }
           hasActiveRental = true;
@@ -2737,35 +2744,35 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
           });
         }
         const userSpending = await storage.getTokenSpending(req.session.userId, agentType);
-        if (userSpending >= TOKEN_SPENDING_LIMIT_USD) {
+        if (userSpending >= userTokenLimit) {
           return res.status(403).json({
-            reply: `Bu ajan için token harcama limitinize ($${TOKEN_SPENDING_LIMIT_USD.toFixed(2)} USD) ulaştınız. Şu ana kadar $${userSpending.toFixed(4)} harcandı. Daha fazla kullanım için lütfen planınızı yükseltin.`,
+            reply: `Bu ajan için token harcama limitinize ($${userTokenLimit.toFixed(2)} USD) ulaştınız. Şu ana kadar $${userSpending.toFixed(4)} harcandı. Daha fazla kullanım için lütfen planınızı yükseltin.`,
             limitReached: true,
             spent: userSpending,
-            limit: TOKEN_SPENDING_LIMIT_USD,
+            limit: userTokenLimit,
           });
         }
         hasActiveRental = true;
         await storage.incrementUsage(rental.id);
       } else {
         const userSpending = await storage.getTokenSpending(req.session.userId);
-        if (userSpending >= TOKEN_SPENDING_LIMIT_USD) {
+        if (userSpending >= userTokenLimit) {
           return res.status(403).json({
-            reply: `Demo token harcama limitine ($${TOKEN_SPENDING_LIMIT_USD.toFixed(2)} USD) ulaştınız. Devam etmek için bir ajan kiralayın.`,
+            reply: `Demo token harcama limitine ($${userTokenLimit.toFixed(2)} USD) ulaştınız. Devam etmek için bir ajan kiralayın.`,
             limitReached: true,
             spent: userSpending,
-            limit: TOKEN_SPENDING_LIMIT_USD,
+            limit: userTokenLimit,
           });
         }
       }
     } else {
       const sessionSpending = (req.session as any).tokenSpending || 0;
-      if (sessionSpending >= TOKEN_SPENDING_LIMIT_USD) {
+      if (sessionSpending >= DEFAULT_TOKEN_SPENDING_LIMIT_USD) {
         return res.status(403).json({
-          reply: `Demo token harcama limitine ($${TOKEN_SPENDING_LIMIT_USD.toFixed(2)} USD) ulaşıldı. Devam etmek için lütfen kayıt olun ve bir ajan kiralayın.`,
+          reply: `Demo token harcama limitine ($${DEFAULT_TOKEN_SPENDING_LIMIT_USD.toFixed(2)} USD) ulaşıldı. Devam etmek için lütfen kayıt olun ve bir ajan kiralayın.`,
           limitReached: true,
           spent: sessionSpending,
-          limit: TOKEN_SPENDING_LIMIT_USD,
+          limit: DEFAULT_TOKEN_SPENDING_LIMIT_USD,
         });
       }
     }
@@ -4215,9 +4222,13 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
 
   app.get("/api/token-spending", async (req: any, res) => {
     try {
-      const limit = 5.00;
+      let limit = 5.00;
       let spent: number;
       if (req.session?.userId) {
+        const userRow = await db.execute(sql`SELECT token_spending_limit FROM users WHERE id = ${req.session.userId}`);
+        if (userRow.rows.length > 0 && userRow.rows[0].token_spending_limit != null) {
+          limit = parseFloat(userRow.rows[0].token_spending_limit as string);
+        }
         const agentType = req.query.agentType as string | undefined;
         spent = await storage.getTokenSpending(req.session.userId, agentType);
       } else {
@@ -4413,6 +4424,7 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
           u.id, u.email, u.full_name, u.company,
           u.stripe_customer_id, u.stripe_subscription_id,
           u.image_credits, u.created_at,
+          u.token_spending_limit,
           COUNT(r.id)::int as active_rentals,
           COALESCE(
             json_agg(
@@ -4425,6 +4437,23 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}`;
         ORDER BY u.created_at DESC
       `);
       res.json(result.rows);
+    } catch (error: any) {
+      console.error(error); res.status(500).json({ error: msg("internalServerError", req.lang!) });
+    }
+  });
+
+  app.patch(`/api/${ADMIN_PATH}/users/:id/token-limit`, requireAdmin, async (req: any, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const { tokenSpendingLimit } = req.body;
+      if (isNaN(userId) || typeof tokenSpendingLimit !== "number" || tokenSpendingLimit < 0) {
+        return res.status(400).json({ error: "Invalid userId or tokenSpendingLimit" });
+      }
+      const result = await db.execute(sql`UPDATE users SET token_spending_limit = ${tokenSpendingLimit.toFixed(2)} WHERE id = ${userId}`);
+      if (result.rowCount === 0) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      res.json({ success: true, userId, tokenSpendingLimit });
     } catch (error: any) {
       console.error(error); res.status(500).json({ error: msg("internalServerError", req.lang!) });
     }

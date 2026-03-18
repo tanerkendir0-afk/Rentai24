@@ -126,29 +126,50 @@ Bu e-posta <strong>RentAI 24</strong> AI platformu aracılığıyla gönderilmi�
 </body></html>`;
 }
 
+interface EmailAttachment {
+  filename: string;
+  content_base64: string;
+  content_type: string;
+}
+
 async function sendViaResend(params: {
   to: string;
   subject: string;
   body: string;
   agentType?: string;
+  htmlBody?: string;
+  attachments?: EmailAttachment[];
 }): Promise<{ success: boolean; message: string; resendId?: string }> {
   const { client, fromEmail } = await getResendClient();
 
-  const result = await client.emails.send({
+  const htmlContent = params.htmlBody || buildEmailHtml(params.body, params.agentType);
+
+  const emailPayload: any = {
     from: fromEmail,
     to: [params.to],
     subject: params.subject,
-    html: buildEmailHtml(params.body, params.agentType),
+    html: htmlContent,
     text: params.body,
-  });
+  };
+
+  if (params.attachments && params.attachments.length > 0) {
+    emailPayload.attachments = params.attachments.map(att => ({
+      filename: att.filename,
+      content: Buffer.from(att.content_base64, "base64"),
+      content_type: att.content_type,
+    }));
+  }
+
+  const result = await client.emails.send(emailPayload);
 
   if (result.error) {
     return { success: false, message: `Failed to send email to ${params.to}: ${result.error.message}` };
   }
 
+  const attachmentInfo = params.attachments?.length ? ` (${params.attachments.length} attachment)` : "";
   return {
     success: true,
-    message: `Email sent to ${params.to} with subject "${params.subject}" (via platform email)`,
+    message: `Email sent to ${params.to} with subject "${params.subject}"${attachmentInfo} (via platform email)`,
     resendId: result.data?.id,
   };
 }
@@ -159,11 +180,14 @@ export async function sendEmail(params: {
   subject: string;
   body: string;
   agentType: string;
+  htmlBody?: string;
+  attachments?: EmailAttachment[];
 }): Promise<{ success: boolean; message: string; provider?: string }> {
   try {
     const disabled = await isGmailDisabledByUser(params.userId);
+    const hasAttachments = params.attachments && params.attachments.length > 0;
 
-    if (!disabled) {
+    if (!disabled && !hasAttachments) {
       const gmailReady = await isUserGmailReady(params.userId);
       if (gmailReady) {
         const gmailResult = await sendViaGmail(params.userId, {
@@ -192,6 +216,8 @@ export async function sendEmail(params: {
       subject: params.subject,
       body: params.body,
       agentType: params.agentType,
+      htmlBody: params.htmlBody,
+      attachments: params.attachments,
     });
 
     if (!resendResult.success) {

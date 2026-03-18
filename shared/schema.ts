@@ -40,6 +40,7 @@ export const users = pgTable("users", {
   intendedAgents: text("intended_agents").array(),
   referralSource: text("referral_source"),
   onboardingCompleted: boolean("onboarding_completed").notNull().default(false),
+  branding: jsonb("branding").default({}),
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
 });
 
@@ -133,6 +134,19 @@ export const insertFineTuningJobSchema = createInsertSchema(fineTuningJobs).omit
 
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
+
+export interface UserBranding {
+  company_name?: string;
+  logo_base64?: string;
+  theme?: {
+    primary: string;
+    accent: string;
+    light: string;
+    text: string;
+  };
+  footer_text?: string;
+  show_powered_by?: boolean;
+}
 export type Rental = typeof rentals.$inferSelect;
 export type InsertRental = z.infer<typeof insertRentalSchema>;
 export type AgentDocument = typeof agentDocuments.$inferSelect;

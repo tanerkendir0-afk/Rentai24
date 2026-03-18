@@ -1,0 +1,541 @@
+# REPLIT AGENT TALİMATI — PDF + EMAIL + ATTACHMENT TAM ENTEGRASYON
+# ================================================================
+# MODEL-AGNOSTİK: Hem Claude API hem OpenAI/GPT API destekler.
+# Bu talimatı Replit Agent'a olduğu gibi yapıştır.
+# ================================================================
+
+Projemde `rentai24-pdf-tools/` klasörü var. İçinde hazır PDF oluşturma, email gönderme
+ve tool registry kodları var. Bunları mevcut agent engine'e entegre etmeni istiyorum.
+
+ÖNEMLİ: Projemde hem Claude (Anthropic) hem OpenAI (GPT) modelleri kullanılıyor.
+Tool calling her iki API için de çalışmalı. İkisinin tool call formatı farklı,
+bu yüzden model-agnostic bir abstraction layer yaz.
+
+Önce `rentai24-pdf-tools/docs/ENTEGRASYON_REHBERI.md` dosyasını oku, tüm detaylar orada.
+
+## YAPILACAKLAR (sırasıyla):
+
+### 1. BAĞIMLILIKLAR
+```bash
+pip install reportlab httpx openai anthropic
+```
+
+### 2. DATABASE — customer_settings tablosuna branding ekle
+
+```sql
+ALTER TABLE customer_settings ADD COLUMN IF NOT EXISTS branding JSONB DEFAULT '{}';
+```
+
+Branding şeması:
+```json
+{
+  "company_name": "Firma Adı A.Ş.",
+  "logo_base64": "iVBORw0KGgo...",
+  "theme": {
+    "primary": "#2C3E50",
+    "accent": "#3498DB",
+    "light": "#ECF0F1",
+    "text": "#1B1B1B"
+  },
+  "footer_text": "Firma Adı — Tüm hakları saklıdır.",
+  "show_powered_by": false
+}
+```
+
+Müşteri dashboard'unda (customer-settings sayfasında) bu branding ayarlarını düzenleyebilecek
+bir bölüm ekle:
+- Firma adı (text input)
+- Logo yükleme (dosya upload → base64'e çevir → branding.logo_base64'e kaydet)
+- Tema rengi seçimi (color picker → primary renk, accent ve light otomatik türetilsin)
+- Footer metni (text input)
+- "Powered by RentAI24" göster/gizle toggle
+
+### 3. BACKEND — Branding API endpoint'i
+
+```
+GET    /api/customer/branding          → müşterinin branding'ini döndür
+PUT    /api/customer/branding          → branding'i güncelle
+POST   /api/customer/branding/logo     → logo upload (multipart → base64)
+```
+
+### 4. MODEL-AGNOSTİK TOOL TANIMLARI
+
+İki API'nin tool tanım formatı farklı. Her ikisi için de ortak tool tanımı yaz
+ve çağrı anında doğru formata dönüştür:
+
+```python
+# ============================================================
+# tools/tool_definitions.py — Ortak tool tanımları
+# ============================================================
+
+# İç format (provider-agnostic)
+TOOL_GENERATE_PDF = {
+    "name": "generate_pdf",
+    "description": "Müşterinin kendi markasıyla PDF belgesi oluşturur (fatura, rapor, teklif). Türkçe karakter desteği var. PDF oluşturmadan 'ekte PDF var' gibi ifadeler KULLANMA. Önce bu tool'u çağır, sonra sonucu kullanıcıya bildir.",
+    "parameters": {
+        "type": "object",
+        "required": ["document_type", "data"],
+        "properties": {
+            "document_type": {
+                "type": "string",
+                "enum": ["invoice", "report", "proposal", "receipt"],
+                "description": "Belge tipi: invoice=fatura, report=rapor, proposal=teklif, receipt=makbuz"
+            },
+            "data": {
+                "type": "object",
+                "description": "Belge verisi. Fatura için: invoice_no, date, due_date, seller{name,address,tax_office,tax_no,phone,email}, buyer{name,address,tax_office,tax_no}, items[{description,quantity,unit,unit_price,vat_rate,withholding_rate}], payment_terms, bank_info{bank_name,iban,account_holder}, notes, currency alanları."
+            },
+            "filename": {
+                "type": "string",
+                "description": "Dosya adı (örn: fatura_FTR-2026-001.pdf)"
+            }
+        }
+    }
+}
+
+TOOL_SEND_EMAIL = {
+    "name": "send_email",
+    "description": "E-posta gönderir. PDF veya diğer dosyaları attachment olarak ekleyebilir. generate_pdf ile oluşturulan PDF'in base64 içeriğini attachments alanına ekle. Email body'sini HTML olarak gönder, markdown KULLANMA.",
+    "parameters": {
+        "type": "object",
+        "required": ["to", "subject", "body"],
+        "properties": {
+            "to": {
+                "type": "string",
+                "description": "Alıcı email adresi"
+            },
+            "cc": {
+                "type": "string",
+                "description": "CC email adresi (opsiyonel)"
+            },
+            "subject": {
+                "type": "string",
+                "description": "E-posta konusu"
+            },
+            "body": {
+                "type": "string",
+                "description": "E-posta gövdesi (düz metin fallback)"
+            },
+            "html_body": {
+                "type": "string",
+                "description": "HTML formatında e-posta gövdesi"
+            },
+            "attachments": {
+                "type": "array",
+                "description": "Ek dosyalar",
+                "items": {
+                    "type": "object",
+                    "required": ["filename", "content_base64", "content_type"],
+                    "properties": {
+                        "filename": {
+                            "type": "string",
+                            "description": "Dosya adı (örn: fatura.pdf)"
+                        },
+                        "content_base64": {
+                            "type": "string",
+                            "description": "Base64 encoded dosya içeriği"
+                        },
+                        "content_type": {
+                            "type": "string",
+                            "description": "MIME tipi (örn: application/pdf)"
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+ALL_TOOLS = [TOOL_GENERATE_PDF, TOOL_SEND_EMAIL]
+
+
+def format_tools_for_provider(tools: list, provider: str) -> list:
+    """
+    Ortak tool tanımlarını provider-specific formata dönüştürür.
+
+    provider: "anthropic" veya "openai"
+    """
+    if provider == "anthropic":
+        # Claude formatı: input_schema
+        return [
+            {
+                "name": t["name"],
+                "description": t["description"],
+                "input_schema": t["parameters"]
+            }
+            for t in tools
+        ]
+
+    elif provider == "openai":
+        # OpenAI formatı: type=function, function={name, description, parameters}
+        return [
+            {
+                "type": "function",
+                "function": {
+                    "name": t["name"],
+                    "description": t["description"],
+                    "parameters": t["parameters"]
+                }
+            }
+            for t in tools
+        ]
+
+    else:
+        raise ValueError(f"Desteklenmeyen provider: {provider}")
+```
+
+### 5. MODEL-AGNOSTİK TOOL CALL LOOP
+
+Bu en kritik kısım. Claude ve OpenAI'nin tool call/response formatı farklı.
+Tek bir `process_agent_message` fonksiyonu her ikisini de handle etmeli:
+
+```python
+# ============================================================
+# services/llm_service.py — Model-agnostic LLM servisi
+# ============================================================
+
+import json
+import os
+from anthropic import Anthropic
+from openai import OpenAI
+
+anthropic_client = Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
+openai_client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+
+
+def execute_tool(tool_name: str, tool_input: dict, branding: dict = None) -> dict:
+    """Tool'u çalıştır — provider'dan bağımsız."""
+    from rentai24_pdf_tools.tools.pdf_generator import handle_generate_pdf
+    from rentai24_pdf_tools.services.email_service import handle_send_email
+
+    if tool_name == "generate_pdf":
+        return handle_generate_pdf(tool_input, branding=branding)
+    elif tool_name == "send_email":
+        return handle_send_email(tool_input)
+    else:
+        return {"success": False, "error": f"Bilinmeyen tool: {tool_name}"}
+
+
+# ============================================================
+# CLAUDE (Anthropic) — Tool Call Loop
+# ============================================================
+async def process_with_claude(system_prompt: str, user_message: str,
+                               tools: list, branding: dict = None,
+                               model: str = "claude-sonnet-4-20250514") -> str:
+    """Claude API ile tool call loop."""
+
+    formatted_tools = format_tools_for_provider(tools, "anthropic")
+    messages = [{"role": "user", "content": user_message}]
+
+    response = anthropic_client.messages.create(
+        model=model,
+        max_tokens=4096,
+        system=system_prompt,
+        tools=formatted_tools,
+        messages=messages
+    )
+
+    # Tool call loop
+    while response.stop_reason == "tool_use":
+        assistant_content = response.content
+        tool_results = []
+
+        for block in assistant_content:
+            if block.type == "tool_use":
+                result = execute_tool(block.name, block.input, branding=branding)
+                tool_results.append({
+                    "type": "tool_result",
+                    "tool_use_id": block.id,
+                    "content": json.dumps(result, ensure_ascii=False)
+                })
+
+        messages.append({"role": "assistant", "content": assistant_content})
+        messages.append({"role": "user", "content": tool_results})
+
+        response = anthropic_client.messages.create(
+            model=model,
+            max_tokens=4096,
+            system=system_prompt,
+            tools=formatted_tools,
+            messages=messages
+        )
+
+    # Final text
+    return "".join(block.text for block in response.content if hasattr(block, 'text'))
+
+
+# ============================================================
+# OPENAI (GPT) — Tool Call Loop
+# ============================================================
+async def process_with_openai(system_prompt: str, user_message: str,
+                               tools: list, branding: dict = None,
+                               model: str = "gpt-4o") -> str:
+    """OpenAI API ile tool call loop."""
+
+    formatted_tools = format_tools_for_provider(tools, "openai")
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": user_message}
+    ]
+
+    response = openai_client.chat.completions.create(
+        model=model,
+        messages=messages,
+        tools=formatted_tools,
+        tool_choice="auto"
+    )
+
+    message = response.choices[0].message
+
+    # Tool call loop
+    while message.tool_calls:
+        # Assistant mesajını ekle
+        messages.append(message)
+
+        # Her tool call'u işle
+        for tool_call in message.tool_calls:
+            func_name = tool_call.function.name
+            func_args = json.loads(tool_call.function.arguments)
+
+            result = execute_tool(func_name, func_args, branding=branding)
+
+            # OpenAI formatında tool result ekle
+            messages.append({
+                "role": "tool",
+                "tool_call_id": tool_call.id,
+                "content": json.dumps(result, ensure_ascii=False)
+            })
+
+        # Tekrar çağır
+        response = openai_client.chat.completions.create(
+            model=model,
+            messages=messages,
+            tools=formatted_tools,
+            tool_choice="auto"
+        )
+        message = response.choices[0].message
+
+    return message.content or ""
+
+
+# ============================================================
+# ANA FONKSİYON — Provider'a göre yönlendir
+# ============================================================
+async def process_agent_message(
+    agent_name: str,
+    user_message: str,
+    customer_id: str,
+    provider: str = None,     # "anthropic" veya "openai"
+    model: str = None          # model override
+) -> dict:
+    """
+    Herhangi bir agent'ın mesajını işler.
+    Provider ve model agent config'den veya parametreden gelir.
+
+    Returns:
+        {
+            "text": "Agent'ın cevabı",
+            "pdf": {"filename": "...", "base64": "..."} veya None,
+            "email_sent": True/False
+        }
+    """
+    # Agent config'den provider ve model belirle
+    agent_config = get_agent_config(agent_name)
+    provider = provider or agent_config.get("provider", "anthropic")
+    model = model or agent_config.get("model", "claude-sonnet-4-20250514")
+
+    # Müşteri branding
+    branding = await get_customer_branding(customer_id)
+
+    # System prompt
+    system_prompt = get_system_prompt(agent_name)
+
+    # Tool'ları belirle
+    tools = get_tools_for_agent(agent_name)  # ALL_TOOLS veya subset
+
+    # Provider'a göre çağır
+    if provider == "anthropic":
+        response_text = await process_with_claude(
+            system_prompt, user_message, tools, branding, model
+        )
+    elif provider == "openai":
+        response_text = await process_with_openai(
+            system_prompt, user_message, tools, branding, model
+        )
+    else:
+        raise ValueError(f"Desteklenmeyen provider: {provider}")
+
+    return {"text": response_text}
+```
+
+### 6. AGENT CONFIG — Hangi agent hangi provider/model kullanıyor
+
+Agent bazında provider ve model ayarı yapılabilmeli:
+
+```python
+# config/agent_config.py
+
+AGENT_CONFIGS = {
+    "finn": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-20250514",
+        "tools": ["generate_pdf", "send_email"],
+        "description": "Muhasebe ve finans asistanı"
+    },
+    "rex": {
+        "provider": "openai",
+        "model": "gpt-4o",
+        "tools": ["generate_pdf", "send_email"],
+        "description": "Satış ve CRM asistanı"
+    },
+    "ava": {
+        "provider": "anthropic",
+        "model": "claude-haiku-4-5-20251001",
+        "tools": ["generate_pdf", "send_email"],
+        "description": "İK asistanı"
+    },
+    "maya": {
+        "provider": "openai",
+        "model": "gpt-4o-mini",
+        "tools": ["generate_pdf", "send_email"],
+        "description": "Pazarlama asistanı"
+    },
+    "cal": {
+        "provider": "anthropic",
+        "model": "claude-haiku-4-5-20251001",
+        "tools": ["send_email"],
+        "description": "Takvim asistanı"
+    },
+    "harper": {
+        "provider": "openai",
+        "model": "gpt-4o",
+        "tools": ["generate_pdf", "send_email"],
+        "description": "İçerik yazarı"
+    },
+    "databot": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-20250514",
+        "tools": ["generate_pdf", "send_email"],
+        "description": "Veri analisti"
+    },
+    "shopbot": {
+        "provider": "openai",
+        "model": "gpt-4o-mini",
+        "tools": ["generate_pdf", "send_email"],
+        "description": "E-ticaret asistanı"
+    },
+}
+
+def get_agent_config(agent_name: str) -> dict:
+    return AGENT_CONFIGS.get(agent_name, {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-20250514",
+        "tools": ["generate_pdf", "send_email"]
+    })
+
+def get_tools_for_agent(agent_name: str) -> list:
+    """Agent'a atanmış tool tanımlarını döndürür."""
+    config = get_agent_config(agent_name)
+    tool_names = config.get("tools", [])
+    return [t for t in ALL_TOOLS if t["name"] in tool_names]
+```
+
+### 7. SYSTEM PROMPT GÜNCELLEMELERİ
+
+`rentai24-pdf-tools/docs/system_prompt_updates.py` dosyasını oku.
+İçindeki prompt eklemelerini ilgili agentlara ekle:
+
+- UNIVERSAL_AGENT_PROMPT_ADDITION → TÜM agentlara ekle (Claude ve GPT agentlar dahil)
+- FINN_SYSTEM_PROMPT_ADDITION → Finn agent'ına ekle
+- REX_SALES_PROMPT_ADDITION → Rex agent'ına ekle
+- AVA_HR_PROMPT_ADDITION → Ava agent'ına ekle
+- DATABOT_ANALYTICS_PROMPT_ADDITION → DataBot agent'ına ekle
+- SHOPBOT_ECOMMERCE_PROMPT_ADDITION → ShopBot agent'ına ekle
+
+NOT: Bu system prompt'lar hem Claude hem GPT ile çalışır, format farkı yok.
+Kritik kural: "PDF oluşturmadan 'ekte PDF var' deme. Tool çağrısı yapmadan sonucu varsayma."
+
+### 8. EMAIL SERVİS YAPILANDIRMASI
+
+Replit Secrets'a ekle (environment variables):
+
+```
+ANTHROPIC_API_KEY=sk-ant-xxxxxxxxx
+OPENAI_API_KEY=sk-xxxxxxxxx
+
+EMAIL_PROVIDER=sendgrid
+SENDGRID_API_KEY=SG.xxxxxxxxxxxx
+SENDGRID_FROM_EMAIL=noreply@rentai24.com
+```
+
+VEYA Gmail SMTP:
+```
+EMAIL_PROVIDER=smtp
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=xxx@gmail.com
+SMTP_PASS=app_password
+```
+
+### 9. MÜŞTERİ DASHBOARD — PDF indirme özelliği
+
+Agent bir PDF oluşturduğunda, response'ta base64_pdf dönüyor.
+Frontend'de müşteriye "PDF İndir" butonu göster:
+
+```tsx
+{message.pdf && (
+  <a
+    href={`data:application/pdf;base64,${message.pdf.base64}`}
+    download={message.pdf.filename}
+    className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg"
+  >
+    📄 {message.pdf.filename} — İndir
+  </a>
+)}
+```
+
+### 10. FONT KONTROLÜ
+
+`rentai24-pdf-tools/fonts/` dizininde 4 adet DejaVuSans font dosyası var.
+Türkçe karakter desteği (Ş İ ı ğ ç ö ü ₺) için ZORUNLU.
+pdf_generator.py önce proje içindeki fonts/ dizinine bakıyor, bulamazsa sistem fontlarına düşüyor.
+
+## FORMAT FARKI ÖZETİ
+
+İki API arasındaki temel farklar (senin bilmen için — kodu yukarıda yazdım):
+
+```
+                    CLAUDE (Anthropic)              OPENAI (GPT)
+─────────────────────────────────────────────────────────────────
+System prompt       system=string                   messages[0].role="system"
+Tool tanımı         {name, description,             {type:"function", function:
+                     input_schema:{...}}              {name, description, parameters}}
+Tool call yanıtı    stop_reason="tool_use"          message.tool_calls != None
+                    block.type=="tool_use"           tool_call.function.name
+                    block.name, block.input          tool_call.function.arguments (JSON string!)
+Tool result         role="user", type=              role="tool",
+                    "tool_result",                   tool_call_id=...,
+                    tool_use_id=...                  content=...
+Son cevap           stop_reason="end_turn"          message.tool_calls == None
+                    block.type=="text"               message.content
+```
+
+## BEKLENEN SONUÇ
+
+1. Müşteri herhangi bir agent'a (Finn, Rex, vs.) "fatura oluştur ve mail at" dediğinde:
+   - Agent (Claude VEYA GPT) → generate_pdf tool → müşteri markasıyla PDF
+   - Agent → send_email tool → PDF attachment + HTML email
+   - Agent → kullanıcıya cevap + PDF indirme linki
+
+2. PDF'te Türkçe karakterler doğru
+3. Email HTML formatında, attachment olarak PDF ekli
+4. Her agent farklı provider/model kullanabilir (config'den ayarlanır)
+5. White-label: müşteri markası, RentAI24 görünmez
+
+## ÖNEMLİ UYARILAR
+
+- OpenAI tool_call.function.arguments STRING döner → json.loads() ile parse et
+- Claude tool_use.input direkt DICT döner → parse gerekmez
+- Tool call loop'u her iki provider için de MUTLAKA implement et
+- fonts/ dizininin deploy'da dahil olduğundan emin ol
+- API key'leri Replit Secrets'a koy

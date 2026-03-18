@@ -43,6 +43,7 @@ export interface IStorage {
   updateLeadScore(id: number, userId: number, score: string): Promise<Lead | undefined>;
 
   createAgentAction(action: InsertAgentAction): Promise<AgentAction>;
+  getAgentAction(id: number): Promise<AgentAction | undefined>;
   getActionsByUser(userId: number): Promise<AgentAction[]>;
 
   createEmailCampaign(campaign: InsertEmailCampaign): Promise<EmailCampaign>;
@@ -427,6 +428,11 @@ export class DatabaseStorage implements IStorage {
   async createAgentAction(action: InsertAgentAction): Promise<AgentAction> {
     const [created] = await db.insert(agentActions).values(action).returning();
     return created;
+  }
+
+  async getAgentAction(id: number): Promise<AgentAction | undefined> {
+    const [action] = await db.select().from(agentActions).where(eq(agentActions.id, id));
+    return action;
   }
 
   async getActionsByUser(userId: number): Promise<AgentAction[]> {

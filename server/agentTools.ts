@@ -14,8 +14,10 @@ import { generateInvoicePDF } from "./services/invoiceGenerator";
 import { generateInvoiceExcel } from "./services/invoiceExcelGenerator";
 import { generateMizan, generateBordro, generateGelirTablosu, generateKdvOzet, generateBilanco } from "./services/reportGenerator";
 import { hesaplaKDV, hesaplaBordro, hesaplaAmortisman, hesaplaKurDegerlemesi, hesaplaStopaj, formatYevmiyeKaydi, yevmiyeToMarkdown, formatTL } from "./services/calculationService";
+import { handleGeneratePdf } from "./services/pdfBrandingService";
 import { db } from "./db";
 import { invoices, invoiceItems } from "@shared/schema";
+import type { UserBranding } from "@shared/schema";
 
 const aiClient = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -142,26 +144,72 @@ const webSearchTool: OpenAI.ChatCompletionTool = {
   },
 };
 
+const generatePdfTool: OpenAI.ChatCompletionTool = {
+  type: "function",
+  function: {
+    name: "generate_pdf",
+    description: "Müşterinin kendi markasıyla PDF belgesi oluşturur (fatura, rapor, teklif). Türkçe karakter desteği var. PDF oluşturmadan 'ekte PDF var' gibi ifadeler KULLANMA. Önce bu tool'u çağır, sonra sonucu kullanıcıya bildir.",
+    parameters: {
+      type: "object",
+      required: ["document_type", "data"],
+      properties: {
+        document_type: {
+          type: "string",
+          enum: ["invoice", "report", "proposal", "receipt"],
+          description: "Belge tipi: invoice=fatura, report=rapor, proposal=teklif, receipt=makbuz",
+        },
+        data: {
+          type: "object",
+          description: "Belge verisi. Fatura için: invoice_no, date, due_date, seller{name,address,tax_office,tax_no,phone,email}, buyer{name,address,tax_office,tax_no}, items[{description,quantity,unit,unit_price,vat_rate,withholding_rate}], payment_terms, bank_info{bank_name,iban,account_holder}, notes, currency alanları. Rapor için: title, subtitle, author, date, sections[{heading, content, table{headers, rows}}].",
+        },
+        filename: {
+          type: "string",
+          description: "Dosya adı (örn: fatura_FTR-2026-001.pdf)",
+        },
+      },
+    },
+  },
+};
+
+const sendEmailWithAttachmentTool: OpenAI.ChatCompletionTool = {
+  type: "function",
+  function: {
+    name: "send_email",
+    description: "E-posta gönderir. generate_pdf ile oluşturulan PDF'i eklemek için pdf_ref alanına generate_pdf'den dönen pdf_ref değerini ver. Email body'sini HTML olarak gönder, markdown KULLANMA.",
+    parameters: {
+      type: "object",
+      required: ["to", "subject", "body"],
+      properties: {
+        to: { type: "string", description: "Alıcı email adresi" },
+        cc: { type: "string", description: "CC email adresi (opsiyonel)" },
+        subject: { type: "string", description: "E-posta konusu" },
+        body: { type: "string", description: "E-posta gövdesi (düz metin fallback)" },
+        html_body: { type: "string", description: "HTML formatında e-posta gövdesi" },
+        pdf_ref: { type: "number", description: "generate_pdf tool'undan dönen pdf_ref ID değeri. Bu verildiğinde PDF otomatik olarak ek dosya olarak eklenir." },
+        attachments: {
+          type: "array",
+          description: "Manuel ek dosyalar listesi (pdf_ref kullanıyorsan bu alana gerek yok)",
+          items: {
+            type: "object",
+            required: ["filename", "content_base64", "content_type"],
+            properties: {
+              filename: { type: "string", description: "Dosya adı (örn: fatura.pdf)" },
+              content_base64: { type: "string", description: "Base64 encoded dosya içeriği" },
+              content_type: { type: "string", description: "MIME tipi (örn: application/pdf)" },
+            },
+          },
+        },
+      },
+    },
+  },
+};
+
 export const salesSdrTools: OpenAI.ChatCompletionTool[] = [
   webSearchTool,
   ...gmailInboxTools,
   ...whatsappTools,
-  {
-    type: "function",
-    function: {
-      name: "send_email",
-      description: "Send a real email to a prospect or lead. Use this when the user asks you to email someone, send outreach, or follow up via email.",
-      parameters: {
-        type: "object",
-        properties: {
-          to: { type: "string", description: "Recipient email address" },
-          subject: { type: "string", description: "Email subject line" },
-          body: { type: "string", description: "Email body content (professional sales tone)" },
-        },
-        required: ["to", "subject", "body"],
-      },
-    },
-  },
+  sendEmailWithAttachmentTool,
+  generatePdfTool,
   {
     type: "function",
     function: {
@@ -1729,16 +1777,19 @@ const createTaskTool: OpenAI.ChatCompletionTool = {
   },
 };
 
+const pdfEmailTools = [generatePdfTool, sendEmailWithAttachmentTool];
+const emailOnlyTools = [sendEmailWithAttachmentTool];
+
 export const agentToolRegistry: Record<string, OpenAI.ChatCompletionTool[]> = {
   "sales-sdr": [...salesSdrTools, createTaskTool],
-  "customer-support": [...customerSupportTools, createTaskTool],
-  "scheduling": [...schedulingTools, createTaskTool],
-  "data-analyst": [...dataAnalystTools, createTaskTool],
-  "social-media": [...socialMediaTools, createTaskTool],
-  "bookkeeping": [...bookkeepingTools, createTaskTool],
-  "hr-recruiting": [...hrRecruitingTools, createTaskTool],
-  "ecommerce-ops": [...ecommerceOpsTools, createTaskTool],
-  "real-estate": [...realEstateTools, createTaskTool],
+  "customer-support": [...customerSupportTools, ...pdfEmailTools, createTaskTool],
+  "scheduling": [...schedulingTools, ...emailOnlyTools, createTaskTool],
+  "data-analyst": [...dataAnalystTools, ...pdfEmailTools, createTaskTool],
+  "social-media": [...socialMediaTools, ...pdfEmailTools, createTaskTool],
+  "bookkeeping": [...bookkeepingTools, ...pdfEmailTools, createTaskTool],
+  "hr-recruiting": [...hrRecruitingTools, ...pdfEmailTools, createTaskTool],
+  "ecommerce-ops": [...ecommerceOpsTools, ...pdfEmailTools, createTaskTool],
+  "real-estate": [...realEstateTools, ...pdfEmailTools, createTaskTool],
 };
 
 export function getToolsForAgent(agentType: string): OpenAI.ChatCompletionTool[] | undefined {
@@ -1837,6 +1888,7 @@ const TOOL_KEYWORD_MAP: Record<string, string[]> = {
   market_report: ["market", "piyasa", "trend", "fiyat"],
   calculate_costs: ["cost", "calculate", "maliyet", "hesapla", "expense"],
   create_task: ["task", "görev", "göreve al", "kaydet", "hatırlat", "remind", "to-do", "todo", "yapılacak", "tarihte yap", "not al", "planla"],
+  generate_pdf: ["pdf", "belge", "document", "fatura oluştur", "rapor oluştur", "teklif oluştur", "makbuz", "invoice", "report", "proposal", "receipt", "pdf oluştur", "pdf generate", "dosya oluştur"],
 };
 
 export function getRelevantToolsForMessage(
@@ -2193,13 +2245,79 @@ export async function executeToolCall(
       };
     }
 
+    case "generate_pdf": {
+      try {
+        const user = await storage.getUserById(userId);
+        const branding = (user?.branding as UserBranding) || undefined;
+        const pdfResult = handleGeneratePdf(
+          {
+            document_type: args.document_type as any,
+            data: args.data as Record<string, any>,
+            filename: args.filename as string | undefined,
+          },
+          branding
+        );
+
+        let actionId: number | null = null;
+        if (pdfResult.success) {
+          const action = await storage.createAgentAction({
+            userId, agentType,
+            actionType: "pdf_generated",
+            description: `PDF oluşturuldu: ${pdfResult.filename}`,
+            metadata: { filename: pdfResult.filename, document_type: args.document_type, pdfBase64: pdfResult.base64_pdf },
+          });
+          actionId = action?.id || null;
+        }
+
+        return {
+          result: pdfResult.success
+            ? `PDF başarıyla oluşturuldu: ${pdfResult.filename} (pdf_ref: ${actionId}). Email'e attachment olarak eklemek için send_email tool'unu kullan ve pdf_ref alanına ${actionId} değerini ver.`
+            : `PDF oluşturulamadı: ${pdfResult.error}`,
+          actionType: pdfResult.success ? "pdf_generated" : "pdf_failed",
+          actionDescription: pdfResult.success
+            ? `📄 PDF oluşturuldu: ${pdfResult.filename}`
+            : `❌ PDF oluşturulamadı: ${pdfResult.error}`,
+        };
+      } catch (err: any) {
+        return {
+          result: `PDF oluşturma hatası: ${err.message}`,
+          actionType: "pdf_failed",
+          actionDescription: `❌ PDF oluşturma hatası`,
+        };
+      }
+    }
+
     case "send_email": {
+      let attachments = args.attachments as Array<{ filename: string; content_base64: string; content_type: string }> | undefined;
+      const htmlBody = args.html_body as string | undefined;
+      const pdfRef = args.pdf_ref as number | undefined;
+
+      if (pdfRef && !attachments?.length) {
+        try {
+          const pdfAction = await storage.getAgentAction(pdfRef);
+          if (pdfAction && pdfAction.actionType === "pdf_generated" && pdfAction.metadata) {
+            const meta = pdfAction.metadata as Record<string, any>;
+            if (meta.pdfBase64) {
+              attachments = [{
+                filename: meta.filename || "document.pdf",
+                content_base64: meta.pdfBase64,
+                content_type: "application/pdf",
+              }];
+            }
+          }
+        } catch (e) {
+          console.error("[send_email] pdf_ref lookup error:", e);
+        }
+      }
+
       const emailResult = await sendEmail({
         userId,
         to: String(args.to),
         subject: String(args.subject),
         body: String(args.body),
         agentType,
+        htmlBody,
+        attachments,
       });
       if (emailResult.success) {
         try {
@@ -2214,11 +2332,12 @@ export async function executeToolCall(
           });
         } catch (e) { console.error("[BossAI] send email notification error:", e); }
       }
+      const attachmentInfo = attachments?.length ? ` (${attachments.length} ek dosya ile)` : "";
       return {
         result: emailResult.message,
         actionType: emailResult.success ? "email_sent" : "email_failed",
         actionDescription: emailResult.success
-          ? `📧 Email sent to ${args.to}: "${args.subject}"`
+          ? `📧 Email sent to ${args.to}: "${args.subject}"${attachmentInfo}`
           : `❌ Email failed to ${args.to}: ${emailResult.message}`,
       };
     }

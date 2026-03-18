@@ -64,6 +64,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
 import type { AgentTask } from "@shared/schema";
 import TasksPanel from "@/components/tasks-panel";
+import { FeedbackButton } from "@/components/feedback-dialog";
 import { useAnalytics } from "@/lib/analytics";
 
 interface AgentAction {
@@ -966,16 +967,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
 
           <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap">
             {user && (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={startNewConversation}
-                className="h-8 text-xs gap-1.5 border-primary/20 text-primary hover:bg-primary/10 hover:text-primary shrink-0"
-                data-testid="button-header-new-chat"
-              >
-                <MessageSquarePlus className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">{t("demoPage.newChat")}</span>
-              </Button>
+              <FeedbackButton variant="header" />
             )}
             {user && isSocialMediaAgent && (
               <div className="relative">
@@ -2101,6 +2093,17 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
           </div>
         </div>
        </div>
+
+        {user && (
+          <button
+            onClick={startNewConversation}
+            className="fixed bottom-20 left-4 z-40 w-11 h-11 rounded-full bg-gradient-to-r from-blue-500 to-violet-500 text-white shadow-xl shadow-blue-500/25 flex items-center justify-center hover:scale-110 hover:shadow-blue-500/40 transition-all duration-200 ring-2 ring-white/10"
+            title={t("demoPage.newChat")}
+            data-testid="button-floating-new-chat"
+          >
+            <MessageSquarePlus className="w-5 h-5" />
+          </button>
+        )}
 
         {showTasksPanel && user && (
           <>

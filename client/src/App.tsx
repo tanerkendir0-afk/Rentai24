@@ -13,7 +13,6 @@ import Footer from "@/components/footer";
 import CookieConsent from "@/components/cookie-consent";
 import OnboardingDialog from "@/components/onboarding-dialog";
 import NpsSurvey from "@/components/nps-survey";
-import { FeedbackButton } from "@/components/feedback-dialog";
 import Home from "@/pages/home";
 import Workers from "@/pages/workers";
 import WorkerProfile from "@/pages/worker-profile";
@@ -93,7 +92,6 @@ function AppContent() {
         <CookieConsent />
         <OnboardingDialog />
         <NpsSurvey />
-        <FeedbackButton />
       </div>
     </>
   );

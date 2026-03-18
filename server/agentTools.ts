@@ -17,6 +17,7 @@ import { generateInvoiceExcel } from "./services/invoiceExcelGenerator";
 import { generateMizan, generateBordro, generateGelirTablosu, generateKdvOzet, generateBilanco } from "./services/reportGenerator";
 import { hesaplaKDV, hesaplaBordro, hesaplaAmortisman, hesaplaKurDegerlemesi, hesaplaStopaj, formatYevmiyeKaydi, yevmiyeToMarkdown, formatTL } from "./services/calculationService";
 import { handleGeneratePdf } from "./services/pdfBrandingService";
+import { parseCVText, calculateMatchScore } from "./services/cvParserService";
 import { db } from "./db";
 import { invoices, invoiceItems } from "@shared/schema";
 import type { UserBranding } from "@shared/schema";
@@ -1675,6 +1676,178 @@ export const hrRecruitingTools: OpenAI.ChatCompletionTool[] = [
           body: { type: "string", description: "Email body" },
         },
         required: ["to", "subject", "body"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "upload_cv",
+      description: "Parse CV/resume text and create a candidate profile with extracted skills, contact info, and automatically score against an active job posting.",
+      parameters: {
+        type: "object",
+        properties: {
+          cv_text: { type: "string", description: "The full text of the candidate's CV/resume" },
+          job_posting_id: { type: "string", description: "Optional job posting ID (e.g. JOB-ABC123) to score the candidate against" },
+          override_name: { type: "string", description: "Override detected name if known" },
+        },
+        required: ["cv_text"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "list_candidates",
+      description: "List all candidates, optionally filtered by job posting or sorted by score.",
+      parameters: {
+        type: "object",
+        properties: {
+          job_posting_id: { type: "string", description: "Filter by job posting ID" },
+          sort_by_score: { type: "boolean", description: "Sort by match score descending" },
+          top_n: { type: "number", description: "Return only top N candidates" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_candidate_detail",
+      description: "Get detailed information about a specific candidate including their skills, applications, and scores.",
+      parameters: {
+        type: "object",
+        properties: {
+          candidate_id: { type: "number", description: "The numeric candidate ID" },
+        },
+        required: ["candidate_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "score_candidate",
+      description: "Score a specific candidate against a job posting and update their application score.",
+      parameters: {
+        type: "object",
+        properties: {
+          candidate_id: { type: "number", description: "The numeric candidate ID" },
+          job_posting_id: { type: "string", description: "The job posting ID (e.g. JOB-ABC123)" },
+        },
+        required: ["candidate_id", "job_posting_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "bulk_score_candidates",
+      description: "Score all candidates that applied to a specific job posting and rank them by fit.",
+      parameters: {
+        type: "object",
+        properties: {
+          job_posting_id: { type: "string", description: "The job posting ID to score all candidates for" },
+        },
+        required: ["job_posting_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "update_application_status",
+      description: "Update the status of a candidate's application in the pipeline. Valid statuses: new, screening, interview_scheduled, interviewed, offer, hired, rejected.",
+      parameters: {
+        type: "object",
+        properties: {
+          candidate_id: { type: "number", description: "The candidate ID" },
+          job_posting_id: { type: "string", description: "The job posting ID" },
+          status: {
+            type: "string",
+            enum: ["new", "screening", "interview_scheduled", "interviewed", "offer", "hired", "rejected"],
+            description: "New status for the application",
+          },
+          notes: { type: "string", description: "Optional notes about the status change" },
+        },
+        required: ["candidate_id", "status"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "schedule_interview",
+      description: "Schedule an interview for a candidate. Updates application status to interview_scheduled and records the date.",
+      parameters: {
+        type: "object",
+        properties: {
+          candidate_id: { type: "number", description: "The candidate ID" },
+          job_posting_id: { type: "string", description: "The job posting ID" },
+          interview_date: { type: "string", description: "Interview date and time (ISO 8601 format or natural language)" },
+          notes: { type: "string", description: "Interview notes or instructions" },
+        },
+        required: ["candidate_id", "interview_date"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "list_job_postings",
+      description: "List all job postings, optionally filtered by status.",
+      parameters: {
+        type: "object",
+        properties: {
+          status: { type: "string", enum: ["open", "closed", "draft"], description: "Filter by status" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "hiring_pipeline_summary",
+      description: "Show the hiring pipeline summary — how many candidates are at each stage.",
+      parameters: {
+        type: "object",
+        properties: {
+          job_posting_id: { type: "string", description: "Optional: filter by specific job posting" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "generate_offer_letter",
+      description: "Generate a professional offer letter for a candidate.",
+      parameters: {
+        type: "object",
+        properties: {
+          candidate_id: { type: "number", description: "The candidate ID" },
+          job_title: { type: "string", description: "Job title being offered" },
+          salary: { type: "string", description: "Offered salary (e.g. '120,000 TL/month')" },
+          start_date: { type: "string", description: "Proposed start date" },
+          additional_benefits: { type: "string", description: "Additional benefits or terms" },
+        },
+        required: ["candidate_id", "job_title", "salary"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "generate_rejection_email",
+      description: "Generate a professional, empathetic rejection email for a candidate.",
+      parameters: {
+        type: "object",
+        properties: {
+          candidate_id: { type: "number", description: "The candidate ID" },
+          job_title: { type: "string", description: "Job title they applied for" },
+          reason: { type: "string", description: "Brief reason (optional, for personalization)" },
+        },
+        required: ["candidate_id", "job_title"],
       },
     },
   },
@@ -5841,16 +6014,32 @@ ${activeRentals.map(r => `  ${r.agentType}: ${r.messagesUsed}/${r.messagesLimit}
       const salaryRange = args.salary_range ? String(args.salary_range) : null;
 
       const postingId = `JOB-${Date.now().toString(36).toUpperCase()}`;
+      const requiredSkills = requirements
+        ? requirements.split(/,|;/).map((s: string) => s.trim()).filter((s: string) => s.length > 0)
+        : [];
+
+      const savedPosting = await storage.createJobPosting({
+        userId,
+        postingId,
+        title,
+        department: dept,
+        type,
+        description,
+        requirements,
+        requiredSkills,
+        salaryRange,
+        status: "open",
+      });
 
       await storage.createAgentAction({
         userId, agentType,
         actionType: "job_posting_created",
         description: `📋 Job posting created: ${title} (${dept}, ${type})`,
-        metadata: { postingId, title, department: dept, type, description, requirements, salaryRange },
+        metadata: { postingId, title, department: dept, type, description, requirements, salaryRange, dbId: savedPosting.id },
       });
 
       return {
-        result: `Job posting ${postingId} created!\n\n📋 ${title}\nDepartment: ${dept}\nType: ${type}${salaryRange ? `\nSalary: ${salaryRange}` : ""}\n\nDescription: ${description}\n${requirements ? `\nRequirements: ${requirements}` : ""}\n\nI'll format this as a professional job posting.`,
+        result: `Job posting **${postingId}** created and saved!\n\n📋 **${title}**\nDepartment: ${dept}\nType: ${type}${salaryRange ? `\nSalary: ${salaryRange}` : ""}\n\nDescription: ${description}\n${requirements ? `\nRequirements: ${requirements}` : ""}\n\nCandidates can now be uploaded and scored against this posting using the posting ID: **${postingId}**`,
         actionType: "job_posting_created",
         actionDescription: `📋 Job posting: ${title} (${type})`,
       };
@@ -5920,6 +6109,399 @@ ${activeRentals.map(r => `  ${r.agentType}: ${r.messagesUsed}/${r.messagesLimit}
         actionDescription: emailResult.success
           ? `📧 Candidate email sent to ${args.to}`
           : `❌ Email failed to ${args.to}`,
+      };
+    }
+
+    case "upload_cv": {
+      const cvText = String(args.cv_text);
+      const jobPostingIdStr = args.job_posting_id ? String(args.job_posting_id) : null;
+      const overrideName = args.override_name ? String(args.override_name) : null;
+
+      const parsed = parseCVText(cvText);
+      const candidateName = overrideName || parsed.name;
+
+      const candidate = await storage.createCandidate({
+        userId,
+        name: candidateName,
+        email: parsed.email,
+        phone: parsed.phone,
+        linkedinUrl: parsed.linkedinUrl,
+        skills: parsed.skills,
+        cvText,
+      });
+
+      let scoreInfo = "";
+      if (jobPostingIdStr) {
+        const posting = await storage.getJobPostingByPostingId(jobPostingIdStr, userId);
+        if (posting) {
+          const score = calculateMatchScore(parsed.skills, posting.requiredSkills);
+          const application = await storage.createApplication({
+            userId,
+            candidateId: candidate.id,
+            jobPostingId: posting.id,
+            status: "new",
+            score,
+          });
+          scoreInfo = `\n\n📊 **Match Score against ${posting.title}:** ${score}/100\nApplication ID: #${application.id}`;
+        }
+      }
+
+      await storage.createAgentAction({
+        userId, agentType,
+        actionType: "cv_uploaded",
+        description: `📄 CV uploaded: ${candidateName}`,
+        metadata: { candidateId: candidate.id, name: candidateName, email: parsed.email, skillCount: parsed.skills.length },
+      });
+
+      return {
+        result: `✅ Candidate profile created!\n\n**Name:** ${candidateName}\n**Email:** ${parsed.email || "Not found"}\n**Phone:** ${parsed.phone || "Not found"}\n**LinkedIn:** ${parsed.linkedinUrl || "Not found"}\n**Skills detected (${parsed.skills.length}):** ${parsed.skills.join(", ") || "None detected"}\n**Candidate ID:** #${candidate.id}${scoreInfo}`,
+        actionType: "cv_uploaded",
+        actionDescription: `📄 CV: ${candidateName}`,
+      };
+    }
+
+    case "list_candidates": {
+      const jobPostingIdFilter = args.job_posting_id ? String(args.job_posting_id) : null;
+      const sortByScore = args.sort_by_score === true;
+      const topN = args.top_n ? Number(args.top_n) : null;
+
+      interface CandidateListItem {
+        id: number;
+        name: string;
+        email: string | null;
+        skills: string[];
+        score?: number | null;
+        status?: string;
+      }
+      let candidateList: CandidateListItem[] = [];
+
+      if (jobPostingIdFilter) {
+        const posting = await storage.getJobPostingByPostingId(jobPostingIdFilter, userId);
+        if (!posting) {
+          return { result: `Job posting ${jobPostingIdFilter} not found.`, actionType: "list_candidates", actionDescription: "📋 List candidates" };
+        }
+        const appsWithCandidates = await storage.getCandidatesWithScoresForJob(posting.id, userId);
+        candidateList = appsWithCandidates.map(a => ({
+          id: a.candidate.id,
+          name: a.candidate.name,
+          email: a.candidate.email,
+          skills: a.candidate.skills,
+          score: a.score,
+          status: a.status,
+        }));
+        if (sortByScore) candidateList.sort((a, b) => (b.score || 0) - (a.score || 0));
+      } else {
+        const allCandidates = await storage.getCandidates(userId);
+        candidateList = allCandidates.map(c => ({ id: c.id, name: c.name, email: c.email, skills: c.skills }));
+      }
+
+      if (topN) candidateList = candidateList.slice(0, topN);
+
+      const formatted = candidateList.map((c, i) =>
+        `${i + 1}. **${c.name}** (ID: #${c.id})${c.email ? ` — ${c.email}` : ""}${c.score !== undefined ? ` — Score: ${c.score}/100` : ""}${c.status ? ` — Status: ${c.status}` : ""}\n   Skills: ${Array.isArray(c.skills) ? c.skills.slice(0, 5).join(", ") : "N/A"}`
+      ).join("\n");
+
+      return {
+        result: candidateList.length > 0
+          ? `Found ${candidateList.length} candidate(s):\n\n${formatted}`
+          : "No candidates found.",
+        actionType: "list_candidates",
+        actionDescription: `📋 Listed ${candidateList.length} candidates`,
+      };
+    }
+
+    case "get_candidate_detail": {
+      const candidateId = Number(args.candidate_id);
+      const candidate = await storage.getCandidateById(candidateId, userId);
+      if (!candidate) {
+        return { result: `Candidate #${candidateId} not found.`, actionType: "get_candidate_detail", actionDescription: "👤 Candidate detail" };
+      }
+
+      const allApps = await storage.getApplications(userId);
+      const candidateApps = allApps.filter(a => a.candidateId === candidateId);
+
+      const appsFormatted = candidateApps.length > 0
+        ? candidateApps.map(a => `  - Application #${a.id} | Status: ${a.status} | Score: ${a.score ?? "N/A"}/100`).join("\n")
+        : "  No applications.";
+
+      return {
+        result: `**${candidate.name}** (ID: #${candidate.id})\n\n📧 Email: ${candidate.email || "N/A"}\n📞 Phone: ${candidate.phone || "N/A"}\n🔗 LinkedIn: ${candidate.linkedinUrl || "N/A"}\n\n**Skills (${candidate.skills.length}):** ${candidate.skills.join(", ") || "None"}\n\n**Applications:**\n${appsFormatted}\n\n**Notes:** ${candidate.notes || "None"}`,
+        actionType: "get_candidate_detail",
+        actionDescription: `👤 Candidate: ${candidate.name}`,
+      };
+    }
+
+    case "score_candidate": {
+      const candidateId = Number(args.candidate_id);
+      const jobPostingIdStr = String(args.job_posting_id);
+
+      const candidate = await storage.getCandidateById(candidateId, userId);
+      if (!candidate) {
+        return { result: `Candidate #${candidateId} not found.`, actionType: "score_candidate", actionDescription: "📊 Score candidate" };
+      }
+
+      const posting = await storage.getJobPostingByPostingId(jobPostingIdStr, userId);
+      if (!posting) {
+        return { result: `Job posting ${jobPostingIdStr} not found.`, actionType: "score_candidate", actionDescription: "📊 Score candidate" };
+      }
+
+      const score = calculateMatchScore(candidate.skills, posting.requiredSkills);
+
+      const existingApps = await storage.getApplications(userId, { jobPostingId: posting.id });
+      const existing = existingApps.find(a => a.candidateId === candidateId);
+
+      let appId: number;
+      if (existing) {
+        await storage.updateApplicationScore(existing.id, userId, score);
+        appId = existing.id;
+      } else {
+        const newApp = await storage.createApplication({ userId, candidateId, jobPostingId: posting.id, status: "new", score });
+        appId = newApp.id;
+      }
+
+      const matchedSkills = candidate.skills.filter(s =>
+        posting.requiredSkills.some(r => r.toLowerCase().includes(s.toLowerCase()) || s.toLowerCase().includes(r.toLowerCase()))
+      );
+
+      return {
+        result: `📊 **Score: ${score}/100**\n\nCandidate: ${candidate.name}\nJob: ${posting.title} (${jobPostingIdStr})\n\n✅ Matched skills (${matchedSkills.length}): ${matchedSkills.join(", ") || "None"}\n📋 Application #${appId} updated`,
+        actionType: "candidate_scored",
+        actionDescription: `📊 ${candidate.name} scored ${score}/100 for ${posting.title}`,
+      };
+    }
+
+    case "bulk_score_candidates": {
+      const jobPostingIdStr = String(args.job_posting_id);
+      const posting = await storage.getJobPostingByPostingId(jobPostingIdStr, userId);
+      if (!posting) {
+        return { result: `Job posting ${jobPostingIdStr} not found.`, actionType: "bulk_score_candidates", actionDescription: "📊 Bulk score" };
+      }
+
+      const appsWithCandidates = await storage.getCandidatesWithScoresForJob(posting.id, userId);
+      if (appsWithCandidates.length === 0) {
+        return { result: `No candidates found for ${jobPostingIdStr}.`, actionType: "bulk_score_candidates", actionDescription: "📊 Bulk score" };
+      }
+
+      const scored: { name: string; score: number; appId: number }[] = [];
+      for (const app of appsWithCandidates) {
+        const score = calculateMatchScore(app.candidate.skills, posting.requiredSkills);
+        await storage.updateApplicationScore(app.id, userId, score);
+        scored.push({ name: app.candidate.name, score, appId: app.id });
+      }
+
+      scored.sort((a, b) => b.score - a.score);
+      const ranking = scored.map((s, i) => `${i + 1}. **${s.name}** — ${s.score}/100`).join("\n");
+
+      return {
+        result: `📊 **Bulk Scoring Complete for ${posting.title}** (${jobPostingIdStr})\n\nScored ${scored.length} applicant(s) already linked to this posting:\n\n${ranking}\n\n_Note: Only candidates who applied to this specific posting are ranked. To add more candidates, use upload_cv with job_posting_id=${jobPostingIdStr}._`,
+        actionType: "bulk_scored",
+        actionDescription: `📊 Bulk scored ${scored.length} candidates for ${posting.title}`,
+      };
+    }
+
+    case "update_application_status": {
+      const candidateId = Number(args.candidate_id);
+      const status = String(args.status);
+      const notes = args.notes ? String(args.notes) : undefined;
+      const jobPostingIdStr = args.job_posting_id ? String(args.job_posting_id) : null;
+
+      const candidate = await storage.getCandidateById(candidateId, userId);
+      if (!candidate) {
+        return { result: `Candidate #${candidateId} not found.`, actionType: "update_application_status", actionDescription: "📋 Update status" };
+      }
+
+      let appId: number | null = null;
+      if (jobPostingIdStr) {
+        const posting = await storage.getJobPostingByPostingId(jobPostingIdStr, userId);
+        if (posting) {
+          const apps = await storage.getApplications(userId, { jobPostingId: posting.id });
+          const app = apps.find(a => a.candidateId === candidateId);
+          if (app) {
+            await storage.updateApplicationStatus(app.id, userId, status, notes);
+            appId = app.id;
+          }
+        }
+      } else {
+        const allApps = await storage.getApplications(userId);
+        const app = allApps.find(a => a.candidateId === candidateId);
+        if (app) {
+          await storage.updateApplicationStatus(app.id, userId, status, notes);
+          appId = app.id;
+        }
+      }
+
+      const statusEmoji: Record<string, string> = {
+        new: "🆕", screening: "🔍", interview_scheduled: "📅", interviewed: "🎯",
+        offer: "📄", hired: "✅", rejected: "❌",
+      };
+
+      return {
+        result: appId
+          ? `${statusEmoji[status] || "📋"} Application status updated!\n\nCandidate: **${candidate.name}**\nNew Status: **${status}**${notes ? `\nNotes: ${notes}` : ""}${appId ? `\nApplication #${appId}` : ""}`
+          : `Candidate ${candidate.name} found but no matching application. Status not updated.`,
+        actionType: "application_status_updated",
+        actionDescription: `${statusEmoji[status] || "📋"} ${candidate.name} → ${status}`,
+      };
+    }
+
+    case "schedule_interview": {
+      const candidateId = Number(args.candidate_id);
+      const interviewDateStr = String(args.interview_date);
+      const notes = args.notes ? String(args.notes) : undefined;
+      const jobPostingIdStr = args.job_posting_id ? String(args.job_posting_id) : null;
+
+      const candidate = await storage.getCandidateById(candidateId, userId);
+      if (!candidate) {
+        return { result: `Candidate #${candidateId} not found.`, actionType: "schedule_interview", actionDescription: "📅 Schedule interview" };
+      }
+
+      const interviewDate = new Date(interviewDateStr);
+      const isValidDate = !isNaN(interviewDate.getTime());
+
+      let appId: number | null = null;
+      if (jobPostingIdStr) {
+        const posting = await storage.getJobPostingByPostingId(jobPostingIdStr, userId);
+        if (posting) {
+          const apps = await storage.getApplications(userId, { jobPostingId: posting.id });
+          const app = apps.find(a => a.candidateId === candidateId);
+          if (app) {
+            await storage.updateApplicationStatus(app.id, userId, "interview_scheduled", notes, isValidDate ? interviewDate : undefined);
+            appId = app.id;
+          }
+        }
+      } else {
+        const allApps = await storage.getApplications(userId);
+        const app = allApps.find(a => a.candidateId === candidateId);
+        if (app) {
+          await storage.updateApplicationStatus(app.id, userId, "interview_scheduled", notes, isValidDate ? interviewDate : undefined);
+          appId = app.id;
+        }
+      }
+
+      if (!appId) {
+        return {
+          result: `❌ Could not schedule interview: No application found for **${candidate.name}**${jobPostingIdStr ? ` for job ${jobPostingIdStr}` : ""}. Please ensure the candidate has an application first (use upload_cv with a job_posting_id).`,
+          actionType: "interview_schedule_failed",
+          actionDescription: `❌ Interview not scheduled: no application for ${candidate.name}`,
+        };
+      }
+
+      return {
+        result: `📅 **Interview Scheduled!**\n\nCandidate: **${candidate.name}**\nDate: **${interviewDateStr}**${notes ? `\nNotes: ${notes}` : ""}\nApplication #${appId} updated to 'interview_scheduled'`,
+        actionType: "interview_scheduled",
+        actionDescription: `📅 Interview: ${candidate.name} on ${interviewDateStr}`,
+      };
+    }
+
+    case "list_job_postings": {
+      const statusFilter = args.status ? String(args.status) : undefined;
+      const postings = await storage.getJobPostings(userId, statusFilter);
+
+      if (postings.length === 0) {
+        return { result: "No job postings found. Use 'create_job_posting' to create one.", actionType: "list_job_postings", actionDescription: "📋 List job postings" };
+      }
+
+      const formatted = postings.map((p, i) =>
+        `${i + 1}. **${p.title}** (${p.postingId})\n   Dept: ${p.department} | Type: ${p.type} | Status: ${p.status}${p.salaryRange ? ` | Salary: ${p.salaryRange}` : ""}\n   Skills required: ${p.requiredSkills.slice(0, 5).join(", ") || "Not specified"}`
+      ).join("\n\n");
+
+      return {
+        result: `Found ${postings.length} job posting(s):\n\n${formatted}`,
+        actionType: "list_job_postings",
+        actionDescription: `📋 Listed ${postings.length} job postings`,
+      };
+    }
+
+    case "hiring_pipeline_summary": {
+      const jobPostingIdStr = args.job_posting_id ? String(args.job_posting_id) : null;
+
+      let summary: { status: string; count: number }[] = [];
+      let title = "All Positions";
+
+      if (jobPostingIdStr) {
+        const posting = await storage.getJobPostingByPostingId(jobPostingIdStr, userId);
+        if (posting) {
+          const apps = await storage.getApplications(userId, { jobPostingId: posting.id });
+          const grouped: Record<string, number> = {};
+          for (const app of apps) {
+            grouped[app.status] = (grouped[app.status] || 0) + 1;
+          }
+          summary = Object.entries(grouped).map(([status, count]) => ({ status, count }));
+          title = posting.title;
+        }
+      } else {
+        summary = await storage.getPipelineSummary(userId);
+      }
+
+      const total = summary.reduce((sum, s) => sum + s.count, 0);
+      const stageEmoji: Record<string, string> = {
+        new: "🆕", screening: "🔍", interview_scheduled: "📅", interviewed: "🎯",
+        offer: "📄", hired: "✅", rejected: "❌",
+      };
+
+      const formatted = summary.map(s =>
+        `${stageEmoji[s.status] || "•"} **${s.status.replace(/_/g, " ").toUpperCase()}**: ${s.count} candidate${s.count !== 1 ? "s" : ""}`
+      ).join("\n");
+
+      return {
+        result: `📊 **Hiring Pipeline: ${title}**\n\nTotal: ${total} application(s)\n\n${formatted || "No applications yet."}`,
+        actionType: "pipeline_summary",
+        actionDescription: `📊 Pipeline: ${total} applications`,
+      };
+    }
+
+    case "generate_offer_letter": {
+      const candidateId = Number(args.candidate_id);
+      const jobTitle = String(args.job_title);
+      const salary = String(args.salary);
+      const startDate = args.start_date ? String(args.start_date) : "To be discussed";
+      const benefits = args.additional_benefits ? String(args.additional_benefits) : "";
+
+      const candidate = await storage.getCandidateById(candidateId, userId);
+      const candidateName = candidate?.name || `Candidate #${candidateId}`;
+
+      const today = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+
+      const letter = `**OFFER LETTER**\n\nDate: ${today}\n\nDear ${candidateName},\n\nWe are delighted to offer you the position of **${jobTitle}** at our company.\n\n**Compensation:** ${salary}\n**Start Date:** ${startDate}${benefits ? `\n**Additional Benefits:** ${benefits}` : ""}\n\nThis offer is contingent upon successful completion of any required background checks and reference verifications. Please review the terms and confirm your acceptance within 5 business days.\n\nWe look forward to welcoming you to our team!\n\nSincerely,\n[HR Manager]\n[Company Name]`;
+
+      await storage.createAgentAction({
+        userId, agentType,
+        actionType: "offer_letter_generated",
+        description: `📄 Offer letter: ${candidateName} for ${jobTitle}`,
+        metadata: { candidateId, candidateName, jobTitle, salary },
+      });
+
+      return {
+        result: letter,
+        actionType: "offer_letter_generated",
+        actionDescription: `📄 Offer: ${candidateName} → ${jobTitle}`,
+      };
+    }
+
+    case "generate_rejection_email": {
+      const candidateId = Number(args.candidate_id);
+      const jobTitle = String(args.job_title);
+      const reason = args.reason ? String(args.reason) : "";
+
+      const candidate = await storage.getCandidateById(candidateId, userId);
+      const candidateName = candidate?.name || `Candidate #${candidateId}`;
+      const candidateEmail = candidate?.email || "their email";
+
+      const today = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+
+      const email = `**REJECTION EMAIL**\n\nTo: ${candidateEmail}\nSubject: Your Application for ${jobTitle}\n\nDate: ${today}\n\nDear ${candidateName},\n\nThank you for taking the time to apply for the **${jobTitle}** position and for your interest in joining our team.\n\nAfter careful consideration of your application${reason ? ` — noting that ${reason} —` : ","} we have decided to move forward with other candidates whose qualifications more closely match our current needs.\n\nThis was a difficult decision, as we were impressed by your background. We encourage you to apply for future openings that align with your experience.\n\nWe wish you all the best in your job search.\n\nWarm regards,\n[HR Team]\n[Company Name]`;
+
+      await storage.createAgentAction({
+        userId, agentType,
+        actionType: "rejection_email_generated",
+        description: `📧 Rejection email: ${candidateName} for ${jobTitle}`,
+        metadata: { candidateId, candidateName, jobTitle },
+      });
+
+      return {
+        result: email,
+        actionType: "rejection_email_generated",
+        actionDescription: `📧 Rejection: ${candidateName} for ${jobTitle}`,
       };
     }
 

@@ -1094,3 +1094,72 @@ export const insertUploadedFileSchema = createInsertSchema(uploadedFiles).omit({
 
 export type UploadedFile = typeof uploadedFiles.$inferSelect;
 export type InsertUploadedFile = z.infer<typeof insertUploadedFileSchema>;
+
+export const jobPostings = pgTable("job_postings", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  postingId: text("posting_id").notNull().unique(),
+  title: text("title").notNull(),
+  department: text("department").notNull().default("General"),
+  type: text("type").notNull().default("full-time"),
+  description: text("description").notNull(),
+  requirements: text("requirements").notNull().default(""),
+  requiredSkills: text("required_skills").array().notNull().default([]),
+  salaryRange: text("salary_range"),
+  location: text("location"),
+  status: text("status").notNull().default("open"),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+  updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
+export const insertJobPostingSchema = createInsertSchema(jobPostings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type JobPosting = typeof jobPostings.$inferSelect;
+export type InsertJobPosting = z.infer<typeof insertJobPostingSchema>;
+
+export const candidates = pgTable("candidates", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  name: text("name").notNull(),
+  email: text("email"),
+  phone: text("phone"),
+  linkedinUrl: text("linkedin_url"),
+  skills: text("skills").array().notNull().default([]),
+  cvText: text("cv_text"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
+export const insertCandidateSchema = createInsertSchema(candidates).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type Candidate = typeof candidates.$inferSelect;
+export type InsertCandidate = z.infer<typeof insertCandidateSchema>;
+
+export const applications = pgTable("applications", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  candidateId: integer("candidate_id").notNull().references(() => candidates.id),
+  jobPostingId: integer("job_posting_id").notNull().references(() => jobPostings.id),
+  status: text("status").notNull().default("new"),
+  score: integer("score"),
+  interviewDate: timestamp("interview_date"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+  updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
+export const insertApplicationSchema = createInsertSchema(applications).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type Application = typeof applications.$inferSelect;
+export type InsertApplication = z.infer<typeof insertApplicationSchema>;

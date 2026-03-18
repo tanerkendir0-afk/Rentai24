@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { users, rentals, contactMessages, newsletterSubscribers, leads, agentActions, emailCampaigns, supportTickets, tokenUsage, agentTasks, chatMessages, conversations, teamMembers, bossNotifications, socialAccounts, shippingProviders, guardrailLogs, systemSettings, scheduledPosts, whatsappConfig, whatsappMessages, agentLimits, escalationRules, escalations, escalationMessages, agentInstructions, globalAgentInstructions, consentLogs, crmDocuments, securityEvents, pageViews, userEvents, feedback, rexContacts, rexDeals, rexActivities, rexSequences, rexStageHistory, rexScoreHistory, rexStageConfig, LEAD_SOURCE_VALUES, CUSTOMER_SEGMENT_VALUES, DEAL_STAGE_VALUES, ACTIVITY_TYPE_VALUES, SEQUENCE_STATUS_VALUES, type User, type InsertUser, type Rental, type InsertRental, type ContactMessage, type InsertContactMessage, type NewsletterSubscriber, type Lead, type InsertLead, type AgentAction, type InsertAgentAction, type EmailCampaign, type InsertEmailCampaign, type SupportTicket, type InsertSupportTicket, type TokenUsage, type InsertTokenUsage, type AgentTask, type InsertAgentTask, type ChatMessage, type InsertChatMessage, type ConversationRecord, type InsertConversation, type TeamMember, type InsertTeamMember, type BossNotification, type InsertBossNotification, type SocialAccount, type InsertSocialAccount, type ShippingProvider, type InsertShippingProvider, type GuardrailLog, type ScheduledPost, type InsertScheduledPost, type WhatsappConfig, type InsertWhatsappConfig, type WhatsappMessage, type InsertWhatsappMessage, type AgentLimit, type InsertAgentLimit, type EscalationRule, type InsertEscalationRule, type Escalation, type InsertEscalation, type EscalationMessage, type InsertEscalationMessage, type AgentInstruction, type InsertAgentInstruction, type GlobalAgentInstruction, type ConsentLog, type InsertConsentLog, type CrmDocument, type InsertCrmDocument, type PageView, type InsertPageView, type UserEvent, type InsertUserEvent, type Feedback, type InsertFeedback, type RexContact, type InsertRexContact, type RexDeal, type InsertRexDeal, type RexActivity, type InsertRexActivity, type RexSequence, type InsertRexSequence, type RexStageHistory, type RexScoreHistory, type RexStageConfig, type LeadSourceValue, type CustomerSegmentValue, type DealStageValue, type ActivityTypeValue, type SequenceStatusValue } from "@shared/schema";
+import { users, rentals, contactMessages, newsletterSubscribers, leads, agentActions, emailCampaigns, supportTickets, tokenUsage, agentTasks, chatMessages, conversations, teamMembers, bossNotifications, socialAccounts, shippingProviders, guardrailLogs, systemSettings, scheduledPosts, whatsappConfig, whatsappMessages, agentLimits, escalationRules, escalations, escalationMessages, agentInstructions, globalAgentInstructions, consentLogs, crmDocuments, securityEvents, pageViews, userEvents, feedback, rexContacts, rexDeals, rexActivities, rexSequences, rexStageHistory, rexScoreHistory, rexStageConfig, jobPostings, candidates, applications, LEAD_SOURCE_VALUES, CUSTOMER_SEGMENT_VALUES, DEAL_STAGE_VALUES, ACTIVITY_TYPE_VALUES, SEQUENCE_STATUS_VALUES, type User, type InsertUser, type Rental, type InsertRental, type ContactMessage, type InsertContactMessage, type NewsletterSubscriber, type Lead, type InsertLead, type AgentAction, type InsertAgentAction, type EmailCampaign, type InsertEmailCampaign, type SupportTicket, type InsertSupportTicket, type TokenUsage, type InsertTokenUsage, type AgentTask, type InsertAgentTask, type ChatMessage, type InsertChatMessage, type ConversationRecord, type InsertConversation, type TeamMember, type InsertTeamMember, type BossNotification, type InsertBossNotification, type SocialAccount, type InsertSocialAccount, type ShippingProvider, type InsertShippingProvider, type GuardrailLog, type ScheduledPost, type InsertScheduledPost, type WhatsappConfig, type InsertWhatsappConfig, type WhatsappMessage, type InsertWhatsappMessage, type AgentLimit, type InsertAgentLimit, type EscalationRule, type InsertEscalationRule, type Escalation, type InsertEscalation, type EscalationMessage, type InsertEscalationMessage, type AgentInstruction, type InsertAgentInstruction, type GlobalAgentInstruction, type ConsentLog, type InsertConsentLog, type CrmDocument, type InsertCrmDocument, type PageView, type InsertPageView, type UserEvent, type InsertUserEvent, type Feedback, type InsertFeedback, type JobPosting, type InsertJobPosting, type Candidate, type InsertCandidate, type Application, type InsertApplication, type RexContact, type InsertRexContact, type RexDeal, type InsertRexDeal, type RexActivity, type InsertRexActivity, type RexSequence, type InsertRexSequence, type RexStageHistory, type RexScoreHistory, type RexStageConfig, type LeadSourceValue, type CustomerSegmentValue, type DealStageValue, type ActivityTypeValue, type SequenceStatusValue } from "@shared/schema";
 import { eq, and, sql, desc, gte, lte } from "drizzle-orm";
 import * as cryptoModule from "crypto";
 
@@ -203,6 +203,28 @@ export interface IStorage {
   updateRexSequence(id: string, userId: number, data: Partial<InsertRexSequence>): Promise<RexSequence | undefined>;
 
   getRexStageConfig(): Promise<RexStageConfig[]>;
+
+  createJobPosting(data: InsertJobPosting): Promise<JobPosting>;
+  getJobPostings(userId: number, status?: string): Promise<JobPosting[]>;
+  getJobPostingById(id: number, userId: number): Promise<JobPosting | undefined>;
+  getJobPostingByPostingId(postingId: string, userId: number): Promise<JobPosting | undefined>;
+  updateJobPosting(id: number, userId: number, updates: Partial<InsertJobPosting>): Promise<JobPosting | undefined>;
+
+  createCandidate(data: InsertCandidate): Promise<Candidate>;
+  getCandidates(userId: number): Promise<Candidate[]>;
+  getCandidateById(id: number, userId: number): Promise<Candidate | undefined>;
+  updateCandidate(id: number, userId: number, updates: Partial<InsertCandidate>): Promise<Candidate | undefined>;
+
+  createApplication(data: InsertApplication): Promise<Application>;
+  getApplications(userId: number, filters?: { jobPostingId?: number; status?: string }): Promise<Application[]>;
+  getApplicationById(id: number, userId: number): Promise<Application | undefined>;
+  updateApplicationStatus(id: number, userId: number, status: string, notes?: string, interviewDate?: Date): Promise<Application | undefined>;
+  updateApplicationScore(id: number, userId: number, score: number): Promise<Application | undefined>;
+  getPipelineSummary(userId: number): Promise<{ status: string; count: number }[]>;
+  getCandidatesWithScoresForJob(jobPostingId: number, userId: number): Promise<(Application & { candidate: Candidate })[]>;
+  deleteJobPosting(id: number, userId: number): Promise<boolean>;
+  deleteCandidate(id: number, userId: number): Promise<boolean>;
+  deleteApplication(id: number, userId: number): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1688,6 +1710,116 @@ export class DatabaseStorage implements IStorage {
 
   async getRexStageConfig(): Promise<RexStageConfig[]> {
     return db.select().from(rexStageConfig);
+  }
+
+  async createJobPosting(data: InsertJobPosting): Promise<JobPosting> {
+    const [created] = await db.insert(jobPostings).values(data).returning();
+    return created;
+  }
+
+  async getJobPostings(userId: number, status?: string): Promise<JobPosting[]> {
+    if (status) {
+      return db.select().from(jobPostings).where(and(eq(jobPostings.userId, userId), eq(jobPostings.status, status))).orderBy(desc(jobPostings.createdAt));
+    }
+    return db.select().from(jobPostings).where(eq(jobPostings.userId, userId)).orderBy(desc(jobPostings.createdAt));
+  }
+
+  async getJobPostingById(id: number, userId: number): Promise<JobPosting | undefined> {
+    const [posting] = await db.select().from(jobPostings).where(and(eq(jobPostings.id, id), eq(jobPostings.userId, userId)));
+    return posting;
+  }
+
+  async getJobPostingByPostingId(postingId: string, userId: number): Promise<JobPosting | undefined> {
+    const [posting] = await db.select().from(jobPostings).where(and(eq(jobPostings.postingId, postingId), eq(jobPostings.userId, userId)));
+    return posting;
+  }
+
+  async updateJobPosting(id: number, userId: number, updates: Partial<InsertJobPosting>): Promise<JobPosting | undefined> {
+    const [updated] = await db.update(jobPostings).set({ ...updates, updatedAt: new Date() }).where(and(eq(jobPostings.id, id), eq(jobPostings.userId, userId))).returning();
+    return updated;
+  }
+
+  async createCandidate(data: InsertCandidate): Promise<Candidate> {
+    const [created] = await db.insert(candidates).values(data).returning();
+    return created;
+  }
+
+  async getCandidates(userId: number): Promise<Candidate[]> {
+    return db.select().from(candidates).where(eq(candidates.userId, userId)).orderBy(desc(candidates.createdAt));
+  }
+
+  async getCandidateById(id: number, userId: number): Promise<Candidate | undefined> {
+    const [candidate] = await db.select().from(candidates).where(and(eq(candidates.id, id), eq(candidates.userId, userId)));
+    return candidate;
+  }
+
+  async updateCandidate(id: number, userId: number, updates: Partial<InsertCandidate>): Promise<Candidate | undefined> {
+    const [updated] = await db.update(candidates).set(updates).where(and(eq(candidates.id, id), eq(candidates.userId, userId))).returning();
+    return updated;
+  }
+
+  async createApplication(data: InsertApplication): Promise<Application> {
+    const [created] = await db.insert(applications).values(data).returning();
+    return created;
+  }
+
+  async getApplications(userId: number, filters?: { jobPostingId?: number; status?: string }): Promise<Application[]> {
+    const conditions = [eq(applications.userId, userId)];
+    if (filters?.jobPostingId) conditions.push(eq(applications.jobPostingId, filters.jobPostingId));
+    if (filters?.status) conditions.push(eq(applications.status, filters.status));
+    return db.select().from(applications).where(and(...conditions)).orderBy(desc(applications.createdAt));
+  }
+
+  async getApplicationById(id: number, userId: number): Promise<Application | undefined> {
+    const [app] = await db.select().from(applications).where(and(eq(applications.id, id), eq(applications.userId, userId)));
+    return app;
+  }
+
+  async updateApplicationStatus(id: number, userId: number, status: string, notes?: string, interviewDate?: Date): Promise<Application | undefined> {
+    const updates: Record<string, unknown> = { status, updatedAt: new Date() };
+    if (notes !== undefined) updates.notes = notes;
+    if (interviewDate !== undefined) updates.interviewDate = interviewDate;
+    const [updated] = await db.update(applications).set(updates).where(and(eq(applications.id, id), eq(applications.userId, userId))).returning();
+    return updated;
+  }
+
+  async updateApplicationScore(id: number, userId: number, score: number): Promise<Application | undefined> {
+    const [updated] = await db.update(applications).set({ score, updatedAt: new Date() }).where(and(eq(applications.id, id), eq(applications.userId, userId))).returning();
+    return updated;
+  }
+
+  async getPipelineSummary(userId: number): Promise<{ status: string; count: number }[]> {
+    const result = await db.execute(
+      sql`SELECT status, COUNT(*)::int as count FROM applications WHERE user_id = ${userId} GROUP BY status ORDER BY status`
+    );
+    return result.rows as { status: string; count: number }[];
+  }
+
+  async getCandidatesWithScoresForJob(jobPostingId: number, userId: number): Promise<(Application & { candidate: Candidate })[]> {
+    const apps = await db.select().from(applications).where(and(eq(applications.jobPostingId, jobPostingId), eq(applications.userId, userId))).orderBy(desc(applications.score));
+    const result: (Application & { candidate: Candidate })[] = [];
+    for (const app of apps) {
+      const [candidate] = await db.select().from(candidates).where(eq(candidates.id, app.candidateId));
+      if (candidate) {
+        result.push({ ...app, candidate });
+      }
+    }
+    return result;
+  }
+
+  async deleteJobPosting(id: number, userId: number): Promise<boolean> {
+    const result = await db.delete(jobPostings).where(and(eq(jobPostings.id, id), eq(jobPostings.userId, userId))).returning();
+    return result.length > 0;
+  }
+
+  async deleteCandidate(id: number, userId: number): Promise<boolean> {
+    const result = await db.delete(candidates).where(and(eq(candidates.id, id), eq(candidates.userId, userId))).returning();
+    return result.length > 0;
+  }
+
+  async deleteApplication(id: number, userId: number): Promise<boolean> {
+    const result = await db.delete(applications).where(and(eq(applications.id, id), eq(applications.userId, userId))).returning();
+    return result.length > 0;
   }
 }
 

@@ -308,7 +308,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
   const dragCounterRef = useRef(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   const { data: rentals, isLoading: rentalsLoading } = useQuery<RentalData[]>({
     queryKey: ["/api/rentals"],
@@ -1770,7 +1770,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                       <div className="max-w-[80%] flex flex-col gap-1.5 items-start">
                         <span className="text-[11px] font-medium px-1 text-amber-400">{t("demoPage.admin")}</span>
                         <div className="rounded-2xl px-4 py-2.5 bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-foreground rounded-tl-md border border-amber-500/30" data-testid={`admin-message-${i}`}>
-                          <ChatMessageContent content={msg.content} isUser={false} />
+                          <ChatMessageContent content={msg.content} isUser={false} onSendMessage={sendMessage} isLatest={i === messages.length - 1} />
                         </div>
                       </div>
                     </motion.div>
@@ -1845,7 +1845,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                           return (
                             <>
                               {publishData && <PublishAssistantCard data={publishData} />}
-                              <ChatMessageContent content={cleanText} isUser={isUser} />
+                              <ChatMessageContent content={cleanText} isUser={isUser} onSendMessage={sendMessage} isLatest={i === messages.length - 1} />
                             </>
                           );
                         })()}
@@ -2060,13 +2060,20 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                 </button>
               )}
               <div className="flex-1 relative">
-                <input
+                <textarea
                   ref={inputRef}
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      sendMessage();
+                    }
+                  }}
                   placeholder={!user ? t("demoPage.askPlaceholder", { agent: currentAgent.persona }) : t("demoPage.messagePlaceholder", { agent: currentAgent.persona })}
                   disabled={loading}
-                  className="w-full h-11 sm:h-11 px-3 sm:px-4 pr-11 sm:pr-12 rounded-xl bg-muted/50 border border-border/50 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 transition-all disabled:opacity-50"
+                  rows={2}
+                  className="w-full min-h-[52px] max-h-[120px] px-3 sm:px-4 pr-11 sm:pr-12 py-2.5 rounded-xl bg-muted/50 border border-border/50 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 transition-all disabled:opacity-50 resize-none"
                   data-testid="input-chat"
                 />
                 {loading ? (

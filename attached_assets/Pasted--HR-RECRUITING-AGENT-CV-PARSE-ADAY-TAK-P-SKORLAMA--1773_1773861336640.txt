@@ -1,0 +1,537 @@
+# HR & RECRUITING AGENT — CV PARSE + ADAY TAKİP + SKORLAMA
+
+# ============================================================
+
+# Bu talimatı Replit Agent’a olduğu gibi yapıştır.
+
+# ============================================================
+
+HR & Recruiting Agent’ı (hr-recruiting) gerçek İK operasyonları yapabilecek şekilde
+güçlendirmek istiyorum. Şu an sadece 4 temel tool var: create_job_posting, screen_resume,
+create_interview_kit, send_candidate_email. Bunlar metin bazlı — gerçek dosya okuma,
+aday veritabanı, skorlama sistemi YOK.
+
+KOBİ’ler için en değerli: “CV’leri yükle, otomatik skorla, en uygun adayı bul, mülakat planla.”
+
+## YAPILACAKLAR:
+
+### 1. DATABASE — Aday takip sistemi (mini ATS)
+
+```sql
+-- İlanlar
+CREATE TABLE IF NOT EXISTS job_postings (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id),
+  title VARCHAR(300) NOT NULL,
+  department VARCHAR(100),
+  employment_type VARCHAR(50),      -- full-time, part-time, contract, intern, remote
+  description TEXT,
+  requirements TEXT,                 -- JSON array veya virgülle ayrılmış
+  preferred_skills TEXT,
+  salary_min INTEGER,
+  salary_max INTEGER,
+  currency VARCHAR(10) DEFAULT 'TRY',
+  location VARCHAR(200),
+  status VARCHAR(20) DEFAULT 'active',  -- active, paused, closed, filled
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Adaylar
+CREATE TABLE IF NOT EXISTS candidates (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id),
+  full_name VARCHAR(300) NOT NULL,
+  email VARCHAR(300),
+  phone VARCHAR(50),
+  linkedin_url VARCHAR(500),
+  current_title VARCHAR(300),
+  current_company VARCHAR(300),
+  experience_years INTEGER,
+  skills JSONB,                      -- ["Python", "Excel", "Satış", ...]
+  education TEXT,
+  location VARCHAR(200),
+  salary_expectation INTEGER,
+  cv_file_path TEXT,                 -- yüklenen CV dosya yolu
+  cv_text TEXT,                      -- parse edilmiş CV metin içeriği
+  notes TEXT,
+  source VARCHAR(50),                -- linkedin, kariyer.net, referral, direct
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Aday-İlan eşleştirme ve süreç takibi
+CREATE TABLE IF NOT EXISTS applications (
+  id SERIAL PRIMARY KEY,
+  candidate_id INTEGER NOT NULL REFERENCES candidates(id),
+  job_posting_id INTEGER NOT NULL REFERENCES job_postings(id),
+  status VARCHAR(30) DEFAULT 'new',  -- new, screening, interview_scheduled, interviewed, offer, hired, rejected
+  fit_score INTEGER,                 -- 0-100 otomatik skorlama
+  screening_notes TEXT,
+  interview_date TIMESTAMP,
+  interview_notes TEXT,
+  rejection_reason TEXT,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW(),
+  UNIQUE(candidate_id, job_posting_id)
+);
+```
+
+Drizzle schema’ya da ekle.
+
+### 2. BACKEND — CV Parse Servisi
+
+`server/services/cvParserService.ts` oluştur:
+
+```typescript
+// PDF ve DOCX formatındaki CV'leri parse eder
+// Bağımlılıklar: pdf-parse, mammoth (docx→html), veya pdfjs-dist
+
+import pdfParse from 'pdf-parse';
+import mammoth from 'mammoth';
+import fs from 'fs';
+
+interface ParsedCV {
+  fullText: string;
+  sections: {
+    contactInfo: {
+      name?: string;
+      email?: string;
+      phone?: string;
+      linkedin?: string;
+      location?: string;
+    };
+    summary?: string;
+    experience: {
+      title: string;
+      company: string;
+      duration: string;
+      description: string;
+    }[];
+    education: {
+      degree: string;
+      institution: string;
+      year: string;
+    }[];
+    skills: string[];
+    languages: string[];
+    certifications: string[];
+  };
+}
+
+// PDF'den metin çıkar
+async function parsePDF(filePath: string): Promise<string> {
+  const buffer = fs.readFileSync(filePath);
+  const data = await pdfParse(buffer);
+  return data.text;
+}
+
+// DOCX'den metin çıkar
+async function parseDOCX(filePath: string): Promise<string> {
+  const buffer = fs.readFileSync(filePath);
+  const result = await mammoth.extractRawText({ buffer });
+  return result.value;
+}
+
+// CV metnini yapılandır (LLM ile veya regex ile)
+// Basit regex-based extraction + LLM enrichment
+async function structureCV(rawText: string): Promise<ParsedCV> {
+  // Email regex
+  const emailMatch = rawText.match(/[\w.-]+@[\w.-]+\.\w+/);
+  // Phone regex (TR formatları)
+  const phoneMatch = rawText.match(/(\+90|0)\s*\d{3}\s*\d{3}\s*\d{2}\s*\d{2}/);
+  // LinkedIn
+  const linkedinMatch = rawText.match(/linkedin\.com\/in\/[\w-]+/);
+
+  // Skill extraction — yaygın skill keyword'leri
+  const commonSkills = [
+    "Python", "JavaScript", "TypeScript", "React", "Node.js", "SQL", "Excel",
+    "AutoCAD", "SAP", "Photoshop", "Figma", "AWS", "Docker", "Git",
+    "Satış", "Pazarlama", "Muhasebe", "İnsan Kaynakları", "Proje Yönetimi",
+    "Müşteri İlişkileri", "Liderlik", "İletişim", "Takım Çalışması",
+    "İngilizce", "Almanca", "Fransızca", "İspanyolca",
+    "SPSS", "Power BI", "Tableau", "Google Analytics",
+    "C#", ".NET", "Java", "PHP", "Flutter", "Swift", "Kotlin",
+  ];
+  const foundSkills = commonSkills.filter(s =>
+    rawText.toLowerCase().includes(s.toLowerCase())
+  );
+
+  return {
+    fullText: rawText,
+    sections: {
+      contactInfo: {
+        email: emailMatch?.[0],
+        phone: phoneMatch?.[0],
+        linkedin: linkedinMatch?.[0],
+      },
+      skills: foundSkills,
+      experience: [],  // LLM ile daha detaylı çıkarılabilir
+      education: [],
+      languages: [],
+      certifications: [],
+    },
+  };
+}
+
+// CV-İlan uyum skoru hesapla
+function calculateFitScore(cv: ParsedCV, jobRequirements: string[]): number {
+  const cvSkills = cv.sections.skills.map(s => s.toLowerCase());
+  const reqSkills = jobRequirements.map(s => s.toLowerCase().trim());
+
+  let matchCount = 0;
+  for (const req of reqSkills) {
+    if (cvSkills.some(s => s.includes(req) || req.includes(s))) {
+      matchCount++;
+    }
+  }
+
+  // Temel skor: eşleşen skill yüzdesi
+  const skillScore = reqSkills.length > 0 ? (matchCount / reqSkills.length) * 100 : 50;
+  return Math.round(Math.min(skillScore, 100));
+}
+```
+
+Bağımlılıklar: `npm install pdf-parse mammoth`
+
+### 3. BACKEND — CV Yükleme API
+
+```
+POST   /api/hr/upload-cv           — CV yükle (PDF/DOCX, max 5MB)
+GET    /api/hr/candidates           — Aday listesi
+GET    /api/hr/candidates/:id       — Aday detayı (CV metin dahil)
+GET    /api/hr/job-postings         — İlan listesi
+GET    /api/hr/applications         — Başvuru takip
+PUT    /api/hr/applications/:id     — Başvuru durumu güncelle
+```
+
+CV upload sonrası otomatik:
+
+1. Dosyayı kaydet (uploads/hr/)
+1. PDF/DOCX parse et → metin çıkar
+1. Yapılandırılmış veri çıkar (isim, email, skills)
+1. candidates tablosuna kaydet
+1. Aktif ilanlarla otomatik eşleştir ve skorla
+
+### 4. AGENT TOOL TANIMLARI
+
+`server/agentTools.ts`‘deki hrRecruitingTools dizisine şu yeni tool’ları EKLE
+(mevcut create_job_posting, screen_resume, create_interview_kit, send_candidate_email KALSIN):
+
+```typescript
+// ===== YENİ İK TOOL'LARI =====
+
+{
+  type: "function",
+  function: {
+    name: "upload_cv",
+    description: "Aday CV'si yükler. PDF veya DOCX formatında kabul eder. Otomatik olarak metin çıkarır, skill'leri belirler ve aday profili oluşturur.",
+    parameters: {
+      type: "object",
+      properties: {
+        candidate_name: { type: "string", description: "Aday adı soyadı" },
+        email: { type: "string", description: "Aday email adresi (opsiyonel)" },
+        phone: { type: "string", description: "Aday telefon (opsiyonel)" },
+        source: { type: "string", enum: ["linkedin", "kariyer_net", "indeed", "referral", "direct", "other"], description: "Aday kaynağı" },
+        job_posting_id: { type: "number", description: "Eşleştirilecek ilan ID'si (opsiyonel)" },
+        cv_text: { type: "string", description: "CV metni (dosya yükleme yerine direkt metin olarak da kabul eder)" },
+      },
+      required: ["candidate_name"],
+    },
+  },
+},
+{
+  type: "function",
+  function: {
+    name: "list_candidates",
+    description: "Aday havuzunu listeler. Filtreleme ve sıralama yapılabilir. Skill bazında, skor bazında veya ilan bazında arama yapabilir.",
+    parameters: {
+      type: "object",
+      properties: {
+        job_posting_id: { type: "number", description: "Belirli bir ilana başvuran adaylar (opsiyonel)" },
+        skills: { type: "string", description: "Aranan skill'ler (virgülle ayrılmış, opsiyonel)" },
+        min_score: { type: "number", description: "Minimum uyum skoru (0-100)" },
+        status: { type: "string", enum: ["all", "new", "screening", "interview_scheduled", "interviewed", "offer", "hired", "rejected"], description: "Başvuru durumu filtresi" },
+        sort_by: { type: "string", enum: ["score", "date", "name", "experience"], description: "Sıralama (varsayılan: score)" },
+        limit: { type: "number", description: "Maksimum sonuç (varsayılan: 20)" },
+      },
+    },
+  },
+},
+{
+  type: "function",
+  function: {
+    name: "get_candidate_detail",
+    description: "Belirli bir adayın tam profilini getirir — CV metni, skill'ler, deneyim, eğitim, başvuru geçmişi, skorlar.",
+    parameters: {
+      type: "object",
+      properties: {
+        candidate_id: { type: "number", description: "Aday ID'si" },
+      },
+      required: ["candidate_id"],
+    },
+  },
+},
+{
+  type: "function",
+  function: {
+    name: "score_candidate",
+    description: "Adayı belirli bir ilana göre skorlar. CV'deki skill'ler ile ilanın gereksinimleri karşılaştırılır ve 0-100 arası uyum skoru hesaplanır. Güçlü ve zayıf yönler belirlenir.",
+    parameters: {
+      type: "object",
+      properties: {
+        candidate_id: { type: "number", description: "Aday ID'si" },
+        job_posting_id: { type: "number", description: "İlan ID'si" },
+      },
+      required: ["candidate_id", "job_posting_id"],
+    },
+  },
+},
+{
+  type: "function",
+  function: {
+    name: "bulk_score_candidates",
+    description: "Bir ilana başvuran TÜM adayları toplu olarak skorlar ve sırayla listeler. En uygun adayları hızlıca bulmak için kullan.",
+    parameters: {
+      type: "object",
+      properties: {
+        job_posting_id: { type: "number", description: "İlan ID'si" },
+        top_n: { type: "number", description: "En yüksek skorlu kaç aday gösterilsin (varsayılan: 10)" },
+      },
+      required: ["job_posting_id"],
+    },
+  },
+},
+{
+  type: "function",
+  function: {
+    name: "update_application_status",
+    description: "Adayın başvuru durumunu günceller. Süreç aşamalarını takip eder.",
+    parameters: {
+      type: "object",
+      properties: {
+        candidate_id: { type: "number", description: "Aday ID'si" },
+        job_posting_id: { type: "number", description: "İlan ID'si" },
+        new_status: { type: "string", enum: ["screening", "interview_scheduled", "interviewed", "offer", "hired", "rejected"], description: "Yeni durum" },
+        notes: { type: "string", description: "Durum notu (opsiyonel)" },
+        rejection_reason: { type: "string", description: "Ret nedeni (rejected durumunda)" },
+        interview_date: { type: "string", description: "Mülakat tarihi (interview_scheduled durumunda, ISO format)" },
+      },
+      required: ["candidate_id", "job_posting_id", "new_status"],
+    },
+  },
+},
+{
+  type: "function",
+  function: {
+    name: "schedule_interview",
+    description: "Mülakat planlar. Adaya otomatik email gönderir, takvime ekler.",
+    parameters: {
+      type: "object",
+      properties: {
+        candidate_id: { type: "number", description: "Aday ID'si" },
+        job_posting_id: { type: "number", description: "İlan ID'si" },
+        interview_date: { type: "string", description: "Mülakat tarih ve saati (ISO format, örn: 2026-03-25T14:00)" },
+        interview_type: { type: "string", enum: ["phone", "video", "onsite", "technical", "panel"], description: "Mülakat türü" },
+        interviewer_name: { type: "string", description: "Mülakatçı adı (opsiyonel)" },
+        location_or_link: { type: "string", description: "Mülakat yeri veya video konferans linki" },
+        send_email: { type: "boolean", description: "Adaya otomatik email gönderilsin mi (varsayılan: true)" },
+      },
+      required: ["candidate_id", "job_posting_id", "interview_date", "interview_type"],
+    },
+  },
+},
+{
+  type: "function",
+  function: {
+    name: "list_job_postings",
+    description: "Mevcut iş ilanlarını listeler. Aktif, duraklatılmış veya kapatılmış ilanları gösterir. Her ilan için başvuru sayısı ve ortalama skor da döner.",
+    parameters: {
+      type: "object",
+      properties: {
+        status: { type: "string", enum: ["all", "active", "paused", "closed", "filled"], description: "İlan durumu filtresi (varsayılan: active)" },
+      },
+    },
+  },
+},
+{
+  type: "function",
+  function: {
+    name: "hiring_pipeline_summary",
+    description: "İşe alım pipeline özeti — her aşamada kaç aday var, ortalama süre, dönüşüm oranları. Genel İK dashboard'u.",
+    parameters: {
+      type: "object",
+      properties: {
+        job_posting_id: { type: "number", description: "Belirli bir ilan için (opsiyonel — belirtilmezse tüm ilanlar)" },
+      },
+    },
+  },
+},
+{
+  type: "function",
+  function: {
+    name: "generate_offer_letter",
+    description: "İş teklif mektubu taslağı oluşturur. Profesyonel formatta, pozisyon detayları, maaş, başlangıç tarihi, yan haklar dahil. PDF olarak üretilebilir.",
+    parameters: {
+      type: "object",
+      properties: {
+        candidate_id: { type: "number", description: "Aday ID'si" },
+        job_posting_id: { type: "number", description: "İlan ID'si" },
+        salary: { type: "number", description: "Teklif edilen brüt maaş (₺)" },
+        start_date: { type: "string", description: "Başlangıç tarihi" },
+        benefits: { type: "string", description: "Yan haklar (virgülle ayrılmış: yemek kartı, özel sağlık sigortası, araç vb.)" },
+        probation_period: { type: "string", description: "Deneme süresi (varsayılan: 2 ay)" },
+        additional_terms: { type: "string", description: "Ek koşullar (opsiyonel)" },
+      },
+      required: ["candidate_id", "job_posting_id", "salary", "start_date"],
+    },
+  },
+},
+{
+  type: "function",
+  function: {
+    name: "generate_rejection_email",
+    description: "Profesyonel ve empatik ret email'i oluşturur. Adayın adına, pozisyona ve duruma göre kişiselleştirilmiş mesaj.",
+    parameters: {
+      type: "object",
+      properties: {
+        candidate_id: { type: "number", description: "Aday ID'si" },
+        job_posting_id: { type: "number", description: "İlan ID'si" },
+        reason: { type: "string", enum: ["experience_mismatch", "skill_gap", "culture_fit", "position_filled", "salary_mismatch", "other"], description: "Ret nedeni" },
+        keep_in_pool: { type: "boolean", description: "Adayı gelecek pozisyonlar için havuzda tut (varsayılan: true)" },
+        custom_message: { type: "string", description: "Özel mesaj ekle (opsiyonel)" },
+      },
+      required: ["candidate_id", "job_posting_id", "reason"],
+    },
+  },
+},
+```
+
+### 5. TOOL HANDLER’LARI
+
+```typescript
+case "upload_cv":
+  return await hrService.uploadCandidate(userId, args);
+
+case "list_candidates":
+  return await hrService.listCandidates(userId, args);
+
+case "get_candidate_detail":
+  return await hrService.getCandidateDetail(userId, args.candidate_id);
+
+case "score_candidate":
+  return await hrService.scoreCandidate(userId, args.candidate_id, args.job_posting_id);
+
+case "bulk_score_candidates":
+  return await hrService.bulkScore(userId, args.job_posting_id, args.top_n);
+
+case "update_application_status":
+  return await hrService.updateApplicationStatus(userId, args);
+
+case "schedule_interview":
+  return await hrService.scheduleInterview(userId, args);
+
+case "list_job_postings":
+  return await hrService.listJobPostings(userId, args.status);
+
+case "hiring_pipeline_summary":
+  return await hrService.pipelineSummary(userId, args.job_posting_id);
+
+case "generate_offer_letter":
+  return await hrService.generateOfferLetter(userId, args);
+
+case "generate_rejection_email":
+  return await hrService.generateRejectionEmail(userId, args);
+```
+
+### 6. FRONTEND — CV Yükleme UI
+
+Chat input alanına (HR agent seçiliyken) CV yükleme desteği ekle:
+
+```tsx
+// HR agent chat'inde 📎 butonuyla PDF/DOCX yükleme
+// Kabul edilen formatlar: .pdf, .docx, .doc
+// Max 5MB
+// Yükleme sonrası otomatik: "Bu CV'yi analiz et" akışı
+
+// Aday kartı (chat'te gösterilir):
+// - İsim, mevcut pozisyon
+// - Uyum skoru (renk kodlu: yeşil >70, sarı 40-70, kırmızı <40)
+// - Skill badge'leri
+// - "Detay Gör", "Mülakat Planla", "Reddet" butonları
+```
+
+### 7. SYSTEM PROMPT GÜNCELLEMESİ
+
+HR agent’ın system prompt’una ekle:
+
+```
+## İnsan Kaynakları Yetenekleri
+
+Sen tam donanımlı bir İK asistanısın. Aday takip sistemi (ATS), CV analizi,
+skorlama ve işe alım süreç yönetimi yapabilirsin.
+
+### CV yüklendiğinde:
+1. upload_cv ile adayı kaydet
+2. Aktif ilanlar varsa otomatik score_candidate çağır
+3. Uyum skoru ve güçlü/zayıf yönleri belirt
+4. Önerilen aksiyon sun (mülakat planla, reddet, havuzda tut)
+
+### İşe alım akışı:
+- "Yazılım geliştirici arıyorum" → create_job_posting
+- "Bu CV'yi değerlendir" → upload_cv + score_candidate
+- "Tüm adayları sırala" → bulk_score_candidates
+- "En uygun 3 adayı göster" → list_candidates (sort: score, limit: 3)
+- "Ali ile mülakat planla" → schedule_interview + send_candidate_email
+- "Ayşe'yi reddet" → generate_rejection_email + update_application_status
+- "Mehmet'e teklif hazırla" → generate_offer_letter
+- "Pipeline durumu?" → hiring_pipeline_summary
+
+### Skorlama kriterleri:
+- Skill eşleşme: %50 ağırlık (ilandaki required skills vs CV skills)
+- Deneyim yılı: %20 ağırlık
+- Eğitim uyumu: %15 ağırlık
+- Ek faktörler: %15 (sertifikalar, dil, lokasyon)
+
+### Profesyonel iletişim:
+- Ret email'leri empatik ve yapıcı olmalı
+- Teklif mektupları profesyonel ve detaylı olmalı
+- Mülakat davetleri tüm bilgileri (tarih, saat, yer/link, hazırlık notları) içermeli
+- Türkçe ve İngilizce şablon desteği
+
+### KVKK uyarısı:
+- Aday verilerini gizli tut
+- Sadece yetkili kullanıcıya göster (user_id kontrolü)
+- CV'ler 90 gün sonra otomatik anonimleştir (isteğe bağlı)
+```
+
+### 8. BAĞIMLILIKLAR
+
+```bash
+npm install pdf-parse mammoth
+```
+
+### 9. GÜVENLİK
+
+- CV dosyaları max 5MB
+- Sadece .pdf, .docx, .doc kabul et
+- Her kullanıcı sadece kendi adaylarını görebilir
+- KVKK uyumlu: aday rızası olmadan 3. tarafla paylaşma
+- CV metin içeriğinde XSS/injection koruması
+
+## BEKLENEN SONUÇ
+
+Müşteri HR agent’a:
+“Senior Python Developer arıyorum, 5+ yıl deneyimli, İstanbul”
+→ create_job_posting + ilanı kaydeder
+
+“Bu 3 CV’yi değerlendir” (dosya yükler)
+→ upload_cv × 3 → score_candidate × 3 → sıralı liste sunar
+
+“En uygun adayı mülakata çağır, yarın 14:00”
+→ schedule_interview + send_candidate_email → takvime ekler
+
+“Diğer ikisini reddet, havuzda tut”
+→ generate_rejection_email × 2 + update_application_status
+
+“Pipeline durumu?”
+→ hiring_pipeline_summary → aşama bazında aday sayıları, dönüşüm oranları

@@ -284,6 +284,18 @@ const createComponents = (isUser: boolean, showToast?: (msg: string) => void): C
 interface ChatMessageContentProps {
   content: string;
   isUser: boolean;
+  onSendMessage?: (text: string) => void;
+  isLatest?: boolean;
+}
+
+function parseButtonBlocks(text: string): { cleanText: string; buttons: string[][] } {
+  const buttons: string[][] = [];
+  const cleanText = text.replace(/\[BUTTONS\]([\s\S]*?)\[\/BUTTONS\]/g, (_match, inner) => {
+    const group = inner.trim().split("\n").map((l: string) => l.trim()).filter((l: string) => l.length > 0);
+    if (group.length > 0) buttons.push(group);
+    return "";
+  });
+  return { cleanText: cleanText.trim(), buttons };
 }
 
 function parseChartBlocks(text: string): Array<{ type: "text"; content: string } | { type: "chart"; config: any }> {
@@ -312,16 +324,61 @@ function parseChartBlocks(text: string): Array<{ type: "text"; content: string }
   return parts;
 }
 
-export default function ChatMessageContent({ content, isUser }: ChatMessageContentProps) {
+export default function ChatMessageContent({ content, isUser, onSendMessage, isLatest }: ChatMessageContentProps) {
   const { toast } = useToast();
+  const [clickedBtn, setClickedBtn] = useState<string | null>(null);
+
+  useEffect(() => {
+    setClickedBtn(null);
+  }, [content]);
+
   const docMatch = content.match(/📎 \*\*(.+?)\*\*(?:\s*\((.+?)\))?$/m);
   const textWithoutDoc = docMatch ? content.replace(/\n*📎 \*\*.+$/m, "").trim() : content;
+
+  const { cleanText: textWithoutButtons, buttons } = parseButtonBlocks(textWithoutDoc);
 
   const showToast = (msg: string) => {
     toast({ title: msg, variant: "destructive" });
   };
 
-  const parts = parseChartBlocks(textWithoutDoc);
+  const handleButtonClick = (label: string) => {
+    if (onSendMessage && !clickedBtn) {
+      setClickedBtn(label);
+      onSendMessage(label);
+    }
+  };
+
+  const renderButtons = () => {
+    if (!isLatest || buttons.length === 0 || isUser) return null;
+    return (
+      <div className="mt-3 space-y-2">
+        {buttons.map((group, gi) => (
+          <div key={gi} className="flex flex-wrap gap-2">
+            {group.map((label, bi) => (
+              <button
+                key={bi}
+                type="button"
+                disabled={!!clickedBtn}
+                onClick={() => handleButtonClick(label)}
+                className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-all ${
+                  clickedBtn === label
+                    ? "bg-blue-500/20 border-blue-500/50 text-blue-400"
+                    : clickedBtn
+                      ? "opacity-40 border-border/30 text-muted-foreground cursor-not-allowed"
+                      : "border-border/50 text-foreground bg-muted/30 hover:bg-blue-500/10 hover:border-blue-500/40 hover:text-blue-400 active:scale-95"
+                }`}
+                data-testid={`button-quick-reply-${gi}-${bi}`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  const parts = parseChartBlocks(textWithoutButtons);
   const hasCharts = parts.some(p => p.type === "chart");
 
   if (!hasCharts) {
@@ -332,9 +389,10 @@ export default function ChatMessageContent({ content, isUser }: ChatMessageConte
           rehypePlugins={[rehypeKatex]}
           components={createComponents(isUser, showToast)}
         >
-          {textWithoutDoc}
+          {textWithoutButtons}
         </ReactMarkdown>
         {docMatch && <DocumentCard filename={docMatch[1]} sizeInfo={docMatch[2]} isUser={isUser} />}
+        {renderButtons()}
       </div>
     );
   }
@@ -367,6 +425,7 @@ export default function ChatMessageContent({ content, isUser }: ChatMessageConte
         );
       })}
       {docMatch && <DocumentCard filename={docMatch[1]} sizeInfo={docMatch[2]} isUser={isUser} />}
+      {renderButtons()}
     </div>
   );
 }

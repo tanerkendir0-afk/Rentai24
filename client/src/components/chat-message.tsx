@@ -190,7 +190,11 @@ const createComponents = (isUser: boolean, showToast?: (msg: string) => void): C
     <blockquote className="border-l-2 border-current/20 pl-3 my-2 opacity-80 italic">{children}</blockquote>
   ),
   hr: () => <hr className="my-3 border-current/10" />,
-  a: ({ href, children }) => {
+  a: ({ href: rawHref, children }) => {
+    let href = rawHref;
+    if (href) {
+      href = href.replace(/^sandbox:/, "");
+    }
     const isDownloadLink = href && href.match(/^\/api\/.*\/(download|pdf|excel)$/);
     if (isDownloadLink) {
       const childText = String(children || "");

@@ -1071,3 +1071,25 @@ export const marketplaceOrdersCache = pgTable("marketplace_orders_cache", {
 });
 
 export type MarketplaceOrderCache = typeof marketplaceOrdersCache.$inferSelect;
+
+export const uploadedFiles = pgTable("uploaded_files", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  originalName: varchar("original_name", { length: 500 }).notNull(),
+  storedPath: text("stored_path").notNull(),
+  fileType: varchar("file_type", { length: 20 }).notNull(),
+  fileSize: integer("file_size"),
+  rowCount: integer("row_count"),
+  columnNames: jsonb("column_names"),
+  summary: jsonb("summary"),
+  uploadedAt: timestamp("uploaded_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+  expiresAt: timestamp("expires_at"),
+});
+
+export const insertUploadedFileSchema = createInsertSchema(uploadedFiles).omit({
+  id: true,
+  uploadedAt: true,
+});
+
+export type UploadedFile = typeof uploadedFiles.$inferSelect;
+export type InsertUploadedFile = z.infer<typeof insertUploadedFileSchema>;

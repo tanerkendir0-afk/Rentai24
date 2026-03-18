@@ -818,6 +818,159 @@ export const dataAnalystTools: OpenAI.ChatCompletionTool[] = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "list_uploaded_files",
+      description: "Kullanıcının yüklediği dosyaları listeler. Her dosya için ad, boyut, satır sayısı, kolon adları gösterilir.",
+      parameters: { type: "object", properties: {} },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "analyze_file",
+      description: "Yüklenen bir Excel veya CSV dosyasını analiz eder. Temel istatistikler (satır/kolon sayısı, min/max/ortalama, null değerler, dağılım) ve otomatik içgörüler üretir. Dosya yüklendikten sonra ilk çağrılması gereken tool budur.",
+      parameters: {
+        type: "object",
+        properties: {
+          file_id: { type: "number", description: "Analiz edilecek dosyanın ID'si" },
+          focus_columns: { type: "string", description: "Odaklanılacak kolonlar (virgülle ayrılmış, opsiyonel)" },
+        },
+        required: ["file_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "query_file_data",
+      description: "Yüklenen dosya üzerinde sorgu çalıştırır — filtreleme, gruplama, toplama, sıralama. Örn: 'Şehir bazında toplam satış', 'Tutarı 1000₺ üstü kayıtlar'.",
+      parameters: {
+        type: "object",
+        properties: {
+          file_id: { type: "number", description: "Dosya ID'si" },
+          group_by: { type: "string", description: "Gruplama kolonu (örn: 'Şehir', 'Ay')" },
+          aggregate_column: { type: "string", description: "Toplama yapılacak kolon (örn: 'Tutar')" },
+          aggregate_function: { type: "string", enum: ["sum", "avg", "count", "min", "max"], description: "Toplama fonksiyonu" },
+          filter_column: { type: "string", description: "Filtre kolonu" },
+          filter_operator: { type: "string", enum: ["=", "!=", ">", "<", ">=", "<=", "contains", "starts_with"], description: "Filtre operatörü" },
+          filter_value: { type: "string", description: "Filtre değeri" },
+          sort_by: { type: "string", description: "Sıralama kolonu" },
+          sort_order: { type: "string", enum: ["asc", "desc"], description: "Sıralama yönü" },
+          limit: { type: "number", description: "Maksimum sonuç sayısı (varsayılan: 20)" },
+        },
+        required: ["file_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "create_chart",
+      description: "Veriden grafik oluşturur. Bar, çizgi, pasta, dağılım grafikleri desteklenir. Grafik chat'te inline olarak görünür.",
+      parameters: {
+        type: "object",
+        properties: {
+          file_id: { type: "number", description: "Veri kaynağı dosya ID'si" },
+          chart_type: { type: "string", enum: ["bar", "line", "pie", "doughnut", "scatter", "area", "horizontal_bar"], description: "Grafik tipi" },
+          x_column: { type: "string", description: "X ekseni kolonu" },
+          y_column: { type: "string", description: "Y ekseni kolonu" },
+          group_column: { type: "string", description: "Gruplama kolonu (opsiyonel)" },
+          title: { type: "string", description: "Grafik başlığı" },
+          aggregate: { type: "string", enum: ["sum", "avg", "count", "min", "max"], description: "Toplama fonksiyonu" },
+        },
+        required: ["file_id", "chart_type", "x_column", "y_column"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "compare_columns",
+      description: "İki kolon arasındaki ilişkiyi analiz eder — korelasyon hesaplar. İki sayısal kolon gerektirir.",
+      parameters: {
+        type: "object",
+        properties: {
+          file_id: { type: "number", description: "Dosya ID'si" },
+          column_1: { type: "string", description: "Birinci kolon" },
+          column_2: { type: "string", description: "İkinci kolon" },
+        },
+        required: ["file_id", "column_1", "column_2"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "detect_anomalies",
+      description: "Veride anomali (outlier) tespiti yapar. Normal dağılımdan sapan değerleri bulur.",
+      parameters: {
+        type: "object",
+        properties: {
+          file_id: { type: "number", description: "Dosya ID'si" },
+          column: { type: "string", description: "Anomali aranacak kolon" },
+          sensitivity: { type: "string", enum: ["low", "medium", "high"], description: "Hassasiyet seviyesi" },
+        },
+        required: ["file_id", "column"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "trend_analysis",
+      description: "Zaman serisi trend analizi yapar. Tarih kolonu bazında değişim trendini hesaplar.",
+      parameters: {
+        type: "object",
+        properties: {
+          file_id: { type: "number", description: "Dosya ID'si" },
+          date_column: { type: "string", description: "Tarih kolonu" },
+          value_column: { type: "string", description: "Değer kolonu" },
+          period: { type: "string", enum: ["daily", "weekly", "monthly", "quarterly", "yearly"], description: "Periyot" },
+        },
+        required: ["file_id", "date_column", "value_column"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "generate_analysis_report",
+      description: "Kapsamlı analiz raporu oluşturur — tüm istatistikler ve içgörüler PDF olarak. generate_pdf tool'unu kullanarak profesyonel rapor üretir.",
+      parameters: {
+        type: "object",
+        properties: {
+          file_id: { type: "number", description: "Veri kaynağı dosya ID'si" },
+          report_title: { type: "string", description: "Rapor başlığı" },
+          sections: { type: "string", description: "Bölümler: summary, statistics, charts, anomalies, trends, recommendations" },
+        },
+        required: ["file_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "export_filtered_data",
+      description: "Filtrelenmiş veya dönüştürülmüş veriyi yeni Excel/CSV dosyası olarak dışa aktarır.",
+      parameters: {
+        type: "object",
+        properties: {
+          file_id: { type: "number", description: "Kaynak dosya ID'si" },
+          format: { type: "string", enum: ["xlsx", "csv"], description: "Çıktı formatı" },
+          filename: { type: "string", description: "Çıktı dosya adı" },
+          filter_column: { type: "string", description: "Filtre kolonu" },
+          filter_operator: { type: "string", enum: ["=", "!=", ">", "<", ">=", "<=", "contains"], description: "Filtre operatörü" },
+          filter_value: { type: "string", description: "Filtre değeri" },
+          group_by: { type: "string", description: "Gruplama kolonu" },
+          aggregate_column: { type: "string", description: "Toplama kolonu" },
+          aggregate_function: { type: "string", enum: ["sum", "avg", "count"], description: "Toplama fonksiyonu" },
+        },
+        required: ["file_id"],
+      },
+    },
+  },
 ];
 
 export const socialMediaTools: OpenAI.ChatCompletionTool[] = [

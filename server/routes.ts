@@ -1415,6 +1415,119 @@ export async function registerRoutes(
     }
   });
 
+  const dataUploadStorage = multer.diskStorage({
+    destination: (req, file, cb) => {
+      const dir = path.join(process.cwd(), "uploads", "data-analyst");
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+      cb(null, dir);
+    },
+    filename: (req, file, cb) => {
+      const ext = path.extname(file.originalname).toLowerCase();
+      cb(null, `${Date.now()}-${crypto.randomBytes(6).toString("hex")}${ext}`);
+    },
+  });
+  const dataUpload = multer({
+    storage: dataUploadStorage,
+    limits: { fileSize: 10 * 1024 * 1024 },
+    fileFilter: (req, file, cb) => {
+      const ext = path.extname(file.originalname).toLowerCase();
+      if ([".xlsx", ".xls", ".csv", ".tsv"].includes(ext)) cb(null, true);
+      else cb(new Error("Desteklenmeyen dosya formatı. Kabul edilen: xlsx, xls, csv, tsv"));
+    },
+  });
+
+  app.post("/api/files/upload", requireAuth, dataUpload.single("file"), async (req, res) => {
+    try {
+      if (!req.file) return res.status(400).json({ error: "Dosya yüklenmedi" });
+      const { parseFile, analyzeData } = await import("./services/dataAnalysisService");
+      const { uploadedFiles } = await import("@shared/schema");
+
+      const ext = path.extname(req.file.originalname).toLowerCase().replace(".", "");
+      const rawData = parseFile(req.file.path);
+      const analysis = analyzeData(rawData);
+
+      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+      const [created] = await db.insert(uploadedFiles).values({
+        userId: req.session.userId!,
+        originalName: req.file.originalname,
+        storedPath: req.file.path,
+        fileType: ext,
+        fileSize: req.file.size,
+        rowCount: analysis.summary.rowCount,
+        columnNames: analysis.summary.columns.map(c => c.name),
+        summary: analysis.statistics,
+        expiresAt,
+      }).returning();
+
+      res.json({
+        id: created.id,
+        originalName: created.originalName,
+        fileType: ext,
+        fileSize: req.file.size,
+        rowCount: analysis.summary.rowCount,
+        columnCount: analysis.summary.columnCount,
+        columns: analysis.summary.columns.map(c => c.name),
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get("/api/files", requireAuth, async (req, res) => {
+    try {
+      const { uploadedFiles } = await import("@shared/schema");
+      const files = await db.select().from(uploadedFiles)
+        .where(eq(uploadedFiles.userId, req.session.userId!))
+        .orderBy(desc(uploadedFiles.uploadedAt));
+      res.json({ files: files.map(f => ({ id: f.id, originalName: f.originalName, fileType: f.fileType, fileSize: f.fileSize, rowCount: f.rowCount, columnNames: f.columnNames, uploadedAt: f.uploadedAt })) });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get("/api/files/:id/preview", requireAuth, async (req, res) => {
+    try {
+      const { uploadedFiles } = await import("@shared/schema");
+      const [file] = await db.select().from(uploadedFiles)
+        .where(and(eq(uploadedFiles.id, parseInt(req.params.id)), eq(uploadedFiles.userId, req.session.userId!)));
+      if (!file) return res.status(404).json({ error: "Dosya bulunamadı" });
+
+      const { parseFile } = await import("./services/dataAnalysisService");
+      const rawData = parseFile(file.storedPath);
+      const preview = rawData.slice(0, 21);
+      res.json({ preview, totalRows: rawData.length - 1, columns: rawData[0] });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get("/api/files/:id/download", requireAuth, async (req, res) => {
+    try {
+      const { uploadedFiles } = await import("@shared/schema");
+      const [file] = await db.select().from(uploadedFiles)
+        .where(and(eq(uploadedFiles.id, parseInt(req.params.id)), eq(uploadedFiles.userId, req.session.userId!)));
+      if (!file) return res.status(404).json({ error: "Dosya bulunamadı" });
+      if (!fs.existsSync(file.storedPath)) return res.status(404).json({ error: "Dosya silinmiş" });
+      res.download(file.storedPath, file.originalName);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.delete("/api/files/:id", requireAuth, async (req, res) => {
+    try {
+      const { uploadedFiles } = await import("@shared/schema");
+      const [file] = await db.select().from(uploadedFiles)
+        .where(and(eq(uploadedFiles.id, parseInt(req.params.id)), eq(uploadedFiles.userId, req.session.userId!)));
+      if (!file) return res.status(404).json({ error: "Dosya bulunamadı" });
+      if (fs.existsSync(file.storedPath)) fs.unlinkSync(file.storedPath);
+      await db.delete(uploadedFiles).where(eq(uploadedFiles.id, file.id));
+      res.json({ success: true });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   app.post("/api/feedback", requireAuth, async (req, res) => {
     const lang = await resolveUserLang(req);
     const parsed = feedbackSchema.safeParse(req.body);

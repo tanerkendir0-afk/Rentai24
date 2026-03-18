@@ -1,0 +1,510 @@
+# DATA ANALYST AGENT — EXCEL/CSV ANALİZ + GRAFİK + RAPOR
+# ============================================================
+# Bu talimatı Replit Agent'a olduğu gibi yapıştır.
+# ============================================================
+
+Data Analyst Agent'ı (data-analyst) gerçek veri analizi yapabilecek şekilde güçlendirmek istiyorum.
+Şu an sadece iç CRM verisini sorguluyor (query_leads, query_actions, query_campaigns).
+Müşterinin kendi dosyalarını (Excel, CSV) yükleyip analiz etme yeteneği YOK.
+
+KOBİ'ler için en değerli özellik: "Excel'imi yükle, analiz et, grafik çıkar, rapor ver."
+
+## YAPILACAKLAR:
+
+### 1. DATABASE — Yüklenen dosya takibi
+
+```sql
+CREATE TABLE IF NOT EXISTS uploaded_files (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id),
+  original_name VARCHAR(500) NOT NULL,
+  stored_path TEXT NOT NULL,
+  file_type VARCHAR(20) NOT NULL,  -- 'xlsx', 'xls', 'csv', 'tsv'
+  file_size INTEGER,
+  row_count INTEGER,
+  column_names JSONB,              -- ["Tarih", "Ürün", "Miktar", "Tutar"]
+  summary JSONB,                   -- otomatik özet istatistikler
+  uploaded_at TIMESTAMP DEFAULT NOW(),
+  expires_at TIMESTAMP             -- 24 saat sonra otomatik sil
+);
+```
+
+Drizzle schema'ya da ekle.
+
+### 2. BACKEND — Dosya Yükleme API
+
+```
+POST   /api/files/upload        — Excel/CSV yükle (multipart/form-data)
+GET    /api/files                — Yüklenen dosyaları listele
+GET    /api/files/:id/preview    — İlk 20 satırı önizle
+GET    /api/files/:id/download   — Dosyayı indir
+DELETE /api/files/:id            — Dosyayı sil
+```
+
+Upload endpoint:
+- Max 10MB
+- Kabul edilen formatlar: .xlsx, .xls, .csv, .tsv
+- Yükleme sonrası otomatik: satır sayısı, kolon adları, temel istatistikler hesapla
+- 24 saat sonra otomatik temizlik (cron job veya expiry check)
+- Dosyalar `uploads/data-analyst/` dizinine kaydedilsin
+
+### 3. BACKEND — Veri Analiz Servisi
+
+`server/services/dataAnalysisService.ts` oluştur:
+
+```typescript
+import * as XLSX from 'xlsx';  // xlsx paketi (SheetJS)
+import * as Papa from 'papaparse';  // CSV parser
+
+interface AnalysisResult {
+  summary: {
+    rowCount: number;
+    columnCount: number;
+    columns: ColumnInfo[];
+  };
+  statistics: Record<string, ColumnStats>;
+  insights: string[];
+}
+
+interface ColumnInfo {
+  name: string;
+  type: "number" | "text" | "date" | "boolean" | "mixed";
+  sampleValues: any[];
+  nullCount: number;
+  uniqueCount: number;
+}
+
+interface ColumnStats {
+  min?: number;
+  max?: number;
+  mean?: number;
+  median?: number;
+  sum?: number;
+  stddev?: number;
+  topValues?: { value: string; count: number }[];  // text kolonlar için
+}
+
+// Excel/CSV dosyasını parse et
+async function parseFile(filePath: string): Promise<any[][]> { ... }
+
+// Temel istatistikler
+async function analyzeData(data: any[][]): Promise<AnalysisResult> { ... }
+
+// Kolon bazında gruplama ve toplama
+async function groupBy(data: any[][], groupCol: string, aggCol: string, aggFunc: "sum" | "avg" | "count" | "min" | "max"): Promise<any[]> { ... }
+
+// Filtreleme
+async function filterData(data: any[][], column: string, operator: string, value: any): Promise<any[][]> { ... }
+
+// Pivot tablo
+async function pivotTable(data: any[][], rowField: string, colField: string, valueField: string, aggFunc: string): Promise<any[][]> { ... }
+
+// Korelasyon analizi (iki sayısal kolon arası)
+async function correlate(data: any[][], col1: string, col2: string): Promise<{ correlation: number; interpretation: string }> { ... }
+
+// Trend analizi (tarih kolonuna göre)
+async function trendAnalysis(data: any[][], dateCol: string, valueCol: string): Promise<{ trend: string; change: number; periods: any[] }> { ... }
+
+// Anomali tespiti (outlier detection)
+async function detectAnomalies(data: any[][], column: string): Promise<{ anomalies: any[]; threshold: number }> { ... }
+```
+
+Bağımlılık: `npm install xlsx papaparse`
+
+### 4. BACKEND — Grafik Üretme Servisi
+
+`server/services/chartService.ts` oluştur:
+
+Grafikleri sunucu tarafında SVG veya PNG olarak üretmek yerine, chat mesajında
+inline chart config döndür ve frontend'de Chart.js veya Recharts ile render et.
+
+```typescript
+interface ChartConfig {
+  type: "bar" | "line" | "pie" | "doughnut" | "scatter" | "area" | "horizontal_bar";
+  title: string;
+  data: {
+    labels: string[];
+    datasets: {
+      label: string;
+      data: number[];
+      backgroundColor?: string[];
+    }[];
+  };
+  options?: {
+    currency?: boolean;     // Y ekseni ₺ formatı
+    percentage?: boolean;   // Y ekseni % formatı
+    stacked?: boolean;
+  };
+}
+
+// Veriden otomatik grafik öner
+function suggestCharts(analysisResult: AnalysisResult): ChartConfig[] { ... }
+
+// Belirli grafik oluştur
+function createChart(data: any[][], config: {
+  type: string;
+  xColumn: string;
+  yColumn: string;
+  groupColumn?: string;
+  title?: string;
+}): ChartConfig { ... }
+```
+
+### 5. FRONTEND — Chat'te Grafik Render
+
+`client/src/components/chart-message.tsx` oluştur:
+
+```tsx
+// Chat mesajında ChartConfig döndüğünde render et
+// Recharts kullan (zaten projede olabilir) veya Chart.js
+
+import { BarChart, Bar, LineChart, Line, PieChart, Pie, 
+         XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+
+interface ChartMessageProps {
+  chartConfig: ChartConfig;
+}
+
+export function ChartMessage({ chartConfig }: ChartMessageProps) {
+  // chartConfig.type'a göre doğru grafik render et
+  // Download as PNG butonu ekle
+  // Tam ekran görüntüleme butonu ekle
+}
+```
+
+Chat message renderer'da (`chat-message.tsx`), agent response'ta chart config varsa ChartMessage component'ini render et.
+
+### 6. FRONTEND — Dosya Yükleme UI
+
+Chat input alanına dosya yükleme butonu ekle:
+
+```tsx
+// Chat input'un yanına 📎 (ataç) butonu
+// Tıklandığında: .xlsx, .csv, .tsv kabul eden file picker açılır
+// Dosya seçildiğinde: /api/files/upload'a POST
+// Upload sonrası: otomatik olarak "Bu dosyayı analiz et" mesajı gönderilir
+// Veya kullanıcı dosya + mesaj birlikte gönderebilir
+```
+
+Ayrıca yüklenen dosyanın chat'te görünmesi:
+```tsx
+// FilePreviewCard component
+// - Dosya adı, boyutu, satır/kolon sayısı
+// - "Önizle" butonu (ilk 20 satır tablo)
+// - "Analiz Et" butonu
+// - "Sil" butonu
+```
+
+### 7. AGENT TOOL TANIMLARI
+
+`server/agentTools.ts`'deki dataAnalystTools dizisine şu yeni tool'ları EKLE
+(mevcut query_leads, query_actions vb. KALSIN):
+
+```typescript
+// ===== YENİ VERİ ANALİZ TOOL'LARI =====
+
+{
+  type: "function",
+  function: {
+    name: "list_uploaded_files",
+    description: "Kullanıcının yüklediği dosyaları listeler. Her dosya için ad, boyut, satır sayısı, kolon adları gösterilir.",
+    parameters: {
+      type: "object",
+      properties: {},
+    },
+  },
+},
+{
+  type: "function",
+  function: {
+    name: "analyze_file",
+    description: "Yüklenen bir Excel veya CSV dosyasını analiz eder. Temel istatistikler (satır/kolon sayısı, min/max/ortalama, null değerler, dağılım) ve otomatik içgörüler üretir. Dosya yüklendikten sonra ilk çağrılması gereken tool budur.",
+    parameters: {
+      type: "object",
+      properties: {
+        file_id: { type: "number", description: "Analiz edilecek dosyanın ID'si (list_uploaded_files'tan alınır)" },
+        focus_columns: { type: "string", description: "Odaklanılacak kolonlar (virgülle ayrılmış, opsiyonel). Belirtilmezse tüm kolonlar analiz edilir." },
+      },
+      required: ["file_id"],
+    },
+  },
+},
+{
+  type: "function",
+  function: {
+    name: "query_file_data",
+    description: "Yüklenen dosya üzerinde sorgu çalıştırır — filtreleme, gruplama, toplama, sıralama. SQL benzeri sorgular yapabilir. Örn: 'Şehir bazında toplam satış', 'Tutarı 1000₺ üstü kayıtlar', 'Aylık trend'.",
+    parameters: {
+      type: "object",
+      properties: {
+        file_id: { type: "number", description: "Dosya ID'si" },
+        group_by: { type: "string", description: "Gruplama kolonu (örn: 'Şehir', 'Ay', 'Kategori')" },
+        aggregate_column: { type: "string", description: "Toplama yapılacak kolon (örn: 'Tutar', 'Adet')" },
+        aggregate_function: { type: "string", enum: ["sum", "avg", "count", "min", "max"], description: "Toplama fonksiyonu (varsayılan: sum)" },
+        filter_column: { type: "string", description: "Filtre kolonu (opsiyonel)" },
+        filter_operator: { type: "string", enum: ["=", "!=", ">", "<", ">=", "<=", "contains", "starts_with"], description: "Filtre operatörü" },
+        filter_value: { type: "string", description: "Filtre değeri" },
+        sort_by: { type: "string", description: "Sıralama kolonu" },
+        sort_order: { type: "string", enum: ["asc", "desc"], description: "Sıralama yönü (varsayılan: desc)" },
+        limit: { type: "number", description: "Maksimum sonuç sayısı (varsayılan: 20)" },
+      },
+      required: ["file_id"],
+    },
+  },
+},
+{
+  type: "function",
+  function: {
+    name: "create_chart",
+    description: "Veriden grafik oluşturur. Bar, çizgi, pasta, dağılım grafikleri desteklenir. Grafik chat'te inline olarak görünür.",
+    parameters: {
+      type: "object",
+      properties: {
+        file_id: { type: "number", description: "Veri kaynağı dosya ID'si" },
+        chart_type: { type: "string", enum: ["bar", "line", "pie", "doughnut", "scatter", "area", "horizontal_bar"], description: "Grafik tipi" },
+        x_column: { type: "string", description: "X ekseni kolonu (kategoriler, tarihler)" },
+        y_column: { type: "string", description: "Y ekseni kolonu (değerler, tutarlar)" },
+        group_column: { type: "string", description: "Gruplama kolonu (opsiyonel — çoklu seri için)" },
+        title: { type: "string", description: "Grafik başlığı" },
+        aggregate: { type: "string", enum: ["sum", "avg", "count", "min", "max"], description: "Gruplama yapılıyorsa toplama fonksiyonu (varsayılan: sum)" },
+      },
+      required: ["file_id", "chart_type", "x_column", "y_column"],
+    },
+  },
+},
+{
+  type: "function",
+  function: {
+    name: "compare_columns",
+    description: "İki kolon arasındaki ilişkiyi analiz eder — korelasyon, karşılaştırma, dağılım. İki sayısal kolon arasında korelasyon hesaplar.",
+    parameters: {
+      type: "object",
+      properties: {
+        file_id: { type: "number", description: "Dosya ID'si" },
+        column_1: { type: "string", description: "Birinci kolon adı" },
+        column_2: { type: "string", description: "İkinci kolon adı" },
+      },
+      required: ["file_id", "column_1", "column_2"],
+    },
+  },
+},
+{
+  type: "function",
+  function: {
+    name: "detect_anomalies",
+    description: "Veride anomali (outlier) tespiti yapar. Normal dağılımdan sapan değerleri bulur. Hatalı veri girişleri, olağandışı satış rakamları vb. için kullanışlı.",
+    parameters: {
+      type: "object",
+      properties: {
+        file_id: { type: "number", description: "Dosya ID'si" },
+        column: { type: "string", description: "Anomali aranacak kolon" },
+        sensitivity: { type: "string", enum: ["low", "medium", "high"], description: "Hassasiyet (low: sadece aşırı sapanlar, high: küçük sapanlar da dahil)" },
+      },
+      required: ["file_id", "column"],
+    },
+  },
+},
+{
+  type: "function",
+  function: {
+    name: "trend_analysis",
+    description: "Zaman serisi trend analizi yapar. Tarih kolonu bazında değer kolonunun trendini, değişim oranını ve projeksiyonunu hesaplar.",
+    parameters: {
+      type: "object",
+      properties: {
+        file_id: { type: "number", description: "Dosya ID'si" },
+        date_column: { type: "string", description: "Tarih kolonu" },
+        value_column: { type: "string", description: "Değer kolonu (sayısal)" },
+        period: { type: "string", enum: ["daily", "weekly", "monthly", "quarterly", "yearly"], description: "Periyot (varsayılan: monthly)" },
+      },
+      required: ["file_id", "date_column", "value_column"],
+    },
+  },
+},
+{
+  type: "function",
+  function: {
+    name: "generate_analysis_report",
+    description: "Kapsamlı analiz raporu oluşturur — tüm istatistikler, grafikler ve içgörüler tek bir PDF veya Excel dosyasında. Müşteriye sunulacak profesyonel rapor.",
+    parameters: {
+      type: "object",
+      properties: {
+        file_id: { type: "number", description: "Veri kaynağı dosya ID'si" },
+        report_title: { type: "string", description: "Rapor başlığı" },
+        format: { type: "string", enum: ["pdf", "excel"], description: "Rapor formatı (varsayılan: pdf)" },
+        sections: { type: "string", description: "Raporda yer alacak bölümler (virgülle ayrılmış): summary, statistics, charts, anomalies, trends, recommendations" },
+      },
+      required: ["file_id"],
+    },
+  },
+},
+{
+  type: "function",
+  function: {
+    name: "export_filtered_data",
+    description: "Filtrelenmiş veya dönüştürülmüş veriyi yeni bir Excel/CSV dosyası olarak dışa aktarır. Gruplama, filtreleme, pivot sonuçlarını dosya olarak indirilebilir yapar.",
+    parameters: {
+      type: "object",
+      properties: {
+        file_id: { type: "number", description: "Kaynak dosya ID'si" },
+        format: { type: "string", enum: ["xlsx", "csv"], description: "Çıktı formatı (varsayılan: xlsx)" },
+        filename: { type: "string", description: "Çıktı dosya adı" },
+        transformations: { type: "string", description: "Uygulanacak dönüşümler JSON formatında: {group_by, aggregate, filter, sort, pivot}" },
+      },
+      required: ["file_id"],
+    },
+  },
+},
+```
+
+### 8. TOOL HANDLER'LARI
+
+`server/agentTools.ts`'deki executeToolCall fonksiyonuna handler'ları ekle:
+
+```typescript
+case "list_uploaded_files":
+  return await dataAnalysisService.listFiles(userId);
+
+case "analyze_file":
+  return await dataAnalysisService.analyzeFile(userId, args.file_id, args.focus_columns);
+
+case "query_file_data":
+  return await dataAnalysisService.queryData(userId, args);
+
+case "create_chart":
+  const chartConfig = await dataAnalysisService.createChart(userId, args);
+  // chartConfig'i response'a özel formatta ekle (frontend'de render için)
+  return { success: true, chart: chartConfig, message: "Grafik oluşturuldu." };
+
+case "compare_columns":
+  return await dataAnalysisService.compareColumns(userId, args.file_id, args.column_1, args.column_2);
+
+case "detect_anomalies":
+  return await dataAnalysisService.detectAnomalies(userId, args.file_id, args.column, args.sensitivity);
+
+case "trend_analysis":
+  return await dataAnalysisService.trendAnalysis(userId, args);
+
+case "generate_analysis_report":
+  // PDF veya Excel rapor üret, file_ref döndür
+  return await dataAnalysisService.generateReport(userId, args);
+
+case "export_filtered_data":
+  return await dataAnalysisService.exportData(userId, args);
+```
+
+### 9. SYSTEM PROMPT GÜNCELLEMESİ
+
+Data Analyst agent'ın system prompt'una ekle:
+
+```
+## Veri Analiz Yetenekleri
+
+Sen Excel ve CSV dosyalarını analiz edebilen güçlü bir veri analistisin.
+
+### Dosya yüklendiğinde:
+1. Önce analyze_file çağır → genel bakış sun
+2. İlginç pattern'leri belirt
+3. Önerilen analizleri sırala (trend, anomali, gruplama vb.)
+4. Grafik öner
+
+### Analiz akışı:
+- "Bu Excel'i analiz et" → analyze_file → özet + öneriler
+- "Şehir bazında satışlar?" → query_file_data (group_by: Şehir, aggregate: sum)
+- "Grafik çıkar" → create_chart (otomatik en uygun tip)
+- "Trend nasıl?" → trend_analysis
+- "Anomali var mı?" → detect_anomalies
+- "Rapor oluştur" → generate_analysis_report (PDF)
+- "Filtrelenmiş veriyi Excel'e aktar" → export_filtered_data
+
+### Grafik seçimi:
+- Kategorik karşılaştırma → bar chart
+- Zaman serisi → line chart  
+- Oran/pay dağılımı → pie/doughnut
+- İki değişken ilişkisi → scatter
+- Kümülatif trend → area chart
+- Çok kategorili → horizontal bar
+
+### Türkçe sayı formatı:
+- 1.250.000,50 ₺ (binlik nokta, ondalık virgül)
+- Grafiklerde TL formatı kullan
+
+### Proaktif analiz:
+Sadece sorulan soruyu yanıtlama, ayrıca:
+- İlginç pattern'leri belirt ("Mart ayında %40 düşüş dikkat çekici")
+- Olası nedenleri tartış
+- Aksiyon önerileri sun
+- Karşılaştırma yap ("Geçen yılın aynı dönemine göre %15 artış")
+```
+
+### 10. BAĞIMLILIKLAR
+
+```bash
+npm install xlsx papaparse
+```
+
+### 11. GÜVENLİK
+
+- Dosya boyutu limiti: 10MB
+- Sadece .xlsx, .xls, .csv, .tsv kabul et (MIME type kontrolü yap)
+- Her kullanıcı sadece kendi dosyalarına erişebilsin (user_id kontrolü)
+- 24 saat sonra otomatik dosya silme
+- Path traversal koruması (dosya adında ../ vb. engellensin)
+- Dosya içeriğinde makro/script taraması (xlsx'te VBA makro varsa uyar)
+
+### 12. FRONTEND — Chat'te Grafik Render
+
+Agent response'unda chart config geldiğinde:
+
+```tsx
+// chat-message.tsx'de agent response parse et
+// Eğer response.chart varsa → ChartMessage component'i render et
+
+{message.chart && (
+  <div className="w-full my-4 p-4 bg-card rounded-lg border">
+    <h3 className="text-sm font-medium mb-2">{message.chart.title}</h3>
+    <ResponsiveContainer width="100%" height={300}>
+      {/* chart.type'a göre BarChart, LineChart, PieChart render */}
+    </ResponsiveContainer>
+    <button className="text-xs text-muted-foreground mt-2">📥 PNG olarak indir</button>
+  </div>
+)}
+```
+
+Ayrıca dosya yükleme bölümü:
+
+```tsx
+// Chat input yanına 📎 butonu
+{message.file && (
+  <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
+    <span>📄</span>
+    <div>
+      <div className="text-sm font-medium">{message.file.name}</div>
+      <div className="text-xs text-muted-foreground">
+        {message.file.rowCount} satır × {message.file.columnCount} kolon
+      </div>
+    </div>
+    <button>Analiz Et</button>
+  </div>
+)}
+```
+
+## BEKLENEN SONUÇ
+
+Müşteri:
+1. Chat'te 📎 butonuna tıklar, "satis_raporu.xlsx" yükler
+2. Data Analyst otomatik analiz eder: "12.450 satır, 8 kolon. Toplam satış: 2.4M ₺..."
+3. "Şehir bazında satışları göster" → bar chart inline render
+4. "Aylık trend?" → line chart + "Mart'ta %23 düşüş var, mevsimsel olabilir"
+5. "Anomali var mı?" → "3 kayıtta olağandışı yüksek tutar tespit edildi"
+6. "Rapor oluştur" → PDF rapor + indirme linki
+7. "Raporu müdüre mail at" → PDF attachment + profesyonel email
+
+## ÖNEMLİ NOTLAR
+
+- xlsx paketi (SheetJS) hem .xlsx hem .csv okuyabilir
+- Büyük dosyalarda (>5000 satır) streaming parse kullan, tamamını memory'e alma
+- Chart config'i JSON olarak agent response'ta döndür, frontend render etsin
+- generate_analysis_report tool'u mevcut PDF generator'ı (pdfBrandingService) kullanabilir
+- Mevcut tool'lar (query_leads, query_actions vb.) KALSIN — bunlar iç platform verisi için
+- Yeni tool'lar dış veri (müşterinin dosyaları) için

@@ -1125,7 +1125,7 @@ function WorkflowBuilderView({ workflow, onBack }: {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-950 to-gray-900 p-4 md:p-8">
+    <div className="min-h-screen bg-gradient-to-b from-gray-950 to-gray-900 pt-16 p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
         <div className="flex items-center gap-3 mb-6">
           <Button variant="ghost" size="icon" onClick={onBack} data-testid="button-back-builder">
@@ -1324,7 +1324,7 @@ export default function Automations() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-gray-950 to-gray-900 flex items-center justify-center" data-testid="automations-login-prompt">
+      <div className="min-h-screen bg-gradient-to-b from-gray-950 to-gray-900 pt-16 flex items-center justify-center" data-testid="automations-login-prompt">
         <Card className="bg-gray-900/50 border-gray-800 max-w-md">
           <CardContent className="p-8 text-center">
             <Zap className="w-12 h-12 text-yellow-400 mx-auto mb-4" />
@@ -1351,7 +1351,7 @@ export default function Automations() {
   if (view === "templates") {
     const categories = [...new Set(templates.map((t) => t.category))];
     return (
-      <div className="min-h-screen bg-gradient-to-b from-gray-950 to-gray-900 p-4 md:p-8">
+      <div className="min-h-screen bg-gradient-to-b from-gray-950 to-gray-900 pt-16 p-4 md:p-8">
         <div className="max-w-5xl mx-auto">
           <div className="flex items-center gap-3 mb-8">
             <Button variant="ghost" size="icon" onClick={() => setView("list")} data-testid="button-back-templates">
@@ -1416,7 +1416,7 @@ export default function Automations() {
 
   if (view === "create") {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-gray-950 to-gray-900 p-4 md:p-8">
+      <div className="min-h-screen bg-gradient-to-b from-gray-950 to-gray-900 pt-16 p-4 md:p-8">
         <div className="max-w-lg mx-auto">
           <div className="flex items-center gap-3 mb-8">
             <Button variant="ghost" size="icon" onClick={() => setView("list")} data-testid="button-back-create">
@@ -1470,7 +1470,7 @@ export default function Automations() {
 
   if (view === "detail" && selectedWorkflow) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-gray-950 to-gray-900 p-4 md:p-8">
+      <div className="min-h-screen bg-gradient-to-b from-gray-950 to-gray-900 pt-16 p-4 md:p-8">
         <div className="max-w-5xl mx-auto">
           <div className="flex items-center gap-3 mb-6">
             <Button variant="ghost" size="icon" onClick={() => { setView("list"); setSelectedWorkflowId(null); }} data-testid="button-back-detail">
@@ -1595,7 +1595,7 @@ export default function Automations() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-950 to-gray-900 p-4 md:p-8">
+    <div className="min-h-screen bg-gradient-to-b from-gray-950 to-gray-900 pt-16 p-4 md:p-8">
       <div className="max-w-5xl mx-auto">
         <div className="flex items-center justify-between mb-8">
           <div>

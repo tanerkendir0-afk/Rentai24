@@ -17,15 +17,15 @@
 RentAI 24, isletmelere hazir egitilmis yapay zeka ajanlari sunan bir AI personel platformudur. 9 farkli AI ajani ile musteri destegindan muhasabeye, satisindan veri analizine kadar pek cok is surecini otomatize edebilirsiniz.
 
 ### Mevcut AI Ajanlari:
-- **Finn** - Muhasebe ve finans (KDV, fatura, bordro, yevmiye)
+- **Ava** - Musteri destegi (ticket, email, WhatsApp, canlı sohbet)
 - **Rex** - Satis ve CRM (lead yonetimi, takip, musteri iliskileri)
-- **ShopBot** - E-ticaret (Trendyol, Shopify entegrasyonu)
-- **DataBot** - Veri analizi (Excel/CSV analizi, grafik olusturma)
+- **Maya** - Sosyal medya yonetimi (icerik planlama, gorsel uretimi)
+- **Finn** - Muhasebe ve finans (KDV, fatura, bordro, yevmiye)
 - **Cal** - Takvim ve randevu yonetimi
-- **SocialBot** - Sosyal medya yonetimi
-- **SupportBot** - Musteri desteği
-- **HRBot** - Insan kaynaklari
-- **ContentBot** - Icerik uretimi
+- **Harper** - Insan kaynaklari ve ise alim
+- **DataBot** - Veri analizi (Excel/CSV analizi, grafik olusturma)
+- **ShopBot** - E-ticaret (Trendyol, Shopify entegrasyonu)
+- **Reno** - Gayrimenkul (mulk arama, piyasa analizi)
 
 ---
 

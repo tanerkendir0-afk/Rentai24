@@ -240,9 +240,10 @@ Her API isteğinin detaylı kaydı:
 
 | Plan | Fiyat | Detay |
 |------|-------|-------|
-| **Starter** | $49/ay | Ajan başına aylık |
-| **Professional** | $39/ay | Ajan başına yıllık |
-| **Enterprise** | Özel fiyat | İletişime geçin |
+| **Standard** | $300/ay | 3'e kadar AI ajan (Finn hariç), günlük 100 mesaj, temel entegrasyonlar |
+| **Professional** | $600/ay | 7'ye kadar AI ajan (Finn hariç), günlük 150 mesaj, gelişmiş entegrasyonlar, API erişimi |
+| **All-in-One** | $1,200/ay | 9 ajanın tamamı dahil, günlük 150 mesaj, özel eğitim, SLA garantisi, özel hesap yöneticisi |
+| **Sadece Muhasebe (Finn)** | $500/ay | Sadece Finn ajanı, günlük 200 mesaj, mali raporlama, Türk muhasebe mevzuatı uyumlu |
 
 ### Test Kart Numaraları (Ödeme Testi)
 

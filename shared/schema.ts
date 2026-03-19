@@ -1190,6 +1190,7 @@ export const WORKFLOW_NODE_TYPES = [
 export const WORKFLOW_ACTION_TYPES = [
   "send_email",
   "create_task",
+  "notify_owner",
   "notify_boss",
   "update_lead",
   "generate_pdf",

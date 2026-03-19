@@ -3,7 +3,7 @@ import { automationWorkflows, automationExecutions, type WorkflowNode, type Trig
 import { eq, and, sql } from "drizzle-orm";
 import { sendEmail } from "../emailService";
 import { storage } from "../storage";
-import { notifyBoss } from "../bossNotificationService";
+import { notifyOwner } from "../bossNotificationService";
 import { sendTextMessage } from "../whatsappService";
 
 export interface ExecutionContext {
@@ -264,11 +264,12 @@ async function executeAction(
       return { status: "success", output: { title, agentType } };
     }
 
+    case "notify_owner":
     case "notify_boss": {
       const summary = resolveTemplate(config.summary || "", ctx);
       const type = config.notificationType || "automation";
 
-      await notifyBoss({
+      await notifyOwner({
         userId: ctx.userId,
         type,
         teamMemberName: "Otomasyon",

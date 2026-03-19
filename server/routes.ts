@@ -2154,21 +2154,41 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/boss/notify", requireAuth, async (req, res) => {
+  app.post("/api/notifications/notify", requireAuth, async (req, res) => {
     try {
       const { type, teamMemberName, summary, details } = req.body;
       if (!type || !teamMemberName || !summary) {
         return res.status(400).json({ error: msg("meetingFieldsRequired", req.lang!) });
       }
-      const { notifyBoss } = await import("./bossNotificationService");
-      await notifyBoss({
+      const { notifyOwner } = await import("./bossNotificationService");
+      await notifyOwner({
         userId: req.session.userId!,
         type,
         teamMemberName,
         summary,
         details: details || undefined,
       });
-      res.json({ success: true, message: "Boss notification created" });
+      res.json({ success: true, message: "Notification created" });
+    } catch (err: any) {
+      console.error(err); res.status(500).json({ error: msg("failedCreateNotification", req.lang!) });
+    }
+  });
+
+  app.post("/api/boss/notify", requireAuth, async (req, res) => {
+    try {
+      const { type, teamMemberName, summary, details } = req.body;
+      if (!type || !teamMemberName || !summary) {
+        return res.status(400).json({ error: msg("meetingFieldsRequired", req.lang!) });
+      }
+      const { notifyOwner } = await import("./bossNotificationService");
+      await notifyOwner({
+        userId: req.session.userId!,
+        type,
+        teamMemberName,
+        summary,
+        details: details || undefined,
+      });
+      res.json({ success: true, message: "Notification created" });
     } catch (err: any) {
       console.error(err); res.status(500).json({ error: msg("failedCreateNotification", req.lang!) });
     }
@@ -2414,9 +2434,15 @@ export async function registerRoutes(
     res.sendStatus(200);
   });
 
+  app.get("/api/notifications", requireAuth, async (req, res) => {
+    const limit = parseInt(req.query.limit as string) || 50;
+    const notifications = await storage.getOwnerNotifications(req.session.userId!, limit);
+    res.json(notifications);
+  });
+
   app.get("/api/boss/notifications", requireAuth, async (req, res) => {
     const limit = parseInt(req.query.limit as string) || 50;
-    const notifications = await storage.getBossNotifications(req.session.userId!, limit);
+    const notifications = await storage.getOwnerNotifications(req.session.userId!, limit);
     res.json(notifications);
   });
 
@@ -6972,7 +6998,7 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
 
   const validTriggerTypes = ["agent_tool_complete", "webhook", "schedule", "manual", "threshold", "email_received"];
   const validNodeTypes = ["trigger", "action", "condition", "delay"];
-  const validActionTypes = ["send_email", "create_task", "notify_boss", "update_lead", "webhook_call", "log_action", "calculate", "http_request", "set_variable", "format_data", "whatsapp_message", "multi_email", "db_query", "integration"];
+  const validActionTypes = ["send_email", "create_task", "notify_owner", "notify_boss", "update_lead", "webhook_call", "log_action", "calculate", "http_request", "set_variable", "format_data", "whatsapp_message", "multi_email", "db_query", "integration"];
 
   app.post("/api/automations", requireAuth, async (req, res) => {
     try {

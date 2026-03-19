@@ -39,8 +39,8 @@ export const workflowTemplates: WorkflowTemplate[] = [
       {
         id: "action-1",
         type: "action",
-        actionType: "notify_boss",
-        label: "Boss Bildirimi",
+        actionType: "notify_owner",
+        label: "Hesap Sahibi Bildirimi",
         config: {
           summary: "Yeni fatura PDF oluşturuldu: {{filename}}",
           notificationType: "invoice_generated",
@@ -98,8 +98,8 @@ export const workflowTemplates: WorkflowTemplate[] = [
       {
         id: "action-2",
         type: "action",
-        actionType: "notify_boss",
-        label: "Boss Bildirimi",
+        actionType: "notify_owner",
+        label: "Hesap Sahibi Bildirimi",
         config: {
           summary: "Yeni lead eklendi: {{name}} ({{company}})",
           notificationType: "new_lead",
@@ -112,7 +112,7 @@ export const workflowTemplates: WorkflowTemplate[] = [
     id: "order-shipping",
     name: "Order → Create Shipping",
     nametr: "Sipariş → Kargo Talimatı",
-    description: "When a new order comes in, automatically creates a shipping task and notifies the boss",
+    description: "When a new order comes in, automatically creates a shipping task and notifies the account owner",
     descriptionTr: "Yeni sipariş geldiğinde otomatik kargo görevi oluşturur ve bildirir",
     category: "ecommerce",
     icon: "📦",
@@ -146,8 +146,8 @@ export const workflowTemplates: WorkflowTemplate[] = [
       {
         id: "action-2",
         type: "action",
-        actionType: "notify_boss",
-        label: "Boss Bildirimi",
+        actionType: "notify_owner",
+        label: "Hesap Sahibi Bildirimi",
         config: {
           summary: "Yeni siparişler alındı — kargo süreci başlatılacak",
           notificationType: "new_orders",
@@ -160,8 +160,8 @@ export const workflowTemplates: WorkflowTemplate[] = [
     id: "boss-daily-summary",
     name: "Daily Summary Report",
     nametr: "Günlük Özet Rapor",
-    description: "Scheduled daily summary of all agent activities sent to boss",
-    descriptionTr: "Tüm ajan aktivitelerinin günlük özetini boss'a gönderir",
+    description: "Scheduled daily summary of all agent activities sent to account owner",
+    descriptionTr: "Tüm ajan aktivitelerinin günlük özetini hesap sahibine gönderir",
     category: "management",
     icon: "📊",
     triggerType: "schedule",
@@ -179,7 +179,7 @@ export const workflowTemplates: WorkflowTemplate[] = [
       {
         id: "action-1",
         type: "action",
-        actionType: "notify_boss",
+        actionType: "notify_owner",
         label: "Günlük Özet",
         config: {
           summary: "Günlük aktivite özeti hazırlandı",
@@ -202,10 +202,10 @@ export const workflowTemplates: WorkflowTemplate[] = [
   },
   {
     id: "email-sent-notification",
-    name: "Email Sent → Boss Notification",
-    nametr: "E-posta Gönderildi → Boss Bildirimi",
-    description: "Notifies the boss whenever an agent sends an email",
-    descriptionTr: "Bir ajan e-posta gönderdiğinde boss'a bildirim gönderir",
+    name: "Email Sent → Account Owner Notification",
+    nametr: "E-posta Gönderildi → Hesap Sahibi Bildirimi",
+    description: "Notifies the account owner whenever an agent sends an email",
+    descriptionTr: "Bir ajan e-posta gönderdiğinde hesap sahibine bildirim gönderir",
     category: "communication",
     icon: "📧",
     triggerType: "agent_tool_complete",
@@ -236,8 +236,8 @@ export const workflowTemplates: WorkflowTemplate[] = [
       {
         id: "action-1",
         type: "action",
-        actionType: "notify_boss",
-        label: "Boss Bildirimi",
+        actionType: "notify_owner",
+        label: "Hesap Sahibi Bildirimi",
         config: {
           summary: "{{agentType}} ajanı {{to}} adresine e-posta gönderdi: {{subject}}",
           notificationType: "email_sent_alert",
@@ -283,8 +283,8 @@ export const workflowTemplates: WorkflowTemplate[] = [
       {
         id: "action-2",
         type: "action",
-        actionType: "notify_boss",
-        label: "Boss Bildirimi",
+        actionType: "notify_owner",
+        label: "Hesap Sahibi Bildirimi",
         config: {
           summary: "Yeni destek talebi: {{subject}} — {{category}}",
           notificationType: "support_ticket",
@@ -309,7 +309,7 @@ export const workflowTemplates: WorkflowTemplate[] = [
     },
     nodes: [
       { id: "trigger-1", type: "trigger", label: "e-Fatura Parse Edildi", config: {}, nextNodeId: "action-1" },
-      { id: "action-1", type: "action", actionType: "notify_boss", label: "Bildirim Gönder", config: { summary: "📄 e-Fatura parse edildi: {{belgeNo}} - Satıcı: {{saticiUnvani}} - KDV: {{kdvTutari}} ₺", notificationType: "efatura_parsed" }, nextNodeId: null },
+      { id: "action-1", type: "action", actionType: "notify_owner", label: "Bildirim Gönder", config: { summary: "📄 e-Fatura parse edildi: {{belgeNo}} - Satıcı: {{saticiUnvani}} - KDV: {{kdvTutari}} ₺", notificationType: "efatura_parsed" }, nextNodeId: null },
     ],
   },
   {
@@ -371,7 +371,7 @@ export const workflowTemplates: WorkflowTemplate[] = [
         conditionTrueNodeId: "action-1", conditionFalseNodeId: "action-3", nextNodeId: null, position: { x: 250, y: 180 },
       },
       { id: "action-1", type: "action", actionType: "create_task", label: "Mülakat Planla", config: { title: "Mülakat: {{name}} - {{position}}", description: "3+ yıl deneyimli aday. Mülakat sürecini başlat.", agentType: "hr-recruiting", priority: "high" }, nextNodeId: "action-2", position: { x: 100, y: 310 } },
-      { id: "action-2", type: "action", actionType: "notify_boss", label: "Boss Bildirimi", config: { summary: "Güçlü aday: {{name}} ({{position}}) — {{experience}} yıl deneyim", notificationType: "strong_candidate" }, nextNodeId: null, position: { x: 100, y: 440 } },
+      { id: "action-2", type: "action", actionType: "notify_owner", label: "Hesap Sahibi Bildirimi", config: { summary: "Güçlü aday: {{name}} ({{position}}) — {{experience}} yıl deneyim", notificationType: "strong_candidate" }, nextNodeId: null, position: { x: 100, y: 440 } },
       { id: "action-3", type: "action", actionType: "log_action", label: "Arşive Al", config: { description: "Başvuru arşivlendi: {{name}} — yetersiz deneyim", agentType: "hr-recruiting" }, nextNodeId: null, position: { x: 400, y: 310 } },
     ],
   },
@@ -399,7 +399,7 @@ export const workflowTemplates: WorkflowTemplate[] = [
     id: "ecommerce-order-chain",
     name: "Order → Invoice + Shipping + Notify",
     nametr: "Sipariş → Fatura + Kargo + Bildirim",
-    description: "Complete order processing chain: invoice, shipping task, and boss notification",
+    description: "Complete order processing chain: invoice, shipping task, and account owner notification",
     descriptionTr: "Tam sipariş işleme zinciri: fatura, kargo görevi ve bildirim",
     category: "ecommerce",
     icon: "🛒",
@@ -414,7 +414,7 @@ export const workflowTemplates: WorkflowTemplate[] = [
       { id: "action-1", type: "action", actionType: "log_action", label: "Sipariş Kayıt", config: { description: "Yeni sipariş: {{orderId}} — {{customerName}} — {{total}} ₺", agentType: "ecommerce-ops" }, nextNodeId: "action-2", position: { x: 250, y: 180 } },
       { id: "action-2", type: "action", actionType: "create_task", label: "Kargo Hazırla", config: { title: "Kargo: Sipariş #{{orderId}}", description: "{{customerName}} — {{address}} — Toplam: {{total}} ₺", agentType: "ecommerce-ops", priority: "high" }, nextNodeId: "action-3", position: { x: 250, y: 310 } },
       { id: "action-3", type: "action", actionType: "send_email", label: "Onay E-postası", config: { to: "{{customerEmail}}", subject: "Sipariş Onayı #{{orderId}}", body: "Sayın {{customerName}}, siparişiniz alınmıştır. Sipariş No: {{orderId}}, Toplam: {{total}} ₺. Kargoya verildiğinde bilgilendirileceksiniz." }, nextNodeId: "action-4", position: { x: 250, y: 440 } },
-      { id: "action-4", type: "action", actionType: "notify_boss", label: "Boss Bildirimi", config: { summary: "Yeni sipariş #{{orderId}} — {{customerName}} — {{total}} ₺", notificationType: "new_order" }, nextNodeId: null, position: { x: 250, y: 570 } },
+      { id: "action-4", type: "action", actionType: "notify_owner", label: "Hesap Sahibi Bildirimi", config: { summary: "Yeni sipariş #{{orderId}} — {{customerName}} — {{total}} ₺", notificationType: "new_order" }, nextNodeId: null, position: { x: 250, y: 570 } },
     ],
   },
   {
@@ -436,7 +436,7 @@ export const workflowTemplates: WorkflowTemplate[] = [
       { id: "trigger-1", type: "trigger", label: "Ay Sonu (28.)", config: {}, nextNodeId: "action-1", position: { x: 250, y: 50 } },
       { id: "action-1", type: "action", actionType: "create_task", label: "KDV Beyannamesi Hatırlatma", config: { title: "KDV Beyannamesi Hazırla", description: "Bu ayın KDV beyannamesini hazırla ve kontrol et. Son gün: ayın son iş günü.", agentType: "bookkeeping", priority: "high" }, nextNodeId: "action-2", position: { x: 250, y: 180 } },
       { id: "action-2", type: "action", actionType: "create_task", label: "Ba-Bs Formu Kontrol", config: { title: "Ba-Bs Formlarını Kontrol Et", description: "Bu ayki Ba-Bs formlarını kontrol et ve e-beyanname sistemine yükle.", agentType: "bookkeeping", priority: "medium" }, nextNodeId: "action-3", position: { x: 250, y: 310 } },
-      { id: "action-3", type: "action", actionType: "notify_boss", label: "Dönem Sonu Bildirimi", config: { summary: "Dönem sonu kontrol listesi oluşturuldu — KDV beyannamesi ve Ba-Bs formu görevleri atandı", notificationType: "period_end" }, nextNodeId: null, position: { x: 250, y: 440 } },
+      { id: "action-3", type: "action", actionType: "notify_owner", label: "Dönem Sonu Bildirimi", config: { summary: "Dönem sonu kontrol listesi oluşturuldu — KDV beyannamesi ve Ba-Bs formu görevleri atandı", notificationType: "period_end" }, nextNodeId: null, position: { x: 250, y: 440 } },
     ],
   },
   {
@@ -459,7 +459,7 @@ export const workflowTemplates: WorkflowTemplate[] = [
         id: "condition-1", type: "condition", label: "Öncelik Kontrolü", config: { field: "priority", operator: "equals", value: "high" },
         conditionTrueNodeId: "action-1", conditionFalseNodeId: "action-2", nextNodeId: null, position: { x: 250, y: 180 },
       },
-      { id: "action-1", type: "action", actionType: "notify_boss", label: "Acil SLA Uyarısı", config: { summary: "🚨 Yüksek öncelikli destek talebi: {{subject}} — 2 saat SLA", notificationType: "sla_urgent" }, nextNodeId: "action-3", position: { x: 100, y: 310 } },
+      { id: "action-1", type: "action", actionType: "notify_owner", label: "Acil SLA Uyarısı", config: { summary: "🚨 Yüksek öncelikli destek talebi: {{subject}} — 2 saat SLA", notificationType: "sla_urgent" }, nextNodeId: "action-3", position: { x: 100, y: 310 } },
       { id: "action-2", type: "action", actionType: "create_task", label: "Normal Takip", config: { title: "Destek takibi: {{subject}}", description: "Normal öncelikli talep — 24 saat içinde yanıt ver", agentType: "customer-support", priority: "medium" }, nextNodeId: null, position: { x: 400, y: 310 } },
       { id: "action-3", type: "action", actionType: "create_task", label: "Acil Görev", config: { title: "ACİL: {{subject}}", description: "Yüksek öncelikli talep — 2 saat içinde yanıt gerekli!", agentType: "customer-support", priority: "high" }, nextNodeId: null, position: { x: 100, y: 440 } },
     ],
@@ -493,7 +493,7 @@ export const workflowTemplates: WorkflowTemplate[] = [
     nodes: [
       { id: "trigger-1", type: "trigger", label: "Pazartesi 09:00", config: {}, nextNodeId: "action-1", position: { x: 250, y: 50 } },
       { id: "action-1", type: "action", actionType: "create_task", label: "Rapor Hazırla", config: { title: "Haftalık Yönetim Raporu", description: "Geçen haftanın performans verilerini derle ve rapor hazırla", agentType: "data-analyst", priority: "high" }, nextNodeId: "action-2", position: { x: 250, y: 180 } },
-      { id: "action-2", type: "action", actionType: "notify_boss", label: "Boss Bildirimi", config: { summary: "Haftalık yönetim raporu hazırlandı — kontrol edin", notificationType: "weekly_report" }, nextNodeId: null, position: { x: 250, y: 310 } },
+      { id: "action-2", type: "action", actionType: "notify_owner", label: "Hesap Sahibi Bildirimi", config: { summary: "Haftalık yönetim raporu hazırlandı — kontrol edin", notificationType: "weekly_report" }, nextNodeId: null, position: { x: 250, y: 310 } },
     ],
   },
   {
@@ -545,7 +545,7 @@ export const workflowTemplates: WorkflowTemplate[] = [
         id: "condition-1", type: "condition", label: "Kampanya Bütçe Kontrolü", config: { field: "budget", operator: "greater_than", value: "5000" },
         conditionTrueNodeId: "action-1", conditionFalseNodeId: "action-2", nextNodeId: null, position: { x: 250, y: 180 },
       },
-      { id: "action-1", type: "action", actionType: "notify_boss", label: "Acil Bütçe Uyarısı", config: { summary: "⚠️ Kampanya {{campaignName}} dönüşüm oranı %{{conversionRate}} — yüksek bütçeli kampanya dikkat gerektirir", notificationType: "campaign_alert" }, nextNodeId: "action-3", position: { x: 100, y: 310 } },
+      { id: "action-1", type: "action", actionType: "notify_owner", label: "Acil Bütçe Uyarısı", config: { summary: "⚠️ Kampanya {{campaignName}} dönüşüm oranı %{{conversionRate}} — yüksek bütçeli kampanya dikkat gerektirir", notificationType: "campaign_alert" }, nextNodeId: "action-3", position: { x: 100, y: 310 } },
       { id: "action-2", type: "action", actionType: "log_action", label: "İzleme Kaydı", config: { description: "Kampanya {{campaignName}} düşük performans: %{{conversionRate}} dönüşüm", agentType: "social-media" }, nextNodeId: null, position: { x: 400, y: 310 } },
       { id: "action-3", type: "action", actionType: "create_task", label: "Kampanya Optimizasyonu", config: { title: "Kampanya optimizasyonu: {{campaignName}}", description: "Dönüşüm oranı %{{conversionRate}}. A/B testleri yap ve hedef kitle ayarlarını gözden geçir.", agentType: "social-media", priority: "high" }, nextNodeId: null, position: { x: 100, y: 440 } },
     ],
@@ -564,7 +564,7 @@ export const workflowTemplates: WorkflowTemplate[] = [
       { id: "trigger-1", type: "trigger", label: "Fatura E-postası Alındı", config: {}, nextNodeId: "action-1", position: { x: 250, y: 50 } },
       { id: "action-1", type: "action", actionType: "log_action", label: "Fatura Kaydı", config: { description: "Fatura e-postası alındı: {{emailFrom}} — Konu: {{emailSubject}}", agentType: "bookkeeping" }, nextNodeId: "action-2", position: { x: 250, y: 180 } },
       { id: "action-2", type: "action", actionType: "create_task", label: "Fatura İşleme", config: { title: "E-posta faturası işle: {{emailSubject}}", description: "Gönderen: {{emailFrom}}. Faturayı kontrol et, KDV tutarını doğrula ve sisteme gir.", agentType: "bookkeeping", priority: "high" }, nextNodeId: "action-3", position: { x: 250, y: 310 } },
-      { id: "action-3", type: "action", actionType: "notify_boss", label: "Muhasebe Bildirimi", config: { summary: "Yeni fatura e-postası: {{emailFrom}} — işleme görevi oluşturuldu", notificationType: "invoice_received" }, nextNodeId: null, position: { x: 250, y: 440 } },
+      { id: "action-3", type: "action", actionType: "notify_owner", label: "Muhasebe Bildirimi", config: { summary: "Yeni fatura e-postası: {{emailFrom}} — işleme görevi oluşturuldu", notificationType: "invoice_received" }, nextNodeId: null, position: { x: 250, y: 440 } },
     ],
   },
 ];

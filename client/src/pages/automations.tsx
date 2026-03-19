@@ -85,7 +85,7 @@ const triggerTypeIcons: Record<string, any> = {
 
 const actionTypeLabels: Record<string, string> = {
   send_email: "E-posta Gönder", create_task: "Görev Oluştur",
-  notify_boss: "Boss Bildirimi", update_lead: "Lead Güncelle",
+  notify_owner: "Hesap Sahibi Bildirimi", notify_boss: "Hesap Sahibi Bildirimi", update_lead: "Lead Güncelle",
   webhook_call: "Webhook Çağrısı", log_action: "Kayıt Tut",
   calculate: "Hesapla", http_request: "HTTP İsteği",
   set_variable: "Değişken Ata", format_data: "Veri Dönüştür",
@@ -95,7 +95,7 @@ const actionTypeLabels: Record<string, string> = {
 };
 
 const actionTypeIcons: Record<string, any> = {
-  send_email: Mail, create_task: FileText, notify_boss: Bell,
+  send_email: Mail, create_task: FileText, notify_owner: Bell, notify_boss: Bell,
   update_lead: Target, webhook_call: Webhook, log_action: Activity,
   calculate: Hash, http_request: Globe, set_variable: Variable,
   format_data: Database, whatsapp_message: MessageSquare,
@@ -115,6 +115,7 @@ const conditionOperatorLabels: Record<string, string> = {
 const actionConfigFields: Record<string, string[]> = {
   send_email: ["to", "subject", "body"],
   create_task: ["title", "description", "agentType", "priority"],
+  notify_owner: ["summary", "notificationType"],
   notify_boss: ["summary", "notificationType"],
   update_lead: ["leadId", "status", "notes"],
   webhook_call: ["url", "method"],
@@ -1328,7 +1329,7 @@ function WorkflowBuilderView({ workflow, onBack }: {
           <Button size="sm" variant="outline" className="text-xs border-gray-700 text-gray-300" onClick={() => addNodeMutation("action", "create_task")} data-testid="button-add-task-node">
             <FileText className="w-3 h-3 mr-1" /> Görev
           </Button>
-          <Button size="sm" variant="outline" className="text-xs border-gray-700 text-gray-300" onClick={() => addNodeMutation("action", "notify_boss")} data-testid="button-add-notify-node">
+          <Button size="sm" variant="outline" className="text-xs border-gray-700 text-gray-300" onClick={() => addNodeMutation("action", "notify_owner")} data-testid="button-add-notify-node">
             <Bell className="w-3 h-3 mr-1" /> Bildirim
           </Button>
           <Button size="sm" variant="outline" className="text-xs border-gray-700 text-gray-300" onClick={() => addNodeMutation("action", "http_request")} data-testid="button-add-http-node">

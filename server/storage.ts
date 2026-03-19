@@ -94,6 +94,9 @@ export interface IStorage {
   createBossNotification(notification: InsertBossNotification): Promise<BossNotification>;
   markBossNotificationNotified(id: number): Promise<void>;
   getBossNotifications(userId: number, limit?: number): Promise<BossNotification[]>;
+  createOwnerNotification(notification: InsertBossNotification): Promise<BossNotification>;
+  markOwnerNotificationNotified(id: number): Promise<void>;
+  getOwnerNotifications(userId: number, limit?: number): Promise<BossNotification[]>;
 
   getSocialAccounts(userId: number): Promise<SocialAccount[]>;
   addSocialAccount(account: InsertSocialAccount): Promise<SocialAccount>;
@@ -886,6 +889,18 @@ export class DatabaseStorage implements IStorage {
       .where(eq(bossNotifications.userId, userId))
       .orderBy(desc(bossNotifications.createdAt))
       .limit(limit);
+  }
+
+  async createOwnerNotification(notification: InsertBossNotification): Promise<BossNotification> {
+    return this.createBossNotification(notification);
+  }
+
+  async markOwnerNotificationNotified(id: number): Promise<void> {
+    return this.markBossNotificationNotified(id);
+  }
+
+  async getOwnerNotifications(userId: number, limit: number = 50): Promise<BossNotification[]> {
+    return this.getBossNotifications(userId, limit);
   }
 
   async getSocialAccounts(userId: number): Promise<SocialAccount[]> {

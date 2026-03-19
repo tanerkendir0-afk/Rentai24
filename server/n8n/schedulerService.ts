@@ -5,33 +5,46 @@ import type { TriggerConfig } from "@shared/schema";
 
 let schedulerInterval: ReturnType<typeof setInterval> | null = null;
 
-function parseCronMinute(cronExpression: string): number | null {
+function matchesCronField(field: string, value: number): boolean {
+  if (field === "*") return true;
+  if (field.startsWith("*/")) {
+    const step = parseInt(field.substring(2));
+    return !isNaN(step) && step > 0 && value % step === 0;
+  }
+  if (field.includes(",")) {
+    return field.split(",").some((v) => parseInt(v.trim()) === value);
+  }
+  if (field.includes("-")) {
+    const [start, end] = field.split("-").map(Number);
+    return !isNaN(start) && !isNaN(end) && value >= start && value <= end;
+  }
+  return parseInt(field) === value;
+}
+
+function cronMatchesNow(cronExpression: string): boolean {
   const parts = cronExpression.trim().split(/\s+/);
-  if (parts.length < 5) return null;
+  if (parts.length < 5) return false;
 
-  if (parts[0] === "0" && parts[1] === "*" && parts[2] === "*" && parts[3] === "*" && parts[4] === "*") {
-    return 60;
-  }
-  if (parts[0].startsWith("*/") && parts[1] === "*") {
-    const mins = parseInt(parts[0].substring(2));
-    return isNaN(mins) ? null : mins;
-  }
-  if (parts[0] === "0" && /^\d+$/.test(parts[1])) {
-    return 60;
-  }
+  const now = new Date();
+  const [minute, hour, dayOfMonth, month, dayOfWeek] = parts;
 
-  return 60;
+  return (
+    matchesCronField(minute, now.getMinutes()) &&
+    matchesCronField(hour, now.getHours()) &&
+    matchesCronField(dayOfMonth, now.getDate()) &&
+    matchesCronField(month, now.getMonth() + 1) &&
+    matchesCronField(dayOfWeek, now.getDay())
+  );
 }
 
 function shouldRunNow(cronExpression: string, lastRunAt: Date | null): boolean {
-  const intervalMinutes = parseCronMinute(cronExpression);
-  if (!intervalMinutes) return false;
+  if (!cronMatchesNow(cronExpression)) return false;
 
-  const now = Date.now();
   if (!lastRunAt) return true;
 
+  const now = Date.now();
   const elapsed = now - lastRunAt.getTime();
-  return elapsed >= intervalMinutes * 60 * 1000;
+  return elapsed >= 55000;
 }
 
 export async function checkScheduledWorkflows(): Promise<void> {

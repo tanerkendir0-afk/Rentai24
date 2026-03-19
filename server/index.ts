@@ -241,6 +241,42 @@ app.use((req, res, next) => {
       );
 
       await pool.query(`
+        CREATE TABLE IF NOT EXISTS automation_workflows (
+          id SERIAL PRIMARY KEY,
+          user_id INTEGER NOT NULL REFERENCES users(id),
+          name TEXT NOT NULL,
+          description TEXT,
+          trigger_type TEXT NOT NULL DEFAULT 'manual',
+          trigger_config JSONB NOT NULL DEFAULT '{}',
+          nodes JSONB NOT NULL DEFAULT '[]',
+          is_active BOOLEAN NOT NULL DEFAULT false,
+          template_id TEXT,
+          last_run_at TIMESTAMP,
+          run_count INTEGER NOT NULL DEFAULT 0,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+        )
+      `).catch((err: unknown) =>
+        console.warn("automation_workflows table setup:", err instanceof Error ? err.message : String(err))
+      );
+
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS automation_executions (
+          id SERIAL PRIMARY KEY,
+          workflow_id INTEGER NOT NULL REFERENCES automation_workflows(id),
+          user_id INTEGER NOT NULL,
+          status TEXT NOT NULL DEFAULT 'running',
+          trigger_data JSONB NOT NULL DEFAULT '{}',
+          node_results JSONB NOT NULL DEFAULT '[]',
+          error TEXT,
+          started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+          completed_at TIMESTAMP
+        )
+      `).catch((err: unknown) =>
+        console.warn("automation_executions table setup:", err instanceof Error ? err.message : String(err))
+      );
+
+      await pool.query(`
         CREATE TABLE IF NOT EXISTS collaboration_sessions (
           id SERIAL PRIMARY KEY,
           topic TEXT NOT NULL,

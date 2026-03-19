@@ -7070,14 +7070,28 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
     }
   });
 
+  const webhookRateLimits: Map<string, { count: number; resetAt: number }> = new Map();
   app.post("/api/automations/webhook/:path", async (req, res) => {
     try {
       const webhookPath = req.params.path;
-      const webhookSecret = req.headers["x-webhook-secret"] || req.query.secret;
+      const webhookSecret = req.headers["x-webhook-secret"] as string | undefined;
       const data = req.body || {};
 
       if (!webhookPath || webhookPath.length > 200) {
         return res.status(400).json({ error: "Invalid webhook path" });
+      }
+
+      const clientIp = req.ip || "unknown";
+      const rateKey = `webhook:${clientIp}:${webhookPath}`;
+      const now = Date.now();
+      const rateEntry = webhookRateLimits.get(rateKey);
+      if (rateEntry && rateEntry.resetAt > now) {
+        if (rateEntry.count >= 10) {
+          return res.status(429).json({ error: "Rate limit exceeded" });
+        }
+        rateEntry.count++;
+      } else {
+        webhookRateLimits.set(rateKey, { count: 1, resetAt: now + 60000 });
       }
 
       const workflows = await db
@@ -7088,7 +7102,8 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
       const matching = workflows.filter((w) => {
         const tc = w.triggerConfig as TriggerConfig;
         if (tc.webhookPath !== webhookPath) return false;
-        if (tc.webhookSecret && tc.webhookSecret !== webhookSecret) return false;
+        if (!tc.webhookSecret) return false;
+        if (tc.webhookSecret !== webhookSecret) return false;
         return true;
       });
 

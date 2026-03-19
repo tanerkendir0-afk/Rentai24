@@ -6898,7 +6898,7 @@ function SkillDetailModal({ skill, assignments, onClose, token, onUpdated }: {
               </div>
             )}
           </>
-        )
+        )}
       </div>
     </div>
   );

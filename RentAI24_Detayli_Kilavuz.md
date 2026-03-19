@@ -18,15 +18,15 @@ Platformun temel yapisi su sekilde calisir:
        v                                         v
    [AI Ajan Secimi]                    [Otomasyon Yonetimi]
        |                                         |
-       ├── Finn (Muhasebe)                       ├── Sablon Galerisi
+       ├── Ava (Musteri Destek)                  ├── Sablon Galerisi
        ├── Rex (Satis/CRM)                       ├── Ozel Otomasyon
-       ├── ShopBot (E-Ticaret)                   ├── Calisma Gecmisi
-       ├── DataBot (Veri Analiz)                 └── Webhook Yonetimi
+       ├── Maya (Sosyal Medya)                   ├── Calisma Gecmisi
+       ├── Finn (Muhasebe)                       └── Webhook Yonetimi
        ├── Cal (Takvim)
-       ├── SocialBot (Sosyal Medya)
-       ├── SupportBot (Destek)
-       ├── HRBot (IK)
-       └── ContentBot (Icerik)
+       ├── Harper (IK/Ise Alim)
+       ├── DataBot (Veri Analiz)
+       ├── ShopBot (E-Ticaret)
+       └── Reno (Gayrimenkul)
 ```
 
 
@@ -69,10 +69,15 @@ Platformun temel yapisi su sekilde calisir:
           v
    [Sol Panelden Ajan Sec]
           |
-          ├──> Finn   → "Fatura olustur", "KDV hesapla"
+          ├──> Ava    → "Destek talebi olustur", "Musteri sorusu cevapla"
           ├──> Rex    → "Yeni lead ekle", "Takip planla"
+          ├──> Maya   → "Sosyal medya postu olustur", "Gorsel uret"
+          ├──> Finn   → "Fatura olustur", "KDV hesapla"
+          ├──> Cal    → "Randevu olustur", "Takvim kontrol et"
+          ├──> Harper → "Aday degerlendirmesi yap", "Is ilani olustur"
+          ├──> DataBot → Excel yukle → Analiz ve grafik
           ├──> ShopBot → "Siparis durumu", "Stok guncelle"
-          └──> DataBot → Excel yukle → Analiz ve grafik
+          └──> Reno   → "Mulk ara", "Piyasa analizi yap"
           |
           v
    [Mesajinizi Yazin ve Gonderin]

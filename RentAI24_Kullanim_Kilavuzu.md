@@ -8,7 +8,8 @@
 5. CRM ve Satis Araclari
 6. Muhasebe (Finn) Ozellikleri
 7. Pazar Yeri Entegrasyonlari
-8. Ayarlar ve Yapilandirma
+8. Abonelik Planlari ve Fiyatlandirma
+9. Ayarlar ve Yapilandirma
 
 ---
 
@@ -60,9 +61,15 @@ Ilk giris sonrasi bir onboarding formu cikabilir. Sektorunuz, sirket buyuklugu v
 - **E-posta Gonderme**: Ajanlar sizin adiniza e-posta gonderebilir (Gmail baglantisi gerekir)
 
 ### Akim Ornekleri
-- Finn'e "Fatura olustur" deyin → Adim adim fatura bilgilerini sorar
+- Ava'ya "Destek talebi olustur" deyin → Musteri sorusunu cozumler
 - Rex'e "Yeni lead ekle" deyin → Musteri bilgilerini alir ve CRM'e kaydeder
+- Maya'ya "Instagram postu olustur" deyin → Icerik ve gorsel olusturur
+- Finn'e "Fatura olustur" deyin → Adim adim fatura bilgilerini sorar
+- Cal'a "Yarin saat 14:00 toplanti ayarla" deyin → Takvime ekler
+- Harper'a "Aday degerlendirme raporu hazirla" deyin → Ozgecmis analizi yapar
 - DataBot'a Excel yukleyin → Otomatik analiz yapar, grafik olusturur
+- ShopBot'a "Siparis durumunu kontrol et" deyin → E-ticaret bilgilerini getirir
+- Reno'ya "Istanbul'da kiralik daire ara" deyin → Piyasa analizi yapar
 
 ---
 
@@ -207,7 +214,36 @@ Bu entegrasyon otomatiktir. Yalnizca uygun tetikleyici turune sahip **aktif** ot
 
 ---
 
-## 8. Ayarlar ve Yapilandirma
+## 8. Abonelik Planlari ve Fiyatlandirma
+
+### Mevcut Planlar
+
+| Plan | Aylik Fiyat | Icerik |
+|------|-------------|--------|
+| **Standard** | $300 | 3'e kadar AI ajan (Finn haric), ajan basi gunluk 100 mesaj, temel entegrasyonlar, e-posta destegi |
+| **Professional** | $600 | 7'ye kadar AI ajan (Finn haric), ajan basi gunluk 150 mesaj, gelismis entegrasyonlar, oncelikli destek, API erisimi, cok dilli destek |
+| **All-in-One** | $1,200 | 9 AI ajanin tamami dahil, ajan basi gunluk 150 mesaj, tum entegrasyonlar, 7/24 ozel destek, ozel AI egitimi, SLA garantisi, ozel hesap yoneticisi |
+| **Sadece Muhasebe (Finn)** | $500 | Sadece Finn (muhasebe ajani), gunluk 200 mesaj, dokuman olusturma ve faturalama, mali raporlama, oncelikli destek, Turk muhasebe mevzuati uyumlu |
+
+### Eklentiler
+
+| Eklenti | Fiyat | Aciklama |
+|---------|-------|----------|
+| Ek Dil Paketi | $19/ay | Herhangi bir ajana ek dil destegi |
+| Ozel Entegrasyon | $99 (tek seferlik) | Herhangi bir arac veya platforma baglanti |
+| Oncelikli Baslangic | $199 (tek seferlik) | Ozel baslangic uzmani |
+| Ozel Hesap Yoneticisi | $299/ay | Adanmis hesap yonetimi |
+
+### Onemli Notlar
+- Tum fiyatlara KDV ve vergiler dahil degildir
+- Istediginiz zaman iptal edebilirsiniz
+- 14 gunluk ucretsiz deneme suresi vardir
+- Guvenli odeme altyapisi (Stripe)
+- Para iade garantisi
+
+---
+
+## 9. Ayarlar ve Yapilandirma
 
 ### Genel Ayarlar (/settings)
 - Profil bilgileri guncelleme

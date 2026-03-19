@@ -2626,7 +2626,7 @@ export async function registerRoutes(
   });
 
   const imageExtensions = [".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg"];
-  const documentExtensions = [".txt", ".md", ".pdf", ".docx", ".csv", ".xlsx", ".xls", ".numbers", ".pages"];
+  const documentExtensions = [".txt", ".md", ".pdf", ".docx", ".csv", ".xlsx", ".xls", ".numbers", ".pages", ".xml"];
   const allAllowedExtensions = [...imageExtensions, ...documentExtensions];
 
   const chatUpload = multer({

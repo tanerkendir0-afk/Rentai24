@@ -1176,6 +1176,7 @@ export const WORKFLOW_TRIGGER_TYPES = [
   "schedule",
   "manual",
   "threshold",
+  "email_received",
 ] as const;
 
 export const WORKFLOW_NODE_TYPES = [

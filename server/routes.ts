@@ -1702,6 +1702,95 @@ export async function registerRoutes(
     }
   });
 
+
+  // === TOPLU e-FATURA XML UPLOAD ===
+  const xmlUploadStorage = multer.diskStorage({
+    destination: (req, file, cb) => {
+      const dir = path.join(process.cwd(), 'uploads', 'efatura-xml');
+      cb(null, dir);
+    },
+    filename: (req, file, cb) => {
+      const ext = path.extname(file.originalname).toLowerCase();
+      cb(null, Date.now() + '-' + crypto.randomBytes(6).toString('hex') + ext);
+    },
+  });
+  const xmlUpload = multer({
+    storage: xmlUploadStorage,
+    limits: { fileSize: 5 * 1024 * 1024 },
+    fileFilter: (req, file, cb) => {
+      const ext = path.extname(file.originalname).toLowerCase();
+      if (ext === '.xml') cb(null, true);
+      else cb(new Error('Sadece XML dosyaları kabul edilir'));
+    },
+  });
+  app.post('/api/efatura/upload', requireAuth, xmlUpload.array('files', 200), async (req, res) => {
+    try {
+      const files = req.files as Express.Multer.File[];
+      const { parseEFatura } = await import('./efatura-kdv-parser');
+      const donem = (req.body.donem as string) || '';
+      const tenantId = (req as any).session?.tenantId || '00000000-0000-0000-0000-000000000000';
+      const results = { success: 0, errors: 0, duplicates: 0, details: [] as any[] };
+      for (const file of files) {
+        try {
+          const xmlContent = fs.readFileSync(file.path, 'utf-8');
+          const parsed = parseEFatura(xmlContent);
+          if (parsed.success && parsed.invoice) {
+            try {
+              await db.execute(
+                `INSERT INTO indirilecek_kdv_faturalar (tenant_id, donem, sira_no, fatura_tarihi, belge_no, satici_unvani, satici_vkn, belge_turu, matrah, kdv_orani, kdv_tutari, hesap_kodu, para_birimi, profil_id, xml_hash)
+                 VALUES (,,,,,,,,,0,1,2,3,4,5)
+                 ON CONFLICT (tenant_id, belge_no) DO NOTHING`,
+                [tenantId, donem, 0, parsed.invoice.faturaTarihi.split('.').reverse().join('-'),
+                 parsed.invoice.belgeNo, parsed.invoice.saticiUnvani, parsed.invoice.saticiVKN,
+                 parsed.invoice.belgeTuru, parsed.invoice.matrah, parsed.invoice.kdvOrani,
+                 parsed.invoice.kdvTutari, parsed.invoice.hesapKodu, parsed.invoice.paraBirimi,
+                 parsed.invoice.profilId, crypto.createHash('md5').update(xmlContent).digest('hex')]
+              );
+              results.success++;
+              results.details.push({ file: file.originalname, status: 'ok', belgeNo: parsed.invoice.belgeNo, kdv: parsed.invoice.kdvTutari });
+            } catch (dbErr: any) {
+              if (dbErr.message?.includes('unique') || dbErr.message?.includes('duplicate')) {
+                results.duplicates++;
+                results.details.push({ file: file.originalname, status: 'duplicate', belgeNo: parsed.invoice.belgeNo });
+              } else throw dbErr;
+            }
+          } else {
+            results.errors++;
+            results.details.push({ file: file.originalname, status: 'error', errors: parsed.errors });
+          }
+        } catch (fileErr: any) {
+          results.errors++;
+          results.details.push({ file: file.originalname, status: 'error', errors: [fileErr.message] });
+        }
+      }
+      // Sıra numaralarını güncelle
+      await db.execute(`UPDATE indirilecek_kdv_faturalar SET sira_no = sub.rn FROM (SELECT id, ROW_NUMBER() OVER (PARTITION BY tenant_id, donem ORDER BY fatura_tarihi) as rn FROM indirilecek_kdv_faturalar WHERE tenant_id =  AND donem = ) sub WHERE indirilecek_kdv_faturalar.id = sub.id`, [tenantId, donem]);
+      // Özet bilgileri çek
+      const ozet = await db.execute(`SELECT kdv_orani, COUNT(*) as adet, SUM(matrah) as matrah, SUM(kdv_tutari) as kdv FROM indirilecek_kdv_faturalar WHERE tenant_id =  AND donem =  GROUP BY kdv_orani ORDER BY kdv_orani`, [tenantId, donem]);
+      res.json({
+        message: `${results.success} fatura işlendi, ${results.errors} hata, ${results.duplicates} mükerrer`,
+        toplam: files.length,
+        basarili: results.success,
+        hatali: results.errors,
+        mukerrer: results.duplicates,
+        oranOzeti: ozet.rows,
+        detaylar: results.details,
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+  app.get('/api/efatura/kdv-listesi/:donem', requireAuth, async (req, res) => {
+    try {
+      const tenantId = (req as any).session?.tenantId || '00000000-0000-0000-0000-000000000000';
+      const faturalar = await db.execute(`SELECT * FROM indirilecek_kdv_faturalar WHERE tenant_id =  AND donem =  ORDER BY fatura_tarihi, sira_no`, [tenantId, req.params.donem]);
+      const ozet = await db.execute(`SELECT * FROM v_indirilecek_kdv_ozet WHERE tenant_id =  AND donem = `, [tenantId, req.params.donem]);
+      res.json({ donem: req.params.donem, faturalar: faturalar.rows, ozet: ozet.rows, toplam: faturalar.rows.length });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   app.get("/api/files", requireAuth, async (req, res) => {
     try {
       const { uploadedFiles } = await import("@shared/schema");

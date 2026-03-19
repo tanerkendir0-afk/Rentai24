@@ -567,6 +567,20 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
               }
             } catch {}
           }
+          // e-Fatura XML toplu yükleme (Finn)
+          if (selectedAgent === "bookkeeping" && ext === ".xml") {
+            try {
+              const xmlForm = new FormData();
+              xmlForm.append("files", file);
+              xmlForm.append("donem", new Date().toLocaleDateString("tr-TR", { month: "2-digit", year: "numeric" }).replace(".", "/"));
+              const xmlRes = await fetch("/api/efatura/upload", { method: "POST", body: xmlForm, credentials: "include" });
+              const xmlResult = await xmlRes.json();
+              if (xmlResult.basarili !== undefined) {
+                const extra = "\n\n[e-Fatura XML parse edildi: " + xmlResult.basarili + " başarılı, " + xmlResult.hatali + " hatalı, " + xmlResult.mukerrer + " mükerrer]";
+                setUploadedFile(prev => prev ? { ...prev, documentContent: (prev.documentContent || "") + extra } : prev);
+              }
+            } catch {}
+          }
         }
       } else {
         toast({ title: t("demoPage.toast.uploadFailed"), description: data.error || t("demoPage.toast.uploadFailedDesc"), variant: "destructive" });
@@ -580,9 +594,30 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
   };
 
   const handleFileInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    await handleFileUpload(file);
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    const xmlFiles = Array.from(files).filter(f => f.name.toLowerCase().endsWith(".xml"));
+    if (selectedAgent === "bookkeeping" && xmlFiles.length > 1) {
+      setUploading(true);
+      try {
+        const xmlForm = new FormData();
+        xmlFiles.forEach(f => xmlForm.append("files", f));
+        const now = new Date();
+        xmlForm.append("donem", String(now.getMonth() + 1).padStart(2, "0") + "/" + now.getFullYear());
+        const xmlRes = await fetch("/api/efatura/upload", { method: "POST", body: xmlForm, credentials: "include" });
+        const result = await xmlRes.json();
+        const msg = result.basarili + " fatura OK, " + result.hatali + " hata, " + result.mukerrer + " mukerrer";
+        setUploadedFile({ url: "", name: xmlFiles.length + " XML dosya", type: "document", documentContent: "[e-Fatura toplu yukleme: " + msg + "]" });
+        toast({ title: "e-Fatura Yuklendi", description: msg });
+      } catch (err) {
+        toast({ title: "Yukleme hatasi", variant: "destructive" });
+      } finally {
+        setUploading(false);
+        if (fileInputRef.current) fileInputRef.current.value = "";
+      }
+      return;
+    }
+    await handleFileUpload(files[0]);
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -2025,7 +2060,8 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                 type="file"
                 ref={fileInputRef}
                 className="hidden"
-                accept=".jpg,.jpeg,.png,.gif,.webp,.svg,.pdf,.docx,.xlsx,.xls,.csv,.txt,.md,.numbers,.pages"
+                accept=".jpg,.jpeg,.png,.gif,.webp,.svg,.pdf,.docx,.xlsx,.xls,.csv,.txt,.md,.numbers,.pages,.xml"
+                multiple
                 onChange={handleFileInputChange}
                 data-testid="input-file-upload"
               />

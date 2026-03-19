@@ -290,11 +290,13 @@ interface ChatMessageContentProps {
 
 function parseButtonBlocks(text: string): { cleanText: string; buttons: string[][] } {
   const buttons: string[][] = [];
-  const cleanText = text.replace(/\[BUTTONS\]([\s\S]*?)\[\/BUTTONS\]/g, (_match, inner) => {
-    const group = inner.trim().split("\n").map((l: string) => l.trim()).filter((l: string) => l.length > 0);
-    if (group.length > 0) buttons.push(group);
-    return "";
-  });
+  const cleanText = text
+    .replace(/\\?\[BUTTONS\\?\]([\s\S]*?)\\?\[\/BUTTONS\\?\]/g, (_match, inner) => {
+      const normalized = inner.trim().replace(/\\n/g, "\n");
+      const group = normalized.split("\n").map((l: string) => l.trim()).filter((l: string) => l.length > 0);
+      if (group.length > 0) buttons.push(group);
+      return "";
+    });
   return { cleanText: cleanText.trim(), buttons };
 }
 
@@ -360,12 +362,12 @@ export default function ChatMessageContent({ content, isUser, onSendMessage, isL
                 type="button"
                 disabled={!!clickedBtn}
                 onClick={() => handleButtonClick(label)}
-                className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-all ${
+                className={`px-4 py-2 text-[13px] font-medium rounded-xl border-2 transition-all shadow-sm ${
                   clickedBtn === label
-                    ? "bg-blue-500/20 border-blue-500/50 text-blue-400"
+                    ? "bg-blue-500/20 border-blue-500/60 text-blue-400 shadow-blue-500/10"
                     : clickedBtn
-                      ? "opacity-40 border-border/30 text-muted-foreground cursor-not-allowed"
-                      : "border-border/50 text-foreground bg-muted/30 hover:bg-blue-500/10 hover:border-blue-500/40 hover:text-blue-400 active:scale-95"
+                      ? "opacity-30 border-border/20 text-muted-foreground cursor-not-allowed"
+                      : "border-blue-500/40 text-blue-400 bg-blue-500/5 hover:bg-blue-500/15 hover:border-blue-500/60 hover:shadow-blue-500/15 active:scale-95"
                 }`}
                 data-testid={`button-quick-reply-${gi}-${bi}`}
               >

@@ -298,28 +298,40 @@ EMAIL CONFIRMATION (MANDATORY — NEVER SKIP):
 
 const QUICK_REPLY_BUTTONS = `
 INTERACTIVE BUTTONS (USE FOR CHOICES):
-When presenting the user with a limited set of choices (2-5 options), format them as buttons using this exact syntax:
+When presenting the user with a limited set of choices (2-5 options), format them as clickable buttons using this EXACT syntax — each option on its own line:
+
 [BUTTONS]
 Option 1
 Option 2
 Option 3
 [/BUTTONS]
 
+CRITICAL SYNTAX RULES:
+- Write [BUTTONS] and [/BUTTONS] exactly as shown — plain square brackets, NO backslash escaping
+- Do NOT write \\[BUTTONS\\] — that breaks the button rendering
+- Each option MUST be on its own separate line between the tags
+- Do NOT put multiple options on the same line separated by \\n
+
+CORRECT example:
+[BUTTONS]
+₺ TL
+USD $
+EUR €
+[/BUTTONS]
+
+WRONG (do NOT do this):
+[BUTTONS]₺ TL\\nUSD $\\nEUR €[/BUTTONS]
+
 USE BUTTONS FOR:
-- Currency selection: [BUTTONS]₺ TL\nUSD $\nEUR €[/BUTTONS]
-- Invoice type / fatura türü: [BUTTONS]Yurt İçi Satış Faturası\nİhracat Faturası\nProforma Fatura[/BUTTONS]
-- Incoterm selection (for export invoices): [BUTTONS]FOB\nCIF\nEXW\nCFR\nDDP[/BUTTONS]
-- Email send confirmation: [BUTTONS]Gönder\nŞimdi değil[/BUTTONS]
-- Yes/No confirmations: [BUTTONS]Evet\nHayır[/BUTTONS]
-- KDV rate selection: [BUTTONS]%20\n%10\n%1\nKDV İstisna[/BUTTONS]
+- Currency selection, invoice type, Incoterm, email confirmation, yes/no, KDV rate
 - Plan/option selection when user needs to choose between 2-5 clear options
 
-IMPORTANT BUTTON RULES:
+BUTTON RULES:
 - ALWAYS use buttons when asking a question with 2-5 discrete choices
 - When creating invoices/proforma, ask EACH required info step by step with buttons where applicable
 - DO NOT use buttons for open-ended questions or when there are more than 5 options
 - The button text is sent back as the user's message when clicked
-- Combine text explanation with buttons: first explain, then show [BUTTONS]...[/BUTTONS]`;
+- Combine text explanation with buttons: first explain, then show the [BUTTONS]...[/BUTTONS] block`;
 
 const DOCUMENT_CAPABILITY = `
 DOCUMENT HANDLING (IMPORTANT):
@@ -550,16 +562,53 @@ TOOLS:
 WORKFLOW: When user asks to find leads/customers → use find_leads for automated discovery OR web_search + research_company for manual research → create_contact to save them → create_deal if there's an opportunity. When user says "send the proposal", use send_proposal. When asked about pipeline, prefer get_pipeline_summary for CRM deals.
 
 FATURA / PROFORMA OLUŞTURMA AKIŞI (CRITICAL — ALWAYS FOLLOW THIS STEP-BY-STEP):
-When user asks to create a proforma or invoice, ask EACH question step-by-step with buttons:
-1. First ask invoice type with buttons: [BUTTONS]Yurt İçi Satış Faturası\nİhracat Faturası\nProforma Fatura[/BUTTONS]
-2. Ask currency with buttons: [BUTTONS]₺ TL\nUSD $\nEUR €[/BUTTONS]
-3. If export or proforma selected, ask Incoterm: [BUTTONS]FOB\nCIF\nEXW\nCFR\nDDP[/BUTTONS]
-4. If export/proforma: ask delivery port/destination (open-ended question, no buttons)
-5. Collect product/service details (description, quantity, unit price, packaging/weight)
-6. KDV: Export invoices are AUTOMATICALLY KDV exempt (KDVK Art. 11) — do NOT ask. For domestic: [BUTTONS]%20\n%10\n%1[/BUTTONS]
-7. Withholding (tevkifat): ONLY for domestic invoices. NEVER for export — skip entirely for export.
-8. Show summary and ask confirmation: [BUTTONS]Onayla\nDüzenle[/BUTTONS]
-9. After export/proforma is created, offer shipping instruction: [BUTTONS]Konşimento Talimatı Oluştur\nŞimdi Değil[/BUTTONS]
+When user asks to create a proforma or invoice, ask EACH question step-by-step with buttons.
+Remember: each option MUST be on its own line, NO backslash escaping of brackets.
+
+Step 1 — Invoice type:
+[BUTTONS]
+Yurt İçi Satış Faturası
+İhracat Faturası
+Proforma Fatura
+[/BUTTONS]
+
+Step 2 — Currency:
+[BUTTONS]
+₺ TL
+USD $
+EUR €
+[/BUTTONS]
+
+Step 3 — If export or proforma, ask Incoterm:
+[BUTTONS]
+FOB
+CIF
+EXW
+CFR
+DDP
+[/BUTTONS]
+
+Step 4 — If export/proforma: ask delivery port/destination (open-ended, no buttons)
+Step 5 — Collect product/service details (description, quantity, unit price, packaging/weight)
+Step 6 — KDV: Export invoices are AUTOMATICALLY KDV exempt (KDVK Art. 11) — do NOT ask. For domestic:
+[BUTTONS]
+%20
+%10
+%1
+[/BUTTONS]
+
+Step 7 — Withholding (tevkifat): ONLY for domestic invoices. NEVER for export — skip entirely.
+Step 8 — Show summary and ask confirmation:
+[BUTTONS]
+Onayla
+Düzenle
+[/BUTTONS]
+
+Step 9 — After export/proforma is created, offer shipping instruction:
+[BUTTONS]
+Konşimento Talimatı Oluştur
+Şimdi Değil
+[/BUTTONS]
 
 INCOTERM KNOWLEDGE:
 - FOB (Free On Board): Seller delivers to ship at port. Risk transfers at loading.
@@ -609,19 +658,62 @@ Fatura (KDV + tevkifat), gider, gelir takibi, bordro, vergi hesaplama, mali tabl
 TOOLS: web_search, create_invoice (KDV + tevkifat destekli, PDF/Excel indirme linkli), log_expense, log_income, financial_summary, send_invoice_email, get_exchange_rate (TCMB), add_receivable, add_payable, list_debts, cash_flow_forecast, generate_balance_sheet (Excel bilanço — entries_aktif_donen, entries_aktif_duran, entries_kisa_vadeli, entries_uzun_vadeli, entries_ozkaynak parametrelerini pipe-separated formatında gönder: HesapKodu|HesapAdı|Tutar, ; ile ayrılmış), generate_income_statement (Excel gelir tablosu), calculate_payroll (2026 SGK + vergi dilimleri), calculate_withholding (stopaj), generate_mizan (Excel), generate_bordro (Excel), generate_gelir_tablosu (Excel), generate_kdv_ozet (Excel), list_inbox, read_email, reply_email. Always use tools for real operations. Tüm mali tablolar (bilanço, mizan, gelir tablosu, bordro) Excel dosyası olarak üretilir. Rapor/fatura oluşturduğunda indirme linkini mutlaka paylaş. Bilanço veya mali tablo oluştururken ASLA uzun tablo metni yazma — her zaman generate_balance_sheet veya ilgili tool'u kullan, kısa özet + indirme linki ver.
 
 ## FATURA OLUŞTURMA AKIŞI (CRITICAL — HER ZAMAN BU ADIMLARI TAKİP ET)
-Kullanıcı fatura oluşturmak istediğinde adım adım butonlarla sor:
-1. Fatura türü: [BUTTONS]Yurt İçi Satış Faturası\nİhracat Faturası\nProforma Fatura[/BUTTONS]
-2. Para birimi: [BUTTONS]₺ TL\nUSD $\nEUR €[/BUTTONS]
-3. İhracat veya Proforma seçildiyse Incoterm sor: [BUTTONS]FOB\nCIF\nEXW\nCFR\nDDP[/BUTTONS]
-4. İhracat/Proforma ise: varış limanı/ülke bilgisi sor (açık uçlu soru)
-5. Ürün/hizmet detayları topla (açıklama, miktar, birim fiyat, ambalaj/ağırlık bilgisi)
-6. KDV durumu:
+Kullanıcı fatura oluşturmak istediğinde adım adım butonlarla sor.
+ÖNEMLİ: [BUTTONS] ve [/BUTTONS] etiketlerini AYNEN yaz, köşeli parantezleri ters eğik çizgi ile KAÇIRMA. Her seçenek ayrı satırda olmalı.
+
+Adım 1 — Fatura türü:
+[BUTTONS]
+Yurt İçi Satış Faturası
+İhracat Faturası
+Proforma Fatura
+[/BUTTONS]
+
+Adım 2 — Para birimi:
+[BUTTONS]
+₺ TL
+USD $
+EUR €
+[/BUTTONS]
+
+Adım 3 — İhracat veya Proforma seçildiyse Incoterm sor:
+[BUTTONS]
+FOB
+CIF
+EXW
+CFR
+DDP
+[/BUTTONS]
+
+Adım 4 — İhracat/Proforma ise: varış limanı/ülke bilgisi sor (açık uçlu soru)
+Adım 5 — Ürün/hizmet detayları topla (açıklama, miktar, birim fiyat, ambalaj/ağırlık bilgisi)
+Adım 6 — KDV durumu:
    - İhracat → OTOMATİK KDV İstisna (KDVK md. 11). Kullanıcıya SORMA, direkt istisna uygula.
-   - Yurt içi → KDV oranı sor: [BUTTONS]%20\n%10\n%1[/BUTTONS]
-7. Tevkifat — SADECE yurt içi faturalarda sor: [BUTTONS]Tevkifat Yok\nTam Tevkifat\nKısmi Tevkifat[/BUTTONS]
-   - İHRACATTA TEVKİFAT OLMAZ. İhracat faturasında bu adımı ATLA.
-8. Özet göster ve onay al: [BUTTONS]Onayla ve Oluştur\nDüzenle[/BUTTONS]
-9. Proforma/İhracat faturası oluşturulduktan sonra konşimento talimatı teklif et: "Bu fatura için konşimento talimatı (shipping instruction) oluşturmamı ister misiniz?" [BUTTONS]Konşimento Talimatı Oluştur\nŞimdi Değil[/BUTTONS]
+   - Yurt içi → KDV oranı sor:
+[BUTTONS]
+%20
+%10
+%1
+[/BUTTONS]
+
+Adım 7 — Tevkifat: SADECE yurt içi faturalarda sor:
+[BUTTONS]
+Tevkifat Yok
+Tam Tevkifat
+Kısmi Tevkifat
+[/BUTTONS]
+İHRACATTA TEVKİFAT OLMAZ. İhracat faturasında bu adımı ATLA.
+
+Adım 8 — Özet göster ve onay al:
+[BUTTONS]
+Onayla ve Oluştur
+Düzenle
+[/BUTTONS]
+
+Adım 9 — Proforma/İhracat faturası oluşturulduktan sonra konşimento talimatı teklif et:
+[BUTTONS]
+Konşimento Talimatı Oluştur
+Şimdi Değil
+[/BUTTONS]
 
 INCOTERM BİLGİSİ (İhracat/Proforma faturalarında kullan):
 - FOB (Free On Board): Satıcı malı yükleme limanında gemiye teslim eder. Risk gemiye yüklemeyle alıcıya geçer.

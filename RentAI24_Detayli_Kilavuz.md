@@ -1,6 +1,7 @@
 # ============================================================
 #         RentAI 24 — DETAYLI KULLANIM KILAVUZU
 #         Otomasyon Motoru + Platform Rehberi
+#         Son Guncelleme: 19 Mart 2026
 # ============================================================
 
 

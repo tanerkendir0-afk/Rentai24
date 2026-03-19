@@ -293,6 +293,63 @@ export const workflowTemplates: WorkflowTemplate[] = [
       },
     ],
   },
+  {
+    id: "efatura-parse-to-db",
+    name: "e-Fatura XML → Parse → DB",
+    nametr: "e-Fatura XML → Parse → Veritabanına Kayıt",
+    description: "Automatically parses uploaded e-Invoice XML and saves to database",
+    descriptionTr: "Yüklenen e-Fatura XML dosyasını otomatik parse edip veritabanına kaydeder",
+    category: "finance",
+    icon: "📄",
+    triggerType: "agent_tool_complete",
+    triggerConfig: {
+      toolName: "parse_efatura_xml",
+      agentType: "bookkeeping",
+      actionType: "efatura_parsed",
+    },
+    nodes: [
+      { id: "trigger-1", type: "trigger", label: "e-Fatura Parse Edildi", config: {}, nextNodeId: "action-1" },
+      { id: "action-1", type: "send_notification", label: "Bildirim Gönder", config: { message: "📄 e-Fatura parse edildi: {{belgeNo}} - Satıcı: {{saticiUnvani}} - KDV: {{kdvTutari}} ₺" }, nextNodeId: null },
+    ],
+  },
+  {
+    id: "kdv-listesi-to-email",
+    name: "KDV List → Email",
+    nametr: "KDV Listesi → E-posta Gönder",
+    description: "Sends KDV list report via email when generated",
+    descriptionTr: "İndirilecek KDV Listesi oluşturulduğunda otomatik e-posta gönderir",
+    category: "finance",
+    icon: "📋",
+    triggerType: "agent_tool_complete",
+    triggerConfig: {
+      toolName: "generate_kdv_listesi",
+      agentType: "bookkeeping",
+      actionType: "kdv_listesi_generated",
+    },
+    nodes: [
+      { id: "trigger-1", type: "trigger", label: "KDV Listesi Oluşturuldu", config: {}, nextNodeId: "action-1" },
+      { id: "action-1", type: "send_email", label: "Mali Müşavire Gönder", config: { subject: "İndirilecek KDV Listesi - {{donem}}", body: "{{donem}} dönemi İndirilecek KDV Listesi hazırdır. Toplam {{toplamFatura}} fatura, Genel KDV: {{toplamKDV}} ₺" }, nextNodeId: null },
+    ],
+  },
+  {
+    id: "kdv-batch-parse-notify",
+    name: "Batch Parse → Summary",
+    nametr: "Toplu Fatura Parse → Özet Bildirim",
+    description: "Sends summary notification after batch invoice parsing",
+    descriptionTr: "Toplu fatura parse işlemi sonrası özet bildirim gönderir",
+    category: "finance",
+    icon: "📊",
+    triggerType: "agent_tool_complete",
+    triggerConfig: {
+      toolName: "parse_efatura_xml",
+      agentType: "bookkeeping",
+      actionType: "efatura_parsed",
+    },
+    nodes: [
+      { id: "trigger-1", type: "trigger", label: "Parse Tamamlandı", config: {}, nextNodeId: "action-1" },
+      { id: "action-1", type: "webhook_call", label: "Webhook Bildirim", config: { url: "{{webhookUrl}}", method: "POST" }, nextNodeId: null },
+    ],
+  },
 ];
 
 export function getTemplateById(templateId: string): WorkflowTemplate | undefined {

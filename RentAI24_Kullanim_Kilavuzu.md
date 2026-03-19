@@ -1,4 +1,5 @@
 # RentAI 24 - Kullanim Kilavuzu
+> Son Guncelleme: 19 Mart 2026
 
 ## Icindekiler
 1. Platform Genel Bakis

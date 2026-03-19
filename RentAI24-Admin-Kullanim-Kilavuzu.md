@@ -271,4 +271,4 @@ Her API isteğinin detaylı kaydı:
 ---
 
 *Bu kılavuz RentAI 24 v1.0 için hazırlanmıştır.*
-*Son güncelleme: 2026*
+*Son güncelleme: 19 Mart 2026*

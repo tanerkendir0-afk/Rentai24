@@ -9,6 +9,14 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Menu, Bot, User, LayoutDashboard, Download, Smartphone, Wifi, Bell, Settings, LogOut, BookOpen, Share, Plus, MoreHorizontal, Monitor, Globe, ExternalLink, Shield, Languages, Zap } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useLanguage } from "@/lib/language";
@@ -218,23 +226,23 @@ export default function Navbar() {
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between gap-4 h-16">
-          <Link href="/" data-testid="link-home">
+          <Link href="/" data-testid="link-home" className="shrink-0">
             <div className="flex items-center gap-2 cursor-pointer">
-              <div className="w-9 h-9 rounded-md bg-gradient-to-br from-blue-500 to-violet-500 flex items-center justify-center">
+              <div className="w-9 h-9 rounded-md bg-gradient-to-br from-blue-500 to-violet-500 flex items-center justify-center shrink-0">
                 <Bot className="w-5 h-5 text-white" />
               </div>
-              <span className="font-bold text-lg text-foreground">
+              <span className="font-bold text-lg text-foreground whitespace-nowrap">
                 Rent<span className="bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent">AI</span>{" "}
                 <span className="text-foreground">24</span>
               </span>
             </div>
           </Link>
 
-          <nav className="hidden lg:flex items-center gap-1" data-testid="nav-desktop">
+          <nav className="hidden lg:flex items-center gap-1 min-w-0" data-testid="nav-desktop">
             {navLinks.map((link) => (
               <Link key={link.href} href={link.href}>
                 <span
-                  className={`px-3 py-2 rounded-md text-sm font-medium transition-colors cursor-pointer ${
+                  className={`px-3 py-2 rounded-md text-sm font-medium transition-colors cursor-pointer whitespace-nowrap ${
                     location === link.href || (link.href !== "/" && location.startsWith(link.href))
                       ? "text-blue-400"
                       : "text-muted-foreground"
@@ -247,12 +255,12 @@ export default function Navbar() {
             ))}
           </nav>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1 shrink-0">
             <Button
               size="sm"
               variant="ghost"
               onClick={() => changeLanguage(language === "en" ? "tr" : "en")}
-              className="text-muted-foreground hover:text-foreground"
+              className="text-muted-foreground hover:text-foreground whitespace-nowrap"
               data-testid="button-language-switch"
               title={t("language.switchTo", { lang: language === "en" ? t("language.turkish") : t("language.english") })}
             >
@@ -263,7 +271,7 @@ export default function Navbar() {
               <Button
                 size="sm"
                 variant="outline"
-                className="hidden sm:flex border-blue-500/30 text-blue-400 hover:bg-blue-500/10"
+                className="hidden xl:flex border-blue-500/30 text-blue-400 hover:bg-blue-500/10 whitespace-nowrap"
                 onClick={handleInstallClick}
                 data-testid="button-install-pwa"
               >
@@ -272,75 +280,107 @@ export default function Navbar() {
               </Button>
             )}
             {!isLoading && user ? (
-              <div className="hidden sm:flex items-center gap-2">
-                <Link href="/guide">
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    data-testid="button-guide"
-                  >
-                    <BookOpen className="w-4 h-4 mr-1" />
-                    {t("nav.guide")}
-                  </Button>
-                </Link>
-                <Link href="/automations">
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    data-testid="button-automations"
-                  >
-                    <Zap className="w-4 h-4 mr-1" />
-                    Otomasyonlar
-                  </Button>
-                </Link>
-                <Link href="/settings">
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    data-testid="button-settings"
-                  >
-                    <Settings className="w-4 h-4 mr-1" />
-                    {t("nav.settings")}
-                  </Button>
-                </Link>
-                <Link href="/dashboard">
-                  <Button
-                    size="sm"
-                    className="bg-gradient-to-r from-blue-500 to-violet-500 text-white border-0"
-                    data-testid="button-dashboard"
-                  >
-                    <LayoutDashboard className="w-4 h-4 mr-1" />
-                    {t("nav.dashboard")}
-                  </Button>
-                </Link>
-                {user.email === "tanerkendir0@gmail.com" && (
-                  <Link href={`/${import.meta.env.VITE_ADMIN_PATH}`}>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="text-amber-400 hover:text-amber-300 hover:bg-amber-500/10"
-                      data-testid="button-admin"
-                    >
-                      <Shield className="w-4 h-4 mr-1" />
-                      {t("nav.admin")}
+              <TooltipProvider delayDuration={300}>
+                {/* xl+ breakpoint: show all buttons with icon + text */}
+                <div className="hidden xl:flex items-center gap-1">
+                  <Link href="/guide">
+                    <Button size="sm" variant="ghost" data-testid="button-guide" className="whitespace-nowrap">
+                      <BookOpen className="w-4 h-4 mr-1" />
+                      {t("nav.guide")}
                     </Button>
                   </Link>
-                )}
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={handleLogout}
-                  className="text-muted-foreground hover:text-foreground"
-                  data-testid="button-logout"
-                >
-                  <LogOut className="w-4 h-4 mr-1" />
-                  {t("nav.signOut")}
-                </Button>
-              </div>
+                  <Link href="/automations">
+                    <Button size="sm" variant="ghost" data-testid="button-automations" className="whitespace-nowrap">
+                      <Zap className="w-4 h-4 mr-1" />
+                      Otomasyonlar
+                    </Button>
+                  </Link>
+                  <Link href="/settings">
+                    <Button size="sm" variant="ghost" data-testid="button-settings" className="whitespace-nowrap">
+                      <Settings className="w-4 h-4 mr-1" />
+                      {t("nav.settings")}
+                    </Button>
+                  </Link>
+                  <Link href="/dashboard">
+                    <Button size="sm" className="bg-gradient-to-r from-blue-500 to-violet-500 text-white border-0 whitespace-nowrap" data-testid="button-dashboard">
+                      <LayoutDashboard className="w-4 h-4 mr-1" />
+                      {t("nav.dashboard")}
+                    </Button>
+                  </Link>
+                  {user.email === "tanerkendir0@gmail.com" && (
+                    <Link href={`/${import.meta.env.VITE_ADMIN_PATH}`}>
+                      <Button size="sm" variant="ghost" className="text-amber-400 hover:text-amber-300 hover:bg-amber-500/10 whitespace-nowrap" data-testid="button-admin">
+                        <Shield className="w-4 h-4 mr-1" />
+                        {t("nav.admin")}
+                      </Button>
+                    </Link>
+                  )}
+                  <Button size="sm" variant="ghost" onClick={handleLogout} className="text-muted-foreground hover:text-foreground whitespace-nowrap" data-testid="button-logout">
+                    <LogOut className="w-4 h-4 mr-1" />
+                    {t("nav.signOut")}
+                  </Button>
+                </div>
+                {/* lg breakpoint (1024-1280px): Dashboard icon-only + "More" dropdown for the rest */}
+                <div className="hidden lg:flex xl:hidden items-center gap-1">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Link href="/dashboard">
+                        <Button size="sm" className="bg-gradient-to-r from-blue-500 to-violet-500 text-white border-0" data-testid="button-dashboard">
+                          <LayoutDashboard className="w-4 h-4" />
+                        </Button>
+                      </Link>
+                    </TooltipTrigger>
+                    <TooltipContent>{t("nav.dashboard")}</TooltipContent>
+                  </Tooltip>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button size="sm" variant="ghost" className="text-muted-foreground hover:text-foreground" data-testid="button-more-menu">
+                        <MoreHorizontal className="w-4 h-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-48">
+                      <DropdownMenuItem asChild>
+                        <Link href="/guide" className="flex items-center gap-2 cursor-pointer" data-testid="dropdown-item-guide">
+                          <BookOpen className="w-4 h-4" />
+                          {t("nav.guide")}
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link href="/automations" className="flex items-center gap-2 cursor-pointer" data-testid="dropdown-item-automations">
+                          <Zap className="w-4 h-4" />
+                          Otomasyonlar
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link href="/settings" className="flex items-center gap-2 cursor-pointer" data-testid="dropdown-item-settings">
+                          <Settings className="w-4 h-4" />
+                          {t("nav.settings")}
+                        </Link>
+                      </DropdownMenuItem>
+                      {user.email === "tanerkendir0@gmail.com" && (
+                        <>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem asChild>
+                            <Link href={`/${import.meta.env.VITE_ADMIN_PATH}`} className="flex items-center gap-2 cursor-pointer text-amber-400" data-testid="dropdown-item-admin">
+                              <Shield className="w-4 h-4" />
+                              {t("nav.admin")}
+                            </Link>
+                          </DropdownMenuItem>
+                        </>
+                      )}
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={handleLogout} className="flex items-center gap-2 cursor-pointer text-muted-foreground" data-testid="dropdown-item-logout">
+                        <LogOut className="w-4 h-4" />
+                        {t("nav.signOut")}
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </TooltipProvider>
             ) : !isLoading ? (
-              <div className="hidden sm:flex items-center gap-2">
+              <div className="hidden sm:flex items-center gap-1">
                 <Link href="/login">
-                  <Button size="sm" variant="ghost" data-testid="button-login">
+                  <Button size="sm" variant="ghost" data-testid="button-login" className="whitespace-nowrap">
                     <User className="w-4 h-4 mr-1" />
                     {t("nav.signIn")}
                   </Button>
@@ -348,7 +388,7 @@ export default function Navbar() {
                 <Link href="/demo">
                   <Button
                     size="sm"
-                    className="bg-gradient-to-r from-blue-500 to-violet-500 text-white border-0"
+                    className="bg-gradient-to-r from-blue-500 to-violet-500 text-white border-0 whitespace-nowrap"
                     data-testid="button-demo-cta"
                   >
                     {t("nav.tryLiveDemo")}

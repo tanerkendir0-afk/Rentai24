@@ -7051,7 +7051,6 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
 
   app.post(`/api/${ADMIN_PATH}/skills`, requireAdmin, async (req, res) => {
     try {
-
       const { agentSkills } = await import("@shared/schema");
       const { name, nameTr, description, descriptionTr, category, skillType, icon, config, parameters, keywords } = req.body;
       if (!name || !nameTr || !description || !category || !skillType) {
@@ -7072,7 +7071,6 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
 
   app.put(`/api/${ADMIN_PATH}/skills/:id`, requireAdmin, async (req, res) => {
     try {
-
       const skillId = parseInt(req.params.id);
       if (isNaN(skillId)) return res.status(400).json({ error: "Invalid skill ID" });
       const { agentSkills } = await import("@shared/schema");
@@ -7095,7 +7093,6 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
 
   app.delete(`/api/${ADMIN_PATH}/skills/:id`, requireAdmin, async (req, res) => {
     try {
-
       const skillId = parseInt(req.params.id);
       if (isNaN(skillId)) return res.status(400).json({ error: "Invalid skill ID" });
       const { agentSkills } = await import("@shared/schema");
@@ -7114,7 +7111,6 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
 
   app.post(`/api/${ADMIN_PATH}/skills/:id/agents`, requireAdmin, async (req, res) => {
     try {
-
       const skillId = parseInt(req.params.id);
       if (isNaN(skillId)) return res.status(400).json({ error: "Invalid skill ID" });
       const { agentSlug } = req.body;
@@ -7137,7 +7133,6 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
 
   app.delete(`/api/${ADMIN_PATH}/skills/:id/agents/:agentSlug`, requireAdmin, async (req, res) => {
     try {
-
       const skillId = parseInt(req.params.id);
       const agentSlug = req.params.agentSlug;
       if (isNaN(skillId)) return res.status(400).json({ error: "Invalid skill ID" });
@@ -7153,7 +7148,6 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
 
   app.post(`/api/${ADMIN_PATH}/skills/:id/agents/bulk`, requireAdmin, async (req, res) => {
     try {
-
       const skillId = parseInt(req.params.id);
       if (isNaN(skillId)) return res.status(400).json({ error: "Invalid skill ID" });
       const { agents } = req.body;
@@ -7172,7 +7166,6 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
 
   app.post(`/api/${ADMIN_PATH}/skills/seed`, requireAdmin, async (req, res) => {
     try {
-
       const { seedBuiltinSkills } = await import("./n8n/skillEngine");
       await seedBuiltinSkills();
       const { agentSkills } = await import("@shared/schema");

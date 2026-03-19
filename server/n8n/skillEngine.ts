@@ -27,6 +27,30 @@ export interface BuiltinSkillDefinition {
   execute: (params: Record<string, any>) => Promise<{ success: boolean; output: any; error?: string }>;
 }
 
+function isBlockedUrl(urlString: string): string | null {
+  try {
+    const parsed = new URL(urlString);
+    if (!["http:", "https:"].includes(parsed.protocol)) return "Only HTTP/HTTPS allowed";
+    const hostname = parsed.hostname.toLowerCase();
+    const blockedHosts = ["localhost", "127.0.0.1", "0.0.0.0", "169.254.169.254", "[::1]", "metadata.google.internal"];
+    if (blockedHosts.some(h => hostname === h)) return "Internal URLs not allowed";
+    if (hostname.endsWith(".local") || hostname.endsWith(".internal")) return "Internal URLs not allowed";
+    const parts = hostname.split(".");
+    if (parts.length === 4 && parts.every(p => /^\d+$/.test(p))) {
+      const octets = parts.map(Number);
+      if (octets[0] === 10) return "Private IP range (10.x.x.x) not allowed";
+      if (octets[0] === 172 && octets[1] >= 16 && octets[1] <= 31) return "Private IP range (172.16-31.x.x) not allowed";
+      if (octets[0] === 192 && octets[1] === 168) return "Private IP range (192.168.x.x) not allowed";
+      if (octets[0] === 127) return "Loopback not allowed";
+      if (octets[0] === 169 && octets[1] === 254) return "Link-local not allowed";
+      if (octets[0] === 0) return "Zero-prefix IP not allowed";
+    }
+    return null;
+  } catch {
+    return "Invalid URL";
+  }
+}
+
 async function safeEvalExpression(expr: string, context: Record<string, any> = {}): Promise<any> {
   const vm = await import("vm");
   const sandbox = { params: context, Math, String, Number, Boolean, Array, Object, JSON, Date, parseInt, parseFloat, isNaN, isFinite, encodeURIComponent, decodeURIComponent };
@@ -484,13 +508,8 @@ export const BUILTIN_SKILLS: Record<string, BuiltinSkillDefinition> = {
       const { url } = params;
       if (!url) return { success: false, output: null, error: "URL required" };
       try {
-        const parsed = new URL(url);
-        if (!["http:", "https:"].includes(parsed.protocol)) return { success: false, output: null, error: "Only HTTP/HTTPS allowed" };
-        const hostname = parsed.hostname.toLowerCase();
-        const blocked = ["localhost", "127.0.0.1", "0.0.0.0", "169.254.169.254", "[::1]"];
-        if (blocked.includes(hostname) || hostname.endsWith(".local") || hostname.endsWith(".internal")) {
-          return { success: false, output: null, error: "Internal URLs not allowed" };
-        }
+        const blockReason = isBlockedUrl(url);
+        if (blockReason) return { success: false, output: null, error: blockReason };
         const response = await fetch(url, {
           headers: { "User-Agent": "RentAI-SkillBot/1.0" },
           signal: AbortSignal.timeout(15000),
@@ -678,6 +697,44 @@ export const BUILTIN_SKILLS: Record<string, BuiltinSkillDefinition> = {
       };
     },
   },
+  pdf_extract: {
+    name: "pdf_extract",
+    nameTr: "PDF Metin Çıkarma",
+    description: "Extract text content from a PDF URL",
+    descriptionTr: "PDF URL'sinden metin içeriğini çıkarır",
+    category: "file_ops",
+    icon: "FileText",
+    parameters: [
+      { name: "url", label: "PDF URL", labelTr: "PDF URL", type: "string", required: true, placeholder: "https://example.com/doc.pdf" },
+    ],
+    keywords: ["pdf", "belge", "document", "çıkar", "extract", "dosya", "file", "text"],
+    execute: async (params) => {
+      const { url } = params;
+      if (!url) return { success: false, output: null, error: "PDF URL required" };
+      const blockReason = isBlockedUrl(url);
+      if (blockReason) return { success: false, output: null, error: blockReason };
+      try {
+        const response = await fetch(url, { signal: AbortSignal.timeout(30000), headers: { "User-Agent": "RentAI-SkillBot/1.0" } });
+        if (!response.ok) return { success: false, output: null, error: `HTTP ${response.status}` };
+        const buffer = Buffer.from(await response.arrayBuffer());
+        const textChunks: string[] = [];
+        const content = buffer.toString("utf-8");
+        const streamMatches = content.match(/stream\s*\n([\s\S]*?)\nendstream/g) || [];
+        for (const stream of streamMatches) {
+          const text = stream.replace(/stream\s*\n/, "").replace(/\nendstream/, "");
+          const readable = text.replace(/[^\x20-\x7E\n\r\t]/g, " ").replace(/\s+/g, " ").trim();
+          if (readable.length > 5) textChunks.push(readable);
+        }
+        const plainText = textChunks.join("\n").trim();
+        if (!plainText) {
+          return { success: true, output: { text: "[PDF content could not be extracted as plain text - may require OCR]", pageCount: streamMatches.length, rawLength: buffer.length } };
+        }
+        return { success: true, output: { text: plainText.substring(0, 10000), pageCount: streamMatches.length, rawLength: buffer.length, extractedLength: plainText.length } };
+      } catch (e: any) {
+        return { success: false, output: null, error: `PDF extraction failed: ${e.message}` };
+      }
+    },
+  },
 };
 
 export async function executeSkill(
@@ -772,15 +829,8 @@ async function executeHttpSkill(
     if (body) body = body.replace(new RegExp(placeholder.replace(/[{}]/g, "\\$&"), "g"), String(value));
   }
 
-  try {
-    const parsed = new URL(url);
-    if (!["http:", "https:"].includes(parsed.protocol)) return { success: false, output: null, error: "Only HTTP/HTTPS allowed" };
-    const hostname = parsed.hostname.toLowerCase();
-    const blockedHosts = ["localhost", "127.0.0.1", "0.0.0.0", "169.254.169.254", "[::1]", "metadata.google.internal"];
-    if (blockedHosts.some(h => hostname === h) || hostname.endsWith(".local") || hostname.endsWith(".internal")) {
-      return { success: false, output: null, error: "Internal URLs not allowed" };
-    }
-  } catch { return { success: false, output: null, error: "Invalid URL" }; }
+  const blockReason = isBlockedUrl(url);
+  if (blockReason) return { success: false, output: null, error: blockReason };
 
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   if (config.authType === "bearer" && config.authToken) {

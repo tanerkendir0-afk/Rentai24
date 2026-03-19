@@ -7011,6 +7011,12 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
     try {
       const skillId = parseInt(req.params.id);
       if (isNaN(skillId)) return res.status(400).json({ error: "Invalid skill ID" });
+      const agentSlug = req.body.agentSlug;
+      if (!agentSlug) return res.status(400).json({ error: "agentSlug required for skill execution" });
+      const { agentSkillAssignments } = await import("@shared/schema");
+      const [assignment] = await db.select().from(agentSkillAssignments)
+        .where(and(eq(agentSkillAssignments.skillId, skillId), eq(agentSkillAssignments.agentSlug, agentSlug), eq(agentSkillAssignments.isEnabled, true)));
+      if (!assignment) return res.status(403).json({ error: "Skill not assigned to this agent" });
       const { executeSkill } = await import("./n8n/skillEngine");
       const result = await executeSkill(skillId, req.body.params || {});
       res.json(result);

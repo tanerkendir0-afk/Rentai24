@@ -6242,14 +6242,23 @@ function SkillsPanel({ token }: { token: string }) {
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [assignSkill, setAssignSkill] = useState<SkillData | null>(null);
 
+  const [skillStats, setSkillStats] = useState<any>(null);
+
   const loadSkills = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await fetch(`${ADMIN_API}/skills`, { headers: { Authorization: `Bearer ${token}` } });
-      if (!res.ok) throw new Error("Failed to load");
-      const data = await res.json();
+      const [skillsRes, statsRes] = await Promise.all([
+        fetch(`${ADMIN_API}/skills`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${ADMIN_API}/skills/stats`, { headers: { Authorization: `Bearer ${token}` } }),
+      ]);
+      if (!skillsRes.ok) throw new Error("Failed to load");
+      const data = await skillsRes.json();
       setSkills(data.skills || []);
       setAssignments(data.assignments || []);
+      if (statsRes.ok) {
+        const stats = await statsRes.json();
+        setSkillStats(stats);
+      }
     } catch (err: any) {
       toast({ title: "Hata", description: err.message, variant: "destructive" });
     } finally {
@@ -6434,6 +6443,16 @@ function SkillsPanel({ token }: { token: string }) {
                       </Badge>
                     </div>
                     <p className="text-xs text-gray-400 mt-1">{skill.descriptionTr || skill.description}</p>
+                    {skillStats?.skillStats && (() => {
+                      const stat = skillStats.skillStats.find((s: any) => s.id === skill.id);
+                      return stat && stat.usageCount > 0 ? (
+                        <div className="flex gap-3 mt-1.5 text-[10px]">
+                          <span className="text-gray-500">Kullanım: <span className="text-cyan-400">{stat.usageCount}</span></span>
+                          <span className="text-gray-500">Başarı: <span className={stat.successRate >= 80 ? "text-green-400" : stat.successRate >= 50 ? "text-amber-400" : "text-red-400"}>{stat.successRate}%</span></span>
+                          <span className="text-gray-500">Ort: <span className="text-blue-400">{stat.avgDurationMs}ms</span></span>
+                        </div>
+                      ) : null;
+                    })()}
                     {skill.parameters && skill.parameters.length > 0 && (
                       <div className="flex gap-1 mt-2 flex-wrap">
                         {skill.parameters.map((p: any) => (
@@ -6507,6 +6526,8 @@ function SkillsPanel({ token }: { token: string }) {
           skill={selectedSkill}
           assignments={assignments.filter(a => a.skillId === selectedSkill.id)}
           onClose={() => setSelectedSkill(null)}
+          token={token}
+          onUpdated={() => { setSelectedSkill(null); loadSkills(); }}
         />
       )}
     </div>
@@ -6725,13 +6746,40 @@ function CreateSkillModal({ token, onClose, onCreated }: { token: string; onClos
   );
 }
 
-function SkillDetailModal({ skill, assignments, onClose }: {
-  skill: SkillData; assignments: SkillAssignment[]; onClose: () => void;
+function SkillDetailModal({ skill, assignments, onClose, token, onUpdated }: {
+  skill: SkillData; assignments: SkillAssignment[]; onClose: () => void; token: string; onUpdated: () => void;
 }) {
+  const { toast } = useToast();
   const IconComp = SKILL_ICONS[skill.icon] || Sparkles;
+  const [editing, setEditing] = useState(false);
+  const [editForm, setEditForm] = useState({
+    nameTr: skill.nameTr, descriptionTr: skill.descriptionTr || "",
+    description: skill.description, category: skill.category, icon: skill.icon,
+  });
+  const [saving, setSaving] = useState(false);
+
+  const saveEdit = async () => {
+    setSaving(true);
+    try {
+      const res = await fetch(`${ADMIN_API}/skills/${skill.id}`, {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify(editForm),
+      });
+      if (!res.ok) throw new Error("Update failed");
+      toast({ title: "Güncellendi", description: `${editForm.nameTr} güncellendi` });
+      setEditing(false);
+      onUpdated();
+    } catch (err: any) {
+      toast({ title: "Hata", description: err.message, variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-[#0B0F2E] border border-[#1E2448] rounded-xl w-full max-w-lg p-6 space-y-4" onClick={e => e.stopPropagation()} data-testid="skill-detail-modal">
+      <div className="bg-[#0B0F2E] border border-[#1E2448] rounded-xl w-full max-w-lg p-6 space-y-4 max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()} data-testid="skill-detail-modal">
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-cyan-900/50 flex items-center justify-center text-cyan-400">
@@ -6742,67 +6790,114 @@ function SkillDetailModal({ skill, assignments, onClose }: {
               <p className="text-xs text-gray-400">{skill.name}</p>
             </div>
           </div>
-          <Button size="sm" variant="ghost" onClick={onClose} className="text-gray-400"><X className="w-4 h-4" /></Button>
-        </div>
-
-        <p className="text-sm text-gray-300">{skill.descriptionTr || skill.description}</p>
-
-        <div className="grid grid-cols-3 gap-2 text-center">
-          <div className="bg-[#111633] rounded-lg p-2">
-            <div className="text-xs text-gray-400">Tip</div>
-            <div className="text-sm font-medium text-white">{SKILL_TYPE_LABELS[skill.skillType]}</div>
-          </div>
-          <div className="bg-[#111633] rounded-lg p-2">
-            <div className="text-xs text-gray-400">Kategori</div>
-            <div className="text-sm font-medium text-white">{SKILL_CATEGORY_LABELS[skill.category]}</div>
-          </div>
-          <div className="bg-[#111633] rounded-lg p-2">
-            <div className="text-xs text-gray-400">Durum</div>
-            <div className={`text-sm font-medium ${skill.isActive ? "text-green-400" : "text-red-400"}`}>{skill.isActive ? "Aktif" : "Pasif"}</div>
+          <div className="flex items-center gap-1">
+            {!skill.isBuiltin && !editing && (
+              <Button size="sm" variant="ghost" onClick={() => setEditing(true)} className="text-gray-400 hover:text-cyan-400" data-testid="skill-edit-btn">
+                <Pencil className="w-4 h-4" />
+              </Button>
+            )}
+            <Button size="sm" variant="ghost" onClick={onClose} className="text-gray-400"><X className="w-4 h-4" /></Button>
           </div>
         </div>
 
-        {skill.parameters && skill.parameters.length > 0 && (
-          <div>
-            <h4 className="text-xs font-medium text-gray-400 mb-2">Parametreler</h4>
-            <div className="space-y-1">
-              {skill.parameters.map((p: any) => (
-                <div key={p.name} className="flex items-center gap-2 text-xs bg-[#111633] p-2 rounded">
-                  <code className="text-cyan-400 font-mono">{p.name}</code>
-                  <Badge variant="outline" className="text-[10px]">{p.type}</Badge>
-                  {p.required && <Badge variant="outline" className="text-[10px] border-red-600 text-red-400">zorunlu</Badge>}
-                  <span className="text-gray-500">{p.description}</span>
+        {editing ? (
+          <div className="space-y-3">
+            <div>
+              <label className="text-xs text-gray-400">Türkçe Ad</label>
+              <Input value={editForm.nameTr} onChange={e => setEditForm(f => ({ ...f, nameTr: e.target.value }))} className="bg-[#111633] border-[#1E2448] text-white" data-testid="edit-skill-name-tr" />
+            </div>
+            <div>
+              <label className="text-xs text-gray-400">Açıklama</label>
+              <Input value={editForm.description} onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))} className="bg-[#111633] border-[#1E2448] text-white" data-testid="edit-skill-description" />
+            </div>
+            <div>
+              <label className="text-xs text-gray-400">Türkçe Açıklama</label>
+              <Input value={editForm.descriptionTr} onChange={e => setEditForm(f => ({ ...f, descriptionTr: e.target.value }))} className="bg-[#111633] border-[#1E2448] text-white" data-testid="edit-skill-description-tr" />
+            </div>
+            <div>
+              <label className="text-xs text-gray-400">Kategori</label>
+              <Select value={editForm.category} onValueChange={v => setEditForm(f => ({ ...f, category: v }))}>
+                <SelectTrigger className="bg-[#111633] border-[#1E2448] text-white" data-testid="edit-skill-category">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(SKILL_CATEGORY_LABELS).map(([k, v]) => (
+                    <SelectItem key={k} value={k}>{v}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex gap-2">
+              <Button onClick={saveEdit} disabled={saving} className="flex-1 bg-cyan-600 hover:bg-cyan-700" data-testid="edit-skill-save">
+                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : "Kaydet"}
+              </Button>
+              <Button onClick={() => setEditing(false)} variant="outline" className="flex-1 border-gray-600 text-gray-300" data-testid="edit-skill-cancel">
+                İptal
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <>
+            <p className="text-sm text-gray-300">{skill.descriptionTr || skill.description}</p>
+
+            <div className="grid grid-cols-3 gap-2 text-center">
+              <div className="bg-[#111633] rounded-lg p-2">
+                <div className="text-xs text-gray-400">Tip</div>
+                <div className="text-sm font-medium text-white">{SKILL_TYPE_LABELS[skill.skillType]}</div>
+              </div>
+              <div className="bg-[#111633] rounded-lg p-2">
+                <div className="text-xs text-gray-400">Kategori</div>
+                <div className="text-sm font-medium text-white">{SKILL_CATEGORY_LABELS[skill.category]}</div>
+              </div>
+              <div className="bg-[#111633] rounded-lg p-2">
+                <div className="text-xs text-gray-400">Durum</div>
+                <div className={`text-sm font-medium ${skill.isActive ? "text-green-400" : "text-red-400"}`}>{skill.isActive ? "Aktif" : "Pasif"}</div>
+              </div>
+            </div>
+
+            {skill.parameters && skill.parameters.length > 0 && (
+              <div>
+                <h4 className="text-xs font-medium text-gray-400 mb-2">Parametreler</h4>
+                <div className="space-y-1">
+                  {skill.parameters.map((p: any) => (
+                    <div key={p.name} className="flex items-center gap-2 text-xs bg-[#111633] p-2 rounded">
+                      <code className="text-cyan-400 font-mono">{p.name}</code>
+                      <Badge variant="outline" className="text-[10px]">{p.type}</Badge>
+                      {p.required && <Badge variant="outline" className="text-[10px] border-red-600 text-red-400">zorunlu</Badge>}
+                      <span className="text-gray-500">{p.description}</span>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </div>
-        )}
+              </div>
+            )}
 
-        {assignments.length > 0 && (
-          <div>
-            <h4 className="text-xs font-medium text-gray-400 mb-2">Atanmış Ajanlar</h4>
-            <div className="flex gap-1 flex-wrap">
-              {assignments.filter(a => a.isEnabled).map(a => {
-                const agent = AGENTS_DATA.find(ag => ag.slug === a.agentSlug);
-                return (
-                  <span key={a.agentSlug} className="text-xs px-2 py-1 rounded-full bg-cyan-900/30 text-cyan-400 border border-cyan-800/30">
-                    {agent?.emoji} {agent?.name || a.agentSlug}
-                  </span>
-                );
-              })}
-            </div>
-          </div>
-        )}
+            {assignments.length > 0 && (
+              <div>
+                <h4 className="text-xs font-medium text-gray-400 mb-2">Atanmış Ajanlar</h4>
+                <div className="flex gap-1 flex-wrap">
+                  {assignments.filter(a => a.isEnabled).map(a => {
+                    const agent = AGENTS_DATA.find(ag => ag.slug === a.agentSlug);
+                    return (
+                      <span key={a.agentSlug} className="text-xs px-2 py-1 rounded-full bg-cyan-900/30 text-cyan-400 border border-cyan-800/30">
+                        {agent?.emoji} {agent?.name || a.agentSlug}
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
-        {skill.keywords && skill.keywords.length > 0 && (
-          <div>
-            <h4 className="text-xs font-medium text-gray-400 mb-2">Anahtar Kelimeler</h4>
-            <div className="flex gap-1 flex-wrap">
-              {skill.keywords.map((kw: string) => (
-                <span key={kw} className="text-[10px] px-1.5 py-0.5 rounded bg-gray-800 text-gray-400">{kw}</span>
-              ))}
-            </div>
-          </div>
+            {skill.keywords && skill.keywords.length > 0 && (
+              <div>
+                <h4 className="text-xs font-medium text-gray-400 mb-2">Anahtar Kelimeler</h4>
+                <div className="flex gap-1 flex-wrap">
+                  {skill.keywords.map((kw: string) => (
+                    <span key={kw} className="text-[10px] px-1.5 py-0.5 rounded bg-gray-800 text-gray-400">{kw}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

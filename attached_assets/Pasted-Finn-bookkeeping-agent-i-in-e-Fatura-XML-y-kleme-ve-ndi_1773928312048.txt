@@ -1,0 +1,27 @@
+Finn (bookkeeping agent) için e-Fatura XML yükleme ve İndirilecek KDV Listesi özelliği eklendi ama dosya yükleme çalışmıyor. Aşağıdaki sorunları çöz:
+
+## SORUN
+Finn chat'e XML dosya yüklendiğinde "Upload failed" hatası alınıyor. Sebep: handleFileUpload fonksiyonu XML'i /api/chat/upload'a gönderiyor ama bu endpoint XML'i düzgün işleyemiyor. Ayrıca /api/efatura/upload endpoint'i eklenmiş ama frontend'ten düzgün çağrılmıyor olabilir.
+
+## MEVCUT YAPI (zaten eklenmiş, silme)
+1. server/efatura-kdv-parser.ts — e-Fatura UBL-TR XML parser (fast-xml-parser kullanıyor)
+2. DB tablosu: indirilecek_kdv_faturalar (user_id, donem, belge_no, satici_unvani, satici_vkn, matrah, kdv_orani, kdv_tutari, hesap_kodu vs.)
+3. DB view: v_indirilecek_kdv_ozet
+4. server/routes.ts içinde /api/efatura/upload POST endpoint (multer ile çoklu XML kabul ediyor)
+5. server/routes.ts içinde /api/efatura/kdv-listesi/:donem GET endpoint
+6. server/agentTools.ts içinde parse_efatura_xml ve generate_kdv_listesi tool tanımları + keyword triggers + case handlers
+7. client/src/pages/demo.tsx içinde handleFileInputChange'de XML kontrolü var
+
+## YAPILACAKLAR
+1. Finn chat'e XML dosya yüklendiğinde /api/efatura/upload endpoint'ine yönlendir (genel /api/chat/upload yerine). Frontend akışını düzelt.
+2. /api/efatura/upload endpoint'inin düzgün çalıştığından emin ol — test et, hata varsa düzelt.
+3. efatura-kdv-parser.ts'deki parseEFatura fonksiyonunun import edildiğinden ve çalıştığından emin ol (TypeScript/ESM import uyumluluğu).
+4. Upload sonucu Finn chat'te gösterilsin: "X fatura başarılı, Y hatalı, Z mükerrer"
+5. Kullanıcı "indirilecek KDV listesi oluştur" dediğinde generate_kdv_listesi tool'u DB'den faturaları çekip tablo formatında göstersin.
+
+## TEKNİK DETAYLAR
+- fast-xml-parser npm paketi zaten kurulu
+- DB bağlantısı: $DATABASE_URL (PostgreSQL)
+- Kullanıcı izolasyonu: session.userId (integer) ile — tenant_id DEĞİL
+- Parser fonksiyonu: parseEFatura(xmlContent: string) → { success, invoice, errors, warnings }
+- Finn agent type: "bookkeeping"

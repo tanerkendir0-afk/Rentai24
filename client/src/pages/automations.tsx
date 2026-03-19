@@ -74,11 +74,12 @@ const categoryLabels: Record<string, string> = {
 const triggerTypeLabels: Record<string, string> = {
   agent_tool_complete: "Ajan Aksiyonu", webhook: "Webhook",
   schedule: "Zamanlı", manual: "Manuel", threshold: "Eşik Değer",
+  email_received: "E-posta Alındı",
 };
 
 const triggerTypeIcons: Record<string, any> = {
   agent_tool_complete: Bot, webhook: Webhook, schedule: Timer,
-  manual: Play, threshold: AlertTriangle,
+  manual: Play, threshold: AlertTriangle, email_received: Mail,
 };
 
 const actionTypeLabels: Record<string, string> = {
@@ -389,38 +390,92 @@ function NodeDetailPanel({ node, result, onClose, onChange, allNodes }: {
           <div className="border-t border-gray-800 pt-3">
             <h4 className="text-xs text-gray-400 mb-2">Koşul Ayarları</h4>
             <div className="space-y-2">
-              <div>
-                <label className="text-xs text-gray-500 block mb-1">Alan</label>
-                <Input
-                  value={node.config?.field || ""}
-                  onChange={(e) => onChange({ ...node, config: { ...node.config, field: e.target.value } })}
-                  className="bg-gray-800 border-gray-700 text-white text-xs h-8"
-                  placeholder="örn: status, amount"
-                  data-testid="input-condition-field"
-                />
-              </div>
-              <div>
-                <label className="text-xs text-gray-500 block mb-1">Operatör</label>
-                <Select value={node.config?.operator || "equals"} onValueChange={(val) => onChange({ ...node, config: { ...node.config, operator: val } })}>
-                  <SelectTrigger className="bg-gray-800 border-gray-700 text-white text-xs h-8" data-testid="select-condition-operator">
+              <div className="flex items-center gap-2 mb-2">
+                <label className="text-xs text-gray-500">Mantık:</label>
+                <Select
+                  value={node.conditionLogic || "and"}
+                  onValueChange={(val) => onChange({ ...node, conditionLogic: val })}
+                >
+                  <SelectTrigger className="bg-gray-800 border-gray-700 text-white text-xs h-7 w-20" data-testid="select-condition-logic">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {Object.entries(conditionOperatorLabels).map(([k, v]) => (
-                      <SelectItem key={k} value={k}>{v}</SelectItem>
-                    ))}
+                    <SelectItem value="and">VE</SelectItem>
+                    <SelectItem value="or">VEYA</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-              <div>
-                <label className="text-xs text-gray-500 block mb-1">Değer</label>
-                <Input
-                  value={String(node.config?.value || "")}
-                  onChange={(e) => onChange({ ...node, config: { ...node.config, value: e.target.value } })}
-                  className="bg-gray-800 border-gray-700 text-white text-xs h-8"
-                  data-testid="input-condition-value"
-                />
-              </div>
+              {(node.conditions && node.conditions.length > 0 ? node.conditions : [{ field: node.config?.field || "", operator: node.config?.operator || "equals", value: node.config?.value || "" }]).map((cond: any, idx: number) => (
+                <div key={idx} className="bg-gray-800/50 rounded p-2 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] text-gray-500">Kural {idx + 1}</span>
+                    {(node.conditions?.length || 1) > 1 && (
+                      <button
+                        className="text-[10px] text-red-400 hover:text-red-300"
+                        onClick={() => {
+                          const conds = [...(node.conditions || [])];
+                          conds.splice(idx, 1);
+                          onChange({ ...node, conditions: conds, config: conds[0] ? { field: conds[0].field, operator: conds[0].operator, value: conds[0].value } : node.config });
+                        }}
+                        data-testid={`button-remove-condition-${idx}`}
+                      >
+                        Kaldır
+                      </button>
+                    )}
+                  </div>
+                  <Input
+                    value={cond.field || ""}
+                    onChange={(e) => {
+                      const conds = [...(node.conditions || [{ field: node.config?.field || "", operator: node.config?.operator || "equals", value: node.config?.value || "" }])];
+                      conds[idx] = { ...conds[idx], field: e.target.value };
+                      onChange({ ...node, conditions: conds, config: { ...node.config, field: conds[0]?.field, operator: conds[0]?.operator, value: conds[0]?.value } });
+                    }}
+                    className="bg-gray-800 border-gray-700 text-white text-xs h-7"
+                    placeholder="Alan adı"
+                    data-testid={`input-condition-field-${idx}`}
+                  />
+                  <Select
+                    value={cond.operator || "equals"}
+                    onValueChange={(val) => {
+                      const conds = [...(node.conditions || [{ field: node.config?.field || "", operator: node.config?.operator || "equals", value: node.config?.value || "" }])];
+                      conds[idx] = { ...conds[idx], operator: val };
+                      onChange({ ...node, conditions: conds, config: { ...node.config, field: conds[0]?.field, operator: conds[0]?.operator, value: conds[0]?.value } });
+                    }}
+                  >
+                    <SelectTrigger className="bg-gray-800 border-gray-700 text-white text-xs h-7" data-testid={`select-condition-operator-${idx}`}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(conditionOperatorLabels).map(([k, v]) => (
+                        <SelectItem key={k} value={k}>{v}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Input
+                    value={String(cond.value || "")}
+                    onChange={(e) => {
+                      const conds = [...(node.conditions || [{ field: node.config?.field || "", operator: node.config?.operator || "equals", value: node.config?.value || "" }])];
+                      conds[idx] = { ...conds[idx], value: e.target.value };
+                      onChange({ ...node, conditions: conds, config: { ...node.config, field: conds[0]?.field, operator: conds[0]?.operator, value: conds[0]?.value } });
+                    }}
+                    className="bg-gray-800 border-gray-700 text-white text-xs h-7"
+                    placeholder="Değer"
+                    data-testid={`input-condition-value-${idx}`}
+                  />
+                </div>
+              ))}
+              <Button
+                size="sm"
+                variant="outline"
+                className="text-[10px] border-gray-700 text-gray-400 w-full h-7"
+                onClick={() => {
+                  const existing = node.conditions || [{ field: node.config?.field || "", operator: node.config?.operator || "equals", value: node.config?.value || "" }];
+                  onChange({ ...node, conditions: [...existing, { field: "", operator: "equals", value: "" }] });
+                }}
+                data-testid="button-add-condition-rule"
+              >
+                <Plus className="w-3 h-3 mr-1" /> Kural Ekle
+              </Button>
             </div>
           </div>
         )}
@@ -830,6 +885,41 @@ function TriggerConfigEditor({ triggerType, triggerConfig, onChange }: {
                 data-testid="input-webhook-path"
               />
             </div>
+          )}
+
+          {triggerType === "email_received" && (
+            <>
+              <div>
+                <label className="text-xs text-gray-400 block mb-1">Gönderen Filtresi</label>
+                <Input
+                  value={triggerConfig.senderFilter || ""}
+                  onChange={(e) => onChange(triggerType, { ...triggerConfig, senderFilter: e.target.value })}
+                  placeholder="örn: @example.com veya john@example.com"
+                  className="bg-gray-800 border-gray-700 text-white text-xs h-8"
+                  data-testid="input-email-sender-filter"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-gray-400 block mb-1">Konu Filtresi</label>
+                <Input
+                  value={triggerConfig.subjectFilter || ""}
+                  onChange={(e) => onChange(triggerType, { ...triggerConfig, subjectFilter: e.target.value })}
+                  placeholder="örn: Fatura, Sipariş"
+                  className="bg-gray-800 border-gray-700 text-white text-xs h-8"
+                  data-testid="input-email-subject-filter"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-gray-400 block mb-1">Hedef E-posta</label>
+                <Input
+                  value={triggerConfig.targetEmail || ""}
+                  onChange={(e) => onChange(triggerType, { ...triggerConfig, targetEmail: e.target.value })}
+                  placeholder="info@company.com"
+                  className="bg-gray-800 border-gray-700 text-white text-xs h-8"
+                  data-testid="input-email-target"
+                />
+              </div>
+            </>
           )}
 
           {triggerType === "threshold" && (

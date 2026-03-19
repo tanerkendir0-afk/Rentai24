@@ -1290,4 +1290,7 @@ export interface TriggerConfig {
   thresholdField?: string;
   thresholdOperator?: "gt" | "lt" | "gte" | "lte" | "eq";
   thresholdValue?: number;
+  senderFilter?: string;
+  subjectFilter?: string;
+  targetEmail?: string;
 }

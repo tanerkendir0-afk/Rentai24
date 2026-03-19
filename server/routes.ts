@@ -6954,7 +6954,7 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
     }
   });
 
-  const validTriggerTypes = ["agent_tool_complete", "webhook", "schedule", "manual", "threshold"];
+  const validTriggerTypes = ["agent_tool_complete", "webhook", "schedule", "manual", "threshold", "email_received"];
   const validNodeTypes = ["trigger", "action", "condition", "delay"];
   const validActionTypes = ["send_email", "create_task", "notify_boss", "update_lead", "webhook_call", "log_action", "calculate", "http_request", "set_variable", "format_data", "whatsapp_message", "multi_email", "db_query"];
 
@@ -7225,6 +7225,28 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
     } catch (error) {
       console.error("Webhook automation error:", error);
       res.status(500).json({ error: "Webhook processing failed" });
+    }
+  });
+
+  app.post("/api/automations/inbound-email", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const { from, subject, body, to } = req.body;
+      if (!from || !subject) {
+        return res.status(400).json({ error: "from and subject are required" });
+      }
+      const { triggerEmailWorkflows } = await import("./n8n/agentBridge");
+      const result = await triggerEmailWorkflows({
+        userId,
+        from: String(from),
+        subject: String(subject),
+        body: String(body || ""),
+        to: to ? String(to) : undefined,
+      });
+      res.json(result);
+    } catch (error) {
+      console.error("Inbound email trigger error:", error);
+      res.status(500).json({ error: "Inbound email processing failed" });
     }
   });
 

@@ -388,6 +388,13 @@ async function executeAction(
         if (blockedHosts.some((h) => hostname === h) || hostname.endsWith(".local") || hostname.endsWith(".internal")) {
           return { status: "error", error: "Internal/private network URLs are not allowed" };
         }
+        const ipMatch = hostname.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+        if (ipMatch) {
+          const [, a, b] = ipMatch.map(Number);
+          if (a === 10 || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168) || a === 127 || (a === 169 && b === 254)) {
+            return { status: "error", error: "Private/internal IP addresses are not allowed" };
+          }
+        }
       } catch {
         return { status: "error", error: "Invalid URL" };
       }

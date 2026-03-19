@@ -87,6 +87,44 @@ export async function triggerAutomations(params: {
   }
 }
 
+export async function triggerEmailWorkflows(params: {
+  userId: number;
+  from: string;
+  subject: string;
+  body: string;
+  to?: string;
+}): Promise<{ triggered: number; errors: string[] }> {
+  const workflows = await getActiveWorkflowsForUser(params.userId);
+  const matching = workflows.filter((w) => {
+    if (w.triggerType !== "email_received") return false;
+    const tc = w.triggerConfig as TriggerConfig;
+    if (tc.senderFilter && !params.from.toLowerCase().includes(tc.senderFilter.toLowerCase())) return false;
+    if (tc.subjectFilter && !params.subject.toLowerCase().includes(tc.subjectFilter.toLowerCase())) return false;
+    if (tc.targetEmail && params.to && !params.to.toLowerCase().includes(tc.targetEmail.toLowerCase())) return false;
+    return true;
+  });
+
+  const errors: string[] = [];
+  let triggered = 0;
+
+  for (const workflow of matching) {
+    const result = await executeWorkflow(workflow.id, params.userId, {
+      emailFrom: params.from,
+      emailSubject: params.subject,
+      emailBody: params.body,
+      emailTo: params.to,
+      _trigger: { type: "email_received" },
+    });
+    if (result.success) {
+      triggered++;
+    } else {
+      errors.push(`${workflow.name}: ${result.error}`);
+    }
+  }
+
+  return { triggered, errors };
+}
+
 export async function triggerWebhookWorkflow(
   userId: number,
   webhookPath: string,

@@ -4,6 +4,7 @@ import { eq, and, sql } from "drizzle-orm";
 import { sendEmail } from "../emailService";
 import { storage } from "../storage";
 import { notifyBoss } from "../bossNotificationService";
+import { sendTextMessage } from "../whatsappService";
 
 export interface ExecutionContext {
   userId: number;
@@ -491,15 +492,15 @@ async function executeAction(
       const message = resolveTemplate(config.message || "", ctx);
       if (!phone || !message) return { status: "error", error: "Phone and message are required" };
 
-      await storage.createAgentAction({
-        userId: ctx.userId,
-        agentType: "automation",
-        actionType: "whatsapp_queued",
-        description: `WhatsApp → ${phone}: ${message.substring(0, 100)}`,
-        metadata: { phone, message, nodeId: node.id },
-      });
+      const waResult = await sendTextMessage(ctx.userId, phone, message, "automation");
+      if (!waResult.success) {
+        return { status: "error", error: waResult.message, output: { phone } };
+      }
 
-      return { status: "success", output: { phone, messagePreview: message.substring(0, 200), queued: true } };
+      return {
+        status: "success",
+        output: { phone, messagePreview: message.substring(0, 200), whatsappMessageId: waResult.whatsappMessageId },
+      };
     }
 
     case "multi_email": {
@@ -536,15 +537,16 @@ async function executeAction(
 
       try {
         if (queryType === "count") {
-          const [row] = await db.execute(sql`SELECT COUNT(*)::int as count FROM ${sql.identifier(table)} WHERE user_id = ${ctx.userId}`);
-          const count = (row as any).count;
+          const result = await db.execute(sql`SELECT COUNT(*)::int as count FROM ${sql.identifier(table)} WHERE user_id = ${ctx.userId}`);
+          const count = result.rows[0]?.count ?? 0;
           ctx.variables.queryResult = count;
           return { status: "success", output: { table, queryType, count } };
         }
 
         return { status: "success", output: { table, queryType, note: "Only count queries are supported" } };
-      } catch (e: any) {
-        return { status: "error", error: `DB query failed: ${e.message}` };
+      } catch (e: unknown) {
+        const errMsg = e instanceof Error ? e.message : "Unknown error";
+        return { status: "error", error: `DB query failed: ${errMsg}` };
       }
     }
 

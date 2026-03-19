@@ -2383,6 +2383,8 @@ const TOOL_KEYWORD_MAP: Record<string, string[]> = {
   calculate_amortisman: ["amortisman", "sabit kıymet", "depreciation", "faydalı ömür", "azalan"],
   calculate_kur_degerleme: ["kur", "döviz", "değerleme", "kambiyo", "VUK 280"],
   calculate_stopaj: ["stopaj", "serbest meslek", "kira", "royalty", "tevkifat"],
+  parse_efatura_xml: ["e-fatura", "efatura", "xml", "fatura parse", "fatura yükle", "fatura oku"],
+  generate_kdv_listesi: ["indirilecek kdv", "kdv listesi", "kdv raporu", "fatura listesi", "191", "beyanname eki"],
   format_yevmiye: ["yevmiye", "muhasebe kaydı", "borç alacak", "journal entry", "hesap"],
   generate_mizan: ["mizan", "hesap planı", "trial balance", "borç alacak"],
   generate_bordro: ["bordro", "maaş bordro", "payroll report", "ücret bordro"],
@@ -5873,8 +5875,24 @@ ${activeRentals.map(r => `  ${r.agentType}: ${r.messagesUsed}/${r.messagesLimit}
       return {
         result: JSON.stringify(result),
         actionType: "stopaj_calculated",
-        actionDescription: `🧮 Stopaj: ${formatTL(result.stopajTutari)}`,
+        actionDescription: `🧮 Stopaj: ${formatTL(result.brutTutar)} brüt — %${result.stopajOrani} stopaj = ${formatTL(result.stopajTutari)}`,
       };
+    }
+    case "parse_efatura_xml": {
+      const { parseEFatura } = await import("./efatura-kdv-parser");
+      const result = parseEFatura(args.xml_content);
+      if (result.success && result.invoice) {
+        await db.execute(`INSERT INTO indirilecek_kdv_faturalar (tenant_id, donem, sira_no, fatura_tarihi, belge_no, satici_unvani, satici_vkn, belge_turu, matrah, kdv_orani, kdv_tutari, hesap_kodu, para_birimi, profil_id) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) ON CONFLICT (tenant_id, belge_no) DO NOTHING`, [args.tenant_id || "00000000-0000-0000-0000-000000000000", args.donem || "", 0, result.invoice.faturaTarihi.split(".").reverse().join("-"), result.invoice.belgeNo, result.invoice.saticiUnvani, result.invoice.saticiVKN, result.invoice.belgeTuru, result.invoice.matrah, result.invoice.kdvOrani, result.invoice.kdvTutari, result.invoice.hesapKodu, result.invoice.paraBirimi, result.invoice.profilId]);
+      }
+      await storage.createAgentAction({ userId, agentType, actionType: "efatura_parsed", description: `📄 e-Fatura parse: ${result.success ? result.invoice?.belgeNo : "HATA"}`, metadata: result });
+      return { result: JSON.stringify(result), actionType: "efatura_parsed", actionDescription: `📄 e-Fatura: ${result.success ? result.invoice?.belgeNo : "Parse hatası"}` };
+    }
+    case "generate_kdv_listesi": {
+      const rows = await db.execute(`SELECT * FROM indirilecek_kdv_faturalar WHERE donem = $1 ORDER BY fatura_tarihi`, [args.donem]);
+      const ozet = await db.execute(`SELECT * FROM v_indirilecek_kdv_ozet WHERE donem = $1`, [args.donem]);
+      const rapor = { donem: args.donem, faturalar: rows.rows, ozetler: ozet.rows, toplamFatura: rows.rows.length };
+      await storage.createAgentAction({ userId, agentType, actionType: "kdv_listesi_generated", description: `📋 İndirilecek KDV Listesi: ${args.donem} — ${rows.rows.length} fatura`, metadata: rapor });
+      return { result: JSON.stringify(rapor), actionType: "kdv_listesi_generated", actionDescription: `📋 KDV Listesi: ${args.donem} (${rows.rows.length} fatura)` };
     }
 
     case "format_yevmiye": {

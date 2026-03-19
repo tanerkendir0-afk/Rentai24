@@ -294,6 +294,9 @@ app.use((req, res, next) => {
     startScheduledPostRunner();
   }
 
+  const { startSchedulerService } = await import("./n8n/schedulerService");
+  startSchedulerService();
+
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
 

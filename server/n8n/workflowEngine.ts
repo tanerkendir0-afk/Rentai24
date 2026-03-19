@@ -243,8 +243,20 @@ async function executeAction(
         if (!["http:", "https:"].includes(parsed.protocol)) {
           return { status: "error", error: "Only HTTP/HTTPS URLs are allowed" };
         }
-        const blockedHosts = ["localhost", "127.0.0.1", "0.0.0.0", "169.254.169.254", "[::1]"];
-        if (blockedHosts.some((h) => parsed.hostname === h) || parsed.hostname.startsWith("10.") || parsed.hostname.startsWith("192.168.") || parsed.hostname.startsWith("172.")) {
+        const hostname = parsed.hostname.toLowerCase();
+        const blockedHosts = ["localhost", "127.0.0.1", "0.0.0.0", "169.254.169.254", "[::1]", "metadata.google.internal"];
+        if (blockedHosts.some((h) => hostname === h)) {
+          return { status: "error", error: "Internal/private network URLs are not allowed" };
+        }
+        const ipParts = hostname.split(".").map(Number);
+        if (ipParts.length === 4 && ipParts.every((p) => !isNaN(p) && p >= 0 && p <= 255)) {
+          const [a, b] = ipParts;
+          if (a === 10 || a === 127 || a === 0) return { status: "error", error: "Internal/private network URLs are not allowed" };
+          if (a === 172 && b >= 16 && b <= 31) return { status: "error", error: "Internal/private network URLs are not allowed" };
+          if (a === 192 && b === 168) return { status: "error", error: "Internal/private network URLs are not allowed" };
+          if (a === 169 && b === 254) return { status: "error", error: "Internal/private network URLs are not allowed" };
+        }
+        if (hostname.endsWith(".local") || hostname.endsWith(".internal")) {
           return { status: "error", error: "Internal/private network URLs are not allowed" };
         }
       } catch {

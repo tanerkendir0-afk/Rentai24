@@ -7021,6 +7021,18 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
         return res.status(404).json({ error: "Template not found" });
       }
 
+      if (!validTriggerTypes.includes(template.triggerType)) {
+        return res.status(400).json({ error: `Invalid template trigger type: ${template.triggerType}` });
+      }
+      for (const node of template.nodes) {
+        if (!node.id || !node.type || !validNodeTypes.includes(node.type)) {
+          return res.status(400).json({ error: `Invalid node type in template: ${node.type}` });
+        }
+        if (node.type === "action" && node.actionType && !validActionTypes.includes(node.actionType)) {
+          return res.status(400).json({ error: `Invalid action type in template: ${node.actionType}` });
+        }
+      }
+
       const [workflow] = await db
         .insert(automationWorkflows)
         .values({

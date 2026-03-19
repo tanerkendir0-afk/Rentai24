@@ -309,7 +309,7 @@ export const workflowTemplates: WorkflowTemplate[] = [
     },
     nodes: [
       { id: "trigger-1", type: "trigger", label: "e-Fatura Parse Edildi", config: {}, nextNodeId: "action-1" },
-      { id: "action-1", type: "send_notification", label: "Bildirim Gönder", config: { message: "📄 e-Fatura parse edildi: {{belgeNo}} - Satıcı: {{saticiUnvani}} - KDV: {{kdvTutari}} ₺" }, nextNodeId: null },
+      { id: "action-1", type: "action", actionType: "notify_boss", label: "Bildirim Gönder", config: { summary: "📄 e-Fatura parse edildi: {{belgeNo}} - Satıcı: {{saticiUnvani}} - KDV: {{kdvTutari}} ₺", notificationType: "efatura_parsed" }, nextNodeId: null },
     ],
   },
   {
@@ -328,7 +328,7 @@ export const workflowTemplates: WorkflowTemplate[] = [
     },
     nodes: [
       { id: "trigger-1", type: "trigger", label: "KDV Listesi Oluşturuldu", config: {}, nextNodeId: "action-1" },
-      { id: "action-1", type: "send_email", label: "Mali Müşavire Gönder", config: { subject: "İndirilecek KDV Listesi - {{donem}}", body: "{{donem}} dönemi İndirilecek KDV Listesi hazırdır. Toplam {{toplamFatura}} fatura, Genel KDV: {{toplamKDV}} ₺" }, nextNodeId: null },
+      { id: "action-1", type: "action", actionType: "send_email", label: "Mali Müşavire Gönder", config: { subject: "İndirilecek KDV Listesi - {{donem}}", body: "{{donem}} dönemi İndirilecek KDV Listesi hazırdır. Toplam {{toplamFatura}} fatura, Genel KDV: {{toplamKDV}} ₺" }, nextNodeId: null },
     ],
   },
   {
@@ -347,7 +347,7 @@ export const workflowTemplates: WorkflowTemplate[] = [
     },
     nodes: [
       { id: "trigger-1", type: "trigger", label: "Parse Tamamlandı", config: {}, nextNodeId: "action-1" },
-      { id: "action-1", type: "webhook_call", label: "Webhook Bildirim", config: { url: "{{webhookUrl}}", method: "POST" }, nextNodeId: null },
+      { id: "action-1", type: "action", actionType: "webhook_call", label: "Webhook Bildirim", config: { url: "{{webhookUrl}}", method: "POST" }, nextNodeId: null },
     ],
   },
   {

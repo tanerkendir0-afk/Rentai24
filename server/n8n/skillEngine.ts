@@ -27,10 +27,13 @@ export interface BuiltinSkillDefinition {
   execute: (params: Record<string, any>) => Promise<{ success: boolean; output: any; error?: string }>;
 }
 
-function safeEvalExpression(expr: string, context: Record<string, any> = {}): any {
-  const sanitized = expr.replace(/[^0-9a-zA-Z_+\-*/().%\s,<>=!&|?:"'[\]{}]/g, "");
-  const fn = new Function(...Object.keys(context), `"use strict"; return (${sanitized});`);
-  return fn(...Object.values(context));
+async function safeEvalExpression(expr: string, context: Record<string, any> = {}): Promise<any> {
+  const vm = await import("vm");
+  const sandbox = { params: context, Math, String, Number, Boolean, Array, Object, JSON, Date, parseInt, parseFloat, isNaN, isFinite, encodeURIComponent, decodeURIComponent };
+  const vmContext = vm.createContext(sandbox);
+  const sanitized = expr.replace(/require|import|process|global|__dirname|__filename|eval|Function/g, "_blocked_");
+  const script = new vm.Script(`(function() { "use strict"; ${sanitized} })()`, { timeout: 3000 });
+  return script.runInContext(vmContext, { timeout: 3000 });
 }
 
 export const BUILTIN_SKILLS: Record<string, BuiltinSkillDefinition> = {
@@ -721,22 +724,36 @@ export async function executeSkill(
 
 export async function executeSkillByName(
   skillName: string,
-  params: Record<string, any>
+  params: Record<string, any>,
+  agentSlug?: string
 ): Promise<SkillExecutionResult> {
-  const [skill] = await db.select().from(agentSkills).where(eq(agentSkills.name, skillName));
+  const [skill] = await db.select().from(agentSkills).where(and(eq(agentSkills.name, skillName), eq(agentSkills.isActive, true)));
   if (!skill) {
-    if (BUILTIN_SKILLS[skillName]) {
-      const startTime = Date.now();
-      try {
-        const result = await BUILTIN_SKILLS[skillName].execute(params);
-        return { ...result, durationMs: Date.now() - startTime };
-      } catch (e: any) {
-        return { success: false, output: null, error: e.message, durationMs: Date.now() - startTime };
-      }
+    return { success: false, output: null, error: `Skill '${skillName}' not found or inactive`, durationMs: 0 };
+  }
+  if (agentSlug) {
+    const [assignment] = await db.select().from(agentSkillAssignments)
+      .where(and(eq(agentSkillAssignments.skillId, skill.id), eq(agentSkillAssignments.agentSlug, agentSlug), eq(agentSkillAssignments.isEnabled, true)));
+    if (!assignment) {
+      return { success: false, output: null, error: `Skill '${skillName}' not assigned to agent '${agentSlug}'`, durationMs: 0 };
     }
-    return { success: false, output: null, error: `Skill '${skillName}' not found`, durationMs: 0 };
   }
   return executeSkill(skill.id, params);
+}
+
+export async function getSkillStats(): Promise<{ totalSkills: number; activeSkills: number; builtinSkills: number; customSkills: number; skillStats: Array<{ id: number; name: string; nameTr: string; usageCount: number; successCount: number; avgDurationMs: number; successRate: number }> }> {
+  const allSkills = await db.select().from(agentSkills);
+  const totalSkills = allSkills.length;
+  const activeSkills = allSkills.filter(s => s.isActive).length;
+  const builtinSkills = allSkills.filter(s => s.isBuiltin).length;
+  const customSkills = allSkills.filter(s => !s.isBuiltin).length;
+  const skillStats = allSkills.map(s => ({
+    id: s.id, name: s.name, nameTr: s.nameTr,
+    usageCount: s.usageCount ?? 0, successCount: s.successCount ?? 0,
+    avgDurationMs: (s.usageCount && s.usageCount > 0) ? Math.round((s.totalDurationMs ?? 0) / s.usageCount) : 0,
+    successRate: (s.usageCount && s.usageCount > 0) ? Math.round(((s.successCount ?? 0) / s.usageCount) * 100) : 0,
+  }));
+  return { totalSkills, activeSkills, builtinSkills, customSkills, skillStats };
 }
 
 async function executeHttpSkill(
@@ -825,7 +842,7 @@ async function executeExpressionSkill(
   if (!config.expression) return { success: false, output: null, error: "Expression skill has no expression configured" };
 
   try {
-    const result = safeEvalExpression(config.expression, params);
+    const result = await safeEvalExpression(config.expression, params);
     return { success: true, output: { result } };
   } catch (e: any) {
     return { success: false, output: null, error: `Expression error: ${e.message}` };

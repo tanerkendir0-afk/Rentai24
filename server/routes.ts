@@ -7032,6 +7032,17 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
     }
   });
 
+  app.get(`/api/${ADMIN_PATH}/skills/stats`, requireAdmin, async (_req, res) => {
+    try {
+      const { getSkillStats } = await import("./n8n/skillEngine");
+      const stats = await getSkillStats();
+      res.json(stats);
+    } catch (error) {
+      console.error("Skill stats error:", error);
+      res.status(500).json({ error: "Failed to load skill stats" });
+    }
+  });
+
   app.post(`/api/${ADMIN_PATH}/skills`, requireAdmin, async (req, res) => {
     try {
 

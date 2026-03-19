@@ -2443,9 +2443,23 @@ export async function getRelevantToolsForMessage(
 
   const msgLower = message.toLowerCase();
 
+  const skillKeywordMap: Record<string, string[]> = {};
+  try {
+    const { getSkillsForAgent } = await import("./n8n/skillEngine");
+    const agentSkills = await getSkillsForAgent(agentType);
+    for (const s of agentSkills) {
+      const kws = (s.keywords as string[]) || [];
+      if (kws.length > 0) skillKeywordMap[`skill_${s.name}`] = kws;
+    }
+  } catch {}
+
   const relevant = combined.filter((tool) => {
     const toolName = (tool as OpenAI.ChatCompletionTool & { function: { name: string } }).function.name;
-    if (toolName.startsWith("skill_")) return true;
+    if (toolName.startsWith("skill_")) {
+      const kws = skillKeywordMap[toolName];
+      if (!kws || kws.length === 0) return true;
+      return kws.some((kw) => msgLower.includes(kw.toLowerCase()));
+    }
     const keywords = TOOL_KEYWORD_MAP[toolName];
     if (!keywords) return true;
     return keywords.some((kw) => msgLower.includes(kw));
@@ -7029,7 +7043,7 @@ ${activeRentals.map(r => `  ${r.agentType}: ${r.messagesUsed}/${r.messagesLimit}
         try {
           const { executeSkillByName } = await import("./n8n/skillEngine");
           const skillName = toolName.replace("skill_", "");
-          const result = await executeSkillByName(skillName, args as Record<string, any>);
+          const result = await executeSkillByName(skillName, args as Record<string, any>, agentType);
           if (result.success) {
             await storage.createAgentAction({
               userId, agentType, actionType: "skill_execution",

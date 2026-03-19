@@ -18,3 +18,9 @@ id = "81I5X1UuYuzdON4axb7Vx"
 uri = "file://RentAI24_Kullanim_Kilavuzu.md"
 type = "text"
 title = "RentAI 24 - Kullanim Kilavuzu"
+
+[[outputs]]
+id = "hv5PXPC460ojWY2Q5TcT4"
+uri = "file://RentAI24_Detayli_Kilavuz.md"
+type = "text"
+title = "RentAI 24 - Detayli Kullanim Kilavuzu (Ok Diyagramlarli)"

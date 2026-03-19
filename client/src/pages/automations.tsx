@@ -157,6 +157,25 @@ const configFieldPlaceholders: Record<string, string> = {
   queryType: "count",
 };
 
+const AGENT_TYPE_OPTIONS = [
+  { value: "customer-support", label: "Ava (Müşteri Destek)" },
+  { value: "sales-sdr", label: "Rex (Satış)" },
+  { value: "social-media", label: "Maya (Sosyal Medya)" },
+  { value: "bookkeeping", label: "Finn (Muhasebe)" },
+  { value: "scheduling", label: "Cal (Randevu)" },
+  { value: "hr-recruiting", label: "Harper (İK)" },
+  { value: "data-analyst", label: "DataBot (Veri Analiz)" },
+  { value: "ecommerce-ops", label: "ShopBot (E-Ticaret)" },
+  { value: "real-estate", label: "Reno (Gayrimenkul)" },
+  { value: "manager", label: "Manager (Yönetici)" },
+];
+
+const PRIORITY_OPTIONS = [
+  { value: "high", label: "Yüksek" },
+  { value: "medium", label: "Orta" },
+  { value: "low", label: "Düşük" },
+];
+
 const NODE_W = 200;
 const NODE_H = 64;
 
@@ -429,7 +448,35 @@ function NodeDetailPanel({ node, result, onClose, onChange, allNodes }: {
             {node.type === "action" && node.actionType !== "integration" && node.actionType !== "run_skill" && (actionConfigFields[node.actionType] || Object.keys(node.config || {})).map((key: string) => (
               <div key={key}>
                 <label className="text-xs text-gray-400 block mb-1">{configFieldLabels[key] || key}</label>
-                {key === "body" || key === "message" || key === "description" ? (
+                {key === "agentType" ? (
+                  <Select
+                    value={node.config?.[key] || ""}
+                    onValueChange={(v) => onChange({ ...node, config: { ...node.config, [key]: v } })}
+                  >
+                    <SelectTrigger className="bg-gray-800 border-gray-700 text-white text-xs h-8" data-testid={`select-config-${key}`}>
+                      <SelectValue placeholder="Ajan seçin..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {AGENT_TYPE_OPTIONS.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : key === "priority" ? (
+                  <Select
+                    value={node.config?.[key] || ""}
+                    onValueChange={(v) => onChange({ ...node, config: { ...node.config, [key]: v } })}
+                  >
+                    <SelectTrigger className="bg-gray-800 border-gray-700 text-white text-xs h-8" data-testid={`select-config-${key}`}>
+                      <SelectValue placeholder="Öncelik seçin..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PRIORITY_OPTIONS.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : key === "body" || key === "message" || key === "description" ? (
                   <Textarea
                     value={String(node.config?.[key] || "")}
                     onChange={(e) => onChange({ ...node, config: { ...node.config, [key]: e.target.value } })}
@@ -1063,13 +1110,19 @@ function TriggerConfigEditor({ triggerType, triggerConfig, onChange }: {
             <>
               <div>
                 <label className="text-xs text-gray-400 block mb-1">Ajan Türü</label>
-                <Input
+                <Select
                   value={triggerConfig.agentType || ""}
-                  onChange={(e) => onChange(triggerType, { ...triggerConfig, agentType: e.target.value })}
-                  placeholder="örn: bookkeeping, sales-sdr"
-                  className="bg-gray-800 border-gray-700 text-white text-xs h-8"
-                  data-testid="input-trigger-agent-type"
-                />
+                  onValueChange={(v) => onChange(triggerType, { ...triggerConfig, agentType: v })}
+                >
+                  <SelectTrigger className="bg-gray-800 border-gray-700 text-white text-xs h-8" data-testid="select-trigger-agent-type">
+                    <SelectValue placeholder="Ajan seçin..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {AGENT_TYPE_OPTIONS.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <label className="text-xs text-gray-400 block mb-1">Araç Adı</label>

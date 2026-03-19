@@ -1704,10 +1704,11 @@ export async function registerRoutes(
 
 
   // === TOPLU e-FATURA XML UPLOAD ===
+  const efaturaDir = path.join(process.cwd(), 'uploads', 'efatura-xml');
+  if (!fs.existsSync(efaturaDir)) fs.mkdirSync(efaturaDir, { recursive: true });
   const xmlUploadStorage = multer.diskStorage({
     destination: (req, file, cb) => {
-      const dir = path.join(process.cwd(), 'uploads', 'efatura-xml');
-      cb(null, dir);
+      cb(null, efaturaDir);
     },
     filename: (req, file, cb) => {
       const ext = path.extname(file.originalname).toLowerCase();
@@ -1738,7 +1739,7 @@ export async function registerRoutes(
             try {
               await db.execute(
                 `INSERT INTO indirilecek_kdv_faturalar (user_id, donem, sira_no, fatura_tarihi, belge_no, satici_unvani, satici_vkn, belge_turu, matrah, kdv_orani, kdv_tutari, hesap_kodu, para_birimi, profil_id, xml_hash)
-                 VALUES (,,,,,,,,,0,1,2,3,4,5)
+                 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
                  ON CONFLICT (user_id, belge_no) DO NOTHING`,
                 [userId, donem, 0, parsed.invoice.faturaTarihi.split('.').reverse().join('-'),
                  parsed.invoice.belgeNo, parsed.invoice.saticiUnvani, parsed.invoice.saticiVKN,

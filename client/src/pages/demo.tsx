@@ -544,46 +544,49 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
 
     setUploading(true);
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-      const res = await fetch("/api/chat/upload", { method: "POST", body: formData });
-      const data = await res.json();
-      if (data.success) {
-        trackEvent("file_uploaded", "agent", { fileType: data.fileType, agentType: selectedAgent });
-        if (data.fileType === "image") {
-          setUploadedFile({ url: data.imageUrl, name: data.filename, type: "image" });
+      if (selectedAgent === "bookkeeping" && ext === ".xml") {
+        const xmlForm = new FormData();
+        xmlForm.append("files", file);
+        const now = new Date();
+        xmlForm.append("donem", String(now.getMonth() + 1).padStart(2, "0") + "/" + now.getFullYear());
+        const xmlRes = await fetch("/api/efatura/upload", { method: "POST", body: xmlForm, credentials: "include" });
+        const xmlResult = await xmlRes.json();
+        if (xmlResult.error) {
+          toast({ title: t("demoPage.toast.uploadFailed"), description: xmlResult.error, variant: "destructive" });
         } else {
-          setUploadedFile({ url: data.fileUrl, name: data.filename, type: "document", size: data.fileSize, documentContent: data.documentContent });
-          const dataExts = [".xlsx", ".xls", ".csv", ".tsv"];
-          if (selectedAgent === "data-analyst" && dataExts.includes(ext)) {
-            try {
-              const dataForm = new FormData();
-              dataForm.append("file", file);
-              const dataRes = await fetch("/api/files/upload", { method: "POST", body: dataForm, credentials: "include" });
-              const dataResult = await dataRes.json();
-              if (dataResult.id) {
-                const extra = `\n\n[Dosya analiz sistemine kaydedildi: ID=${dataResult.id}, ${dataResult.rowCount} satır, ${dataResult.columnCount} kolon]`;
-                setUploadedFile(prev => prev ? { ...prev, documentContent: (prev.documentContent || "") + extra } : prev);
-              }
-            } catch {}
-          }
-          // e-Fatura XML toplu yükleme (Finn)
-          if (selectedAgent === "bookkeeping" && ext === ".xml") {
-            try {
-              const xmlForm = new FormData();
-              xmlForm.append("files", file);
-              xmlForm.append("donem", new Date().toLocaleDateString("tr-TR", { month: "2-digit", year: "numeric" }).replace(".", "/"));
-              const xmlRes = await fetch("/api/efatura/upload", { method: "POST", body: xmlForm, credentials: "include" });
-              const xmlResult = await xmlRes.json();
-              if (xmlResult.basarili !== undefined) {
-                const extra = "\n\n[e-Fatura XML parse edildi: " + xmlResult.basarili + " başarılı, " + xmlResult.hatali + " hatalı, " + xmlResult.mukerrer + " mükerrer]";
-                setUploadedFile(prev => prev ? { ...prev, documentContent: (prev.documentContent || "") + extra } : prev);
-              }
-            } catch {}
-          }
+          const msg = (xmlResult.basarili || 0) + " fatura OK, " + (xmlResult.hatali || 0) + " hata, " + (xmlResult.mukerrer || 0) + " mukerrer";
+          setUploadedFile({ url: "", name: file.name, type: "document", documentContent: "[e-Fatura XML parse edildi: " + msg + "]" });
+          trackEvent("file_uploaded", "agent", { fileType: "xml", agentType: selectedAgent });
+          toast({ title: "e-Fatura Yuklendi", description: msg });
         }
       } else {
-        toast({ title: t("demoPage.toast.uploadFailed"), description: data.error || t("demoPage.toast.uploadFailedDesc"), variant: "destructive" });
+        const formData = new FormData();
+        formData.append("file", file);
+        const res = await fetch("/api/chat/upload", { method: "POST", body: formData });
+        const data = await res.json();
+        if (data.success) {
+          trackEvent("file_uploaded", "agent", { fileType: data.fileType, agentType: selectedAgent });
+          if (data.fileType === "image") {
+            setUploadedFile({ url: data.imageUrl, name: data.filename, type: "image" });
+          } else {
+            setUploadedFile({ url: data.fileUrl, name: data.filename, type: "document", size: data.fileSize, documentContent: data.documentContent });
+            const dataExts = [".xlsx", ".xls", ".csv", ".tsv"];
+            if (selectedAgent === "data-analyst" && dataExts.includes(ext)) {
+              try {
+                const dataForm = new FormData();
+                dataForm.append("file", file);
+                const dataRes = await fetch("/api/files/upload", { method: "POST", body: dataForm, credentials: "include" });
+                const dataResult = await dataRes.json();
+                if (dataResult.id) {
+                  const extra = `\n\n[Dosya analiz sistemine kaydedildi: ID=${dataResult.id}, ${dataResult.rowCount} satır, ${dataResult.columnCount} kolon]`;
+                  setUploadedFile(prev => prev ? { ...prev, documentContent: (prev.documentContent || "") + extra } : prev);
+                }
+              } catch {}
+            }
+          }
+        } else {
+          toast({ title: t("demoPage.toast.uploadFailed"), description: data.error || t("demoPage.toast.uploadFailedDesc"), variant: "destructive" });
+        }
       }
     } catch {
       toast({ title: t("demoPage.toast.uploadFailed"), description: t("demoPage.toast.uploadFailedDesc"), variant: "destructive" });

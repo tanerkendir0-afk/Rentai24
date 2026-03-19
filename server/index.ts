@@ -291,6 +291,52 @@ app.use((req, res, next) => {
         console.warn("collaboration_sessions table setup:", err instanceof Error ? err.message : String(err))
       );
 
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS indirilecek_kdv_faturalar (
+          id SERIAL PRIMARY KEY,
+          user_id INTEGER NOT NULL REFERENCES users(id),
+          donem VARCHAR(7) NOT NULL,
+          sira_no INTEGER NOT NULL DEFAULT 0,
+          fatura_tarihi DATE NOT NULL,
+          belge_no VARCHAR(50) NOT NULL,
+          satici_unvani VARCHAR(255) NOT NULL,
+          satici_vkn VARCHAR(11) NOT NULL DEFAULT '',
+          belge_turu VARCHAR(30) NOT NULL DEFAULT 'e-Fatura',
+          matrah DECIMAL(15,2) NOT NULL DEFAULT 0,
+          kdv_orani DECIMAL(5,2) NOT NULL DEFAULT 0,
+          kdv_tutari DECIMAL(15,2) NOT NULL DEFAULT 0,
+          hesap_kodu VARCHAR(10) NOT NULL DEFAULT '191.03',
+          para_birimi VARCHAR(3) DEFAULT 'TRY',
+          profil_id VARCHAR(50),
+          xml_hash VARCHAR(64),
+          created_at TIMESTAMPTZ DEFAULT NOW(),
+          UNIQUE(user_id, belge_no)
+        )
+      `).catch((err: unknown) =>
+        console.warn("indirilecek_kdv_faturalar table setup:", err instanceof Error ? err.message : String(err))
+      );
+
+      await pool.query(`
+        CREATE OR REPLACE VIEW v_indirilecek_kdv_ozet AS
+        SELECT
+          user_id,
+          donem,
+          kdv_orani,
+          CASE kdv_orani
+            WHEN 1 THEN '191.01'
+            WHEN 10 THEN '191.02'
+            WHEN 20 THEN '191.03'
+            ELSE '191.XX'
+          END as hesap_kodu,
+          COUNT(*) as fatura_adedi,
+          SUM(matrah) as toplam_matrah,
+          SUM(kdv_tutari) as toplam_kdv
+        FROM indirilecek_kdv_faturalar
+        GROUP BY user_id, donem, kdv_orani
+      `).catch((err: unknown) =>
+        console.warn("v_indirilecek_kdv_ozet view setup:", err instanceof Error ? err.message : String(err))
+      );
+
       console.log('Initializing Stripe schema...');
       await runMigrations({ databaseUrl });
       console.log('Stripe schema ready');

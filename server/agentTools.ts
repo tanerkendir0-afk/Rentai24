@@ -5887,7 +5887,7 @@ ${activeRentals.map(r => `  ${r.agentType}: ${r.messagesUsed}/${r.messagesLimit}
       return { result: JSON.stringify(result), actionType: "efatura_parsed", actionDescription: `📄 e-Fatura: ${result.success ? result.invoice?.belgeNo : "Parse hatası"}` };
     }
     case "generate_kdv_listesi": {
-      const rows = await db.execute(`SELECT * FROM indirilecek_kdv_faturalar WHERE user_id = $1 AND donem = $2 ORDER BY fatura_tarihi`, [args.donem]);
+      const rows = await db.execute(`SELECT * FROM indirilecek_kdv_faturalar WHERE user_id = $1 AND donem = $2 ORDER BY fatura_tarihi`, [userId, args.donem]);
       const ozet = await db.execute(`SELECT * FROM v_indirilecek_kdv_ozet WHERE user_id = $1 AND donem = $2`, [userId, args.donem]);
       const rapor = { donem: args.donem, faturalar: rows.rows, ozetler: ozet.rows, toplamFatura: rows.rows.length };
       await storage.createAgentAction({ userId, agentType, actionType: "kdv_listesi_generated", description: `📋 İndirilecek KDV Listesi: ${args.donem} — ${rows.rows.length} fatura`, metadata: rapor });

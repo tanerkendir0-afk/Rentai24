@@ -12,7 +12,8 @@ import { getStripeSync } from "./stripeClient";
 import { WebhookHandlers } from "./webhookHandlers";
 import { pool } from "./db";
 import { db } from "./db";
-import { rexStageConfig } from "@shared/schema";
+import { rexStageConfig, systemSettings } from "@shared/schema";
+import { eq, sql } from "drizzle-orm";
 import { startHeartbeat, stopHeartbeat } from "./services/heartbeat";
 import { agentSystemPrompts } from "./routes";
 
@@ -33,6 +34,19 @@ const ADMIN_PATH = process.env.ADMIN_PATH;
 if (!ADMIN_PATH) {
   console.error("FATAL: ADMIN_PATH environment variable is not set. Application cannot start.");
   process.exit(1);
+}
+
+async function getAutomationMode(): Promise<"legacy" | "n8n"> {
+  try {
+    const result = await db
+      .select()
+      .from(systemSettings)
+      .where(eq(systemSettings.key, "automation_runner_mode"));
+    if (result.length > 0 && result[0].value === "n8n") {
+      return "n8n";
+    }
+  } catch (e) {}
+  return "legacy";
 }
 
 const app = express();
@@ -272,8 +286,13 @@ app.use((req, res, next) => {
 
   await registerRoutes(httpServer, app);
 
-  startCampaignRunner();
-  startScheduledPostRunner();
+  const automationMode = await getAutomationMode();
+  if (automationMode === "n8n") {
+    console.log("[AutomationMode] n8n mode active — legacy runners skipped");
+  } else {
+    startCampaignRunner();
+    startScheduledPostRunner();
+  }
 
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
     const status = err.status || err.statusCode || 500;

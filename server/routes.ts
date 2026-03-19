@@ -5,7 +5,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import bcrypt from "bcrypt";
 import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
-import { chatMessageSchema, contactFormSchema, registerSchema, loginSchema, newsletterSchema, bossConversations, collaborationSessions, rentals, conversations, chatMessages, invoices, invoiceItems, insertRexContactSchema, insertRexDealSchema, insertRexActivitySchema, insertRexSequenceSchema, DEAL_STAGE_VALUES, CUSTOMER_SEGMENT_VALUES, LEAD_SOURCE_VALUES, ACTIVITY_TYPE_VALUES, SEQUENCE_STATUS_VALUES, type DealStageValue, type CustomerSegmentValue, type LeadSourceValue, type ActivityTypeValue, type SequenceStatusValue, type User, type AgentTask } from "@shared/schema";
+import { chatMessageSchema, contactFormSchema, registerSchema, loginSchema, newsletterSchema, bossConversations, collaborationSessions, rentals, conversations, chatMessages, invoices, invoiceItems, insertRexContactSchema, insertRexDealSchema, insertRexActivitySchema, insertRexSequenceSchema, DEAL_STAGE_VALUES, CUSTOMER_SEGMENT_VALUES, LEAD_SOURCE_VALUES, ACTIVITY_TYPE_VALUES, SEQUENCE_STATUS_VALUES, automationWorkflows, automationExecutions, systemSettings, type DealStageValue, type CustomerSegmentValue, type LeadSourceValue, type ActivityTypeValue, type SequenceStatusValue, type User, type AgentTask, type WorkflowNode, type TriggerConfig } from "@shared/schema";
 import { z } from "zod";
 import { storage } from "./storage";
 import { requireAuth } from "./auth";
@@ -6785,6 +6785,328 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
     } catch (error: unknown) {
       console.error("Consent stats error:", error);
       res.status(500).json({ error: msg("internalServerError", req.lang!) });
+    }
+  });
+
+  app.get(`/api/${ADMIN_PATH}/automation-mode`, requireAdmin, async (_req, res) => {
+    try {
+      const result = await db
+        .select()
+        .from(systemSettings)
+        .where(eq(systemSettings.key, "automation_runner_mode"));
+      res.json({ mode: result.length > 0 ? result[0].value : "legacy" });
+    } catch (error) {
+      console.error("Get automation mode error:", error);
+      res.status(500).json({ error: "Failed to get automation mode" });
+    }
+  });
+
+  app.post(`/api/${ADMIN_PATH}/automation-mode`, requireAdmin, async (req, res) => {
+    try {
+      const { mode } = req.body;
+      if (mode !== "legacy" && mode !== "n8n") {
+        return res.status(400).json({ error: "Mode must be 'legacy' or 'n8n'" });
+      }
+
+      const existing = await db
+        .select()
+        .from(systemSettings)
+        .where(eq(systemSettings.key, "automation_runner_mode"));
+
+      if (existing.length > 0) {
+        await db
+          .update(systemSettings)
+          .set({ value: mode, updatedAt: new Date() })
+          .where(eq(systemSettings.key, "automation_runner_mode"));
+      } else {
+        await db
+          .insert(systemSettings)
+          .values({ key: "automation_runner_mode", value: mode });
+      }
+
+      res.json({ mode, message: `Automation mode set to ${mode}. Restart required.` });
+    } catch (error) {
+      console.error("Set automation mode error:", error);
+      res.status(500).json({ error: "Failed to set automation mode" });
+    }
+  });
+
+  app.get("/api/automations", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const workflows = await db
+        .select()
+        .from(automationWorkflows)
+        .where(eq(automationWorkflows.userId, userId))
+        .orderBy(desc(automationWorkflows.createdAt));
+      res.json(workflows);
+    } catch (error) {
+      console.error("List automations error:", error);
+      res.status(500).json({ error: "Failed to list automations" });
+    }
+  });
+
+  app.get("/api/automations/templates", requireAuth, async (_req, res) => {
+    try {
+      const { workflowTemplates: templates } = await import("./n8n/workflowTemplates");
+      res.json(templates.map((t) => ({
+        id: t.id,
+        name: t.name,
+        nametr: t.nametr,
+        description: t.description,
+        descriptionTr: t.descriptionTr,
+        category: t.category,
+        icon: t.icon,
+        triggerType: t.triggerType,
+        nodeCount: t.nodes.length,
+      })));
+    } catch (error) {
+      console.error("List templates error:", error);
+      res.status(500).json({ error: "Failed to list templates" });
+    }
+  });
+
+  const validTriggerTypes = ["agent_tool_complete", "webhook", "schedule", "manual"];
+  const validNodeTypes = ["trigger", "action", "condition", "delay"];
+  const validActionTypes = ["send_email", "create_task", "notify_boss", "update_lead", "webhook_call", "log_action", "calculate"];
+
+  app.post("/api/automations", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const { name, description, triggerType, triggerConfig, nodes, templateId } = req.body;
+
+      if (!name || typeof name !== "string" || name.trim().length === 0 || name.length > 200) {
+        return res.status(400).json({ error: "Valid name is required (max 200 chars)" });
+      }
+      if (!triggerType || !validTriggerTypes.includes(triggerType)) {
+        return res.status(400).json({ error: `triggerType must be one of: ${validTriggerTypes.join(", ")}` });
+      }
+      if (nodes && Array.isArray(nodes)) {
+        for (const node of nodes) {
+          if (!node.id || !node.type || !validNodeTypes.includes(node.type)) {
+            return res.status(400).json({ error: "Invalid node structure" });
+          }
+          if (node.type === "action" && node.actionType && !validActionTypes.includes(node.actionType)) {
+            return res.status(400).json({ error: `Invalid action type: ${node.actionType}` });
+          }
+        }
+      }
+
+      const webhookSecret = triggerType === "webhook" ? crypto.randomBytes(32).toString("hex") : null;
+
+      const [workflow] = await db
+        .insert(automationWorkflows)
+        .values({
+          userId,
+          name: name.trim(),
+          description: description ? String(description).substring(0, 1000) : null,
+          triggerType,
+          triggerConfig: { ...(triggerConfig || {}), ...(webhookSecret ? { webhookSecret } : {}) },
+          nodes: nodes || [],
+          isActive: false,
+          templateId: templateId ? String(templateId) : null,
+        })
+        .returning();
+
+      const { invalidateWorkflowCache } = await import("./n8n/agentBridge");
+      invalidateWorkflowCache(userId);
+
+      res.json(workflow);
+    } catch (error) {
+      console.error("Create automation error:", error);
+      res.status(500).json({ error: "Failed to create automation" });
+    }
+  });
+
+  app.post("/api/automations/from-template", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const { templateId } = req.body;
+
+      if (!templateId) {
+        return res.status(400).json({ error: "templateId is required" });
+      }
+
+      const { getTemplateById } = await import("./n8n/workflowTemplates");
+      const template = getTemplateById(templateId);
+      if (!template) {
+        return res.status(404).json({ error: "Template not found" });
+      }
+
+      const [workflow] = await db
+        .insert(automationWorkflows)
+        .values({
+          userId,
+          name: template.nametr || template.name,
+          description: template.descriptionTr || template.description,
+          triggerType: template.triggerType,
+          triggerConfig: template.triggerConfig,
+          nodes: template.nodes,
+          isActive: false,
+          templateId: template.id,
+        })
+        .returning();
+
+      const { invalidateWorkflowCache } = await import("./n8n/agentBridge");
+      invalidateWorkflowCache(userId);
+
+      res.json(workflow);
+    } catch (error) {
+      console.error("Create from template error:", error);
+      res.status(500).json({ error: "Failed to create automation from template" });
+    }
+  });
+
+  app.patch("/api/automations/:id", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const workflowId = Number(req.params.id);
+      if (isNaN(workflowId)) return res.status(400).json({ error: "Invalid workflow ID" });
+
+      const { name, description, triggerConfig, nodes, isActive } = req.body;
+
+      const updates: Record<string, any> = { updatedAt: new Date() };
+      if (name !== undefined) {
+        if (typeof name !== "string" || name.trim().length === 0 || name.length > 200) {
+          return res.status(400).json({ error: "Valid name is required (max 200 chars)" });
+        }
+        updates.name = name.trim();
+      }
+      if (description !== undefined) updates.description = description ? String(description).substring(0, 1000) : null;
+      if (triggerConfig !== undefined) updates.triggerConfig = triggerConfig;
+      if (nodes !== undefined) {
+        if (Array.isArray(nodes)) {
+          for (const node of nodes) {
+            if (!node.id || !node.type || !validNodeTypes.includes(node.type)) {
+              return res.status(400).json({ error: "Invalid node structure" });
+            }
+            if (node.type === "action" && node.actionType && !validActionTypes.includes(node.actionType)) {
+              return res.status(400).json({ error: `Invalid action type: ${node.actionType}` });
+            }
+          }
+        }
+        updates.nodes = nodes;
+      }
+      if (isActive !== undefined) updates.isActive = Boolean(isActive);
+
+      const [updated] = await db
+        .update(automationWorkflows)
+        .set(updates)
+        .where(and(eq(automationWorkflows.id, workflowId), eq(automationWorkflows.userId, userId)))
+        .returning();
+
+      if (!updated) {
+        return res.status(404).json({ error: "Automation not found" });
+      }
+
+      const { invalidateWorkflowCache } = await import("./n8n/agentBridge");
+      invalidateWorkflowCache(userId);
+
+      res.json(updated);
+    } catch (error) {
+      console.error("Update automation error:", error);
+      res.status(500).json({ error: "Failed to update automation" });
+    }
+  });
+
+  app.delete("/api/automations/:id", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const workflowId = Number(req.params.id);
+      if (isNaN(workflowId)) return res.status(400).json({ error: "Invalid workflow ID" });
+
+      const [deleted] = await db
+        .delete(automationWorkflows)
+        .where(and(eq(automationWorkflows.id, workflowId), eq(automationWorkflows.userId, userId)))
+        .returning();
+
+      if (!deleted) {
+        return res.status(404).json({ error: "Automation not found" });
+      }
+
+      const { invalidateWorkflowCache } = await import("./n8n/agentBridge");
+      invalidateWorkflowCache(userId);
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Delete automation error:", error);
+      res.status(500).json({ error: "Failed to delete automation" });
+    }
+  });
+
+  app.post("/api/automations/:id/execute", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const workflowId = Number(req.params.id);
+      if (isNaN(workflowId)) return res.status(400).json({ error: "Invalid workflow ID" });
+      const triggerData = req.body.data || {};
+
+      const { executeWorkflow } = await import("./n8n/workflowEngine");
+      const result = await executeWorkflow(workflowId, userId, triggerData);
+
+      res.json(result);
+    } catch (error) {
+      console.error("Execute automation error:", error);
+      res.status(500).json({ error: "Failed to execute automation" });
+    }
+  });
+
+  app.get("/api/automations/:id/executions", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const workflowId = Number(req.params.id);
+
+      const executions = await db
+        .select()
+        .from(automationExecutions)
+        .where(and(eq(automationExecutions.workflowId, workflowId), eq(automationExecutions.userId, userId)))
+        .orderBy(desc(automationExecutions.startedAt))
+        .limit(20);
+
+      res.json(executions);
+    } catch (error) {
+      console.error("List executions error:", error);
+      res.status(500).json({ error: "Failed to list executions" });
+    }
+  });
+
+  app.post("/api/automations/webhook/:path", async (req, res) => {
+    try {
+      const webhookPath = req.params.path;
+      const webhookSecret = req.headers["x-webhook-secret"] || req.query.secret;
+      const data = req.body || {};
+
+      if (!webhookPath || webhookPath.length > 200) {
+        return res.status(400).json({ error: "Invalid webhook path" });
+      }
+
+      const workflows = await db
+        .select()
+        .from(automationWorkflows)
+        .where(and(eq(automationWorkflows.isActive, true), eq(automationWorkflows.triggerType, "webhook")));
+
+      const matching = workflows.filter((w) => {
+        const tc = w.triggerConfig as TriggerConfig;
+        if (tc.webhookPath !== webhookPath) return false;
+        if (tc.webhookSecret && tc.webhookSecret !== webhookSecret) return false;
+        return true;
+      });
+
+      if (matching.length === 0) {
+        return res.status(404).json({ error: "No matching webhook automation found" });
+      }
+
+      const { executeWorkflow } = await import("./n8n/workflowEngine");
+      const results = [];
+      for (const workflow of matching) {
+        const result = await executeWorkflow(workflow.id, workflow.userId, data);
+        results.push({ success: result.success });
+      }
+
+      res.json({ triggered: results.length, results });
+    } catch (error) {
+      console.error("Webhook automation error:", error);
+      res.status(500).json({ error: "Webhook processing failed" });
     }
   });
 

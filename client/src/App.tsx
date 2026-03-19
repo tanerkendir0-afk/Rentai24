@@ -29,6 +29,7 @@ import Privacy from "@/pages/privacy";
 import Terms from "@/pages/terms";
 import Settings from "@/pages/settings";
 import GuidePage from "@/pages/guide";
+import Automations from "@/pages/automations";
 import NotFound from "@/pages/not-found";
 
 const ADMIN_ROUTE = `/${import.meta.env.VITE_ADMIN_PATH}`;
@@ -50,6 +51,7 @@ function Router() {
       <Route path="/dashboard" component={Dashboard} />
       <Route path="/settings" component={Settings} />
       <Route path="/guide" component={GuidePage} />
+      <Route path="/automations" component={Automations} />
       <Route path={ADMIN_ROUTE} component={Admin} />
       <Route path="/privacy" component={Privacy} />
       <Route path="/terms" component={Terms} />

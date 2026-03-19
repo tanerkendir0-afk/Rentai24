@@ -55,3 +55,21 @@ The RentAI 24 platform uses a modern web stack: React, TypeScript, and Tailwind 
 *   **Resend:** Email delivery
 *   **Pinecone:** Vector database
 *   **Meta WhatsApp Business Cloud API**
+
+## Workflow Automation Engine
+Native lightweight workflow automation system (n8n-inspired) that lets users chain agent actions into multi-step automated workflows.
+
+**Architecture:**
+*   `server/n8n/workflowEngine.ts` — Execution engine supporting trigger, action, condition, delay node types with template variable resolution and 8 action types (send_email, create_task, notify_boss, update_lead, webhook_call, log_action, calculate).
+*   `server/n8n/workflowTemplates.ts` — 6 pre-built Turkish workflow templates across finance, sales, ecommerce, management, communication, and support categories.
+*   `server/n8n/agentBridge.ts` — Bridge between agent tool calls and automation triggers, with 60s workflow cache per user.
+*   DB tables: `automation_workflows` (workflow definitions), `automation_executions` (execution history).
+*   Agent integration: `server/agentTools.ts` `executeToolCall` wrapper automatically calls `triggerAutomations()` after successful tool calls.
+
+**API Routes (`/api/automations/*`):**
+*   CRUD for workflows, template gallery, create-from-template, manual execution, execution history, webhook triggers.
+*   Admin routes for toggling automation runner mode (legacy vs n8n) via `system_settings` table.
+
+**Frontend:** `/automations` page with workflow listing, template gallery, workflow detail/execution history, create form. Nav link in both desktop and mobile menus.
+
+**Security:** Input validation on all routes, SSRF protection on webhook_call, sanitized calculate expressions, webhook secret tokens, tenant-isolated queries, error handling with user-facing toasts.

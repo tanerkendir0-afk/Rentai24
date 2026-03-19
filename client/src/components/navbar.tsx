@@ -9,7 +9,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Menu, Bot, User, LayoutDashboard, Download, Smartphone, Wifi, Bell, Settings, LogOut, BookOpen, Share, Plus, MoreHorizontal, Monitor, Globe, ExternalLink, Shield, Languages } from "lucide-react";
+import { Menu, Bot, User, LayoutDashboard, Download, Smartphone, Wifi, Bell, Settings, LogOut, BookOpen, Share, Plus, MoreHorizontal, Monitor, Globe, ExternalLink, Shield, Languages, Zap } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useLanguage } from "@/lib/language";
 import { useTranslation } from "react-i18next";
@@ -283,6 +283,16 @@ export default function Navbar() {
                     {t("nav.guide")}
                   </Button>
                 </Link>
+                <Link href="/automations">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    data-testid="button-automations"
+                  >
+                    <Zap className="w-4 h-4 mr-1" />
+                    Otomasyonlar
+                  </Button>
+                </Link>
                 <Link href="/settings">
                   <Button
                     size="sm"
@@ -411,6 +421,17 @@ export default function Navbar() {
                           >
                             <BookOpen className="w-4 h-4 mr-1" />
                             {t("nav.guide")}
+                          </Button>
+                        </Link>
+                        <Link href="/automations">
+                          <Button
+                            variant="outline"
+                            className="w-full min-h-[44px]"
+                            onClick={() => setOpen(false)}
+                            data-testid="button-mobile-automations"
+                          >
+                            <Zap className="w-4 h-4 mr-1" />
+                            Otomasyonlar
                           </Button>
                         </Link>
                         <Link href="/settings">

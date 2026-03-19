@@ -1169,3 +1169,96 @@ export const insertApplicationSchema = createInsertSchema(applications).omit({
 
 export type Application = typeof applications.$inferSelect;
 export type InsertApplication = z.infer<typeof insertApplicationSchema>;
+
+export const WORKFLOW_TRIGGER_TYPES = [
+  "agent_tool_complete",
+  "webhook",
+  "schedule",
+  "manual",
+] as const;
+
+export const WORKFLOW_NODE_TYPES = [
+  "trigger",
+  "action",
+  "condition",
+  "delay",
+] as const;
+
+export const WORKFLOW_ACTION_TYPES = [
+  "send_email",
+  "create_task",
+  "notify_boss",
+  "update_lead",
+  "generate_pdf",
+  "webhook_call",
+  "log_action",
+  "calculate",
+] as const;
+
+export const automationWorkflows = pgTable("automation_workflows", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  name: text("name").notNull(),
+  description: text("description"),
+  triggerType: text("trigger_type").notNull(),
+  triggerConfig: jsonb("trigger_config").notNull().default({}),
+  nodes: jsonb("nodes").notNull().default([]),
+  isActive: boolean("is_active").notNull().default(false),
+  templateId: text("template_id"),
+  lastRunAt: timestamp("last_run_at"),
+  runCount: integer("run_count").notNull().default(0),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+  updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
+export const insertAutomationWorkflowSchema = createInsertSchema(automationWorkflows).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  lastRunAt: true,
+  runCount: true,
+});
+
+export type AutomationWorkflow = typeof automationWorkflows.$inferSelect;
+export type InsertAutomationWorkflow = z.infer<typeof insertAutomationWorkflowSchema>;
+
+export const automationExecutions = pgTable("automation_executions", {
+  id: serial("id").primaryKey(),
+  workflowId: integer("workflow_id").notNull().references(() => automationWorkflows.id, { onDelete: "cascade" }),
+  userId: integer("user_id").notNull().references(() => users.id),
+  status: text("status").notNull().default("running"),
+  triggerData: jsonb("trigger_data"),
+  nodeResults: jsonb("node_results").notNull().default([]),
+  error: text("error"),
+  startedAt: timestamp("started_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+  completedAt: timestamp("completed_at"),
+});
+
+export const insertAutomationExecutionSchema = createInsertSchema(automationExecutions).omit({
+  id: true,
+  startedAt: true,
+  completedAt: true,
+});
+
+export type AutomationExecution = typeof automationExecutions.$inferSelect;
+export type InsertAutomationExecution = z.infer<typeof insertAutomationExecutionSchema>;
+
+export interface WorkflowNode {
+  id: string;
+  type: typeof WORKFLOW_NODE_TYPES[number];
+  actionType?: typeof WORKFLOW_ACTION_TYPES[number];
+  label: string;
+  config: Record<string, any>;
+  nextNodeId?: string | null;
+  conditionTrueNodeId?: string;
+  conditionFalseNodeId?: string;
+}
+
+export interface TriggerConfig {
+  toolName?: string;
+  agentType?: string;
+  actionType?: string;
+  webhookPath?: string;
+  webhookSecret?: string;
+  cronExpression?: string;
+}

@@ -21,6 +21,7 @@ import { parseCVText, calculateMatchScore } from "./services/cvParserService";
 import { db } from "./db";
 import { invoices, invoiceItems } from "@shared/schema";
 import type { UserBranding } from "@shared/schema";
+import { triggerAutomations } from "./n8n/agentBridge";
 
 const aiClient = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -1508,6 +1509,37 @@ export const bookkeepingTools: OpenAI.ChatCompletionTool[] = [
   {
     type: "function",
     function: {
+      name: "parse_efatura_xml",
+      description: "e-Fatura UBL-TR XML dosyasını parse eder. Satıcı bilgileri, matrah, KDV oranı ve tutarını çıkarır. İndirilecek KDV listesi oluşturmak için kullanılır.",
+      parameters: {
+        type: "object",
+        properties: {
+          xml_content: { type: "string", description: "e-Fatura XML dosyasının içeriği" },
+          donem: { type: "string", description: "KDV beyanname dönemi (AA/YYYY formatında, örn: 01/2025)" }
+        },
+        required: ["xml_content"]
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "generate_kdv_listesi",
+      description: "Parse edilmiş faturaların İndirilecek KDV Listesini oluşturur. Excel veya PDF formatında dışa aktarır. Kullanıcı KDV listesi, indirilecek KDV, fatura listesi istediğinde kullan.",
+      parameters: {
+        type: "object",
+        properties: {
+          donem: { type: "string", description: "KDV beyanname dönemi (AA/YYYY)" },
+          format: { type: "string", enum: ["xlsx", "pdf", "json"], description: "Çıktı formatı" },
+          tenant_id: { type: "string", description: "Kiracı ID" }
+        },
+        required: ["donem", "format", "tenant_id"]
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "format_yevmiye",
       description: "Muhasebe yevmiye kaydı oluşturur. Borç/alacak tablosu formatında. Herhangi bir muhasebe kaydı istendiğinde bu tool'u kullan.",
       parameters: {
@@ -2437,19 +2469,14 @@ const agentDisplayNames: Record<string, string> = {
   "real-estate": "Real Estate & Property Agent",
 };
 
-export async function executeToolCall(
+async function _executeToolCallInner(
   toolName: string,
   args: Record<string, unknown>,
   userId: number,
-  agentType: string
+  agentType: string,
+  displayName: string,
+  userLang: SupportedLang
 ): Promise<{ result: string; actionType?: string; actionDescription?: string }> {
-  const displayName = agentDisplayNames[agentType] || agentType;
-  let userLang: SupportedLang = "en";
-  try {
-    const u = await storage.getUserById(userId);
-    if (u?.language === "tr") userLang = "tr";
-  } catch {}
-
   try {
   switch (toolName) {
     case "web_search": {
@@ -6980,4 +7007,32 @@ ${activeRentals.map(r => `  ${r.agentType}: ${r.messagesUsed}/${r.messagesLimit}
     }
     throw marketplaceErr;
   }
+}
+
+export async function executeToolCall(
+  toolName: string,
+  args: Record<string, unknown>,
+  userId: number,
+  agentType: string
+): Promise<{ result: string; actionType?: string; actionDescription?: string }> {
+  const displayName = agentDisplayNames[agentType] || agentType;
+  let userLang: SupportedLang = "en";
+  try {
+    const u = await storage.getUserById(userId);
+    if (u?.language === "tr") userLang = "tr";
+  } catch {}
+
+  const toolResult = await _executeToolCallInner(toolName, args, userId, agentType, displayName, userLang);
+
+  if (toolResult.actionType && !toolResult.actionType.includes("failed") && !toolResult.actionType.includes("error")) {
+    triggerAutomations({
+      userId,
+      toolName,
+      agentType,
+      actionType: toolResult.actionType,
+      toolResult: { ...args, _actionType: toolResult.actionType, _description: toolResult.actionDescription },
+    }).catch((err) => console.error("[Automation] trigger error:", err.message));
+  }
+
+  return toolResult;
 }

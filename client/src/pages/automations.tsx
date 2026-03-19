@@ -109,6 +109,47 @@ const conditionOperatorLabels: Record<string, string> = {
   starts_with: "İle Başlar", ends_with: "İle Biter",
 };
 
+const actionConfigFields: Record<string, string[]> = {
+  send_email: ["to", "subject", "body"],
+  create_task: ["title", "description", "agentType", "priority"],
+  notify_boss: ["summary", "notificationType"],
+  update_lead: ["leadId", "status", "notes"],
+  webhook_call: ["url", "method"],
+  log_action: ["description", "agentType"],
+  calculate: ["expression", "resultVariable"],
+  http_request: ["url", "method", "authType", "authToken", "body"],
+  set_variable: ["variableName", "variableValue", "variableType"],
+  format_data: ["format", "sourceField"],
+  whatsapp_message: ["phone", "message"],
+  multi_email: ["recipients", "subject", "body"],
+  db_query: ["table", "queryType"],
+};
+
+const configFieldLabels: Record<string, string> = {
+  to: "Alıcı E-posta", subject: "Konu", body: "İçerik", title: "Başlık",
+  description: "Açıklama", agentType: "Ajan Türü", priority: "Öncelik",
+  summary: "Özet", notificationType: "Bildirim Türü", leadId: "Lead ID",
+  status: "Durum", notes: "Notlar", url: "URL", method: "Metod",
+  expression: "İfade", resultVariable: "Sonuç Değişkeni",
+  authType: "Kimlik Doğrulama", authToken: "Token", authUsername: "Kullanıcı Adı",
+  variableName: "Değişken Adı", variableValue: "Değişken Değeri",
+  variableType: "Değişken Tipi", format: "Format", sourceField: "Kaynak Alan",
+  phone: "Telefon", message: "Mesaj", recipients: "Alıcılar (virgülle ayır)",
+  table: "Tablo", queryType: "Sorgu Türü",
+};
+
+const configFieldPlaceholders: Record<string, string> = {
+  to: "ornek@email.com", subject: "Konu başlığı", body: "E-posta içeriği...",
+  title: "Görev başlığı", description: "Detaylı açıklama...",
+  agentType: "bookkeeping, sales-sdr...", priority: "high, medium, low",
+  summary: "Bildirim özeti...", url: "https://api.example.com/endpoint",
+  method: "GET, POST, PUT", variableName: "myVar", variableValue: "{{data}}",
+  variableType: "string, number, boolean", format: "json, csv, text",
+  sourceField: "data", phone: "+905551234567", message: "Mesaj metni...",
+  recipients: "a@b.com, c@d.com", table: "agent_tasks, leads...",
+  queryType: "count",
+};
+
 const NODE_W = 200;
 const NODE_H = 64;
 
@@ -372,17 +413,41 @@ function NodeDetailPanel({ node, result, onClose, onChange, allNodes }: {
                 data-testid="input-node-label"
               />
             </div>
-            {node.type === "action" && Object.entries(node.config || {}).map(([key, val]) => (
+            {node.type === "action" && (actionConfigFields[node.actionType] || Object.keys(node.config || {})).map((key: string) => (
               <div key={key}>
-                <label className="text-xs text-gray-400 block mb-1">{key}</label>
-                <Input
-                  value={String(val || "")}
-                  onChange={(e) => onChange({ ...node, config: { ...node.config, [key]: e.target.value } })}
-                  className="bg-gray-800 border-gray-700 text-white text-xs h-8"
-                  data-testid={`input-config-${key}`}
-                />
+                <label className="text-xs text-gray-400 block mb-1">{configFieldLabels[key] || key}</label>
+                {key === "body" || key === "message" || key === "description" ? (
+                  <Textarea
+                    value={String(node.config?.[key] || "")}
+                    onChange={(e) => onChange({ ...node, config: { ...node.config, [key]: e.target.value } })}
+                    className="bg-gray-800 border-gray-700 text-white text-xs min-h-[60px]"
+                    placeholder={configFieldPlaceholders[key] || ""}
+                    data-testid={`input-config-${key}`}
+                  />
+                ) : (
+                  <Input
+                    value={String(node.config?.[key] || "")}
+                    onChange={(e) => onChange({ ...node, config: { ...node.config, [key]: e.target.value } })}
+                    className="bg-gray-800 border-gray-700 text-white text-xs h-8"
+                    placeholder={configFieldPlaceholders[key] || ""}
+                    data-testid={`input-config-${key}`}
+                  />
+                )}
               </div>
             ))}
+            {node.type === "delay" && (
+              <div>
+                <label className="text-xs text-gray-400 block mb-1">Bekleme Süresi (saniye)</label>
+                <Input
+                  type="number"
+                  min="1"
+                  value={node.config?.delaySeconds || 5}
+                  onChange={(e) => onChange({ ...node, config: { ...node.config, delaySeconds: parseInt(e.target.value) || 5 } })}
+                  className="bg-gray-800 border-gray-700 text-white text-xs h-8"
+                  data-testid="input-config-delay"
+                />
+              </div>
+            )}
           </>
         )}
 
@@ -690,10 +755,21 @@ function ExecutionTimeline({ execution }: { execution: Execution }) {
                   {result.error && (
                     <p className="text-[10px] text-red-400 mt-1">{result.error}</p>
                   )}
+                  {result.input && (
+                    <div className="mt-1">
+                      <span className="text-[9px] text-gray-600 font-medium">Girdi:</span>
+                      <pre className="text-[10px] text-gray-500 max-h-12 overflow-auto">
+                        {JSON.stringify(result.input, null, 2).substring(0, 200)}
+                      </pre>
+                    </div>
+                  )}
                   {result.output && (
-                    <pre className="text-[10px] text-gray-500 mt-1 max-h-16 overflow-auto">
-                      {JSON.stringify(result.output, null, 2).substring(0, 300)}
-                    </pre>
+                    <div className="mt-1">
+                      <span className="text-[9px] text-gray-600 font-medium">Çıktı:</span>
+                      <pre className="text-[10px] text-gray-500 max-h-12 overflow-auto">
+                        {JSON.stringify(result.output, null, 2).substring(0, 200)}
+                      </pre>
+                    </div>
                   )}
                 </div>
               </div>

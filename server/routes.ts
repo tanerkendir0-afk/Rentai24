@@ -1737,16 +1737,12 @@ export async function registerRoutes(
           const parsed = parseEFatura(xmlContent);
           if (parsed.success && parsed.invoice) {
             try {
-              await db.execute(
-                `INSERT INTO indirilecek_kdv_faturalar (user_id, donem, sira_no, fatura_tarihi, belge_no, satici_unvani, satici_vkn, belge_turu, matrah, kdv_orani, kdv_tutari, hesap_kodu, para_birimi, profil_id, xml_hash)
-                 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
-                 ON CONFLICT (user_id, belge_no) DO NOTHING`,
-                [userId, donem, 0, parsed.invoice.faturaTarihi.split('.').reverse().join('-'),
-                 parsed.invoice.belgeNo, parsed.invoice.saticiUnvani, parsed.invoice.saticiVKN,
-                 parsed.invoice.belgeTuru, parsed.invoice.matrah, parsed.invoice.kdvOrani,
-                 parsed.invoice.kdvTutari, parsed.invoice.hesapKodu, parsed.invoice.paraBirimi,
-                 parsed.invoice.profilId, crypto.createHash('md5').update(xmlContent).digest('hex')]
-              );
+              const inv = parsed.invoice;
+              const faturaTarihiFormatted = inv.faturaTarihi.split('.').reverse().join('-');
+              const xmlHash = crypto.createHash('md5').update(xmlContent).digest('hex');
+              await db.execute(sql`INSERT INTO indirilecek_kdv_faturalar (user_id, donem, sira_no, fatura_tarihi, belge_no, satici_unvani, satici_vkn, belge_turu, matrah, kdv_orani, kdv_tutari, hesap_kodu, para_birimi, profil_id, xml_hash)
+                 VALUES (${userId}, ${donem}, ${0}, ${faturaTarihiFormatted}, ${inv.belgeNo}, ${inv.saticiUnvani}, ${inv.saticiVKN}, ${inv.belgeTuru}, ${inv.matrah}, ${inv.kdvOrani}, ${inv.kdvTutari}, ${inv.hesapKodu}, ${inv.paraBirimi}, ${inv.profilId}, ${xmlHash})
+                 ON CONFLICT (user_id, belge_no) DO NOTHING`);
               results.success++;
               results.details.push({ file: file.originalname, status: 'ok', belgeNo: parsed.invoice.belgeNo, kdv: parsed.invoice.kdvTutari });
             } catch (dbErr: any) {
@@ -1765,9 +1761,8 @@ export async function registerRoutes(
         }
       }
       // Sıra numaralarını güncelle
-      await db.execute(`UPDATE indirilecek_kdv_faturalar SET sira_no = sub.rn FROM (SELECT id, ROW_NUMBER() OVER (PARTITION BY user_id, donem ORDER BY fatura_tarihi) as rn FROM indirilecek_kdv_faturalar WHERE user_id = $1 AND donem = $2) sub WHERE indirilecek_kdv_faturalar.id = sub.id`, [userId, donem]);
-      // Özet bilgileri çek
-      const ozet = await db.execute(`SELECT kdv_orani, COUNT(*) as adet, SUM(matrah) as matrah, SUM(kdv_tutari) as kdv FROM indirilecek_kdv_faturalar WHERE user_id = $1 AND donem = $2 GROUP BY kdv_orani ORDER BY kdv_orani`, [userId, donem]);
+      await db.execute(sql`UPDATE indirilecek_kdv_faturalar SET sira_no = sub.rn FROM (SELECT id, ROW_NUMBER() OVER (PARTITION BY user_id, donem ORDER BY fatura_tarihi) as rn FROM indirilecek_kdv_faturalar WHERE user_id = ${userId} AND donem = ${donem}) sub WHERE indirilecek_kdv_faturalar.id = sub.id`);
+      const ozet = await db.execute(sql`SELECT kdv_orani, COUNT(*) as adet, SUM(matrah) as matrah, SUM(kdv_tutari) as kdv FROM indirilecek_kdv_faturalar WHERE user_id = ${userId} AND donem = ${donem} GROUP BY kdv_orani ORDER BY kdv_orani`);
       res.json({
         message: `${results.success} fatura işlendi, ${results.errors} hata, ${results.duplicates} mükerrer`,
         toplam: files.length,
@@ -1784,8 +1779,9 @@ export async function registerRoutes(
   app.get('/api/efatura/kdv-listesi/:donem', requireAuth, async (req, res) => {
     try {
       const userId = req.session.userId!;
-      const faturalar = await db.execute(`SELECT * FROM indirilecek_kdv_faturalar WHERE user_id = $1 AND donem = $2 ORDER BY fatura_tarihi, sira_no`, [req.session.userId!, req.params.donem]);
-      const ozet = await db.execute(`SELECT * FROM v_indirilecek_kdv_ozet WHERE user_id = $1 AND donem = $2`, [req.session.userId!, req.params.donem]);
+      const donem = req.params.donem;
+      const faturalar = await db.execute(sql`SELECT * FROM indirilecek_kdv_faturalar WHERE user_id = ${userId} AND donem = ${donem} ORDER BY fatura_tarihi, sira_no`);
+      const ozet = await db.execute(sql`SELECT * FROM v_indirilecek_kdv_ozet WHERE user_id = ${userId} AND donem = ${donem}`);
       res.json({ donem: req.params.donem, faturalar: faturalar.rows, ozet: ozet.rows, toplam: faturalar.rows.length });
     } catch (err: any) {
       res.status(500).json({ error: err.message });

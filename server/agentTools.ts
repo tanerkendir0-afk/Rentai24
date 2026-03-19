@@ -19,6 +19,7 @@ import { hesaplaKDV, hesaplaBordro, hesaplaAmortisman, hesaplaKurDegerlemesi, he
 import { handleGeneratePdf } from "./services/pdfBrandingService";
 import { parseCVText, calculateMatchScore } from "./services/cvParserService";
 import { db } from "./db";
+import { sql } from "drizzle-orm";
 import { invoices, invoiceItems } from "@shared/schema";
 import type { UserBranding } from "@shared/schema";
 import { triggerAutomations } from "./n8n/agentBridge";
@@ -5881,14 +5882,17 @@ ${activeRentals.map(r => `  ${r.agentType}: ${r.messagesUsed}/${r.messagesLimit}
       const { parseEFatura } = await import("./efatura-kdv-parser");
       const result = parseEFatura(args.xml_content);
       if (result.success && result.invoice) {
-        await db.execute(`INSERT INTO indirilecek_kdv_faturalar (user_id, donem, sira_no, fatura_tarihi, belge_no, satici_unvani, satici_vkn, belge_turu, matrah, kdv_orani, kdv_tutari, hesap_kodu, para_birimi, profil_id) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) ON CONFLICT (user_id, belge_no) DO NOTHING`, [userId, args.donem || "", 0, result.invoice.faturaTarihi.split(".").reverse().join("-"), result.invoice.belgeNo, result.invoice.saticiUnvani, result.invoice.saticiVKN, result.invoice.belgeTuru, result.invoice.matrah, result.invoice.kdvOrani, result.invoice.kdvTutari, result.invoice.hesapKodu, result.invoice.paraBirimi, result.invoice.profilId]);
+        const inv = result.invoice;
+        const fDate = inv.faturaTarihi.split(".").reverse().join("-");
+        const eDon = args.donem || "";
+        await db.execute(sql`INSERT INTO indirilecek_kdv_faturalar (user_id, donem, sira_no, fatura_tarihi, belge_no, satici_unvani, satici_vkn, belge_turu, matrah, kdv_orani, kdv_tutari, hesap_kodu, para_birimi, profil_id) VALUES (${userId}, ${eDon}, ${0}, ${fDate}, ${inv.belgeNo}, ${inv.saticiUnvani}, ${inv.saticiVKN}, ${inv.belgeTuru}, ${inv.matrah}, ${inv.kdvOrani}, ${inv.kdvTutari}, ${inv.hesapKodu}, ${inv.paraBirimi}, ${inv.profilId}) ON CONFLICT (user_id, belge_no) DO NOTHING`);
       }
       await storage.createAgentAction({ userId, agentType, actionType: "efatura_parsed", description: `📄 e-Fatura parse: ${result.success ? result.invoice?.belgeNo : "HATA"}`, metadata: result });
       return { result: JSON.stringify(result), actionType: "efatura_parsed", actionDescription: `📄 e-Fatura: ${result.success ? result.invoice?.belgeNo : "Parse hatası"}` };
     }
     case "generate_kdv_listesi": {
-      const rows = await db.execute(`SELECT * FROM indirilecek_kdv_faturalar WHERE user_id = $1 AND donem = $2 ORDER BY fatura_tarihi`, [userId, args.donem]);
-      const ozet = await db.execute(`SELECT * FROM v_indirilecek_kdv_ozet WHERE user_id = $1 AND donem = $2`, [userId, args.donem]);
+      const rows = await db.execute(sql`SELECT * FROM indirilecek_kdv_faturalar WHERE user_id = ${userId} AND donem = ${args.donem} ORDER BY fatura_tarihi`);
+      const ozet = await db.execute(sql`SELECT * FROM v_indirilecek_kdv_ozet WHERE user_id = ${userId} AND donem = ${args.donem}`);
       const rapor = { donem: args.donem, faturalar: rows.rows, ozetler: ozet.rows, toplamFatura: rows.rows.length };
       await storage.createAgentAction({ userId, agentType, actionType: "kdv_listesi_generated", description: `📋 İndirilecek KDV Listesi: ${args.donem} — ${rows.rows.length} fatura`, metadata: rapor });
       return { result: JSON.stringify(rapor), actionType: "kdv_listesi_generated", actionDescription: `📋 KDV Listesi: ${args.donem} (${rows.rows.length} fatura)` };

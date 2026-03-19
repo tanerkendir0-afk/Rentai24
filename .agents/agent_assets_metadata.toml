@@ -5,7 +5,7 @@ generated = []
 id = "uYD672xsf3lo4y_SBlwoU"
 uri = "file://RentAI24-Admin-Kullanim-Kilavuzu.md"
 type = "text"
-title = "RentAI 24 - Admin Paneli Kılavuzu (19 Mart 2026)"
+title = "Admin Kılavuzu (MD) - 19 Mart 2026"
 
 [[outputs]]
 id = "7r7jJjXYfxM5nC19SK8v-"
@@ -17,10 +17,28 @@ title = "Claude Site Review Brief - RentAI 24"
 id = "81I5X1UuYuzdON4axb7Vx"
 uri = "file://RentAI24_Kullanim_Kilavuzu.md"
 type = "text"
-title = "RentAI 24 - Kullanım Kılavuzu (19 Mart 2026)"
+title = "Kullanım Kılavuzu (MD) - 19 Mart 2026"
 
 [[outputs]]
 id = "hv5PXPC460ojWY2Q5TcT4"
 uri = "file://RentAI24_Detayli_Kilavuz.md"
 type = "text"
-title = "RentAI 24 - Detaylı Kullanım Kılavuzu (19 Mart 2026)"
+title = "Detaylı Kılavuz (MD) - 19 Mart 2026"
+
+[[outputs]]
+id = "qIHVslHipJoW6qVeiLFvg"
+uri = "file://RentAI24_Kullanim_Kilavuzu_19Mart2026.pdf"
+type = "pdf"
+title = "Kullanım Kılavuzu (PDF) - 19 Mart 2026"
+
+[[outputs]]
+id = "Kb4uJGzHiXOFscU_HwpQc"
+uri = "file://RentAI24_Detayli_Kilavuz_19Mart2026.pdf"
+type = "pdf"
+title = "Detaylı Kılavuz (PDF) - 19 Mart 2026"
+
+[[outputs]]
+id = "kMR6P2qBUx8vUUpuNKAYa"
+uri = "file://RentAI24-Admin-Kullanim-Kilavuzu_19Mart2026.pdf"
+type = "pdf"
+title = "Admin Kılavuzu (PDF) - 19 Mart 2026"

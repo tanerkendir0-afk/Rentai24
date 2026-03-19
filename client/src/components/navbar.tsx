@@ -16,7 +16,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Menu, Bot, User, LayoutDashboard, Download, Smartphone, Wifi, Bell, Settings, LogOut, BookOpen, Share, Plus, MoreHorizontal, Monitor, Globe, ExternalLink, Shield, Languages, Zap } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useLanguage } from "@/lib/language";
@@ -267,7 +266,7 @@ export default function Navbar() {
               <Languages className="w-4 h-4 mr-1" />
               {language === "en" ? "TR" : "EN"}
             </Button>
-            {showInstallButton && (
+            {showInstallButton && !user && (
               <Button
                 size="sm"
                 variant="outline"
@@ -280,103 +279,66 @@ export default function Navbar() {
               </Button>
             )}
             {!isLoading && user ? (
-              <TooltipProvider delayDuration={300}>
-                {/* xl+ breakpoint: show all buttons with icon + text */}
-                <div className="hidden xl:flex items-center gap-1">
-                  <Link href="/guide">
-                    <Button size="sm" variant="ghost" data-testid="button-guide" className="whitespace-nowrap">
-                      <BookOpen className="w-4 h-4 mr-1" />
-                      {t("nav.guide")}
-                    </Button>
-                  </Link>
-                  <Link href="/automations">
-                    <Button size="sm" variant="ghost" data-testid="button-automations" className="whitespace-nowrap">
-                      <Zap className="w-4 h-4 mr-1" />
-                      Otomasyonlar
-                    </Button>
-                  </Link>
-                  <Link href="/settings">
-                    <Button size="sm" variant="ghost" data-testid="button-settings" className="whitespace-nowrap">
-                      <Settings className="w-4 h-4 mr-1" />
-                      {t("nav.settings")}
-                    </Button>
-                  </Link>
-                  <Link href="/dashboard">
-                    <Button size="sm" className="bg-gradient-to-r from-blue-500 to-violet-500 text-white border-0 whitespace-nowrap" data-testid="button-dashboard">
-                      <LayoutDashboard className="w-4 h-4 mr-1" />
-                      {t("nav.dashboard")}
-                    </Button>
-                  </Link>
-                  {user.email === "tanerkendir0@gmail.com" && (
-                    <Link href={`/${import.meta.env.VITE_ADMIN_PATH}`}>
-                      <Button size="sm" variant="ghost" className="text-amber-400 hover:text-amber-300 hover:bg-amber-500/10 whitespace-nowrap" data-testid="button-admin">
-                        <Shield className="w-4 h-4 mr-1" />
-                        {t("nav.admin")}
-                      </Button>
-                    </Link>
-                  )}
-                  <Button size="sm" variant="ghost" onClick={handleLogout} className="text-muted-foreground hover:text-foreground whitespace-nowrap" data-testid="button-logout">
-                    <LogOut className="w-4 h-4 mr-1" />
-                    {t("nav.signOut")}
+              <div className="hidden lg:flex items-center gap-1">
+                <Link href="/dashboard">
+                  <Button size="sm" className="bg-gradient-to-r from-blue-500 to-violet-500 text-white border-0 whitespace-nowrap" data-testid="button-dashboard">
+                    <LayoutDashboard className="w-4 h-4 mr-1" />
+                    {t("nav.dashboard")}
                   </Button>
-                </div>
-                {/* lg breakpoint (1024-1280px): Dashboard icon-only + "More" dropdown for the rest */}
-                <div className="hidden lg:flex xl:hidden items-center gap-1">
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Link href="/dashboard">
-                        <Button size="sm" className="bg-gradient-to-r from-blue-500 to-violet-500 text-white border-0" data-testid="button-dashboard">
-                          <LayoutDashboard className="w-4 h-4" />
-                        </Button>
+                </Link>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button size="sm" variant="ghost" className="text-muted-foreground hover:text-foreground" data-testid="button-more-menu">
+                      <MoreHorizontal className="w-5 h-5" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-52">
+                    <DropdownMenuItem asChild>
+                      <Link href="/guide" className="flex items-center gap-2 cursor-pointer" data-testid="dropdown-item-guide">
+                        <BookOpen className="w-4 h-4" />
+                        {t("nav.guide")}
                       </Link>
-                    </TooltipTrigger>
-                    <TooltipContent>{t("nav.dashboard")}</TooltipContent>
-                  </Tooltip>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button size="sm" variant="ghost" className="text-muted-foreground hover:text-foreground" data-testid="button-more-menu">
-                        <MoreHorizontal className="w-4 h-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-48">
-                      <DropdownMenuItem asChild>
-                        <Link href="/guide" className="flex items-center gap-2 cursor-pointer" data-testid="dropdown-item-guide">
-                          <BookOpen className="w-4 h-4" />
-                          {t("nav.guide")}
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem asChild>
-                        <Link href="/automations" className="flex items-center gap-2 cursor-pointer" data-testid="dropdown-item-automations">
-                          <Zap className="w-4 h-4" />
-                          Otomasyonlar
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem asChild>
-                        <Link href="/settings" className="flex items-center gap-2 cursor-pointer" data-testid="dropdown-item-settings">
-                          <Settings className="w-4 h-4" />
-                          {t("nav.settings")}
-                        </Link>
-                      </DropdownMenuItem>
-                      {user.email === "tanerkendir0@gmail.com" && (
-                        <>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem asChild>
-                            <Link href={`/${import.meta.env.VITE_ADMIN_PATH}`} className="flex items-center gap-2 cursor-pointer text-amber-400" data-testid="dropdown-item-admin">
-                              <Shield className="w-4 h-4" />
-                              {t("nav.admin")}
-                            </Link>
-                          </DropdownMenuItem>
-                        </>
-                      )}
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={handleLogout} className="flex items-center gap-2 cursor-pointer text-muted-foreground" data-testid="dropdown-item-logout">
-                        <LogOut className="w-4 h-4" />
-                        {t("nav.signOut")}
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </TooltipProvider>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/automations" className="flex items-center gap-2 cursor-pointer" data-testid="dropdown-item-automations">
+                        <Zap className="w-4 h-4" />
+                        {t("nav.automations", "Otomasyonlar")}
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/settings" className="flex items-center gap-2 cursor-pointer" data-testid="dropdown-item-settings">
+                        <Settings className="w-4 h-4" />
+                        {t("nav.settings")}
+                      </Link>
+                    </DropdownMenuItem>
+                    {showInstallButton && (
+                      <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={handleInstallClick} className="flex items-center gap-2 cursor-pointer" data-testid="dropdown-item-install">
+                          <Download className="w-4 h-4" />
+                          {t("nav.installApp")}
+                        </DropdownMenuItem>
+                      </>
+                    )}
+                    {user.email === "tanerkendir0@gmail.com" && (
+                      <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem asChild>
+                          <Link href={`/${import.meta.env.VITE_ADMIN_PATH}`} className="flex items-center gap-2 cursor-pointer text-amber-400" data-testid="dropdown-item-admin">
+                            <Shield className="w-4 h-4" />
+                            {t("nav.admin")}
+                          </Link>
+                        </DropdownMenuItem>
+                      </>
+                    )}
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleLogout} className="flex items-center gap-2 cursor-pointer text-muted-foreground" data-testid="dropdown-item-logout">
+                      <LogOut className="w-4 h-4" />
+                      {t("nav.signOut")}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             ) : !isLoading ? (
               <div className="hidden sm:flex items-center gap-1">
                 <Link href="/login">

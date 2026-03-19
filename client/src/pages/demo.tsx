@@ -597,7 +597,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
     const files = e.target.files;
     if (!files || files.length === 0) return;
     const xmlFiles = Array.from(files).filter(f => f.name.toLowerCase().endsWith(".xml"));
-    if (selectedAgent === "bookkeeping" && xmlFiles.length > 1) {
+    if (selectedAgent === "bookkeeping" && xmlFiles.length >= 1) {
       setUploading(true);
       try {
         const xmlForm = new FormData();

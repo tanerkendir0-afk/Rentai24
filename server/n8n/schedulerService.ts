@@ -47,6 +47,31 @@ function shouldRunNow(cronExpression: string, lastRunAt: Date | null): boolean {
   return elapsed >= 55000;
 }
 
+function buildCronFromScheduleConfig(tc: TriggerConfig): string | null {
+  if (tc.cronExpression) return tc.cronExpression;
+  if (!tc.scheduleType) return null;
+
+  const minute = tc.scheduleMinute ?? 0;
+  const hour = tc.scheduleHour ?? 9;
+
+  switch (tc.scheduleType) {
+    case "daily":
+      return `${minute} ${hour} * * *`;
+    case "weekly": {
+      const days = tc.scheduleDaysOfWeek?.join(",") || "1";
+      return `${minute} ${hour} * * ${days}`;
+    }
+    case "monthly": {
+      const day = tc.scheduleDayOfMonth || 1;
+      return `${minute} ${hour} ${day} * *`;
+    }
+    case "custom":
+      return tc.cronExpression || null;
+    default:
+      return null;
+  }
+}
+
 export async function checkScheduledWorkflows(): Promise<void> {
   try {
     const workflows = await db
@@ -59,9 +84,10 @@ export async function checkScheduledWorkflows(): Promise<void> {
 
     for (const workflow of workflows) {
       const tc = workflow.triggerConfig as TriggerConfig;
-      if (!tc.cronExpression) continue;
+      const cronExpr = buildCronFromScheduleConfig(tc);
+      if (!cronExpr) continue;
 
-      if (shouldRunNow(tc.cronExpression, workflow.lastRunAt)) {
+      if (shouldRunNow(cronExpr, workflow.lastRunAt)) {
         try {
           const { executeWorkflow } = await import("./workflowEngine");
           await executeWorkflow(workflow.id, workflow.userId, { scheduledAt: new Date().toISOString() });

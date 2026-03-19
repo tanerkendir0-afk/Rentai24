@@ -1,5 +1,5 @@
 import { db } from "../db";
-import { automationWorkflows, automationExecutions, type WorkflowNode, type TriggerConfig } from "@shared/schema";
+import { automationWorkflows, automationExecutions, type WorkflowNode, type TriggerConfig, type ConditionRule } from "@shared/schema";
 import { eq, and, sql } from "drizzle-orm";
 import { sendEmail } from "../emailService";
 import { storage } from "../storage";
@@ -9,7 +9,7 @@ export interface ExecutionContext {
   userId: number;
   triggerData: Record<string, any>;
   variables: Record<string, any>;
-  nodeResults: Array<{ nodeId: string; label: string; status: string; output?: any; error?: string }>;
+  nodeResults: Array<{ nodeId: string; label: string; status: string; output?: any; error?: string; duration?: number; input?: any }>;
 }
 
 export async function executeWorkflow(
@@ -62,10 +62,29 @@ export async function executeWorkflow(
       const node = nodes.find((n) => n.id === currentNodeId);
       if (!node) break;
 
-      const result = await executeNode(node, ctx);
-      ctx.nodeResults.push(result);
+      const nodeInput = { ...ctx.variables };
+      const startTime = Date.now();
+      let result = await executeNode(node, ctx);
+      const duration = Date.now() - startTime;
+
+      const maxRetries = node.maxRetries || 0;
+      let attempt = 0;
+      while (result.status === "error" && attempt < maxRetries) {
+        attempt++;
+        const delay = node.retryDelayMs || 1000;
+        await new Promise((resolve) => setTimeout(resolve, Math.min(delay, 30000)));
+        result = await executeNode(node, ctx);
+      }
+
+      ctx.nodeResults.push({ ...result, duration, input: nodeInput });
 
       if (result.status === "error") {
+        if (node.onErrorNodeId) {
+          ctx.variables._lastError = result.error;
+          currentNodeId = node.onErrorNodeId;
+          continue;
+        }
+
         await db
           .update(automationExecutions)
           .set({
@@ -322,8 +341,247 @@ async function executeAction(
       }
     }
 
+    case "http_request": {
+      const url = resolveTemplate(config.url || "", ctx);
+      if (!url) return { status: "error", error: "No URL specified" };
+
+      try {
+        const parsed = new URL(url);
+        if (!["http:", "https:"].includes(parsed.protocol)) {
+          return { status: "error", error: "Only HTTP/HTTPS URLs are allowed" };
+        }
+        const hostname = parsed.hostname.toLowerCase();
+        const blockedHosts = ["localhost", "127.0.0.1", "0.0.0.0", "169.254.169.254", "[::1]", "metadata.google.internal"];
+        if (blockedHosts.some((h) => hostname === h) || hostname.endsWith(".local") || hostname.endsWith(".internal")) {
+          return { status: "error", error: "Internal/private network URLs are not allowed" };
+        }
+      } catch {
+        return { status: "error", error: "Invalid URL" };
+      }
+
+      const method = (config.method || "GET").toUpperCase();
+      const headers: Record<string, string> = {};
+      if (config.contentType) headers["Content-Type"] = config.contentType;
+      else if (["POST", "PUT", "PATCH"].includes(method)) headers["Content-Type"] = "application/json";
+
+      if (config.headers && typeof config.headers === "object") {
+        Object.entries(config.headers).forEach(([k, v]) => {
+          headers[k] = resolveTemplate(String(v), ctx);
+        });
+      }
+
+      if (config.authType === "bearer" && config.authToken) {
+        headers["Authorization"] = `Bearer ${resolveTemplate(config.authToken, ctx)}`;
+      } else if (config.authType === "basic" && config.authUsername) {
+        const cred = Buffer.from(`${resolveTemplate(config.authUsername, ctx)}:${resolveTemplate(config.authPassword || "", ctx)}`).toString("base64");
+        headers["Authorization"] = `Basic ${cred}`;
+      }
+
+      let bodyData: string | undefined;
+      if (["POST", "PUT", "PATCH"].includes(method) && config.body) {
+        bodyData = typeof config.body === "string" ? resolveTemplate(config.body, ctx) : JSON.stringify(config.body);
+      }
+
+      const timeout = Math.min(config.timeout || 15000, 30000);
+      const response = await fetch(url, {
+        method,
+        headers,
+        body: bodyData,
+        signal: AbortSignal.timeout(timeout),
+      });
+
+      const responseText = await response.text().catch(() => "");
+      ctx.variables.httpResponse = responseText;
+      ctx.variables.httpStatus = response.status;
+
+      let parsedResponse: any = responseText;
+      try { parsedResponse = JSON.parse(responseText); } catch {}
+
+      return {
+        status: response.ok ? "success" : "error",
+        output: { statusCode: response.status, body: typeof parsedResponse === "string" ? parsedResponse.substring(0, 1000) : parsedResponse },
+        error: response.ok ? undefined : `HTTP ${response.status}`,
+      };
+    }
+
+    case "set_variable": {
+      const varName = config.variableName || config.name;
+      if (!varName) return { status: "error", error: "No variable name specified" };
+      let varValue: any = resolveTemplate(config.value || "", ctx);
+      if (config.valueType === "number") varValue = Number(varValue);
+      else if (config.valueType === "boolean") varValue = varValue === "true" || varValue === "1";
+      else if (config.valueType === "json") { try { varValue = JSON.parse(varValue); } catch {} }
+      ctx.variables[varName] = varValue;
+      return { status: "success", output: { [varName]: varValue } };
+    }
+
+    case "format_data": {
+      const format = config.format || "json";
+      const sourceField = config.sourceField || "";
+      let sourceData = sourceField ? resolveValue(sourceField, ctx) : ctx.variables;
+
+      if (format === "csv" && Array.isArray(sourceData)) {
+        const rows = sourceData as Record<string, any>[];
+        if (rows.length === 0) {
+          ctx.variables.formattedData = "";
+          return { status: "success", output: { format, result: "" } };
+        }
+        const headers = Object.keys(rows[0]);
+        const csvLines = [headers.join(","), ...rows.map(r => headers.map(h => `"${String(r[h] ?? "").replace(/"/g, '""')}"`).join(","))];
+        const csv = csvLines.join("\n");
+        ctx.variables.formattedData = csv;
+        return { status: "success", output: { format, rowCount: rows.length, result: csv.substring(0, 500) } };
+      } else if (format === "json") {
+        const json = JSON.stringify(sourceData, null, 2);
+        ctx.variables.formattedData = json;
+        return { status: "success", output: { format, result: json.substring(0, 500) } };
+      } else if (format === "text") {
+        const template = config.template || "{{data}}";
+        ctx.variables.data = sourceData;
+        const result = resolveTemplate(template, ctx);
+        ctx.variables.formattedData = result;
+        return { status: "success", output: { format, result: result.substring(0, 500) } };
+      }
+
+      return { status: "success", output: { format, data: sourceData } };
+    }
+
+    case "whatsapp_message": {
+      const phone = resolveTemplate(config.phone || "", ctx);
+      const message = resolveTemplate(config.message || "", ctx);
+      if (!phone || !message) return { status: "error", error: "Phone and message are required" };
+
+      await storage.createAgentAction({
+        userId: ctx.userId,
+        agentType: "automation",
+        actionType: "whatsapp_queued",
+        description: `WhatsApp → ${phone}: ${message.substring(0, 100)}`,
+        metadata: { phone, message, nodeId: node.id },
+      });
+
+      return { status: "success", output: { phone, messagePreview: message.substring(0, 200), queued: true } };
+    }
+
+    case "multi_email": {
+      const recipients = (config.recipients || "").split(",").map((e: string) => e.trim()).filter(Boolean);
+      if (recipients.length === 0) return { status: "error", error: "No recipients specified" };
+
+      const subject = resolveTemplate(config.subject || "", ctx);
+      const body = resolveTemplate(config.body || "", ctx);
+      const results: Array<{ to: string; success: boolean }> = [];
+
+      for (const to of recipients) {
+        const result = await sendEmail({ userId: ctx.userId, to, subject, body, agentType: "automation" });
+        results.push({ to, success: result.success });
+      }
+
+      const successCount = results.filter(r => r.success).length;
+      return {
+        status: successCount > 0 ? "success" : "error",
+        output: { sent: successCount, failed: recipients.length - successCount, results },
+        error: successCount === 0 ? "All emails failed" : undefined,
+      };
+    }
+
+    case "db_query": {
+      const queryType = config.queryType || "count";
+      const table = config.table || "";
+
+      if (!table) return { status: "error", error: "No table specified" };
+
+      const allowedTables = ["agent_tasks", "leads", "agent_actions", "support_tickets"];
+      if (!allowedTables.includes(table)) {
+        return { status: "error", error: `Table '${table}' is not allowed. Allowed: ${allowedTables.join(", ")}` };
+      }
+
+      try {
+        if (queryType === "count") {
+          const [row] = await db.execute(sql`SELECT COUNT(*)::int as count FROM ${sql.identifier(table)} WHERE user_id = ${ctx.userId}`);
+          const count = (row as any).count;
+          ctx.variables.queryResult = count;
+          return { status: "success", output: { table, queryType, count } };
+        }
+
+        return { status: "success", output: { table, queryType, note: "Only count queries are supported" } };
+      } catch (e: any) {
+        return { status: "error", error: `DB query failed: ${e.message}` };
+      }
+    }
+
     default:
       return { status: "error", error: `Unknown action type: ${node.actionType}` };
+  }
+}
+
+function resolveValue(path: string, ctx: ExecutionContext): any {
+  const parts = path.split(".");
+  let value: any = { ...ctx.variables, ...ctx.triggerData };
+  for (const part of parts) {
+    if (value == null) return undefined;
+    value = value[part];
+  }
+  return value;
+}
+
+function evaluateSingleCondition(field: string, operator: string, compareValue: any, ctx: ExecutionContext): boolean {
+  const parts = field.split(".");
+  let actualValue: any = { ...ctx.variables, ...ctx.triggerData };
+  for (const part of parts) {
+    if (actualValue == null) break;
+    actualValue = actualValue[part];
+  }
+
+  switch (operator) {
+    case "equals":
+      return String(actualValue) === String(compareValue);
+    case "not_equals":
+      return String(actualValue) !== String(compareValue);
+    case "contains":
+      return String(actualValue).includes(String(compareValue));
+    case "not_contains":
+      return !String(actualValue).includes(String(compareValue));
+    case "greater_than":
+      return Number(actualValue) > Number(compareValue);
+    case "less_than":
+      return Number(actualValue) < Number(compareValue);
+    case "greater_than_or_equal":
+      return Number(actualValue) >= Number(compareValue);
+    case "less_than_or_equal":
+      return Number(actualValue) <= Number(compareValue);
+    case "exists":
+      return actualValue != null && actualValue !== "";
+    case "not_exists":
+      return actualValue == null || actualValue === "";
+    case "regex": {
+      try {
+        const re = new RegExp(String(compareValue));
+        return re.test(String(actualValue));
+      } catch {
+        return false;
+      }
+    }
+    case "between": {
+      const num = Number(actualValue);
+      if (Array.isArray(compareValue) && compareValue.length === 2) {
+        return num >= Number(compareValue[0]) && num <= Number(compareValue[1]);
+      }
+      if (typeof compareValue === "string" && compareValue.includes(",")) {
+        const [lo, hi] = compareValue.split(",").map(Number);
+        return num >= lo && num <= hi;
+      }
+      return false;
+    }
+    case "contains_any_of": {
+      const items = Array.isArray(compareValue) ? compareValue : String(compareValue).split(",").map(s => s.trim());
+      const strVal = String(actualValue);
+      return items.some((item: string) => strVal.includes(item));
+    }
+    case "starts_with":
+      return String(actualValue).startsWith(String(compareValue));
+    case "ends_with":
+      return String(actualValue).endsWith(String(compareValue));
+    default:
+      return !!actualValue;
   }
 }
 
@@ -332,44 +590,20 @@ async function evaluateCondition(
   ctx: ExecutionContext
 ): Promise<{ status: string; output?: any }> {
   const config = node.config || {};
+
+  if (node.conditions && node.conditions.length > 0) {
+    const logic = node.conditionLogic || "and";
+    const results = node.conditions.map((rule: ConditionRule) =>
+      evaluateSingleCondition(rule.field, rule.operator, rule.value, ctx)
+    );
+    const conditionMet = logic === "and" ? results.every(Boolean) : results.some(Boolean);
+    return { status: "success", output: { logic, conditionResults: results, conditionMet } };
+  }
+
   const field = config.field || "";
   const operator = config.operator || "equals";
   const compareValue = config.value;
+  const conditionMet = evaluateSingleCondition(field, operator, compareValue, ctx);
 
-  const parts = field.split(".");
-  let actualValue: any = { ...ctx.variables, ...ctx.triggerData };
-  for (const part of parts) {
-    if (actualValue == null) break;
-    actualValue = actualValue[part];
-  }
-
-  let conditionMet = false;
-
-  switch (operator) {
-    case "equals":
-      conditionMet = String(actualValue) === String(compareValue);
-      break;
-    case "not_equals":
-      conditionMet = String(actualValue) !== String(compareValue);
-      break;
-    case "contains":
-      conditionMet = String(actualValue).includes(String(compareValue));
-      break;
-    case "greater_than":
-      conditionMet = Number(actualValue) > Number(compareValue);
-      break;
-    case "less_than":
-      conditionMet = Number(actualValue) < Number(compareValue);
-      break;
-    case "exists":
-      conditionMet = actualValue != null && actualValue !== "";
-      break;
-    case "not_exists":
-      conditionMet = actualValue == null || actualValue === "";
-      break;
-    default:
-      conditionMet = !!actualValue;
-  }
-
-  return { status: "success", output: { field, operator, actualValue, compareValue, conditionMet } };
+  return { status: "success", output: { field, operator, conditionMet } };
 }

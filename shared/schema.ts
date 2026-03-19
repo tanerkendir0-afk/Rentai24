@@ -1175,6 +1175,7 @@ export const WORKFLOW_TRIGGER_TYPES = [
   "webhook",
   "schedule",
   "manual",
+  "threshold",
 ] as const;
 
 export const WORKFLOW_NODE_TYPES = [
@@ -1182,6 +1183,7 @@ export const WORKFLOW_NODE_TYPES = [
   "action",
   "condition",
   "delay",
+  "loop",
 ] as const;
 
 export const WORKFLOW_ACTION_TYPES = [
@@ -1193,6 +1195,12 @@ export const WORKFLOW_ACTION_TYPES = [
   "webhook_call",
   "log_action",
   "calculate",
+  "http_request",
+  "set_variable",
+  "format_data",
+  "whatsapp_message",
+  "multi_email",
+  "db_query",
 ] as const;
 
 export const automationWorkflows = pgTable("automation_workflows", {
@@ -1252,6 +1260,19 @@ export interface WorkflowNode {
   nextNodeId?: string | null;
   conditionTrueNodeId?: string;
   conditionFalseNodeId?: string;
+  onErrorNodeId?: string | null;
+  maxRetries?: number;
+  retryDelayMs?: number;
+  timeoutMs?: number;
+  position?: { x: number; y: number };
+  conditions?: ConditionRule[];
+  conditionLogic?: "and" | "or";
+}
+
+export interface ConditionRule {
+  field: string;
+  operator: string;
+  value?: any;
 }
 
 export interface TriggerConfig {
@@ -1261,4 +1282,12 @@ export interface TriggerConfig {
   webhookPath?: string;
   webhookSecret?: string;
   cronExpression?: string;
+  scheduleType?: "daily" | "weekly" | "monthly" | "custom";
+  scheduleHour?: number;
+  scheduleMinute?: number;
+  scheduleDaysOfWeek?: number[];
+  scheduleDayOfMonth?: number;
+  thresholdField?: string;
+  thresholdOperator?: "gt" | "lt" | "gte" | "lte" | "eq";
+  thresholdValue?: number;
 }

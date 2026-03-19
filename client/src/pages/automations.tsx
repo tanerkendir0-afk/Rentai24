@@ -1,37 +1,19 @@
-import { useState } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  Zap,
-  Plus,
-  Play,
-  Pause,
-  Trash2,
-  Clock,
-  CheckCircle2,
-  XCircle,
-  ArrowLeft,
-  LayoutTemplate,
-  Activity,
-  ChevronRight,
-  Loader2,
-  Webhook,
-  Timer,
-  Bot,
-  Mail,
-  FileText,
-  Bell,
-  Target,
-  Package,
-  BarChart3,
-  Headphones,
-  AlertTriangle,
-  ExternalLink,
+  Zap, Plus, Play, Pause, Trash2, Clock, CheckCircle2, XCircle,
+  ArrowLeft, LayoutTemplate, Activity, ChevronRight, ChevronDown,
+  Loader2, Webhook, Timer, Bot, Mail, FileText, Bell, Target,
+  Package, BarChart3, Headphones, AlertTriangle, ExternalLink,
+  Settings, GripVertical, Link2, Unlink, RotateCcw, Eye,
+  MessageSquare, Database, Variable, Globe, Hash, Users,
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/lib/auth";
@@ -78,41 +60,635 @@ interface Execution {
 }
 
 const categoryIcons: Record<string, any> = {
-  finance: FileText,
-  sales: Target,
-  ecommerce: Package,
-  management: BarChart3,
-  communication: Mail,
-  support: Headphones,
+  finance: FileText, sales: Target, ecommerce: Package,
+  management: BarChart3, communication: Mail, support: Headphones,
+  hr: Users, marketing: Globe,
 };
 
 const categoryLabels: Record<string, string> = {
-  finance: "Finans",
-  sales: "Satış",
-  ecommerce: "E-Ticaret",
-  management: "Yönetim",
-  communication: "İletişim",
-  support: "Destek",
+  finance: "Finans", sales: "Satış", ecommerce: "E-Ticaret",
+  management: "Yönetim", communication: "İletişim", support: "Destek",
+  hr: "İnsan Kaynakları", marketing: "Pazarlama",
 };
 
 const triggerTypeLabels: Record<string, string> = {
-  agent_tool_complete: "Ajan Aksiyonu",
-  webhook: "Webhook",
-  schedule: "Zamanlı",
-  manual: "Manuel",
+  agent_tool_complete: "Ajan Aksiyonu", webhook: "Webhook",
+  schedule: "Zamanlı", manual: "Manuel", threshold: "Eşik Değer",
 };
 
 const triggerTypeIcons: Record<string, any> = {
-  agent_tool_complete: Bot,
-  webhook: Webhook,
-  schedule: Timer,
-  manual: Play,
+  agent_tool_complete: Bot, webhook: Webhook, schedule: Timer,
+  manual: Play, threshold: AlertTriangle,
 };
+
+const actionTypeLabels: Record<string, string> = {
+  send_email: "E-posta Gönder", create_task: "Görev Oluştur",
+  notify_boss: "Boss Bildirimi", update_lead: "Lead Güncelle",
+  webhook_call: "Webhook Çağrısı", log_action: "Kayıt Tut",
+  calculate: "Hesapla", http_request: "HTTP İsteği",
+  set_variable: "Değişken Ata", format_data: "Veri Dönüştür",
+  whatsapp_message: "WhatsApp Mesajı", multi_email: "Toplu E-posta",
+  db_query: "Veritabanı Sorgusu",
+};
+
+const actionTypeIcons: Record<string, any> = {
+  send_email: Mail, create_task: FileText, notify_boss: Bell,
+  update_lead: Target, webhook_call: Webhook, log_action: Activity,
+  calculate: Hash, http_request: Globe, set_variable: Variable,
+  format_data: Database, whatsapp_message: MessageSquare,
+  multi_email: Users, db_query: Database,
+};
+
+const conditionOperatorLabels: Record<string, string> = {
+  equals: "Eşittir", not_equals: "Eşit Değil", contains: "İçerir",
+  not_contains: "İçermez", greater_than: "Büyüktür", less_than: "Küçüktür",
+  greater_than_or_equal: "Büyük Eşit", less_than_or_equal: "Küçük Eşit",
+  exists: "Var", not_exists: "Yok", regex: "Regex",
+  between: "Arasında", contains_any_of: "Herhangi Birini İçerir",
+  starts_with: "İle Başlar", ends_with: "İle Biter",
+};
+
+const NODE_W = 200;
+const NODE_H = 64;
+
+function getNodeColor(node: any): string {
+  if (node.type === "trigger") return "border-yellow-500/50 bg-yellow-500/10";
+  if (node.type === "condition") return "border-purple-500/50 bg-purple-500/10";
+  if (node.type === "delay") return "border-orange-500/50 bg-orange-500/10";
+  return "border-blue-500/50 bg-blue-500/10";
+}
+
+function getNodeIconColor(node: any): string {
+  if (node.type === "trigger") return "text-yellow-400";
+  if (node.type === "condition") return "text-purple-400";
+  if (node.type === "delay") return "text-orange-400";
+  return "text-blue-400";
+}
+
+function getNodeStatusColor(status: string): string {
+  if (status === "success" || status === "completed") return "ring-2 ring-green-500/50";
+  if (status === "error" || status === "failed") return "ring-2 ring-red-500/50";
+  if (status === "running") return "ring-2 ring-blue-500/50 animate-pulse";
+  return "";
+}
+
+function VisualWorkflowEditor({ nodes, onChange, executionResults }: {
+  nodes: any[];
+  onChange?: (nodes: any[]) => void;
+  executionResults?: any[];
+}) {
+  const svgRef = useRef<SVGSVGElement>(null);
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [dragState, setDragState] = useState<{ nodeId: string; offsetX: number; offsetY: number } | null>(null);
+
+  const positionedNodes = nodes.map((n, i) => ({
+    ...n,
+    position: n.position || { x: 250, y: 50 + i * 130 },
+  }));
+
+  const getNodeResult = (nodeId: string) => {
+    return executionResults?.find((r: any) => r.nodeId === nodeId);
+  };
+
+  const connections: Array<{ from: any; to: any; label?: string }> = [];
+  for (const node of positionedNodes) {
+    if (node.nextNodeId) {
+      const target = positionedNodes.find((n: any) => n.id === node.nextNodeId);
+      if (target) connections.push({ from: node, to: target });
+    }
+    if (node.conditionTrueNodeId) {
+      const target = positionedNodes.find((n: any) => n.id === node.conditionTrueNodeId);
+      if (target) connections.push({ from: node, to: target, label: "Evet" });
+    }
+    if (node.conditionFalseNodeId) {
+      const target = positionedNodes.find((n: any) => n.id === node.conditionFalseNodeId);
+      if (target) connections.push({ from: node, to: target, label: "Hayır" });
+    }
+    if (node.onErrorNodeId) {
+      const target = positionedNodes.find((n: any) => n.id === node.onErrorNodeId);
+      if (target) connections.push({ from: node, to: target, label: "Hata" });
+    }
+  }
+
+  const maxX = Math.max(...positionedNodes.map((n: any) => n.position.x + NODE_W), 600);
+  const maxY = Math.max(...positionedNodes.map((n: any) => n.position.y + NODE_H), 400);
+
+  const handleMouseDown = (e: React.MouseEvent, nodeId: string) => {
+    if (!onChange) return;
+    const node = positionedNodes.find((n: any) => n.id === nodeId);
+    if (!node) return;
+    setDragState({ nodeId, offsetX: e.clientX - node.position.x, offsetY: e.clientY - node.position.y });
+  };
+
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    if (!dragState || !onChange) return;
+    const newNodes = positionedNodes.map((n: any) => {
+      if (n.id !== dragState.nodeId) return n;
+      return { ...n, position: { x: Math.max(0, e.clientX - dragState.offsetX), y: Math.max(0, e.clientY - dragState.offsetY) } };
+    });
+    onChange(newNodes);
+  }, [dragState, onChange, positionedNodes]);
+
+  const handleMouseUp = useCallback(() => {
+    setDragState(null);
+  }, []);
+
+  return (
+    <div
+      className="relative bg-gray-950/50 border border-gray-800 rounded-lg overflow-auto"
+      style={{ minHeight: maxY + 80 }}
+      onMouseMove={handleMouseMove}
+      onMouseUp={handleMouseUp}
+      onMouseLeave={handleMouseUp}
+      data-testid="visual-workflow-editor"
+    >
+      <svg
+        ref={svgRef}
+        className="absolute inset-0 pointer-events-none"
+        width={maxX + 100}
+        height={maxY + 80}
+      >
+        <defs>
+          <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#4B5563" />
+          </marker>
+          <marker id="arrowhead-green" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#22C55E" />
+          </marker>
+          <marker id="arrowhead-red" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#EF4444" />
+          </marker>
+        </defs>
+        {connections.map((conn, i) => {
+          const fromX = conn.from.position.x + NODE_W / 2;
+          const fromY = conn.from.position.y + NODE_H;
+          const toX = conn.to.position.x + NODE_W / 2;
+          const toY = conn.to.position.y;
+          const midY = (fromY + toY) / 2;
+          const strokeColor = conn.label === "Evet" ? "#22C55E" : conn.label === "Hayır" ? "#EF4444" : conn.label === "Hata" ? "#F97316" : "#4B5563";
+          const markerId = conn.label === "Evet" ? "arrowhead-green" : conn.label === "Hayır" ? "arrowhead-red" : "arrowhead";
+
+          return (
+            <g key={i}>
+              <path
+                d={`M ${fromX} ${fromY} C ${fromX} ${midY}, ${toX} ${midY}, ${toX} ${toY}`}
+                fill="none"
+                stroke={strokeColor}
+                strokeWidth="2"
+                markerEnd={`url(#${markerId})`}
+              />
+              {conn.label && (
+                <text
+                  x={(fromX + toX) / 2 + (conn.label === "Evet" ? -30 : conn.label === "Hayır" ? 20 : 0)}
+                  y={midY - 5}
+                  fill={strokeColor}
+                  fontSize="11"
+                  textAnchor="middle"
+                  fontWeight="bold"
+                >
+                  {conn.label}
+                </text>
+              )}
+            </g>
+          );
+        })}
+      </svg>
+
+      {positionedNodes.map((node: any) => {
+        const result = getNodeResult(node.id);
+        const NodeIcon = node.type === "trigger" ? Zap :
+          node.type === "condition" ? AlertTriangle :
+          node.type === "delay" ? Timer :
+          (node.actionType && actionTypeIcons[node.actionType]) || Settings;
+
+        return (
+          <div
+            key={node.id}
+            className={`absolute rounded-lg border-2 px-3 py-2 cursor-pointer transition-all select-none ${getNodeColor(node)} ${
+              selectedNodeId === node.id ? "ring-2 ring-white/30" : ""
+            } ${result ? getNodeStatusColor(result.status) : ""}`}
+            style={{
+              left: node.position.x,
+              top: node.position.y,
+              width: NODE_W,
+              minHeight: NODE_H,
+            }}
+            onClick={() => setSelectedNodeId(selectedNodeId === node.id ? null : node.id)}
+            onMouseDown={(e) => handleMouseDown(e, node.id)}
+            data-testid={`node-${node.id}`}
+          >
+            <div className="flex items-center gap-2">
+              {onChange && <GripVertical className="w-3 h-3 text-gray-600 flex-shrink-0" />}
+              <NodeIcon className={`w-4 h-4 flex-shrink-0 ${getNodeIconColor(node)}`} />
+              <span className="text-xs font-medium text-white truncate">{node.label}</span>
+            </div>
+            <div className="flex items-center gap-1 mt-1">
+              <span className="text-[10px] text-gray-500">
+                {node.type === "trigger" ? "Tetikleyici" :
+                 node.type === "condition" ? "Koşul" :
+                 node.type === "delay" ? "Bekleme" :
+                 actionTypeLabels[node.actionType] || node.actionType || "Aksiyon"}
+              </span>
+              {node.maxRetries && node.maxRetries > 0 && (
+                <Badge variant="outline" className="text-[9px] border-gray-700 text-gray-500 px-1 py-0">
+                  <RotateCcw className="w-2 h-2 mr-0.5" />{node.maxRetries}
+                </Badge>
+              )}
+              {result && (
+                <span className={`text-[10px] ml-auto ${result.status === "success" ? "text-green-400" : result.status === "error" ? "text-red-400" : "text-blue-400"}`}>
+                  {result.duration ? `${result.duration}ms` : ""}
+                </span>
+              )}
+            </div>
+          </div>
+        );
+      })}
+
+      {selectedNodeId && (
+        <NodeDetailPanel
+          node={positionedNodes.find((n: any) => n.id === selectedNodeId)}
+          result={getNodeResult(selectedNodeId)}
+          onClose={() => setSelectedNodeId(null)}
+          onChange={onChange ? (updatedNode: any) => {
+            const newNodes = positionedNodes.map((n: any) => n.id === updatedNode.id ? updatedNode : n);
+            onChange(newNodes);
+          } : undefined}
+        />
+      )}
+    </div>
+  );
+}
+
+function NodeDetailPanel({ node, result, onClose, onChange }: {
+  node: any;
+  result?: any;
+  onClose: () => void;
+  onChange?: (node: any) => void;
+}) {
+  if (!node) return null;
+
+  return (
+    <div
+      className="absolute right-0 top-0 w-80 h-full bg-gray-900 border-l border-gray-800 p-4 overflow-y-auto z-10"
+      data-testid="node-detail-panel"
+    >
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-sm font-semibold text-white">{node.label}</h3>
+        <Button variant="ghost" size="sm" onClick={onClose} data-testid="button-close-panel">
+          <XCircle className="w-4 h-4 text-gray-400" />
+        </Button>
+      </div>
+
+      <div className="space-y-3">
+        <div>
+          <label className="text-xs text-gray-400 block mb-1">Tür</label>
+          <p className="text-sm text-white capitalize">
+            {node.type === "trigger" ? "Tetikleyici" :
+             node.type === "condition" ? "Koşul" :
+             node.type === "delay" ? "Bekleme" : "Aksiyon"}
+          </p>
+        </div>
+
+        {node.actionType && (
+          <div>
+            <label className="text-xs text-gray-400 block mb-1">Aksiyon</label>
+            <p className="text-sm text-white">{actionTypeLabels[node.actionType] || node.actionType}</p>
+          </div>
+        )}
+
+        {onChange && node.type === "action" && (
+          <>
+            <div>
+              <label className="text-xs text-gray-400 block mb-1">Etiket</label>
+              <Input
+                value={node.label}
+                onChange={(e) => onChange({ ...node, label: e.target.value })}
+                className="bg-gray-800 border-gray-700 text-white text-xs h-8"
+                data-testid="input-node-label"
+              />
+            </div>
+            {Object.entries(node.config || {}).map(([key, val]) => (
+              <div key={key}>
+                <label className="text-xs text-gray-400 block mb-1">{key}</label>
+                <Input
+                  value={String(val || "")}
+                  onChange={(e) => onChange({ ...node, config: { ...node.config, [key]: e.target.value } })}
+                  className="bg-gray-800 border-gray-700 text-white text-xs h-8"
+                  data-testid={`input-config-${key}`}
+                />
+              </div>
+            ))}
+          </>
+        )}
+
+        {onChange && (
+          <div className="border-t border-gray-800 pt-3">
+            <h4 className="text-xs text-gray-400 mb-2">Hata Yönetimi</h4>
+            <div className="space-y-2">
+              <div>
+                <label className="text-xs text-gray-500 block mb-1">Tekrar Deneme Sayısı</label>
+                <Input
+                  type="number"
+                  min="0"
+                  max="5"
+                  value={node.maxRetries || 0}
+                  onChange={(e) => onChange({ ...node, maxRetries: parseInt(e.target.value) || 0 })}
+                  className="bg-gray-800 border-gray-700 text-white text-xs h-8"
+                  data-testid="input-max-retries"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-gray-500 block mb-1">Tekrar Aralığı (ms)</label>
+                <Input
+                  type="number"
+                  min="0"
+                  value={node.retryDelayMs || 1000}
+                  onChange={(e) => onChange({ ...node, retryDelayMs: parseInt(e.target.value) || 1000 })}
+                  className="bg-gray-800 border-gray-700 text-white text-xs h-8"
+                  data-testid="input-retry-delay"
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {result && (
+          <div className="border-t border-gray-800 pt-3">
+            <h4 className="text-xs text-gray-400 mb-2">Çalışma Sonucu</h4>
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                {result.status === "success" ? (
+                  <CheckCircle2 className="w-4 h-4 text-green-400" />
+                ) : (
+                  <XCircle className="w-4 h-4 text-red-400" />
+                )}
+                <span className={`text-xs ${result.status === "success" ? "text-green-400" : "text-red-400"}`}>
+                  {result.status === "success" ? "Başarılı" : "Başarısız"}
+                </span>
+                {result.duration && (
+                  <span className="text-xs text-gray-500 ml-auto">{result.duration}ms</span>
+                )}
+              </div>
+              {result.error && (
+                <div className="bg-red-500/10 border border-red-500/20 rounded p-2">
+                  <p className="text-xs text-red-400">{result.error}</p>
+                </div>
+              )}
+              {result.input && (
+                <div>
+                  <label className="text-xs text-gray-500 block mb-1">Girdi</label>
+                  <pre className="text-[10px] text-gray-400 bg-gray-800 rounded p-2 max-h-24 overflow-auto">
+                    {JSON.stringify(result.input, null, 2).substring(0, 500)}
+                  </pre>
+                </div>
+              )}
+              {result.output && (
+                <div>
+                  <label className="text-xs text-gray-500 block mb-1">Çıktı</label>
+                  <pre className="text-[10px] text-gray-400 bg-gray-800 rounded p-2 max-h-24 overflow-auto">
+                    {JSON.stringify(result.output, null, 2).substring(0, 500)}
+                  </pre>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ExecutionTimeline({ execution }: { execution: Execution }) {
+  const [expanded, setExpanded] = useState(false);
+  const results = execution.nodeResults || [];
+
+  return (
+    <div className="bg-gray-800/50 rounded-lg border border-gray-700/50" data-testid={`execution-timeline-${execution.id}`}>
+      <div
+        className="flex items-center gap-3 p-3 cursor-pointer"
+        onClick={() => setExpanded(!expanded)}
+        data-testid={`execution-toggle-${execution.id}`}
+      >
+        {execution.status === "completed" ? (
+          <CheckCircle2 className="w-5 h-5 text-green-400 flex-shrink-0" />
+        ) : execution.status === "failed" ? (
+          <XCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
+        ) : (
+          <Loader2 className="w-5 h-5 text-blue-400 animate-spin flex-shrink-0" />
+        )}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-white font-medium">
+              {execution.status === "completed" ? "Başarılı" : execution.status === "failed" ? "Başarısız" : "Çalışıyor"}
+            </span>
+            <Badge variant="outline" className="text-[10px] border-gray-700 text-gray-500">
+              {results.length} adım
+            </Badge>
+          </div>
+          {execution.error && <p className="text-xs text-red-400 mt-0.5 truncate">{execution.error}</p>}
+        </div>
+        <p className="text-xs text-gray-500 flex-shrink-0">{new Date(execution.startedAt).toLocaleString("tr-TR")}</p>
+        {expanded ? <ChevronDown className="w-4 h-4 text-gray-500" /> : <ChevronRight className="w-4 h-4 text-gray-500" />}
+      </div>
+
+      {expanded && results.length > 0 && (
+        <div className="px-3 pb-3">
+          <div className="border-l-2 border-gray-700 ml-2 pl-4 space-y-3">
+            {results.map((result: any, i: number) => (
+              <div key={i} className="relative" data-testid={`execution-step-${i}`}>
+                <div className={`absolute -left-[21px] top-1 w-3 h-3 rounded-full border-2 ${
+                  result.status === "success" ? "bg-green-500 border-green-400" :
+                  result.status === "error" ? "bg-red-500 border-red-400" :
+                  "bg-gray-500 border-gray-400"
+                }`} />
+                <div className="bg-gray-900/50 rounded-lg p-3">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-medium text-white">{result.label}</span>
+                    <div className="flex items-center gap-2">
+                      {result.duration != null && (
+                        <span className="text-[10px] text-gray-500">{result.duration}ms</span>
+                      )}
+                      <span className={`text-[10px] ${result.status === "success" ? "text-green-400" : "text-red-400"}`}>
+                        {result.status === "success" ? "✓" : "✗"}
+                      </span>
+                    </div>
+                  </div>
+                  {result.error && (
+                    <p className="text-[10px] text-red-400 mt-1">{result.error}</p>
+                  )}
+                  {result.output && (
+                    <pre className="text-[10px] text-gray-500 mt-1 max-h-16 overflow-auto">
+                      {JSON.stringify(result.output, null, 2).substring(0, 300)}
+                    </pre>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function WorkflowBuilderView({ workflow, onBack }: {
+  workflow: AutomationWorkflow;
+  onBack: () => void;
+}) {
+  const { toast } = useToast();
+  const [nodes, setNodes] = useState(workflow.nodes || []);
+  const [hasChanges, setHasChanges] = useState(false);
+
+  const handleNodesChange = (newNodes: any[]) => {
+    setNodes(newNodes);
+    setHasChanges(true);
+  };
+
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      await apiRequest("PATCH", `/api/automations/${workflow.id}`, { nodes });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/automations"] });
+      setHasChanges(false);
+      toast({ title: "Workflow kaydedildi" });
+    },
+    onError: () => toast({ title: "Kaydetme başarısız", variant: "destructive" }),
+  });
+
+  const addNodeMutation = (type: string, actionType?: string) => {
+    const id = `${type}-${Date.now()}`;
+    const maxY = Math.max(0, ...nodes.map((n: any) => (n.position?.y || 0)));
+    const newNode: any = {
+      id,
+      type,
+      label: type === "trigger" ? "Tetikleyici" :
+             type === "condition" ? "Koşul" :
+             type === "delay" ? "Bekleme" :
+             actionTypeLabels[actionType || ""] || "Aksiyon",
+      config: {},
+      nextNodeId: null,
+      position: { x: 250, y: maxY + 130 },
+    };
+    if (actionType) newNode.actionType = actionType;
+    if (type === "delay") newNode.config = { delaySeconds: 5 };
+    if (type === "condition") {
+      newNode.config = { field: "", operator: "equals", value: "" };
+      newNode.conditionTrueNodeId = null;
+      newNode.conditionFalseNodeId = null;
+    }
+
+    const updatedNodes = [...nodes];
+    const lastNode = updatedNodes.filter((n: any) => n.type !== "trigger").pop() || updatedNodes[updatedNodes.length - 1];
+    if (lastNode && !lastNode.nextNodeId && lastNode.type !== "condition") {
+      lastNode.nextNodeId = id;
+    }
+    updatedNodes.push(newNode);
+    handleNodesChange(updatedNodes);
+  };
+
+  const removeNode = (nodeId: string) => {
+    const updatedNodes = nodes
+      .filter((n: any) => n.id !== nodeId)
+      .map((n: any) => ({
+        ...n,
+        nextNodeId: n.nextNodeId === nodeId ? null : n.nextNodeId,
+        conditionTrueNodeId: n.conditionTrueNodeId === nodeId ? null : n.conditionTrueNodeId,
+        conditionFalseNodeId: n.conditionFalseNodeId === nodeId ? null : n.conditionFalseNodeId,
+        onErrorNodeId: n.onErrorNodeId === nodeId ? null : n.onErrorNodeId,
+      }));
+    handleNodesChange(updatedNodes);
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-gray-950 to-gray-900 p-4 md:p-8">
+      <div className="max-w-6xl mx-auto">
+        <div className="flex items-center gap-3 mb-6">
+          <Button variant="ghost" size="icon" onClick={onBack} data-testid="button-back-builder">
+            <ArrowLeft className="w-5 h-5 text-gray-400" />
+          </Button>
+          <div className="flex-1">
+            <h1 className="text-xl font-bold text-white">{workflow.name}</h1>
+            <p className="text-gray-400 text-xs mt-0.5">Görsel Düzenleyici</p>
+          </div>
+          <div className="flex gap-2">
+            {hasChanges && (
+              <Button
+                className="bg-green-600 hover:bg-green-700 text-xs"
+                onClick={() => saveMutation.mutate()}
+                disabled={saveMutation.isPending}
+                data-testid="button-save-workflow"
+              >
+                {saveMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : null}
+                Kaydet
+              </Button>
+            )}
+          </div>
+        </div>
+
+        <div className="flex gap-2 mb-4 flex-wrap">
+          <Button size="sm" variant="outline" className="text-xs border-gray-700 text-gray-300" onClick={() => addNodeMutation("action", "send_email")} data-testid="button-add-email-node">
+            <Mail className="w-3 h-3 mr-1" /> E-posta
+          </Button>
+          <Button size="sm" variant="outline" className="text-xs border-gray-700 text-gray-300" onClick={() => addNodeMutation("action", "create_task")} data-testid="button-add-task-node">
+            <FileText className="w-3 h-3 mr-1" /> Görev
+          </Button>
+          <Button size="sm" variant="outline" className="text-xs border-gray-700 text-gray-300" onClick={() => addNodeMutation("action", "notify_boss")} data-testid="button-add-notify-node">
+            <Bell className="w-3 h-3 mr-1" /> Bildirim
+          </Button>
+          <Button size="sm" variant="outline" className="text-xs border-gray-700 text-gray-300" onClick={() => addNodeMutation("action", "http_request")} data-testid="button-add-http-node">
+            <Globe className="w-3 h-3 mr-1" /> HTTP
+          </Button>
+          <Button size="sm" variant="outline" className="text-xs border-gray-700 text-gray-300" onClick={() => addNodeMutation("action", "set_variable")} data-testid="button-add-variable-node">
+            <Variable className="w-3 h-3 mr-1" /> Değişken
+          </Button>
+          <Button size="sm" variant="outline" className="text-xs border-gray-700 text-gray-300" onClick={() => addNodeMutation("condition")} data-testid="button-add-condition-node">
+            <AlertTriangle className="w-3 h-3 mr-1" /> Koşul
+          </Button>
+          <Button size="sm" variant="outline" className="text-xs border-gray-700 text-gray-300" onClick={() => addNodeMutation("delay")} data-testid="button-add-delay-node">
+            <Timer className="w-3 h-3 mr-1" /> Bekleme
+          </Button>
+          <Button size="sm" variant="outline" className="text-xs border-gray-700 text-gray-300" onClick={() => addNodeMutation("action", "whatsapp_message")} data-testid="button-add-whatsapp-node">
+            <MessageSquare className="w-3 h-3 mr-1" /> WhatsApp
+          </Button>
+          <Button size="sm" variant="outline" className="text-xs border-gray-700 text-gray-300" onClick={() => addNodeMutation("action", "format_data")} data-testid="button-add-format-node">
+            <Database className="w-3 h-3 mr-1" /> Veri Dönüştür
+          </Button>
+        </div>
+
+        <VisualWorkflowEditor nodes={nodes} onChange={handleNodesChange} />
+
+        {nodes.length > 0 && (
+          <div className="mt-4">
+            <h3 className="text-sm font-medium text-gray-400 mb-2">Düğümler ({nodes.length})</h3>
+            <div className="space-y-1">
+              {nodes.map((node: any) => (
+                <div key={node.id} className="flex items-center gap-2 px-3 py-1.5 bg-gray-800/30 rounded text-xs">
+                  <span className="text-gray-400 font-mono w-24 truncate">{node.id}</span>
+                  <span className="text-white flex-1 truncate">{node.label}</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 w-6 p-0 text-red-400 hover:text-red-300"
+                    onClick={() => removeNode(node.id)}
+                    data-testid={`button-remove-node-${node.id}`}
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export default function Automations() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [view, setView] = useState<"list" | "templates" | "detail" | "create">("list");
+  const [view, setView] = useState<"list" | "templates" | "detail" | "create" | "builder">("list");
   const [selectedWorkflowId, setSelectedWorkflowId] = useState<number | null>(null);
   const [newName, setNewName] = useState("");
   const [newDescription, setNewDescription] = useState("");
@@ -200,8 +776,8 @@ export default function Automations() {
         triggerType: "manual",
         triggerConfig: {},
         nodes: [
-          { id: "trigger-1", type: "trigger", label: "Manuel Tetikleyici", config: {}, nextNodeId: "action-1" },
-          { id: "action-1", type: "action", actionType: "log_action", label: "Aksiyon Kaydet", config: { description: "Manuel otomasyon çalıştırıldı" }, nextNodeId: null },
+          { id: "trigger-1", type: "trigger", label: "Manuel Tetikleyici", config: {}, nextNodeId: "action-1", position: { x: 250, y: 50 } },
+          { id: "action-1", type: "action", actionType: "log_action", label: "Aksiyon Kaydet", config: { description: "Manuel otomasyon çalıştırıldı" }, nextNodeId: null, position: { x: 250, y: 180 } },
         ],
       });
       return res.json();
@@ -230,6 +806,15 @@ export default function Automations() {
           </CardContent>
         </Card>
       </div>
+    );
+  }
+
+  if (view === "builder" && selectedWorkflow) {
+    return (
+      <WorkflowBuilderView
+        workflow={selectedWorkflow}
+        onBack={() => { setView("detail"); }}
+      />
     );
   }
 
@@ -356,7 +941,7 @@ export default function Automations() {
   if (view === "detail" && selectedWorkflow) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-gray-950 to-gray-900 p-4 md:p-8">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-5xl mx-auto">
           <div className="flex items-center gap-3 mb-6">
             <Button variant="ghost" size="icon" onClick={() => { setView("list"); setSelectedWorkflowId(null); }} data-testid="button-back-detail">
               <ArrowLeft className="w-5 h-5 text-gray-400" />
@@ -377,7 +962,7 @@ export default function Automations() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <Card className="bg-gray-900/50 border-gray-800">
               <CardContent className="p-4 flex items-center gap-3">
                 <Activity className="w-8 h-8 text-blue-400" />
@@ -412,7 +997,7 @@ export default function Automations() {
             </Card>
           </div>
 
-          <div className="flex gap-3 mb-8">
+          <div className="flex gap-3 mb-6">
             <Button
               className="bg-green-600 hover:bg-green-700"
               onClick={() => executeMutation.mutate(selectedWorkflow.id)}
@@ -421,6 +1006,15 @@ export default function Automations() {
             >
               {executeMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Play className="w-4 h-4 mr-2" />}
               Manuel Çalıştır
+            </Button>
+            <Button
+              variant="outline"
+              className="border-gray-700 text-gray-300 hover:text-white"
+              onClick={() => setView("builder")}
+              data-testid="button-open-builder"
+            >
+              <Settings className="w-4 h-4 mr-2" />
+              Görsel Düzenleyici
             </Button>
             <Button
               variant="destructive"
@@ -439,32 +1033,13 @@ export default function Automations() {
 
           <Card className="bg-gray-900/50 border-gray-800 mb-6">
             <CardHeader>
-              <CardTitle className="text-white text-lg">Workflow Adımları</CardTitle>
+              <CardTitle className="text-white text-lg">Workflow Görünümü</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                {(selectedWorkflow.nodes as any[]).map((node: any, i: number) => (
-                  <div key={node.id} className="flex items-center gap-3">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
-                      node.type === "trigger" ? "bg-yellow-500/20 text-yellow-400" :
-                      node.type === "condition" ? "bg-purple-500/20 text-purple-400" :
-                      node.type === "delay" ? "bg-orange-500/20 text-orange-400" :
-                      "bg-blue-500/20 text-blue-400"
-                    }`}>
-                      {i + 1}
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm text-white font-medium">{node.label}</p>
-                      <p className="text-xs text-gray-500">
-                        {node.type === "trigger" ? "Tetikleyici" : node.type === "condition" ? "Koşul" : node.type === "delay" ? "Bekleme" : node.actionType || "Aksiyon"}
-                      </p>
-                    </div>
-                    {i < (selectedWorkflow.nodes as any[]).length - 1 && (
-                      <ChevronRight className="w-4 h-4 text-gray-600" />
-                    )}
-                  </div>
-                ))}
-              </div>
+              <VisualWorkflowEditor
+                nodes={selectedWorkflow.nodes || []}
+                executionResults={executions.length > 0 ? executions[0].nodeResults : undefined}
+              />
             </CardContent>
           </Card>
 
@@ -478,20 +1053,7 @@ export default function Automations() {
               ) : (
                 <div className="space-y-3">
                   {executions.map((exec) => (
-                    <div key={exec.id} className="flex items-center gap-3 p-3 rounded-lg bg-gray-800/50" data-testid={`execution-${exec.id}`}>
-                      {exec.status === "completed" ? (
-                        <CheckCircle2 className="w-5 h-5 text-green-400" />
-                      ) : exec.status === "failed" ? (
-                        <XCircle className="w-5 h-5 text-red-400" />
-                      ) : (
-                        <Loader2 className="w-5 h-5 text-blue-400 animate-spin" />
-                      )}
-                      <div className="flex-1">
-                        <p className="text-sm text-white capitalize">{exec.status === "completed" ? "Başarılı" : exec.status === "failed" ? "Başarısız" : "Çalışıyor"}</p>
-                        {exec.error && <p className="text-xs text-red-400 mt-0.5">{exec.error}</p>}
-                      </div>
-                      <p className="text-xs text-gray-500">{new Date(exec.startedAt).toLocaleString("tr-TR")}</p>
-                    </div>
+                    <ExecutionTimeline key={exec.id} execution={exec} />
                   ))}
                 </div>
               )}

@@ -60,16 +60,24 @@ The RentAI 24 platform uses a modern web stack: React, TypeScript, and Tailwind 
 Native lightweight workflow automation system (n8n-inspired) that lets users chain agent actions into multi-step automated workflows.
 
 **Architecture:**
-*   `server/n8n/workflowEngine.ts` — Execution engine supporting trigger, action, condition, delay node types with template variable resolution and 8 action types (send_email, create_task, notify_boss, update_lead, webhook_call, log_action, calculate).
-*   `server/n8n/workflowTemplates.ts` — 6 pre-built Turkish workflow templates across finance, sales, ecommerce, management, communication, and support categories.
-*   `server/n8n/agentBridge.ts` — Bridge between agent tool calls and automation triggers, with 60s workflow cache per user.
-*   DB tables: `automation_workflows` (workflow definitions), `automation_executions` (execution history).
+*   `server/n8n/workflowEngine.ts` — Execution engine supporting trigger, action, condition, delay, loop node types with template variable resolution and 14 action types (send_email, create_task, notify_boss, update_lead, webhook_call, log_action, calculate, http_request, set_variable, format_data, whatsapp_message, multi_email, db_query, generate_pdf). Features per-node retry logic (maxRetries, retryDelayMs), error branching (onErrorNodeId), and per-node execution duration/input/output tracking.
+*   **Enhanced Conditions:** AND/OR multi-condition logic, 15 operators including regex, between, contains_any_of, starts_with, ends_with, greater_than_or_equal, less_than_or_equal, not_contains.
+*   `server/n8n/workflowTemplates.ts` — 14 pre-built Turkish workflow templates across 8 categories (finance, sales, ecommerce, management, communication, support, hr, marketing). Includes HR CV evaluation, social media analytics, ecommerce order chain, accounting period-end checklist, and support SLA warning templates.
+*   `server/n8n/agentBridge.ts` — Bridge between agent tool calls and automation triggers, with 60s workflow cache per user. Supports threshold triggers (gt, lt, gte, lte, eq).
+*   `server/n8n/schedulerService.ts` — Scheduler supporting user-friendly schedule config (daily/weekly/monthly + hour/minute/day) in addition to raw cron expressions.
+*   DB tables: `automation_workflows` (workflow definitions with node positions), `automation_executions` (execution history with per-node I/O).
+*   Types: `WorkflowNode` includes position, maxRetries, retryDelayMs, timeoutMs, onErrorNodeId, conditions[], conditionLogic. `TriggerConfig` includes scheduleType, scheduleHour/Minute, scheduleDaysOfWeek, scheduleDayOfMonth, threshold fields. `ConditionRule` type for multi-condition support.
 *   Agent integration: `server/agentTools.ts` `executeToolCall` wrapper automatically calls `triggerAutomations()` after successful tool calls.
 
 **API Routes (`/api/automations/*`):**
 *   CRUD for workflows, template gallery, create-from-template, manual execution, execution history, webhook triggers.
 *   Admin routes for toggling automation runner mode (legacy vs n8n) via `system_settings` table.
 
-**Frontend:** `/automations` page with workflow listing, template gallery, workflow detail/execution history, create form. Nav link in both desktop and mobile menus.
+**Frontend:** `/automations` page with:
+*   Workflow listing with trigger type icons and active/inactive toggle
+*   Template gallery organized by category with Turkish labels
+*   Workflow detail view with stats cards, visual workflow preview, and expandable execution timeline
+*   **Visual Node Editor** — SVG-based workflow builder with draggable nodes, colored connection lines (green=true, red=false, orange=error), node type palette (email, task, notification, HTTP, variable, condition, delay, WhatsApp, format data), per-node config panel with retry settings, and node removal
+*   **Execution Timeline** — Expandable per-execution view showing each node's status, duration, input data, and output data
 
-**Security:** Input validation on all routes, SSRF protection on webhook_call, sanitized calculate expressions, webhook secret tokens, tenant-isolated queries, error handling with user-facing toasts.
+**Security:** Input validation on all routes, SSRF protection on webhook_call and http_request, sanitized calculate expressions, webhook secret tokens, tenant-isolated queries, error handling with user-facing toasts. db_query action restricted to allowlisted tables only.

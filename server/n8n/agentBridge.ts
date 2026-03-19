@@ -36,12 +36,30 @@ export async function triggerAutomations(params: {
     const workflows = await getActiveWorkflowsForUser(params.userId);
 
     const matching = workflows.filter((w) => {
-      if (w.triggerType !== "agent_tool_complete") return false;
       const tc = w.triggerConfig as TriggerConfig;
-      if (tc.toolName && tc.toolName !== params.toolName) return false;
-      if (tc.agentType && tc.agentType !== params.agentType) return false;
-      if (tc.actionType && tc.actionType !== params.actionType) return false;
-      return true;
+
+      if (w.triggerType === "agent_tool_complete") {
+        if (tc.toolName && tc.toolName !== params.toolName) return false;
+        if (tc.agentType && tc.agentType !== params.agentType) return false;
+        if (tc.actionType && tc.actionType !== params.actionType) return false;
+        return true;
+      }
+
+      if (w.triggerType === "threshold") {
+        if (!tc.thresholdField || tc.thresholdValue == null) return false;
+        const fieldValue = Number(params.toolResult[tc.thresholdField]);
+        if (isNaN(fieldValue)) return false;
+        switch (tc.thresholdOperator) {
+          case "gt": return fieldValue > tc.thresholdValue;
+          case "lt": return fieldValue < tc.thresholdValue;
+          case "gte": return fieldValue >= tc.thresholdValue;
+          case "lte": return fieldValue <= tc.thresholdValue;
+          case "eq": return fieldValue === tc.thresholdValue;
+          default: return false;
+        }
+      }
+
+      return false;
     });
 
     if (matching.length === 0) return;

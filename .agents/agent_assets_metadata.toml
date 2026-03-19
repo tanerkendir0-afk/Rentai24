@@ -12,3 +12,9 @@ id = "7r7jJjXYfxM5nC19SK8v-"
 uri = "file://screenshots/CLAUDE_SITE_REVIEW_BRIEF.md"
 type = "text"
 title = "Claude Site Review Brief - RentAI 24"
+
+[[outputs]]
+id = "81I5X1UuYuzdON4axb7Vx"
+uri = "file://RentAI24_Kullanim_Kilavuzu.md"
+type = "text"
+title = "RentAI 24 - Kullanim Kilavuzu"

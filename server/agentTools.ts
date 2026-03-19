@@ -1531,9 +1531,8 @@ export const bookkeepingTools: OpenAI.ChatCompletionTool[] = [
         properties: {
           donem: { type: "string", description: "KDV beyanname dönemi (AA/YYYY)" },
           format: { type: "string", enum: ["xlsx", "pdf", "json"], description: "Çıktı formatı" },
-          tenant_id: { type: "string", description: "Kiracı ID" }
         },
-        required: ["donem", "format", "tenant_id"]
+        required: ["donem", "format"]
       }
     }
   },
@@ -5882,14 +5881,14 @@ ${activeRentals.map(r => `  ${r.agentType}: ${r.messagesUsed}/${r.messagesLimit}
       const { parseEFatura } = await import("./efatura-kdv-parser");
       const result = parseEFatura(args.xml_content);
       if (result.success && result.invoice) {
-        await db.execute(`INSERT INTO indirilecek_kdv_faturalar (tenant_id, donem, sira_no, fatura_tarihi, belge_no, satici_unvani, satici_vkn, belge_turu, matrah, kdv_orani, kdv_tutari, hesap_kodu, para_birimi, profil_id) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) ON CONFLICT (tenant_id, belge_no) DO NOTHING`, [args.tenant_id || "00000000-0000-0000-0000-000000000000", args.donem || "", 0, result.invoice.faturaTarihi.split(".").reverse().join("-"), result.invoice.belgeNo, result.invoice.saticiUnvani, result.invoice.saticiVKN, result.invoice.belgeTuru, result.invoice.matrah, result.invoice.kdvOrani, result.invoice.kdvTutari, result.invoice.hesapKodu, result.invoice.paraBirimi, result.invoice.profilId]);
+        await db.execute(`INSERT INTO indirilecek_kdv_faturalar (user_id, donem, sira_no, fatura_tarihi, belge_no, satici_unvani, satici_vkn, belge_turu, matrah, kdv_orani, kdv_tutari, hesap_kodu, para_birimi, profil_id) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) ON CONFLICT (user_id, belge_no) DO NOTHING`, [userId, args.donem || "", 0, result.invoice.faturaTarihi.split(".").reverse().join("-"), result.invoice.belgeNo, result.invoice.saticiUnvani, result.invoice.saticiVKN, result.invoice.belgeTuru, result.invoice.matrah, result.invoice.kdvOrani, result.invoice.kdvTutari, result.invoice.hesapKodu, result.invoice.paraBirimi, result.invoice.profilId]);
       }
       await storage.createAgentAction({ userId, agentType, actionType: "efatura_parsed", description: `📄 e-Fatura parse: ${result.success ? result.invoice?.belgeNo : "HATA"}`, metadata: result });
       return { result: JSON.stringify(result), actionType: "efatura_parsed", actionDescription: `📄 e-Fatura: ${result.success ? result.invoice?.belgeNo : "Parse hatası"}` };
     }
     case "generate_kdv_listesi": {
-      const rows = await db.execute(`SELECT * FROM indirilecek_kdv_faturalar WHERE donem = $1 ORDER BY fatura_tarihi`, [args.donem]);
-      const ozet = await db.execute(`SELECT * FROM v_indirilecek_kdv_ozet WHERE donem = $1`, [args.donem]);
+      const rows = await db.execute(`SELECT * FROM indirilecek_kdv_faturalar WHERE user_id = $1 AND donem = $2 ORDER BY fatura_tarihi`, [args.donem]);
+      const ozet = await db.execute(`SELECT * FROM v_indirilecek_kdv_ozet WHERE user_id = $1 AND donem = $2`, [userId, args.donem]);
       const rapor = { donem: args.donem, faturalar: rows.rows, ozetler: ozet.rows, toplamFatura: rows.rows.length };
       await storage.createAgentAction({ userId, agentType, actionType: "kdv_listesi_generated", description: `📋 İndirilecek KDV Listesi: ${args.donem} — ${rows.rows.length} fatura`, metadata: rapor });
       return { result: JSON.stringify(rapor), actionType: "kdv_listesi_generated", actionDescription: `📋 KDV Listesi: ${args.donem} (${rows.rows.length} fatura)` };

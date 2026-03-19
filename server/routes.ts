@@ -6954,9 +6954,25 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
     }
   });
 
+  app.get("/api/automations/integrations", requireAuth, async (_req, res) => {
+    try {
+      const { integrationCatalog, getIntegrationsByCategory, getCategoryLabels, getTotalActionCount, getTotalIntegrationCount } = await import("./n8n/integrationCatalog");
+      res.json({
+        integrations: integrationCatalog,
+        byCategory: getIntegrationsByCategory(),
+        categoryLabels: getCategoryLabels(),
+        totalActions: getTotalActionCount(),
+        totalIntegrations: getTotalIntegrationCount(),
+      });
+    } catch (error) {
+      console.error("Integration catalog error:", error);
+      res.status(500).json({ error: "Failed to load integrations" });
+    }
+  });
+
   const validTriggerTypes = ["agent_tool_complete", "webhook", "schedule", "manual", "threshold", "email_received"];
   const validNodeTypes = ["trigger", "action", "condition", "delay"];
-  const validActionTypes = ["send_email", "create_task", "notify_boss", "update_lead", "webhook_call", "log_action", "calculate", "http_request", "set_variable", "format_data", "whatsapp_message", "multi_email", "db_query"];
+  const validActionTypes = ["send_email", "create_task", "notify_boss", "update_lead", "webhook_call", "log_action", "calculate", "http_request", "set_variable", "format_data", "whatsapp_message", "multi_email", "db_query", "integration"];
 
   app.post("/api/automations", requireAuth, async (req, res) => {
     try {

@@ -554,6 +554,99 @@ async function executeAction(
       }
     }
 
+    case "integration": {
+      const integrationId = config.integrationId;
+      const actionId = config.integrationAction;
+      if (!integrationId || !actionId) return { status: "error", error: "Integration or action not specified" };
+
+      const { getIntegrationById } = await import("./integrationCatalog");
+      const integration = getIntegrationById(integrationId);
+      if (!integration) return { status: "error", error: `Unknown integration: ${integrationId}` };
+
+      const action = integration.actions.find((a) => a.id === actionId);
+      if (!action) return { status: "error", error: `Unknown action: ${actionId} for ${integrationId}` };
+
+      let baseUrl = resolveTemplate(integration.baseUrl, ctx);
+      Object.entries(config).forEach(([k, v]) => {
+        baseUrl = baseUrl.replace(`{{${k}}}`, String(v || ""));
+      });
+
+      let path = action.pathTemplate;
+      Object.entries(config).forEach(([k, v]) => {
+        path = path.replace(`{{${k}}}`, encodeURIComponent(String(v || "")));
+      });
+
+      const apiKey = resolveTemplate(config.apiKey || "", ctx);
+      let fullUrl = baseUrl + path;
+
+      if (integration.authType === "query_param" && integration.authQueryParam && apiKey) {
+        const separator = fullUrl.includes("?") ? "&" : "?";
+        fullUrl += `${separator}${integration.authQueryParam}=${encodeURIComponent(apiKey)}`;
+      }
+
+      try {
+        const parsed = new URL(fullUrl);
+        if (!["http:", "https:"].includes(parsed.protocol)) {
+          return { status: "error", error: "Only HTTP/HTTPS URLs are allowed" };
+        }
+        const hostname = parsed.hostname.toLowerCase();
+        const blockedHosts = ["localhost", "127.0.0.1", "0.0.0.0", "169.254.169.254", "[::1]", "metadata.google.internal"];
+        if (blockedHosts.some((h) => hostname === h) || hostname.endsWith(".local") || hostname.endsWith(".internal")) {
+          return { status: "error", error: "Internal URLs are not allowed" };
+        }
+      } catch {
+        return { status: "error", error: `Invalid URL: ${fullUrl}` };
+      }
+
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (integration.authType === "bearer" && apiKey) {
+        headers["Authorization"] = `Bearer ${apiKey}`;
+      } else if (integration.authType === "basic" && apiKey) {
+        headers["Authorization"] = `Basic ${Buffer.from(apiKey).toString("base64")}`;
+      } else if (integration.authType === "custom_header" && integration.authHeaderName && apiKey) {
+        headers[integration.authHeaderName] = apiKey;
+      }
+
+      if (integration.id === "notion") {
+        headers["Notion-Version"] = "2022-06-28";
+      }
+
+      let bodyData: string | undefined;
+      if (["POST", "PUT", "PATCH"].includes(action.method) && action.bodyTemplate) {
+        let bodyStr = JSON.stringify(action.bodyTemplate);
+        Object.entries(config).forEach(([k, v]) => {
+          bodyStr = bodyStr.replace(new RegExp(`\\{\\{${k}\\}\\}`, "g"), String(v || "").replace(/"/g, '\\"'));
+        });
+        bodyStr = bodyStr.replace(/\{\{[^}]+\}\}/g, "");
+        bodyData = bodyStr;
+      }
+
+      const response = await fetch(fullUrl, {
+        method: action.method,
+        headers,
+        body: bodyData,
+        signal: AbortSignal.timeout(15000),
+      });
+
+      const responseText = await response.text().catch(() => "");
+      let parsedResponse: any = responseText;
+      try { parsedResponse = JSON.parse(responseText); } catch {}
+
+      ctx.variables.integrationResponse = parsedResponse;
+      ctx.variables.integrationStatus = response.status;
+
+      return {
+        status: response.ok ? "success" : "error",
+        output: {
+          integration: integration.name,
+          action: action.labelTr,
+          statusCode: response.status,
+          body: typeof parsedResponse === "string" ? parsedResponse.substring(0, 1000) : parsedResponse,
+        },
+        error: response.ok ? undefined : `${integration.name} API error: HTTP ${response.status}`,
+      };
+    }
+
     default:
       return { status: "error", error: `Unknown action type: ${node.actionType}` };
   }

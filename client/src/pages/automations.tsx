@@ -14,6 +14,7 @@ import {
   Package, BarChart3, Headphones, AlertTriangle, ExternalLink,
   Settings, GripVertical, Link2, Unlink, RotateCcw, Eye,
   MessageSquare, Database, Variable, Globe, Hash, Users,
+  Plug, Search, X,
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/lib/auth";
@@ -90,6 +91,7 @@ const actionTypeLabels: Record<string, string> = {
   set_variable: "Değişken Ata", format_data: "Veri Dönüştür",
   whatsapp_message: "WhatsApp Mesajı", multi_email: "Toplu E-posta",
   db_query: "Veritabanı Sorgusu",
+  integration: "Harici Entegrasyon",
 };
 
 const actionTypeIcons: Record<string, any> = {
@@ -98,6 +100,7 @@ const actionTypeIcons: Record<string, any> = {
   calculate: Hash, http_request: Globe, set_variable: Variable,
   format_data: Database, whatsapp_message: MessageSquare,
   multi_email: Users, db_query: Database,
+  integration: Plug,
 };
 
 const conditionOperatorLabels: Record<string, string> = {
@@ -158,12 +161,14 @@ function getNodeColor(node: any): string {
   if (node.type === "trigger") return "border-yellow-500/50 bg-yellow-500/10";
   if (node.type === "condition") return "border-purple-500/50 bg-purple-500/10";
   if (node.type === "delay") return "border-orange-500/50 bg-orange-500/10";
+  if (node.actionType === "integration") return "border-cyan-500/50 bg-cyan-500/10";
   return "border-blue-500/50 bg-blue-500/10";
 }
 
 function getNodeIconColor(node: any): string {
   if (node.type === "trigger") return "text-yellow-400";
   if (node.type === "condition") return "text-purple-400";
+  if (node.actionType === "integration") return "text-cyan-400";
   if (node.type === "delay") return "text-orange-400";
   return "text-blue-400";
 }
@@ -330,6 +335,7 @@ function VisualWorkflowEditor({ nodes, onChange, executionResults }: {
                 {node.type === "trigger" ? "Tetikleyici" :
                  node.type === "condition" ? "Koşul" :
                  node.type === "delay" ? "Bekleme" :
+                 node.actionType === "integration" ? (node.config?._integrationLabel || "Entegrasyon") :
                  actionTypeLabels[node.actionType] || node.actionType || "Aksiyon"}
               </span>
               {node.maxRetries && node.maxRetries > 0 && (
@@ -414,7 +420,7 @@ function NodeDetailPanel({ node, result, onClose, onChange, allNodes }: {
                 data-testid="input-node-label"
               />
             </div>
-            {node.type === "action" && (actionConfigFields[node.actionType] || Object.keys(node.config || {})).map((key: string) => (
+            {node.type === "action" && node.actionType !== "integration" && (actionConfigFields[node.actionType] || Object.keys(node.config || {})).map((key: string) => (
               <div key={key}>
                 <label className="text-xs text-gray-400 block mb-1">{configFieldLabels[key] || key}</label>
                 {key === "body" || key === "message" || key === "description" ? (
@@ -436,6 +442,12 @@ function NodeDetailPanel({ node, result, onClose, onChange, allNodes }: {
                 )}
               </div>
             ))}
+            {node.type === "action" && node.actionType === "integration" && (
+              <IntegrationConfigPanel
+                config={node.config || {}}
+                onChange={(config: any) => onChange({ ...node, config, label: config._integrationLabel || node.label })}
+              />
+            )}
             {node.type === "delay" && (
               <div>
                 <label className="text-xs text-gray-400 block mb-1">Bekleme Süresi (saniye)</label>
@@ -780,6 +792,165 @@ function ExecutionTimeline({ execution }: { execution: Execution }) {
       )}
     </div>
   );
+}
+
+function IntegrationConfigPanel({ config, onChange }: { config: Record<string, any>; onChange: (config: Record<string, any>) => void }) {
+  const [searchTerm, setSearchTerm] = useState("");
+  const { data: catalogData } = useQuery<any>({
+    queryKey: ["/api/automations/integrations"],
+  });
+
+  const integrations = catalogData?.integrations || [];
+  const categoryLabels = catalogData?.categoryLabels || {};
+  const selectedIntegration = integrations.find((i: any) => i.id === config.integrationId);
+  const selectedAction = selectedIntegration?.actions?.find((a: any) => a.id === config.integrationAction);
+
+  if (!config.integrationId) {
+    const byCategory: Record<string, any[]> = {};
+    integrations.forEach((i: any) => {
+      if (searchTerm && !i.nameTr.toLowerCase().includes(searchTerm.toLowerCase()) && !i.name.toLowerCase().includes(searchTerm.toLowerCase())) return;
+      if (!byCategory[i.category]) byCategory[i.category] = [];
+      byCategory[i.category].push(i);
+    });
+
+    return (
+      <div className="space-y-2" data-testid="integration-picker">
+        <label className="text-xs text-gray-400 block">Entegrasyon Seç</label>
+        <div className="relative">
+          <Search className="absolute left-2 top-1.5 w-3 h-3 text-gray-500" />
+          <Input
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Ara... (Slack, Telegram, vb.)"
+            className="bg-gray-800 border-gray-700 text-white text-xs h-7 pl-7"
+            data-testid="input-integration-search"
+          />
+        </div>
+        <div className="max-h-64 overflow-y-auto space-y-2">
+          {Object.entries(byCategory).map(([cat, items]) => (
+            <div key={cat}>
+              <p className="text-[10px] text-gray-500 uppercase font-semibold mb-1">{categoryLabels[cat] || cat}</p>
+              {(items as any[]).map((integration: any) => (
+                <button
+                  key={integration.id}
+                  onClick={() => onChange({ ...config, integrationId: integration.id, integrationAction: "", _integrationLabel: integration.nameTr })}
+                  className="w-full flex items-center gap-2 p-1.5 rounded hover:bg-gray-800 text-left"
+                  data-testid={`btn-integration-${integration.id}`}
+                >
+                  <div className="w-5 h-5 rounded flex items-center justify-center text-[10px] font-bold text-white" style={{ backgroundColor: integration.color }}>
+                    {integration.name.charAt(0)}
+                  </div>
+                  <div>
+                    <p className="text-xs text-white">{integration.nameTr}</p>
+                    <p className="text-[10px] text-gray-500">{integration.actions?.length || 0} aksiyon</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          ))}
+          {Object.keys(byCategory).length === 0 && (
+            <p className="text-xs text-gray-500 py-2 text-center">Sonuç bulunamadı</p>
+          )}
+        </div>
+        <p className="text-[10px] text-gray-600 text-center">{integrations.length} entegrasyon • {catalogData?.totalActions || 0} aksiyon</p>
+      </div>
+    );
+  }
+
+  if (!config.integrationAction && selectedIntegration) {
+    return (
+      <div className="space-y-2" data-testid="integration-action-picker">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-5 h-5 rounded flex items-center justify-center text-[10px] font-bold text-white" style={{ backgroundColor: selectedIntegration.color }}>
+              {selectedIntegration.name.charAt(0)}
+            </div>
+            <span className="text-xs text-white font-medium">{selectedIntegration.nameTr}</span>
+          </div>
+          <button onClick={() => onChange({ ...config, integrationId: "", integrationAction: "" })} className="text-gray-500 hover:text-white">
+            <X className="w-3 h-3" />
+          </button>
+        </div>
+        <label className="text-xs text-gray-400 block">Aksiyon Seç</label>
+        {selectedIntegration.actions.map((action: any) => (
+          <button
+            key={action.id}
+            onClick={() => onChange({ ...config, integrationAction: action.id, _integrationLabel: `${selectedIntegration.nameTr}: ${action.labelTr}` })}
+            className="w-full p-2 rounded bg-gray-800 hover:bg-gray-700 text-left"
+            data-testid={`btn-action-${action.id}`}
+          >
+            <p className="text-xs text-white">{action.labelTr}</p>
+            <p className="text-[10px] text-gray-500">{action.method} {action.pathTemplate.substring(0, 40)}</p>
+          </button>
+        ))}
+      </div>
+    );
+  }
+
+  if (selectedIntegration && selectedAction) {
+    return (
+      <div className="space-y-2" data-testid="integration-config-fields">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-5 h-5 rounded flex items-center justify-center text-[10px] font-bold text-white" style={{ backgroundColor: selectedIntegration.color }}>
+              {selectedIntegration.name.charAt(0)}
+            </div>
+            <div>
+              <p className="text-xs text-white">{selectedIntegration.nameTr}</p>
+              <p className="text-[10px] text-gray-500">{selectedAction.labelTr}</p>
+            </div>
+          </div>
+          <button onClick={() => onChange({ ...config, integrationAction: "" })} className="text-gray-500 hover:text-white">
+            <X className="w-3 h-3" />
+          </button>
+        </div>
+
+        <div>
+          <label className="text-xs text-gray-400 block mb-1">{selectedIntegration.authLabel}</label>
+          <Input
+            type="password"
+            value={config.apiKey || ""}
+            onChange={(e) => onChange({ ...config, apiKey: e.target.value })}
+            placeholder={selectedIntegration.authPlaceholder}
+            className="bg-gray-800 border-gray-700 text-white text-xs h-7"
+            data-testid="input-integration-apikey"
+          />
+        </div>
+
+        {Object.keys(selectedAction.fieldLabels || {}).map((field: string) => (
+          <div key={field}>
+            <label className="text-xs text-gray-400 block mb-1">
+              {selectedAction.fieldLabels[field]}
+              {selectedAction.requiredFields?.includes(field) && <span className="text-red-400 ml-0.5">*</span>}
+            </label>
+            {selectedAction.fieldTypes?.[field] === "textarea" ? (
+              <Textarea
+                value={config[field] || ""}
+                onChange={(e) => onChange({ ...config, [field]: e.target.value })}
+                placeholder={selectedAction.fieldPlaceholders?.[field] || ""}
+                className="bg-gray-800 border-gray-700 text-white text-xs min-h-[50px]"
+                data-testid={`input-integration-${field}`}
+              />
+            ) : (
+              <Input
+                value={config[field] || ""}
+                onChange={(e) => onChange({ ...config, [field]: e.target.value })}
+                placeholder={selectedAction.fieldPlaceholders?.[field] || ""}
+                className="bg-gray-800 border-gray-700 text-white text-xs h-7"
+                data-testid={`input-integration-${field}`}
+              />
+            )}
+          </div>
+        ))}
+
+        <a href={selectedIntegration.docsUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-[10px] text-blue-400 hover:text-blue-300 mt-1">
+          <ExternalLink className="w-3 h-3" /> API Dokümantasyonu
+        </a>
+      </div>
+    );
+  }
+
+  return null;
 }
 
 const dayLabels = ["Pzr", "Pzt", "Sal", "Çar", "Per", "Cum", "Cmt"];
@@ -1177,6 +1348,9 @@ function WorkflowBuilderView({ workflow, onBack }: {
           </Button>
           <Button size="sm" variant="outline" className="text-xs border-gray-700 text-gray-300" onClick={() => addNodeMutation("action", "format_data")} data-testid="button-add-format-node">
             <Database className="w-3 h-3 mr-1" /> Veri Dönüştür
+          </Button>
+          <Button size="sm" variant="outline" className="text-xs border-blue-700 text-blue-300 bg-blue-500/10" onClick={() => addNodeMutation("action", "integration")} data-testid="button-add-integration-node">
+            <Plug className="w-3 h-3 mr-1" /> Entegrasyon
           </Button>
         </div>
 

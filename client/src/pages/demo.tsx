@@ -535,7 +535,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
       return;
     }
 
-    const allowedExtensions = [".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg", ".pdf", ".docx", ".xlsx", ".xls", ".csv", ".txt", ".md", ".numbers", ".pages"];
+    const allowedExtensions = [".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg", ".pdf", ".docx", ".xlsx", ".xls", ".csv", ".txt", ".md", ".numbers", ".pages", ".xml"];
     const ext = "." + file.name.split(".").pop()?.toLowerCase();
     if (!allowedExtensions.includes(ext)) {
       toast({ title: t("demoPage.toast.unsupportedFile"), description: t("demoPage.toast.unsupportedFileDesc"), variant: "destructive" });

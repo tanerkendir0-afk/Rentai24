@@ -361,7 +361,7 @@ export const workflowTemplates: WorkflowTemplate[] = [
     triggerType: "agent_tool_complete",
     triggerConfig: {
       toolName: "create_application",
-      agentType: "hr-recruiter",
+      agentType: "hr-recruiting",
       actionType: "application_created",
     },
     nodes: [
@@ -370,9 +370,9 @@ export const workflowTemplates: WorkflowTemplate[] = [
         id: "condition-1", type: "condition", label: "Deneyim Kontrolü", config: { field: "experience", operator: "greater_than", value: "3" },
         conditionTrueNodeId: "action-1", conditionFalseNodeId: "action-3", nextNodeId: null, position: { x: 250, y: 180 },
       },
-      { id: "action-1", type: "action", actionType: "create_task", label: "Mülakat Planla", config: { title: "Mülakat: {{name}} - {{position}}", description: "3+ yıl deneyimli aday. Mülakat sürecini başlat.", agentType: "hr-recruiter", priority: "high" }, nextNodeId: "action-2", position: { x: 100, y: 310 } },
+      { id: "action-1", type: "action", actionType: "create_task", label: "Mülakat Planla", config: { title: "Mülakat: {{name}} - {{position}}", description: "3+ yıl deneyimli aday. Mülakat sürecini başlat.", agentType: "hr-recruiting", priority: "high" }, nextNodeId: "action-2", position: { x: 100, y: 310 } },
       { id: "action-2", type: "action", actionType: "notify_boss", label: "Boss Bildirimi", config: { summary: "Güçlü aday: {{name}} ({{position}}) — {{experience}} yıl deneyim", notificationType: "strong_candidate" }, nextNodeId: null, position: { x: 100, y: 440 } },
-      { id: "action-3", type: "action", actionType: "log_action", label: "Arşive Al", config: { description: "Başvuru arşivlendi: {{name}} — yetersiz deneyim", agentType: "hr-recruiter" }, nextNodeId: null, position: { x: 400, y: 310 } },
+      { id: "action-3", type: "action", actionType: "log_action", label: "Arşive Al", config: { description: "Başvuru arşivlendi: {{name}} — yetersiz deneyim", agentType: "hr-recruiting" }, nextNodeId: null, position: { x: 400, y: 310 } },
     ],
   },
   {

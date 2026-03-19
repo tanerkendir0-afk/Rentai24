@@ -58,14 +58,39 @@ export async function executeWorkflow(
   try {
     let currentNodeId: string | null | undefined = triggerNode.nextNodeId;
 
+    const MAX_STEPS = 100;
+    let stepCount = 0;
+    const visitedSequence: string[] = [];
+
     while (currentNodeId) {
       const node = nodes.find((n) => n.id === currentNodeId);
       if (!node) break;
 
+      stepCount++;
+      if (stepCount > MAX_STEPS) {
+        ctx.nodeResults.push({
+          nodeId: node.id,
+          label: node.label,
+          status: "error",
+          error: `Maximum step limit (${MAX_STEPS}) exceeded — possible cycle detected`,
+          duration: 0,
+          input: ctx.variables,
+        });
+        break;
+      }
+
       const nodeInput = { ...ctx.variables };
       const startTime = Date.now();
-      let result = await executeNode(node, ctx);
-      const duration = Date.now() - startTime;
+      const nodeTimeout = node.timeoutMs ? Math.min(node.timeoutMs, 60000) : 0;
+      let result: { nodeId: string; label: string; status: string; output?: any; error?: string };
+      if (nodeTimeout > 0) {
+        const timeoutPromise = new Promise<{ nodeId: string; label: string; status: string; error: string }>((resolve) =>
+          setTimeout(() => resolve({ nodeId: node.id, label: node.label, status: "error", error: `Node timed out after ${nodeTimeout}ms` }), nodeTimeout)
+        );
+        result = await Promise.race([executeNode(node, ctx), timeoutPromise]);
+      } else {
+        result = await executeNode(node, ctx);
+      }
 
       const maxRetries = node.maxRetries || 0;
       let attempt = 0;
@@ -73,9 +98,17 @@ export async function executeWorkflow(
         attempt++;
         const delay = node.retryDelayMs || 1000;
         await new Promise((resolve) => setTimeout(resolve, Math.min(delay, 30000)));
-        result = await executeNode(node, ctx);
+        if (nodeTimeout > 0) {
+          const retryTimeoutPromise = new Promise<{ nodeId: string; label: string; status: string; error: string }>((resolve) =>
+            setTimeout(() => resolve({ nodeId: node.id, label: node.label, status: "error", error: `Node timed out after ${nodeTimeout}ms (retry ${attempt})` }), nodeTimeout)
+          );
+          result = await Promise.race([executeNode(node, ctx), retryTimeoutPromise]);
+        } else {
+          result = await executeNode(node, ctx);
+        }
       }
 
+      const duration = Date.now() - startTime;
       ctx.nodeResults.push({ ...result, duration, input: nodeInput });
 
       if (result.status === "error") {

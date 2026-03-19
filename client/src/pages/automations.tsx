@@ -309,6 +309,7 @@ function VisualWorkflowEditor({ nodes, onChange, executionResults }: {
           node={positionedNodes.find((n: any) => n.id === selectedNodeId)}
           result={getNodeResult(selectedNodeId)}
           onClose={() => setSelectedNodeId(null)}
+          allNodes={positionedNodes}
           onChange={onChange ? (updatedNode: any) => {
             const newNodes = positionedNodes.map((n: any) => n.id === updatedNode.id ? updatedNode : n);
             onChange(newNodes);
@@ -319,13 +320,16 @@ function VisualWorkflowEditor({ nodes, onChange, executionResults }: {
   );
 }
 
-function NodeDetailPanel({ node, result, onClose, onChange }: {
+function NodeDetailPanel({ node, result, onClose, onChange, allNodes }: {
   node: any;
   result?: any;
   onClose: () => void;
   onChange?: (node: any) => void;
+  allNodes?: any[];
 }) {
   if (!node) return null;
+
+  const otherNodes = (allNodes || []).filter((n: any) => n.id !== node.id);
 
   return (
     <div
@@ -356,7 +360,7 @@ function NodeDetailPanel({ node, result, onClose, onChange }: {
           </div>
         )}
 
-        {onChange && node.type === "action" && (
+        {onChange && (
           <>
             <div>
               <label className="text-xs text-gray-400 block mb-1">Etiket</label>
@@ -367,7 +371,7 @@ function NodeDetailPanel({ node, result, onClose, onChange }: {
                 data-testid="input-node-label"
               />
             </div>
-            {Object.entries(node.config || {}).map(([key, val]) => (
+            {node.type === "action" && Object.entries(node.config || {}).map(([key, val]) => (
               <div key={key}>
                 <label className="text-xs text-gray-400 block mb-1">{key}</label>
                 <Input
@@ -379,6 +383,108 @@ function NodeDetailPanel({ node, result, onClose, onChange }: {
               </div>
             ))}
           </>
+        )}
+
+        {onChange && node.type === "condition" && (
+          <div className="border-t border-gray-800 pt-3">
+            <h4 className="text-xs text-gray-400 mb-2">Koşul Ayarları</h4>
+            <div className="space-y-2">
+              <div>
+                <label className="text-xs text-gray-500 block mb-1">Alan</label>
+                <Input
+                  value={node.config?.field || ""}
+                  onChange={(e) => onChange({ ...node, config: { ...node.config, field: e.target.value } })}
+                  className="bg-gray-800 border-gray-700 text-white text-xs h-8"
+                  placeholder="örn: status, amount"
+                  data-testid="input-condition-field"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-gray-500 block mb-1">Operatör</label>
+                <Select value={node.config?.operator || "equals"} onValueChange={(val) => onChange({ ...node, config: { ...node.config, operator: val } })}>
+                  <SelectTrigger className="bg-gray-800 border-gray-700 text-white text-xs h-8" data-testid="select-condition-operator">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(conditionOperatorLabels).map(([k, v]) => (
+                      <SelectItem key={k} value={k}>{v}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="text-xs text-gray-500 block mb-1">Değer</label>
+                <Input
+                  value={String(node.config?.value || "")}
+                  onChange={(e) => onChange({ ...node, config: { ...node.config, value: e.target.value } })}
+                  className="bg-gray-800 border-gray-700 text-white text-xs h-8"
+                  data-testid="input-condition-value"
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {onChange && otherNodes.length > 0 && (
+          <div className="border-t border-gray-800 pt-3">
+            <h4 className="text-xs text-gray-400 mb-2">Bağlantılar</h4>
+            <div className="space-y-2">
+              {node.type !== "condition" && (
+                <div>
+                  <label className="text-xs text-gray-500 block mb-1">Sonraki Düğüm</label>
+                  <Select value={node.nextNodeId || "__none__"} onValueChange={(val) => onChange({ ...node, nextNodeId: val === "__none__" ? null : val })}>
+                    <SelectTrigger className="bg-gray-800 border-gray-700 text-white text-xs h-8" data-testid="select-next-node">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">— Yok —</SelectItem>
+                      {otherNodes.map((n: any) => <SelectItem key={n.id} value={n.id}>{n.label}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              {node.type === "condition" && (
+                <>
+                  <div>
+                    <label className="text-xs text-gray-500 block mb-1">Evet → Düğüm</label>
+                    <Select value={node.conditionTrueNodeId || "__none__"} onValueChange={(val) => onChange({ ...node, conditionTrueNodeId: val === "__none__" ? null : val })}>
+                      <SelectTrigger className="bg-gray-800 border-gray-700 text-white text-xs h-8" data-testid="select-true-node">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">— Yok —</SelectItem>
+                        {otherNodes.map((n: any) => <SelectItem key={n.id} value={n.id}>{n.label}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-500 block mb-1">Hayır → Düğüm</label>
+                    <Select value={node.conditionFalseNodeId || "__none__"} onValueChange={(val) => onChange({ ...node, conditionFalseNodeId: val === "__none__" ? null : val })}>
+                      <SelectTrigger className="bg-gray-800 border-gray-700 text-white text-xs h-8" data-testid="select-false-node">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">— Yok —</SelectItem>
+                        {otherNodes.map((n: any) => <SelectItem key={n.id} value={n.id}>{n.label}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </>
+              )}
+              <div>
+                <label className="text-xs text-gray-500 block mb-1">Hata → Düğüm</label>
+                <Select value={node.onErrorNodeId || "__none__"} onValueChange={(val) => onChange({ ...node, onErrorNodeId: val === "__none__" ? null : val })}>
+                  <SelectTrigger className="bg-gray-800 border-gray-700 text-white text-xs h-8" data-testid="select-error-node">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">— Yok —</SelectItem>
+                    {otherNodes.map((n: any) => <SelectItem key={n.id} value={n.id}>{n.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
         )}
 
         {onChange && (
@@ -406,6 +512,19 @@ function NodeDetailPanel({ node, result, onClose, onChange }: {
                   onChange={(e) => onChange({ ...node, retryDelayMs: parseInt(e.target.value) || 1000 })}
                   className="bg-gray-800 border-gray-700 text-white text-xs h-8"
                   data-testid="input-retry-delay"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-gray-500 block mb-1">Zaman Aşımı (ms)</label>
+                <Input
+                  type="number"
+                  min="0"
+                  max="60000"
+                  value={node.timeoutMs || 0}
+                  onChange={(e) => onChange({ ...node, timeoutMs: parseInt(e.target.value) || 0 })}
+                  className="bg-gray-800 border-gray-700 text-white text-xs h-8"
+                  placeholder="0 = sınırsız"
+                  data-testid="input-timeout"
                 />
               </div>
             </div>
@@ -531,12 +650,244 @@ function ExecutionTimeline({ execution }: { execution: Execution }) {
   );
 }
 
+const dayLabels = ["Pzr", "Pzt", "Sal", "Çar", "Per", "Cum", "Cmt"];
+
+function TriggerConfigEditor({ triggerType, triggerConfig, onChange }: {
+  triggerType: string;
+  triggerConfig: Record<string, any>;
+  onChange: (type: string, config: Record<string, any>) => void;
+}) {
+  return (
+    <Card className="bg-gray-900/50 border-gray-800 mb-4">
+      <CardContent className="p-4">
+        <h3 className="text-sm font-medium text-white mb-3">Tetikleyici Ayarları</h3>
+        <div className="space-y-3">
+          <div>
+            <label className="text-xs text-gray-400 block mb-1">Tetikleyici Türü</label>
+            <Select value={triggerType} onValueChange={(val) => onChange(val, triggerConfig)}>
+              <SelectTrigger className="bg-gray-800 border-gray-700 text-white text-xs h-8" data-testid="select-trigger-type">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(triggerTypeLabels).map(([k, v]) => (
+                  <SelectItem key={k} value={k}>{v}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {triggerType === "agent_tool_complete" && (
+            <>
+              <div>
+                <label className="text-xs text-gray-400 block mb-1">Ajan Türü</label>
+                <Input
+                  value={triggerConfig.agentType || ""}
+                  onChange={(e) => onChange(triggerType, { ...triggerConfig, agentType: e.target.value })}
+                  placeholder="örn: bookkeeping, sales-sdr"
+                  className="bg-gray-800 border-gray-700 text-white text-xs h-8"
+                  data-testid="input-trigger-agent-type"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-gray-400 block mb-1">Araç Adı</label>
+                <Input
+                  value={triggerConfig.toolName || ""}
+                  onChange={(e) => onChange(triggerType, { ...triggerConfig, toolName: e.target.value })}
+                  placeholder="örn: send_email, generate_pdf"
+                  className="bg-gray-800 border-gray-700 text-white text-xs h-8"
+                  data-testid="input-trigger-tool-name"
+                />
+              </div>
+            </>
+          )}
+
+          {triggerType === "schedule" && (
+            <>
+              <div>
+                <label className="text-xs text-gray-400 block mb-1">Zamanlama Türü</label>
+                <Select
+                  value={triggerConfig.scheduleType || "daily"}
+                  onValueChange={(val) => onChange(triggerType, { ...triggerConfig, scheduleType: val })}
+                >
+                  <SelectTrigger className="bg-gray-800 border-gray-700 text-white text-xs h-8" data-testid="select-schedule-type">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="daily">Her Gün</SelectItem>
+                    <SelectItem value="weekly">Haftalık</SelectItem>
+                    <SelectItem value="monthly">Aylık</SelectItem>
+                    <SelectItem value="custom">Özel (Cron)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {triggerConfig.scheduleType !== "custom" && (
+                <div className="flex gap-2">
+                  <div className="flex-1">
+                    <label className="text-xs text-gray-400 block mb-1">Saat</label>
+                    <Select
+                      value={String(triggerConfig.scheduleHour ?? 9)}
+                      onValueChange={(val) => onChange(triggerType, { ...triggerConfig, scheduleHour: parseInt(val) })}
+                    >
+                      <SelectTrigger className="bg-gray-800 border-gray-700 text-white text-xs h-8" data-testid="select-schedule-hour">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Array.from({ length: 24 }, (_, i) => (
+                          <SelectItem key={i} value={String(i)}>{String(i).padStart(2, "0")}:00</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex-1">
+                    <label className="text-xs text-gray-400 block mb-1">Dakika</label>
+                    <Select
+                      value={String(triggerConfig.scheduleMinute ?? 0)}
+                      onValueChange={(val) => onChange(triggerType, { ...triggerConfig, scheduleMinute: parseInt(val) })}
+                    >
+                      <SelectTrigger className="bg-gray-800 border-gray-700 text-white text-xs h-8" data-testid="select-schedule-minute">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {[0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55].map((m) => (
+                          <SelectItem key={m} value={String(m)}>{String(m).padStart(2, "0")}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              )}
+
+              {triggerConfig.scheduleType === "weekly" && (
+                <div>
+                  <label className="text-xs text-gray-400 block mb-1">Günler</label>
+                  <div className="flex gap-1">
+                    {dayLabels.map((label, i) => {
+                      const selected = (triggerConfig.scheduleDaysOfWeek || []).includes(i);
+                      return (
+                        <button
+                          key={i}
+                          className={`px-2 py-1 text-[10px] rounded border ${
+                            selected ? "bg-blue-600 border-blue-500 text-white" : "bg-gray-800 border-gray-700 text-gray-400"
+                          }`}
+                          onClick={() => {
+                            const days = triggerConfig.scheduleDaysOfWeek || [];
+                            const next = selected ? days.filter((d: number) => d !== i) : [...days, i];
+                            onChange(triggerType, { ...triggerConfig, scheduleDaysOfWeek: next });
+                          }}
+                          data-testid={`button-day-${i}`}
+                        >
+                          {label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {triggerConfig.scheduleType === "monthly" && (
+                <div>
+                  <label className="text-xs text-gray-400 block mb-1">Ayın Günü</label>
+                  <Select
+                    value={String(triggerConfig.scheduleDayOfMonth || 1)}
+                    onValueChange={(val) => onChange(triggerType, { ...triggerConfig, scheduleDayOfMonth: parseInt(val) })}
+                  >
+                    <SelectTrigger className="bg-gray-800 border-gray-700 text-white text-xs h-8" data-testid="select-schedule-day">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 28 }, (_, i) => (
+                        <SelectItem key={i + 1} value={String(i + 1)}>{i + 1}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {triggerConfig.scheduleType === "custom" && (
+                <div>
+                  <label className="text-xs text-gray-400 block mb-1">Cron İfadesi</label>
+                  <Input
+                    value={triggerConfig.cronExpression || ""}
+                    onChange={(e) => onChange(triggerType, { ...triggerConfig, cronExpression: e.target.value })}
+                    placeholder="*/5 * * * *"
+                    className="bg-gray-800 border-gray-700 text-white text-xs h-8 font-mono"
+                    data-testid="input-cron-expression"
+                  />
+                </div>
+              )}
+            </>
+          )}
+
+          {triggerType === "webhook" && (
+            <div>
+              <label className="text-xs text-gray-400 block mb-1">Webhook Yolu</label>
+              <Input
+                value={triggerConfig.webhookPath || ""}
+                onChange={(e) => onChange(triggerType, { ...triggerConfig, webhookPath: e.target.value })}
+                placeholder="/my-webhook"
+                className="bg-gray-800 border-gray-700 text-white text-xs h-8"
+                data-testid="input-webhook-path"
+              />
+            </div>
+          )}
+
+          {triggerType === "threshold" && (
+            <>
+              <div>
+                <label className="text-xs text-gray-400 block mb-1">Alan Adı</label>
+                <Input
+                  value={triggerConfig.thresholdField || ""}
+                  onChange={(e) => onChange(triggerType, { ...triggerConfig, thresholdField: e.target.value })}
+                  placeholder="örn: amount, count"
+                  className="bg-gray-800 border-gray-700 text-white text-xs h-8"
+                  data-testid="input-threshold-field"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-gray-400 block mb-1">Karşılaştırma</label>
+                <Select
+                  value={triggerConfig.thresholdOperator || "gt"}
+                  onValueChange={(val) => onChange(triggerType, { ...triggerConfig, thresholdOperator: val })}
+                >
+                  <SelectTrigger className="bg-gray-800 border-gray-700 text-white text-xs h-8" data-testid="select-threshold-operator">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="gt">Büyüktür (&gt;)</SelectItem>
+                    <SelectItem value="lt">Küçüktür (&lt;)</SelectItem>
+                    <SelectItem value="gte">Büyük Eşit (&gt;=)</SelectItem>
+                    <SelectItem value="lte">Küçük Eşit (&lt;=)</SelectItem>
+                    <SelectItem value="eq">Eşittir (=)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="text-xs text-gray-400 block mb-1">Eşik Değeri</label>
+                <Input
+                  type="number"
+                  value={triggerConfig.thresholdValue || 0}
+                  onChange={(e) => onChange(triggerType, { ...triggerConfig, thresholdValue: parseFloat(e.target.value) || 0 })}
+                  className="bg-gray-800 border-gray-700 text-white text-xs h-8"
+                  data-testid="input-threshold-value"
+                />
+              </div>
+            </>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 function WorkflowBuilderView({ workflow, onBack }: {
   workflow: AutomationWorkflow;
   onBack: () => void;
 }) {
   const { toast } = useToast();
   const [nodes, setNodes] = useState(workflow.nodes || []);
+  const [triggerType, setTriggerType] = useState(workflow.triggerType || "manual");
+  const [triggerConfig, setTriggerConfig] = useState(workflow.triggerConfig || {});
   const [hasChanges, setHasChanges] = useState(false);
 
   const handleNodesChange = (newNodes: any[]) => {
@@ -544,9 +895,15 @@ function WorkflowBuilderView({ workflow, onBack }: {
     setHasChanges(true);
   };
 
+  const handleTriggerChange = (type: string, config: Record<string, any>) => {
+    setTriggerType(type);
+    setTriggerConfig(config);
+    setHasChanges(true);
+  };
+
   const saveMutation = useMutation({
     mutationFn: async () => {
-      await apiRequest("PATCH", `/api/automations/${workflow.id}`, { nodes });
+      await apiRequest("PATCH", `/api/automations/${workflow.id}`, { nodes, triggerType, triggerConfig });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/automations"] });
@@ -655,6 +1012,12 @@ function WorkflowBuilderView({ workflow, onBack }: {
             <Database className="w-3 h-3 mr-1" /> Veri Dönüştür
           </Button>
         </div>
+
+        <TriggerConfigEditor
+          triggerType={triggerType}
+          triggerConfig={triggerConfig}
+          onChange={handleTriggerChange}
+        />
 
         <VisualWorkflowEditor nodes={nodes} onChange={handleNodesChange} />
 

@@ -6954,9 +6954,9 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
     }
   });
 
-  const validTriggerTypes = ["agent_tool_complete", "webhook", "schedule", "manual"];
+  const validTriggerTypes = ["agent_tool_complete", "webhook", "schedule", "manual", "threshold"];
   const validNodeTypes = ["trigger", "action", "condition", "delay"];
-  const validActionTypes = ["send_email", "create_task", "notify_boss", "update_lead", "webhook_call", "log_action", "calculate"];
+  const validActionTypes = ["send_email", "create_task", "notify_boss", "update_lead", "webhook_call", "log_action", "calculate", "http_request", "set_variable", "format_data", "whatsapp_message", "multi_email", "db_query"];
 
   app.post("/api/automations", requireAuth, async (req, res) => {
     try {
@@ -7051,7 +7051,7 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
       const workflowId = Number(req.params.id);
       if (isNaN(workflowId)) return res.status(400).json({ error: "Invalid workflow ID" });
 
-      const { name, description, triggerConfig, nodes, isActive } = req.body;
+      const { name, description, triggerType, triggerConfig, nodes, isActive } = req.body;
 
       const updates: Record<string, any> = { updatedAt: new Date() };
       if (name !== undefined) {
@@ -7061,6 +7061,12 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
         updates.name = name.trim();
       }
       if (description !== undefined) updates.description = description ? String(description).substring(0, 1000) : null;
+      if (triggerType !== undefined) {
+        if (!validTriggerTypes.includes(triggerType)) {
+          return res.status(400).json({ error: `triggerType must be one of: ${validTriggerTypes.join(", ")}` });
+        }
+        updates.triggerType = triggerType;
+      }
       if (triggerConfig !== undefined) updates.triggerConfig = triggerConfig;
       if (nodes !== undefined) {
         if (Array.isArray(nodes)) {
@@ -7070,6 +7076,15 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
             }
             if (node.type === "action" && node.actionType && !validActionTypes.includes(node.actionType)) {
               return res.status(400).json({ error: `Invalid action type: ${node.actionType}` });
+            }
+          }
+          const triggerIds = new Set(nodes.filter((n: any) => n.type === "trigger").map((n: any) => n.id));
+          for (const node of nodes) {
+            const targets = [node.nextNodeId, node.conditionTrueNodeId, node.conditionFalseNodeId, node.onErrorNodeId].filter(Boolean);
+            for (const t of targets) {
+              if (triggerIds.has(t)) {
+                return res.status(400).json({ error: `Cannot connect to trigger node: ${t}` });
+              }
             }
           }
         }

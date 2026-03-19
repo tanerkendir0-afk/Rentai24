@@ -7157,7 +7157,7 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
       const triggerData = req.body.data || {};
 
       const { executeWorkflow } = await import("./n8n/workflowEngine");
-      const result = await executeWorkflow(workflowId, userId, triggerData);
+      const result = await executeWorkflow(workflowId, userId, triggerData, { allowInactive: true });
 
       res.json(result);
     } catch (error) {

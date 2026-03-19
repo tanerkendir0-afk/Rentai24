@@ -16,15 +16,19 @@ export interface ExecutionContext {
 export async function executeWorkflow(
   workflowId: number,
   userId: number,
-  triggerData: Record<string, any>
+  triggerData: Record<string, any>,
+  options?: { allowInactive?: boolean }
 ): Promise<{ success: boolean; executionId: number; error?: string }> {
   const [workflow] = await db
     .select()
     .from(automationWorkflows)
     .where(and(eq(automationWorkflows.id, workflowId), eq(automationWorkflows.userId, userId)));
 
-  if (!workflow || !workflow.isActive) {
-    return { success: false, executionId: 0, error: "Workflow not found or inactive" };
+  if (!workflow) {
+    return { success: false, executionId: 0, error: "Workflow not found" };
+  }
+  if (!workflow.isActive && !options?.allowInactive) {
+    return { success: false, executionId: 0, error: "Workflow is inactive. Activate it first or use manual run." };
   }
 
   const [execution] = await db

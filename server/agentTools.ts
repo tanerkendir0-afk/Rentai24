@@ -2423,25 +2423,35 @@ const TOOL_KEYWORD_MAP: Record<string, string[]> = {
   generate_pdf: ["pdf", "belge", "document", "fatura oluştur", "rapor oluştur", "teklif oluştur", "makbuz", "invoice", "report", "proposal", "receipt", "pdf oluştur", "pdf generate", "dosya oluştur"],
 };
 
-export function getRelevantToolsForMessage(
+export async function getRelevantToolsForMessage(
   agentType: string,
   message: string
-): OpenAI.ChatCompletionTool[] | undefined {
+): Promise<OpenAI.ChatCompletionTool[] | undefined> {
   const allTools = agentToolRegistry[agentType];
   if (!allTools) return undefined;
 
-  if (allTools.length <= 5) return allTools;
+  let skillTools: OpenAI.ChatCompletionTool[] = [];
+  try {
+    const { getSkillsForAgent, skillToOpenAITool } = await import("./n8n/skillEngine");
+    const skills = await getSkillsForAgent(agentType);
+    skillTools = skills.map(skillToOpenAITool);
+  } catch {}
+
+  const combined = [...allTools, ...skillTools];
+
+  if (combined.length <= 5) return combined;
 
   const msgLower = message.toLowerCase();
 
-  const relevant = allTools.filter((tool) => {
+  const relevant = combined.filter((tool) => {
     const toolName = (tool as OpenAI.ChatCompletionTool & { function: { name: string } }).function.name;
+    if (toolName.startsWith("skill_")) return true;
     const keywords = TOOL_KEYWORD_MAP[toolName];
     if (!keywords) return true;
     return keywords.some((kw) => msgLower.includes(kw));
   });
 
-  if (relevant.length === 0) return allTools;
+  if (relevant.length === 0) return combined;
 
   return relevant;
 }
@@ -7014,8 +7024,31 @@ ${activeRentals.map(r => `  ${r.agentType}: ${r.messagesUsed}/${r.messagesLimit}
       }
     }
 
-    default:
+    default: {
+      if (toolName.startsWith("skill_")) {
+        try {
+          const { executeSkillByName } = await import("./n8n/skillEngine");
+          const skillName = toolName.replace("skill_", "");
+          const result = await executeSkillByName(skillName, args as Record<string, any>);
+          if (result.success) {
+            await storage.createAgentAction({
+              userId, agentType, actionType: "skill_execution",
+              description: `Skill executed: ${skillName}`,
+              metadata: { skillName, params: args, output: result.output, durationMs: result.durationMs },
+            });
+            return {
+              result: typeof result.output === "string" ? result.output : JSON.stringify(result.output, null, 2),
+              actionType: "skill_execution",
+              actionDescription: `⚡ Skill: ${skillName} (${result.durationMs}ms)`,
+            };
+          }
+          return { result: `Skill error: ${result.error}` };
+        } catch (err: any) {
+          return { result: `Skill execution failed: ${err.message}` };
+        }
+      }
       return { result: `Unknown tool: ${toolName}` };
+    }
   }
   } catch (marketplaceErr: any) {
     if (toolName.startsWith("marketplace_")) {

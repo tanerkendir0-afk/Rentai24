@@ -555,6 +555,35 @@ async function executeAction(
       }
     }
 
+    case "run_skill": {
+      const skillName = config.skillName;
+      const skillId = config.skillId;
+      if (!skillName && !skillId) return { status: "error", error: "No skill specified" };
+
+      const { executeSkill, executeSkillByName } = await import("./skillEngine");
+
+      const skillParams: Record<string, any> = {};
+      for (const [k, v] of Object.entries(config)) {
+        if (k !== "skillName" && k !== "skillId" && !k.startsWith("_")) {
+          skillParams[k] = typeof v === "string" ? resolveTemplate(v, ctx) : v;
+        }
+      }
+
+      const result = skillId
+        ? await executeSkill(Number(skillId), skillParams)
+        : await executeSkillByName(skillName, skillParams);
+
+      if (result.output) {
+        ctx.variables.skillResult = result.output;
+      }
+
+      return {
+        status: result.success ? "success" : "error",
+        output: { skill: skillName || skillId, result: result.output, durationMs: result.durationMs },
+        error: result.error,
+      };
+    }
+
     case "integration": {
       const integrationId = config.integrationId;
       const actionId = config.integrationAction;

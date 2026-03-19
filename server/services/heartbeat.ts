@@ -41,7 +41,7 @@ async function checkAgent(agentId: string): Promise<HeartbeatStatus> {
     if (registeredTools === undefined) {
       errors.push(`No tool registry entry for ${agentId}`);
     } else {
-      getRelevantToolsForMessage(agentId, "test heartbeat");
+      await getRelevantToolsForMessage(agentId, "test heartbeat");
     }
   } catch (e: any) {
     errors.push(`Tool check failed: ${e.message}`);

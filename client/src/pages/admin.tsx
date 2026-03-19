@@ -12,7 +12,8 @@ import {
   Lock, Brain, Database, Zap, MessageSquare, Mail, DollarSign, AlertTriangle, HelpCircle,
   Users, BarChart3, CreditCard, LogOut, Activity, ShoppingCart, UserCheck,
   Download, FileDown, CheckCircle, XCircle, Filter, Send, Crown, Bot, Loader2,
-  Plus, Clock, ChevronLeft, MoreVertical, History, FlaskConical, ArrowLeftRight, Pencil, Check, X
+  Plus, Clock, ChevronLeft, MoreVertical, History, FlaskConical, ArrowLeftRight, Pencil, Check, X,
+  Sparkles, Code2, Globe, Calculator, FileSearch, Hash, Wrench, Play, Settings2, Eye, EyeOff, Search
 } from "lucide-react";
 
 const ADMIN_API = `/api/${import.meta.env.VITE_ADMIN_PATH}`;
@@ -6202,6 +6203,612 @@ function AdminFeedbackPanel({ token }: { token: string }) {
   );
 }
 
+const SKILL_CATEGORY_LABELS: Record<string, string> = {
+  data_processing: "Veri İşleme", text_analysis: "Metin Analizi", communication: "İletişim",
+  calculation: "Hesaplama", integration: "Entegrasyon", file_ops: "Dosya İşlemleri",
+  ai_powered: "AI Destekli", utility: "Yardımcı Araçlar",
+};
+
+const SKILL_TYPE_LABELS: Record<string, string> = {
+  builtin: "Yerleşik", http: "HTTP", prompt: "AI Prompt", expression: "İfade",
+};
+
+const SKILL_ICONS: Record<string, any> = {
+  FileText, Globe, Calculator, Hash, Code2, Zap, Brain, Wrench, Search, FileSearch, Mail,
+};
+
+interface SkillData {
+  id: number; name: string; nameTr: string; description: string; descriptionTr?: string;
+  category: string; skillType: string; icon: string; isBuiltin: boolean; isActive: boolean;
+  parameters: Array<{ name: string; type: string; required: boolean; description: string }>;
+  keywords: string[];
+  config: Record<string, any>;
+}
+
+interface SkillAssignment {
+  id: number; skillId: number; agentSlug: string; isEnabled: boolean;
+}
+
+function SkillsPanel({ token }: { token: string }) {
+  const { toast } = useToast();
+  const [skills, setSkills] = useState<SkillData[]>([]);
+  const [assignments, setAssignments] = useState<SkillAssignment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterCategory, setFilterCategory] = useState("all");
+  const [filterType, setFilterType] = useState("all");
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [selectedSkill, setSelectedSkill] = useState<SkillData | null>(null);
+  const [showAssignModal, setShowAssignModal] = useState(false);
+  const [assignSkill, setAssignSkill] = useState<SkillData | null>(null);
+
+  const loadSkills = useCallback(async () => {
+    try {
+      setLoading(true);
+      const res = await fetch(`${ADMIN_API}/skills`, { headers: { Authorization: `Bearer ${token}` } });
+      if (!res.ok) throw new Error("Failed to load");
+      const data = await res.json();
+      setSkills(data.skills || []);
+      setAssignments(data.assignments || []);
+    } catch (err: any) {
+      toast({ title: "Hata", description: err.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  }, [token, toast]);
+
+  useEffect(() => { loadSkills(); }, [loadSkills]);
+
+  const seedSkills = async () => {
+    try {
+      const res = await fetch(`${ADMIN_API}/skills/seed`, { method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } });
+      if (!res.ok) throw new Error("Seed failed");
+      const data = await res.json();
+      toast({ title: "Başarılı", description: `${data.count} beceri yüklendi` });
+      loadSkills();
+    } catch (err: any) {
+      toast({ title: "Hata", description: err.message, variant: "destructive" });
+    }
+  };
+
+  const toggleSkill = async (skill: SkillData) => {
+    try {
+      const res = await fetch(`${ADMIN_API}/skills/${skill.id}`, {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ isActive: !skill.isActive }),
+      });
+      if (!res.ok) throw new Error("Update failed");
+      toast({ title: skill.isActive ? "Devre dışı" : "Aktif", description: `${skill.nameTr} ${skill.isActive ? "devre dışı bırakıldı" : "aktifleştirildi"}` });
+      loadSkills();
+    } catch (err: any) {
+      toast({ title: "Hata", description: err.message, variant: "destructive" });
+    }
+  };
+
+  const deleteSkill = async (skill: SkillData) => {
+    if (!confirm(`"${skill.nameTr}" becerisini silmek istediğinize emin misiniz?`)) return;
+    try {
+      const res = await fetch(`${ADMIN_API}/skills/${skill.id}`, {
+        method: "DELETE", headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error("Delete failed");
+      toast({ title: "Silindi", description: `${skill.nameTr} silindi` });
+      loadSkills();
+    } catch (err: any) {
+      toast({ title: "Hata", description: err.message, variant: "destructive" });
+    }
+  };
+
+  const bulkAssign = async (skillId: number, agents: string[]) => {
+    try {
+      const res = await fetch(`${ADMIN_API}/skills/${skillId}/agents/bulk`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ agents }),
+      });
+      if (!res.ok) throw new Error("Assign failed");
+      toast({ title: "Atandı", description: `${agents.length} ajana atandı` });
+      loadSkills();
+      setShowAssignModal(false);
+    } catch (err: any) {
+      toast({ title: "Hata", description: err.message, variant: "destructive" });
+    }
+  };
+
+  const filteredSkills = skills.filter(s => {
+    if (filterCategory !== "all" && s.category !== filterCategory) return false;
+    if (filterType !== "all" && s.skillType !== filterType) return false;
+    if (searchTerm && !s.nameTr.toLowerCase().includes(searchTerm.toLowerCase()) && !s.name.toLowerCase().includes(searchTerm.toLowerCase())) return false;
+    return true;
+  });
+
+  const categories = [...new Set(skills.map(s => s.category))];
+  const activeCount = skills.filter(s => s.isActive).length;
+  const builtinCount = skills.filter(s => s.isBuiltin).length;
+  const customCount = skills.filter(s => !s.isBuiltin).length;
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="w-8 h-8 animate-spin text-cyan-400" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4" data-testid="skills-panel">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Card className="bg-gradient-to-br from-cyan-900/40 to-blue-900/40 border-cyan-700/30">
+          <CardContent className="p-4 text-center">
+            <div className="text-2xl font-bold text-cyan-300" data-testid="skills-total-count">{skills.length}</div>
+            <div className="text-xs text-gray-400">Toplam Beceri</div>
+          </CardContent>
+        </Card>
+        <Card className="bg-gradient-to-br from-green-900/40 to-emerald-900/40 border-green-700/30">
+          <CardContent className="p-4 text-center">
+            <div className="text-2xl font-bold text-green-300" data-testid="skills-active-count">{activeCount}</div>
+            <div className="text-xs text-gray-400">Aktif</div>
+          </CardContent>
+        </Card>
+        <Card className="bg-gradient-to-br from-violet-900/40 to-purple-900/40 border-violet-700/30">
+          <CardContent className="p-4 text-center">
+            <div className="text-2xl font-bold text-violet-300" data-testid="skills-builtin-count">{builtinCount}</div>
+            <div className="text-xs text-gray-400">Yerleşik</div>
+          </CardContent>
+        </Card>
+        <Card className="bg-gradient-to-br from-amber-900/40 to-orange-900/40 border-amber-700/30">
+          <CardContent className="p-4 text-center">
+            <div className="text-2xl font-bold text-amber-300" data-testid="skills-custom-count">{customCount}</div>
+            <div className="text-xs text-gray-400">Özel</div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="flex flex-wrap gap-2 items-center">
+        <div className="relative flex-1 min-w-[200px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <Input
+            placeholder="Beceri ara..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-9 bg-[#0B0F2E] border-[#1E2448] text-white"
+            data-testid="skills-search-input"
+          />
+        </div>
+        <Select value={filterCategory} onValueChange={setFilterCategory}>
+          <SelectTrigger className="w-[160px] bg-[#0B0F2E] border-[#1E2448] text-white" data-testid="skills-filter-category">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tüm Kategoriler</SelectItem>
+            {categories.map(c => (
+              <SelectItem key={c} value={c}>{SKILL_CATEGORY_LABELS[c] || c}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={filterType} onValueChange={setFilterType}>
+          <SelectTrigger className="w-[130px] bg-[#0B0F2E] border-[#1E2448] text-white" data-testid="skills-filter-type">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tüm Tipler</SelectItem>
+            <SelectItem value="builtin">Yerleşik</SelectItem>
+            <SelectItem value="http">HTTP</SelectItem>
+            <SelectItem value="prompt">AI Prompt</SelectItem>
+            <SelectItem value="expression">İfade</SelectItem>
+          </SelectContent>
+        </Select>
+        <Button onClick={() => setShowCreateModal(true)} className="bg-cyan-600 hover:bg-cyan-700" data-testid="skills-create-btn">
+          <Plus className="w-4 h-4 mr-1" /> Yeni Beceri
+        </Button>
+        {skills.length === 0 && (
+          <Button onClick={seedSkills} variant="outline" className="border-cyan-600 text-cyan-400 hover:bg-cyan-900/30" data-testid="skills-seed-btn">
+            <Zap className="w-4 h-4 mr-1" /> Yerleşik Becerileri Yükle
+          </Button>
+        )}
+      </div>
+
+      <div className="grid gap-3">
+        {filteredSkills.map(skill => {
+          const IconComp = SKILL_ICONS[skill.icon] || Sparkles;
+          const assignedAgents = assignments.filter(a => a.skillId === skill.id && a.isEnabled);
+          return (
+            <Card key={skill.id} className={`border transition-all ${skill.isActive ? "bg-[#0B0F2E]/80 border-[#1E2448] hover:border-cyan-700/50" : "bg-[#0B0F2E]/40 border-[#1E2448]/50 opacity-60"}`} data-testid={`skill-card-${skill.id}`}>
+              <CardContent className="p-4">
+                <div className="flex items-start gap-3">
+                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${skill.isActive ? "bg-cyan-900/50 text-cyan-400" : "bg-gray-800 text-gray-500"}`}>
+                    <IconComp className="w-5 h-5" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="font-semibold text-white text-sm" data-testid={`skill-name-${skill.id}`}>{skill.nameTr}</h3>
+                      <Badge variant="outline" className={`text-[10px] ${skill.isBuiltin ? "border-violet-600 text-violet-400" : "border-amber-600 text-amber-400"}`}>
+                        {skill.isBuiltin ? "Yerleşik" : "Özel"}
+                      </Badge>
+                      <Badge variant="outline" className="text-[10px] border-blue-600 text-blue-400">
+                        {SKILL_CATEGORY_LABELS[skill.category] || skill.category}
+                      </Badge>
+                      <Badge variant="outline" className="text-[10px] border-gray-600 text-gray-400">
+                        {SKILL_TYPE_LABELS[skill.skillType] || skill.skillType}
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-gray-400 mt-1">{skill.descriptionTr || skill.description}</p>
+                    {skill.parameters && skill.parameters.length > 0 && (
+                      <div className="flex gap-1 mt-2 flex-wrap">
+                        {skill.parameters.map((p: any) => (
+                          <span key={p.name} className={`text-[10px] px-1.5 py-0.5 rounded ${p.required ? "bg-red-900/30 text-red-400 border border-red-800/30" : "bg-gray-800 text-gray-500"}`}>
+                            {p.name}{p.required ? "*" : ""}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    {assignedAgents.length > 0 && (
+                      <div className="flex gap-1 mt-2 flex-wrap">
+                        {assignedAgents.map(a => {
+                          const agent = AGENTS_DATA.find(ag => ag.slug === a.agentSlug);
+                          return (
+                            <span key={a.agentSlug} className="text-[10px] px-1.5 py-0.5 rounded bg-cyan-900/30 text-cyan-400 border border-cyan-800/30">
+                              {agent?.name || a.agentSlug}
+                            </span>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-gray-400 hover:text-cyan-400" onClick={() => { setAssignSkill(skill); setShowAssignModal(true); }} data-testid={`skill-assign-${skill.id}`} title="Ajan Ata">
+                      <Users className="w-4 h-4" />
+                    </Button>
+                    <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-gray-400 hover:text-blue-400" onClick={() => setSelectedSkill(skill)} data-testid={`skill-detail-${skill.id}`} title="Detay">
+                      <Eye className="w-4 h-4" />
+                    </Button>
+                    <Button size="sm" variant="ghost" className={`h-8 w-8 p-0 ${skill.isActive ? "text-green-400 hover:text-red-400" : "text-gray-500 hover:text-green-400"}`} onClick={() => toggleSkill(skill)} data-testid={`skill-toggle-${skill.id}`} title={skill.isActive ? "Devre Dışı" : "Aktif Et"}>
+                      {skill.isActive ? <ToggleRight className="w-4 h-4" /> : <ToggleLeft className="w-4 h-4" />}
+                    </Button>
+                    {!skill.isBuiltin && (
+                      <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-gray-400 hover:text-red-400" onClick={() => deleteSkill(skill)} data-testid={`skill-delete-${skill.id}`} title="Sil">
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+        {filteredSkills.length === 0 && (
+          <div className="text-center py-12 text-gray-500">
+            <Sparkles className="w-12 h-12 mx-auto mb-3 opacity-30" />
+            <p className="text-sm">{skills.length === 0 ? "Henüz beceri yok. Yerleşik becerileri yükleyin." : "Filtreyle eşleşen beceri bulunamadı."}</p>
+          </div>
+        )}
+      </div>
+
+      {showAssignModal && assignSkill && (
+        <AgentAssignModal
+          skill={assignSkill}
+          currentAssignments={assignments.filter(a => a.skillId === assignSkill.id && a.isEnabled).map(a => a.agentSlug)}
+          onSave={(agents) => bulkAssign(assignSkill.id, agents)}
+          onClose={() => { setShowAssignModal(false); setAssignSkill(null); }}
+        />
+      )}
+
+      {showCreateModal && (
+        <CreateSkillModal
+          token={token}
+          onClose={() => setShowCreateModal(false)}
+          onCreated={() => { setShowCreateModal(false); loadSkills(); }}
+        />
+      )}
+
+      {selectedSkill && (
+        <SkillDetailModal
+          skill={selectedSkill}
+          assignments={assignments.filter(a => a.skillId === selectedSkill.id)}
+          onClose={() => setSelectedSkill(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+function AgentAssignModal({ skill, currentAssignments, onSave, onClose }: {
+  skill: SkillData; currentAssignments: string[]; onSave: (agents: string[]) => void; onClose: () => void;
+}) {
+  const [selected, setSelected] = useState<string[]>(currentAssignments);
+  const toggle = (slug: string) => {
+    setSelected(prev => prev.includes(slug) ? prev.filter(s => s !== slug) : [...prev, slug]);
+  };
+  return (
+    <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-[#0B0F2E] border border-[#1E2448] rounded-xl w-full max-w-md p-6 space-y-4" onClick={e => e.stopPropagation()} data-testid="agent-assign-modal">
+        <div className="flex justify-between items-center">
+          <h3 className="text-lg font-semibold text-white">Ajan Atama: {skill.nameTr}</h3>
+          <Button size="sm" variant="ghost" onClick={onClose} className="text-gray-400"><X className="w-4 h-4" /></Button>
+        </div>
+        <p className="text-xs text-gray-400">Bu beceriyi kullanabilecek ajanları seçin</p>
+        <div className="space-y-2 max-h-[300px] overflow-y-auto">
+          {AGENTS_DATA.map(agent => (
+            <button
+              key={agent.slug}
+              onClick={() => toggle(agent.slug)}
+              className={`w-full flex items-center gap-3 p-3 rounded-lg border transition-all ${
+                selected.includes(agent.slug)
+                  ? "bg-cyan-900/30 border-cyan-600 text-white"
+                  : "bg-[#111633] border-[#1E2448] text-gray-400 hover:border-gray-500"
+              }`}
+              data-testid={`assign-agent-${agent.slug}`}
+            >
+              <span className="text-lg">{agent.emoji}</span>
+              <span className="text-sm font-medium flex-1 text-left">{agent.name}</span>
+              {selected.includes(agent.slug) && <CheckCircle className="w-4 h-4 text-cyan-400" />}
+            </button>
+          ))}
+        </div>
+        <div className="flex gap-2">
+          <Button onClick={() => setSelected(AGENTS_DATA.map(a => a.slug))} variant="outline" className="flex-1 text-xs border-gray-600 text-gray-300" data-testid="assign-select-all">Tümünü Seç</Button>
+          <Button onClick={() => setSelected([])} variant="outline" className="flex-1 text-xs border-gray-600 text-gray-300" data-testid="assign-clear-all">Temizle</Button>
+        </div>
+        <Button onClick={() => onSave(selected)} className="w-full bg-cyan-600 hover:bg-cyan-700" data-testid="assign-save-btn">
+          Kaydet ({selected.length} ajan)
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function CreateSkillModal({ token, onClose, onCreated }: { token: string; onClose: () => void; onCreated: () => void }) {
+  const { toast } = useToast();
+  const [form, setForm] = useState({
+    name: "", nameTr: "", description: "", descriptionTr: "",
+    category: "utility", skillType: "http", icon: "Zap",
+    config: { url: "", method: "GET", headers: {} },
+    parameters: [] as Array<{ name: string; type: string; required: boolean; description: string }>,
+  });
+  const [saving, setSaving] = useState(false);
+  const [newParam, setNewParam] = useState({ name: "", type: "string", required: true, description: "" });
+
+  const addParam = () => {
+    if (!newParam.name) return;
+    setForm(f => ({ ...f, parameters: [...f.parameters, { ...newParam }] }));
+    setNewParam({ name: "", type: "string", required: true, description: "" });
+  };
+
+  const removeParam = (idx: number) => {
+    setForm(f => ({ ...f, parameters: f.parameters.filter((_, i) => i !== idx) }));
+  };
+
+  const save = async () => {
+    if (!form.name || !form.nameTr || !form.description) {
+      toast({ title: "Hata", description: "Ad, Türkçe Ad ve Açıklama zorunludur", variant: "destructive" });
+      return;
+    }
+    setSaving(true);
+    try {
+      const res = await fetch(`${ADMIN_API}/skills`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      if (!res.ok) throw new Error("Create failed");
+      toast({ title: "Oluşturuldu", description: `${form.nameTr} becerisi oluşturuldu` });
+      onCreated();
+    } catch (err: any) {
+      toast({ title: "Hata", description: err.message, variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-[#0B0F2E] border border-[#1E2448] rounded-xl w-full max-w-lg p-6 space-y-4 max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()} data-testid="create-skill-modal">
+        <div className="flex justify-between items-center">
+          <h3 className="text-lg font-semibold text-white">Yeni Beceri Oluştur</h3>
+          <Button size="sm" variant="ghost" onClick={onClose} className="text-gray-400"><X className="w-4 h-4" /></Button>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="text-xs text-gray-400 mb-1 block">Ad (EN)</label>
+            <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="my_skill" className="bg-[#111633] border-[#1E2448] text-white" data-testid="create-skill-name" />
+          </div>
+          <div>
+            <label className="text-xs text-gray-400 mb-1 block">Ad (TR)</label>
+            <Input value={form.nameTr} onChange={e => setForm(f => ({ ...f, nameTr: e.target.value }))} placeholder="Benim Becerim" className="bg-[#111633] border-[#1E2448] text-white" data-testid="create-skill-name-tr" />
+          </div>
+        </div>
+
+        <div>
+          <label className="text-xs text-gray-400 mb-1 block">Açıklama</label>
+          <Input value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="What this skill does..." className="bg-[#111633] border-[#1E2448] text-white" data-testid="create-skill-description" />
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="text-xs text-gray-400 mb-1 block">Kategori</label>
+            <Select value={form.category} onValueChange={v => setForm(f => ({ ...f, category: v }))}>
+              <SelectTrigger className="bg-[#111633] border-[#1E2448] text-white" data-testid="create-skill-category">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(SKILL_CATEGORY_LABELS).map(([k, v]) => (
+                  <SelectItem key={k} value={k}>{v}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <label className="text-xs text-gray-400 mb-1 block">Tip</label>
+            <Select value={form.skillType} onValueChange={v => setForm(f => ({ ...f, skillType: v }))}>
+              <SelectTrigger className="bg-[#111633] border-[#1E2448] text-white" data-testid="create-skill-type">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(SKILL_TYPE_LABELS).filter(([k]) => k !== "builtin").map(([k, v]) => (
+                  <SelectItem key={k} value={k}>{v}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {form.skillType === "http" && (
+          <div className="space-y-2 p-3 bg-[#111633] rounded-lg border border-[#1E2448]">
+            <label className="text-xs font-medium text-cyan-400">HTTP Yapılandırma</label>
+            <div className="grid grid-cols-3 gap-2">
+              <Select value={form.config.method} onValueChange={v => setForm(f => ({ ...f, config: { ...f.config, method: v } }))}>
+                <SelectTrigger className="bg-[#0B0F2E] border-[#1E2448] text-white" data-testid="create-skill-method"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="GET">GET</SelectItem>
+                  <SelectItem value="POST">POST</SelectItem>
+                  <SelectItem value="PUT">PUT</SelectItem>
+                  <SelectItem value="DELETE">DELETE</SelectItem>
+                </SelectContent>
+              </Select>
+              <Input value={form.config.url || ""} onChange={e => setForm(f => ({ ...f, config: { ...f.config, url: e.target.value } }))} placeholder="https://api.example.com/..." className="col-span-2 bg-[#0B0F2E] border-[#1E2448] text-white" data-testid="create-skill-url" />
+            </div>
+          </div>
+        )}
+
+        {form.skillType === "prompt" && (
+          <div className="space-y-2 p-3 bg-[#111633] rounded-lg border border-[#1E2448]">
+            <label className="text-xs font-medium text-cyan-400">AI Prompt Şablonu</label>
+            <textarea
+              value={form.config.userPromptTemplate || ""}
+              onChange={e => setForm(f => ({ ...f, config: { ...f.config, userPromptTemplate: e.target.value } }))}
+              placeholder="{{input}} verisini analiz et ve sonuçları JSON olarak döndür..."
+              className="w-full h-24 bg-[#0B0F2E] border border-[#1E2448] text-white rounded-md p-2 text-sm resize-none"
+              data-testid="create-skill-prompt"
+            />
+          </div>
+        )}
+
+        {form.skillType === "expression" && (
+          <div className="space-y-2 p-3 bg-[#111633] rounded-lg border border-[#1E2448]">
+            <label className="text-xs font-medium text-cyan-400">JavaScript İfadesi</label>
+            <textarea
+              value={form.config.expression || ""}
+              onChange={e => setForm(f => ({ ...f, config: { ...f.config, expression: e.target.value } }))}
+              placeholder="return params.a + params.b;"
+              className="w-full h-24 bg-[#0B0F2E] border border-[#1E2448] text-white rounded-md p-2 text-sm font-mono resize-none"
+              data-testid="create-skill-expression"
+            />
+          </div>
+        )}
+
+        <div className="space-y-2">
+          <label className="text-xs font-medium text-gray-400">Parametreler</label>
+          {form.parameters.map((p, i) => (
+            <div key={i} className="flex items-center gap-2 text-xs bg-[#111633] p-2 rounded border border-[#1E2448]">
+              <span className="text-white font-medium">{p.name}</span>
+              <Badge variant="outline" className="text-[10px]">{p.type}</Badge>
+              {p.required && <Badge variant="outline" className="text-[10px] border-red-600 text-red-400">zorunlu</Badge>}
+              <span className="text-gray-500 flex-1 truncate">{p.description}</span>
+              <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-red-400" onClick={() => removeParam(i)}><X className="w-3 h-3" /></Button>
+            </div>
+          ))}
+          <div className="flex gap-2">
+            <Input value={newParam.name} onChange={e => setNewParam(p => ({ ...p, name: e.target.value }))} placeholder="param_adı" className="flex-1 bg-[#111633] border-[#1E2448] text-white text-xs" data-testid="create-skill-param-name" />
+            <Input value={newParam.description} onChange={e => setNewParam(p => ({ ...p, description: e.target.value }))} placeholder="Açıklama" className="flex-1 bg-[#111633] border-[#1E2448] text-white text-xs" data-testid="create-skill-param-desc" />
+            <Button size="sm" onClick={addParam} className="bg-cyan-700 text-xs" data-testid="create-skill-add-param"><Plus className="w-3 h-3" /></Button>
+          </div>
+        </div>
+
+        <Button onClick={save} disabled={saving} className="w-full bg-cyan-600 hover:bg-cyan-700" data-testid="create-skill-save">
+          {saving ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Plus className="w-4 h-4 mr-1" />}
+          Oluştur
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function SkillDetailModal({ skill, assignments, onClose }: {
+  skill: SkillData; assignments: SkillAssignment[]; onClose: () => void;
+}) {
+  const IconComp = SKILL_ICONS[skill.icon] || Sparkles;
+  return (
+    <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-[#0B0F2E] border border-[#1E2448] rounded-xl w-full max-w-lg p-6 space-y-4" onClick={e => e.stopPropagation()} data-testid="skill-detail-modal">
+        <div className="flex justify-between items-center">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-cyan-900/50 flex items-center justify-center text-cyan-400">
+              <IconComp className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-white">{skill.nameTr}</h3>
+              <p className="text-xs text-gray-400">{skill.name}</p>
+            </div>
+          </div>
+          <Button size="sm" variant="ghost" onClick={onClose} className="text-gray-400"><X className="w-4 h-4" /></Button>
+        </div>
+
+        <p className="text-sm text-gray-300">{skill.descriptionTr || skill.description}</p>
+
+        <div className="grid grid-cols-3 gap-2 text-center">
+          <div className="bg-[#111633] rounded-lg p-2">
+            <div className="text-xs text-gray-400">Tip</div>
+            <div className="text-sm font-medium text-white">{SKILL_TYPE_LABELS[skill.skillType]}</div>
+          </div>
+          <div className="bg-[#111633] rounded-lg p-2">
+            <div className="text-xs text-gray-400">Kategori</div>
+            <div className="text-sm font-medium text-white">{SKILL_CATEGORY_LABELS[skill.category]}</div>
+          </div>
+          <div className="bg-[#111633] rounded-lg p-2">
+            <div className="text-xs text-gray-400">Durum</div>
+            <div className={`text-sm font-medium ${skill.isActive ? "text-green-400" : "text-red-400"}`}>{skill.isActive ? "Aktif" : "Pasif"}</div>
+          </div>
+        </div>
+
+        {skill.parameters && skill.parameters.length > 0 && (
+          <div>
+            <h4 className="text-xs font-medium text-gray-400 mb-2">Parametreler</h4>
+            <div className="space-y-1">
+              {skill.parameters.map((p: any) => (
+                <div key={p.name} className="flex items-center gap-2 text-xs bg-[#111633] p-2 rounded">
+                  <code className="text-cyan-400 font-mono">{p.name}</code>
+                  <Badge variant="outline" className="text-[10px]">{p.type}</Badge>
+                  {p.required && <Badge variant="outline" className="text-[10px] border-red-600 text-red-400">zorunlu</Badge>}
+                  <span className="text-gray-500">{p.description}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {assignments.length > 0 && (
+          <div>
+            <h4 className="text-xs font-medium text-gray-400 mb-2">Atanmış Ajanlar</h4>
+            <div className="flex gap-1 flex-wrap">
+              {assignments.filter(a => a.isEnabled).map(a => {
+                const agent = AGENTS_DATA.find(ag => ag.slug === a.agentSlug);
+                return (
+                  <span key={a.agentSlug} className="text-xs px-2 py-1 rounded-full bg-cyan-900/30 text-cyan-400 border border-cyan-800/30">
+                    {agent?.emoji} {agent?.name || a.agentSlug}
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {skill.keywords && skill.keywords.length > 0 && (
+          <div>
+            <h4 className="text-xs font-medium text-gray-400 mb-2">Anahtar Kelimeler</h4>
+            <div className="flex gap-1 flex-wrap">
+              {skill.keywords.map((kw: string) => (
+                <span key={kw} className="text-[10px] px-1.5 py-0.5 rounded bg-gray-800 text-gray-400">{kw}</span>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function AdminGuidePanel() {
   const { t } = useTranslation("pages");
   const AGENT_DETAILS = [
@@ -6461,7 +7068,7 @@ export default function AdminPage() {
           setActiveTab(val);
           const tabToCategory: Record<string, string> = {
             "boss-ai": "dashboard", "overview": "dashboard", "users": "dashboard",
-            "rag": "ai-training", "training-data": "ai-training", "fine-tuning": "ai-training", "agent-instructions": "ai-training", "ai-provider": "ai-training",
+            "rag": "ai-training", "training-data": "ai-training", "fine-tuning": "ai-training", "agent-instructions": "ai-training", "ai-provider": "ai-training", "skills": "ai-training",
             "messages": "analytics", "spend-analysis": "analytics", "token-optimization": "analytics",
             "costs": "analytics", "performance": "analytics", "conversation-review": "analytics", "behavior-analytics": "analytics",
             "limit-management": "limits", "packages": "limits",
@@ -6559,6 +7166,10 @@ export default function AdminPage() {
                   <TabsTrigger value="ai-provider" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-violet-500 data-[state=active]:to-blue-600 data-[state=active]:text-white" data-testid="tab-ai-provider">
                     <Bot className="w-3.5 h-3.5 mr-1" />
                     {t("adminPage.tabs.aiProvider")}
+                  </TabsTrigger>
+                  <TabsTrigger value="skills" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500 data-[state=active]:to-blue-600 data-[state=active]:text-white" data-testid="tab-skills">
+                    <Sparkles className="w-3.5 h-3.5 mr-1" />
+                    Beceriler
                   </TabsTrigger>
                 </>
               )}
@@ -6747,6 +7358,10 @@ export default function AdminPage() {
 
           <TabsContent value="consent-stats">
             <ConsentStatsPanel token={token} />
+          </TabsContent>
+
+          <TabsContent value="skills">
+            <SkillsPanel token={token} />
           </TabsContent>
 
           <TabsContent value="admin-guide">

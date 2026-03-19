@@ -1,49 +1,50 @@
 # RentAI 24
 
 ## Overview
-RentAI 24 is the world's first AI staffing agency website, providing businesses with on-demand, pre-trained AI agents for various roles (e.g., customer support, sales, bookkeeping). The platform aims to simplify business operations by offering flexible AI talent, reducing traditional hiring complexities, and meeting the growing demand for AI in business. It features a catalog of AI workers, user authentication, customer dashboards, admin panels, and an advanced AI tooling system. The project prioritizes token optimization, robust security, and agent collaboration.
+RentAI 24 is the world's first AI staffing agency website, offering businesses on-demand, pre-trained AI agents for diverse roles such as customer support, sales, and bookkeeping. The platform aims to streamline business operations by providing flexible AI talent, reducing traditional hiring complexities, and addressing the growing demand for AI in the business sector. Key features include an AI worker catalog, user authentication, customer and admin dashboards, and an advanced AI tooling system. The project prioritizes token optimization, robust security, and agent collaboration.
 
 ## User Preferences
 I prefer a conversational and iterative approach. Please ask clarifying questions and propose solutions incrementally. I value detailed explanations of your thought process and any changes you plan to make. Before implementing any major features or architectural changes, please describe your approach and wait for my approval. I prefer clear, concise language in all communications.
 
 ## System Architecture
-The RentAI 24 platform uses a modern web stack: React, TypeScript, and Tailwind CSS (with Vite) for the frontend, featuring a dark mode with navy and blue-to-violet gradients. The backend is built with Express.js, PostgreSQL (Neon serverless), and Drizzle ORM. OpenAI GPT-4o is integrated for core AI functionalities.
+The RentAI 24 platform utilizes a modern web stack: React, TypeScript, and Tailwind CSS (with Vite) for the frontend, styled with a dark mode featuring navy and blue-to-violet gradients. The backend is implemented with Express.js, PostgreSQL (Neon serverless), and Drizzle ORM. OpenAI GPT-4o is integrated for core AI functionalities.
 
 **Core Architectural Decisions and Features:**
 
-*   **User Management:** Session-based authentication and authorization with `user`, `agent_manager`, and `admin` roles, including Google OAuth.
-*   **AI Worker Management:** A catalog of 9 distinct AI agents with specific personas, managed via customer and admin interfaces.
-*   **AI Tooling System:** A generalized registry for AI agents to perform actions like sending emails or generating images.
-*   **RAG & Fine-tuning:** Supports document uploading, chunking, embedding (pgvector), and OpenAI fine-tuning.
+*   **User Management:** Session-based authentication with `user`, `agent_manager`, and `admin` roles, including Google OAuth.
+*   **AI Worker Management:** A catalog of 9 distinct AI agents with specific personas, accessible via customer and admin interfaces.
+*   **AI Tooling System:** A generalized registry allowing AI agents to perform various actions like sending emails or generating images.
+*   **RAG & Fine-tuning:** Supports document uploading, chunking, embedding (pgvector), and OpenAI fine-tuning capabilities.
 *   **Token Optimization:** Achieved through smart model routing, conversation history summarization, compressed system prompts, RAG threshold adjustments, and conditional tool filtering.
-*   **Persistent Chat & Team Features:** Server-side chat persistence and team management for injecting context into agent prompts.
+*   **Persistent Chat & Team Features:** Server-side chat persistence and team management to inject context into agent prompts.
 *   **Communication Integrations:** Per-user Gmail integration, social media auto-publishing, and WhatsApp Business integration.
 *   **Security & Monitoring:** Multi-layer AI guardrails, distillation protection, server hardening, obfuscated admin panel, and an admin security report. Includes global error handlers, graceful shutdown, per-agent circuit breakers, rate limiting, request timeouts, agent heartbeat monitoring, and a health check endpoint.
 *   **Agent Behavior Enhancements:** Proactive agents with `web_search` tool, efficiency rules, and improved error handling.
 *   **Manager Agent (Smart Router):** Classifies user messages and routes them to appropriate agents.
 *   **Human Escalation System:** Detects frustrated users, triggers escalations, and allows admin intervention in live chats.
 *   **Agent Document Handling:** All agents can read, analyze, and correct user-uploaded documents.
-*   **Multi-AI Provider Support:** Three provider modes: **OpenAI** (GPT-4o/4o-mini), **Anthropic** (Claude Sonnet 4), and **Auto (Akıllı Yönlendirme)** which routes by message complexity — simple greetings → GPT-4o-mini (cheapest), tool calls → GPT-4o, deep analysis/strategy/reports → Claude Sonnet 4 (most capable). Complexity detection uses `DEEP_ANALYSIS_INDICATORS` keyword count + message length heuristic. **Fallback system**: if primary provider fails, automatically retries with the other (OpenAI↔Anthropic). Fallback toggle in admin panel (`ai_fallback_enabled` system setting). **Cost comparison panel**: admin panel shows 30-day provider stats (total cost, request count, avg cost/request, per-model breakdown, per-agent breakdown, cost distribution bar). API: `GET/PUT /api/admin/ai-provider` (settings + fallback toggle), `GET /api/admin/ai-provider/stats` (comparison data). Chat responses include `aiMeta` field with provider, model, routing reason, and fallback info. All modes configurable globally or per-agent from admin panel.
-*   **Finn Turkish Accounting Upgrade:** Specialized bookkeeping agent with Turkish accounting features, including KDV invoicing (with DB persistence, PDF/Excel export), TCMB exchange rates, comprehensive financial management, and Excel report generation (Mizan, Bilanço, Bordro, Gelir Tablosu, KDV Özet). Uses PDFKit for PDF generation and dedicated services for report generation. Supports KaTeX math rendering in chat.
+*   **Multi-AI Provider Support:** Three provider modes: **OpenAI** (GPT-4o/4o-mini), **Anthropic** (Claude Sonnet 4), and **Auto (Akıllı Yönlendirme)** for dynamic routing based on message complexity and a fallback system.
+*   **Finn Turkish Accounting Upgrade:** Specialized bookkeeping agent with Turkish accounting features, including KDV invoicing, TCMB exchange rates, financial management, and Excel report generation (Mizan, Bilanço, Bordro, Gelir Tablosu, KDV Özet). Uses PDFKit for PDF generation and supports KaTeX math rendering.
 *   **Finn Calculation Tools:** Dedicated deterministic calculation service for Finn, including tools for KDV, payroll, amortization, FX revaluation, withholding, and journal entry formatting.
-*   **White-Label PDF Generation & Email Attachments:** All agents (except Cal) can generate branded PDF documents (invoice, report, proposal) using `generate_pdf` tool and send them as email attachments via `send_email` with `pdf_ref`. PDFs use DejaVu Sans fonts for full Turkish character support (₺, İ, Ş, Ç, Ğ, Ö, Ü). Customer branding (company name, logo, theme colors, footer) stored as JSONB in users table, managed via `GET/PUT /api/customer/branding` and `POST /api/customer/branding/logo`. PDF download endpoint: `GET /api/pdf/:actionId/download`. The `pdf_ref` flow avoids passing large base64 content through the LLM context — generate_pdf returns a reference ID, send_email fetches the PDF from DB using that ID.
-*   **Trendyol + Shopify Marketplace Integration:** ShopBot agent can manage marketplace operations across Trendyol and Shopify. Features: marketplace_connections table (AES-256-GCM encrypted credentials), connection CRUD API (`/api/marketplace/connections`), 11 agent tools (list connections, get/update products, orders, stock, prices, tracking, customer Q&A, sync summary). Settings page has "Pazaryeri Bağlantıları" card for managing connections. Services: `server/services/marketplace/` (trendyolService, shopifyService, marketplaceCoordinator), `server/services/encryption.ts`.
-*   **Data Analyst File Analysis & Charting:** DataBot agent upgraded with Excel/CSV file upload (10MB limit, 24hr auto-expiry), inline chart rendering (Recharts), and 9 new tools: `list_uploaded_files`, `analyze_file`, `query_file_data`, `create_chart`, `compare_columns`, `detect_anomalies`, `trend_analysis`, `generate_analysis_report`, `export_filtered_data`. Files uploaded via `/api/files/upload` are parsed (xlsx/papaparse), analyzed with statistics, and stored in `uploaded_files` table. Charts rendered inline in chat via `[CHART]...[/CHART]` protocol with lazy-loaded ChartRenderer component. Path traversal protection on exports, per-tool error guards, Turkish number formatting. Services: `server/services/dataAnalysisService.ts`, `server/services/chartService.ts`. Frontend: `client/src/components/chart-renderer.tsx`.
-*   **Per-User Token Spending Limits:** Admin panel allows setting individual token spending limits ($USD) per user. Default $5.00 for all users (stored in `users.token_spending_limit` column). Admin can edit via user cards in Users section. Chat API reads user's personal limit from DB. Anonymous/demo users use fixed $5.00 default. API: `PATCH /api/{ADMIN_PATH}/users/:id/token-limit`, `GET /api/token-spending` returns user's own limit.
+*   **White-Label PDF Generation & Email Attachments:** Agents can generate branded PDF documents (invoice, report, proposal) and send them as email attachments. Customer branding is customizable.
+*   **Trendyol + Shopify Marketplace Integration:** ShopBot agent manages marketplace operations across Trendyol and Shopify, featuring encrypted credential storage and 11 agent tools for product, order, stock, and pricing management.
+*   **Data Analyst File Analysis & Charting:** DataBot agent supports Excel/CSV file upload, inline chart rendering (Recharts), and 9 new tools for file analysis, querying, charting, anomaly detection, and reporting.
+*   **Per-User Token Spending Limits:** Admin panel allows setting individual token spending limits ($USD) per user.
 *   **CRM Document Manager:** For managing customer documents.
-*   **KVKK/GDPR Compliance:** Full data privacy infrastructure including consent tracking, data export, account deletion with cascading data removal, and admin consent statistics.
-*   **User Behavior Analytics:** Internal analytics system tracking page views and user events, enforcing KVKK consent. Includes an admin dashboard for usage metrics and conversion funnels.
-*   **User Profile Enrichment & Onboarding:** Post-registration onboarding and profile enrichment with industry, company size, country, intended agents, and referral source. Admin panel shows demographic distributions.
-*   **User Feedback System:** Multi-channel feedback collection (NPS surveys, chat-end emoji ratings, general feedback form) with an admin dashboard for analysis.
+*   **KVKK/GDPR Compliance:** Full data privacy infrastructure including consent tracking, data export, and account deletion.
+*   **User Behavior Analytics:** Internal analytics system tracking page views and user events with an admin dashboard for usage metrics.
+*   **User Profile Enrichment & Onboarding:** Post-registration onboarding and profile enrichment, with demographic distributions visible in the admin panel.
+*   **User Feedback System:** Multi-channel feedback collection (NPS surveys, chat-end ratings, general feedback form) with an admin dashboard for analysis.
 *   **Rex CRM Infrastructure:** Full CRM system for the Sales SDR agent (Rex), including tables for contacts, deals, activities, sequences, and stage history, with application-level tenant isolation.
 *   **Rex Real Web Search & Smart Lead Finding:** Rex uses OpenAI's Responses API for real web search and includes tools to `research_company` and `find_leads` for B2B lead discovery and classification.
 *   **Admin Agent Custom Instructions:** Allows admins to set global and per-agent custom instructions for runtime injection.
-*   **Quick Reply Buttons:** Agent messages can include clickable button options using `[BUTTONS]...[/BUTTONS]` format. Used for currency selection, invoice type, Incoterm, KDV rate, email confirmation, and yes/no choices. Buttons render only on the latest message and disable after click. All agents have the `QUICK_REPLY_BUTTONS` prompt constant.
-*   **Invoice Creation Flow:** Finn and Rex follow a step-by-step button-guided flow for invoices: invoice type (domestic/export/proforma) → currency → Incoterm (export only) → product details → KDV → confirmation. Incoterm knowledge (FOB, CIF, EXW, CFR, DDP) built into prompts.
-*   **Mobile Chat Input:** Chat input uses a multi-line textarea (2 rows, max 120px) instead of single-line input for better mobile UX. Enter sends, Shift+Enter for newline.
+*   **Quick Reply Buttons:** Agent messages can include clickable button options using `[BUTTONS]...[/BUTTONS]` format for interactive user choices.
+*   **Invoice Creation Flow:** Finn and Rex follow a step-by-step button-guided flow for invoice creation, incorporating invoice type, currency, Incoterm, and product details.
+*   **Mobile Chat Input:** Chat input uses a multi-line textarea for improved mobile UX.
 *   **Brand Identity and Secrecy:** Agents attribute capabilities to "proprietary RentAI 24 AI technology" and maintain platform confidentiality.
-*   **Internationalization (i18n):** Full bilingual support (English/Turkish) using react-i18next on frontend and a centralized message dictionary on backend. User language preferences are saved.
-*   **Stability & Diagnostics:** Includes process-level crash handlers, startup memory logging, and a diagnostics health endpoint.
+*   **Internationalization (i18n):** Full bilingual support (English/Turkish) using react-i18next on frontend and a centralized message dictionary on backend.
+*   **Workflow Automation Engine:** A native, lightweight workflow automation system (n8n-inspired) allows users to chain agent actions into multi-step automated workflows. It supports trigger, action, condition, delay, and loop node types with template variable resolution and 16 action types (including `run_skill`), per-node retry logic, and error branching. It includes an integration catalog with 28 pre-configured services across various categories, enhanced multi-condition logic, pre-built workflow templates, and a bridge between agent tool calls and automation triggers. A scheduler service supports user-friendly schedule configurations. The frontend features a visual SVG-based node editor and an execution timeline.
+*   **OpenClaw-Inspired Skill System:** An extensible skill system (`server/n8n/skillEngine.ts`) with 18 built-in skills across 8 categories (text_analysis, ai_powered, calculation, data_processing, utility, communication, integration, file_ops). Skills are stored in `agent_skills` table and assigned to agents via `agent_skill_assignments`. Supports 4 skill types: `builtin` (hardcoded), `http` (external API calls with SSRF protection), `prompt` (AI-powered via OpenAI), and `expression` (JavaScript eval). Skills are dynamically injected as OpenAI function tools via `getSkillsForAgent()` and `skillToOpenAITool()`. Admin panel has full CRUD, agent assignment (individual + bulk), seed, and detail views under the "Beceriler" tab in AI Training. Workflow automation supports `run_skill` action nodes with a SkillConfigPanel for parameter mapping.
 
 ## External Dependencies
 *   **OpenAI:** GPT-4o, `text-embedding-3-small`
@@ -55,30 +56,3 @@ The RentAI 24 platform uses a modern web stack: React, TypeScript, and Tailwind 
 *   **Resend:** Email delivery
 *   **Pinecone:** Vector database
 *   **Meta WhatsApp Business Cloud API**
-
-## Workflow Automation Engine
-Native lightweight workflow automation system (n8n-inspired) that lets users chain agent actions into multi-step automated workflows.
-
-**Architecture:**
-*   `server/n8n/workflowEngine.ts` — Execution engine supporting trigger, action, condition, delay, loop node types with template variable resolution and 15 action types (send_email, create_task, notify_boss, update_lead, webhook_call, log_action, calculate, http_request, set_variable, format_data, whatsapp_message, multi_email, db_query, generate_pdf, integration). Features per-node retry logic (maxRetries, retryDelayMs), error branching (onErrorNodeId), and per-node execution duration/input/output tracking.
-*   `server/n8n/integrationCatalog.ts` — External integration catalog with 28 pre-configured services across 8 categories (messaging, CRM, project management, e-commerce, data/tables, storage, developer, marketing, AI, finance, automation). Each integration defines base URL, auth type, and available actions with field definitions. Integrations: Slack, Discord, Telegram, Microsoft Teams, HubSpot, Salesforce, Pipedrive, Zoho CRM, Trello, Asana, Jira, Notion, Linear, Google Sheets, Airtable, Trendyol, Shopify, WooCommerce, Google Drive, Dropbox, GitHub, Twilio SMS, Mailchimp, OpenAI, Google Calendar, SendGrid, Stripe, Zapier, Make. API: `GET /api/automations/integrations`.
-*   **Enhanced Conditions:** AND/OR multi-condition logic, 15 operators including regex, between, contains_any_of, starts_with, ends_with, greater_than_or_equal, less_than_or_equal, not_contains.
-*   `server/n8n/workflowTemplates.ts` — 14 pre-built Turkish workflow templates across 8 categories (finance, sales, ecommerce, management, communication, support, hr, marketing). Includes HR CV evaluation, social media analytics, ecommerce order chain, accounting period-end checklist, and support SLA warning templates.
-*   `server/n8n/agentBridge.ts` — Bridge between agent tool calls and automation triggers, with 60s workflow cache per user. Supports threshold triggers (gt, lt, gte, lte, eq).
-*   `server/n8n/schedulerService.ts` — Scheduler supporting user-friendly schedule config (daily/weekly/monthly + hour/minute/day) in addition to raw cron expressions.
-*   DB tables: `automation_workflows` (workflow definitions with node positions), `automation_executions` (execution history with per-node I/O).
-*   Types: `WorkflowNode` includes position, maxRetries, retryDelayMs, timeoutMs, onErrorNodeId, conditions[], conditionLogic. `TriggerConfig` includes scheduleType, scheduleHour/Minute, scheduleDaysOfWeek, scheduleDayOfMonth, threshold fields. `ConditionRule` type for multi-condition support.
-*   Agent integration: `server/agentTools.ts` `executeToolCall` wrapper automatically calls `triggerAutomations()` after successful tool calls.
-
-**API Routes (`/api/automations/*`):**
-*   CRUD for workflows, template gallery, create-from-template, manual execution, execution history, webhook triggers.
-*   Admin routes for toggling automation runner mode (legacy vs n8n) via `system_settings` table.
-
-**Frontend:** `/automations` page with:
-*   Workflow listing with trigger type icons and active/inactive toggle
-*   Template gallery organized by category with Turkish labels
-*   Workflow detail view with stats cards, visual workflow preview, and expandable execution timeline
-*   **Visual Node Editor** — SVG-based workflow builder with draggable nodes, colored connection lines (green=true, red=false, orange=error), node type palette (email, task, notification, HTTP, variable, condition, delay, WhatsApp, format data, integration), per-node config panel with retry settings, and node removal. Integration nodes have a searchable service picker UI with category grouping, action selection, and dynamic config fields.
-*   **Execution Timeline** — Expandable per-execution view showing each node's status, duration, input data, and output data
-
-**Security:** Input validation on all routes, SSRF protection on webhook_call and http_request, sanitized calculate expressions, webhook secret tokens, tenant-isolated queries, error handling with user-facing toasts. db_query action restricted to allowlisted tables only.

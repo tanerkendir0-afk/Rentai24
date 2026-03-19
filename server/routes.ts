@@ -3169,7 +3169,7 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}${QUICK_REPLY_BUTT
         chatClient = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
       }
 
-      const agentTools = hasActiveRental ? getRelevantToolsForMessage(resolvedAgentType, message) : undefined;
+      const agentTools = hasActiveRental ? await getRelevantToolsForMessage(resolvedAgentType, message) : undefined;
       const isAgenticAgent = !!agentTools;
 
       const aiProviderSetting = fineTunedModel ? "openai" : await resolveAiProvider(resolvedAgentType);
@@ -6996,9 +6996,180 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
     }
   });
 
+  app.get("/api/automations/skills", requireAuth, async (_req, res) => {
+    try {
+      const { agentSkills } = await import("@shared/schema");
+      const skills = await db.select().from(agentSkills).where(eq(agentSkills.isActive, true));
+      res.json({ skills });
+    } catch (error) {
+      console.error("Skills list error:", error);
+      res.status(500).json({ error: "Failed to load skills" });
+    }
+  });
+
+  app.post("/api/skills/:id/execute", requireAuth, async (req, res) => {
+    try {
+      const skillId = parseInt(req.params.id);
+      if (isNaN(skillId)) return res.status(400).json({ error: "Invalid skill ID" });
+      const { executeSkill } = await import("./n8n/skillEngine");
+      const result = await executeSkill(skillId, req.body.params || {});
+      res.json(result);
+    } catch (error: any) {
+      console.error("Skill execution error:", error);
+      res.status(500).json({ error: error.message || "Skill execution failed" });
+    }
+  });
+
+  app.get(`/api/${ADMIN_PATH}/skills`, requireAdmin, async (req, res) => {
+    try {
+      const { agentSkills, agentSkillAssignments } = await import("@shared/schema");
+      const skills = await db.select().from(agentSkills);
+      const assignments = await db.select().from(agentSkillAssignments);
+      res.json({ skills, assignments });
+    } catch (error) {
+      console.error("Admin skills error:", error);
+      res.status(500).json({ error: "Failed to load skills" });
+    }
+  });
+
+  app.post(`/api/${ADMIN_PATH}/skills`, requireAdmin, async (req, res) => {
+    try {
+
+      const { agentSkills } = await import("@shared/schema");
+      const { name, nameTr, description, descriptionTr, category, skillType, icon, config, parameters, keywords } = req.body;
+      if (!name || !nameTr || !description || !category || !skillType) {
+        return res.status(400).json({ error: "name, nameTr, description, category, skillType required" });
+      }
+      const [skill] = await db.insert(agentSkills).values({
+        name, nameTr, description, descriptionTr: descriptionTr || description,
+        category, skillType, icon: icon || "Zap",
+        config: config || {}, parameters: parameters || [],
+        keywords: keywords || [], isActive: true, isBuiltin: false,
+      }).returning();
+      res.json(skill);
+    } catch (error: any) {
+      console.error("Create skill error:", error);
+      res.status(500).json({ error: error.message || "Failed to create skill" });
+    }
+  });
+
+  app.put(`/api/${ADMIN_PATH}/skills/:id`, requireAdmin, async (req, res) => {
+    try {
+
+      const skillId = parseInt(req.params.id);
+      if (isNaN(skillId)) return res.status(400).json({ error: "Invalid skill ID" });
+      const { agentSkills } = await import("@shared/schema");
+      const updates: Record<string, any> = {};
+      const allowedFields = ["nameTr", "description", "descriptionTr", "category", "icon", "config", "parameters", "keywords", "isActive"];
+      for (const field of allowedFields) {
+        if (req.body[field] !== undefined) updates[field] = req.body[field];
+      }
+      if (req.body.name !== undefined) {
+        const [existing] = await db.select().from(agentSkills).where(eq(agentSkills.id, skillId));
+        if (existing && !existing.isBuiltin) updates.name = req.body.name;
+      }
+      const [updated] = await db.update(agentSkills).set(updates).where(eq(agentSkills.id, skillId)).returning();
+      res.json(updated);
+    } catch (error: any) {
+      console.error("Update skill error:", error);
+      res.status(500).json({ error: error.message || "Failed to update skill" });
+    }
+  });
+
+  app.delete(`/api/${ADMIN_PATH}/skills/:id`, requireAdmin, async (req, res) => {
+    try {
+
+      const skillId = parseInt(req.params.id);
+      if (isNaN(skillId)) return res.status(400).json({ error: "Invalid skill ID" });
+      const { agentSkills } = await import("@shared/schema");
+      const [skill] = await db.select().from(agentSkills).where(eq(agentSkills.id, skillId));
+      if (skill?.isBuiltin) {
+        await db.update(agentSkills).set({ isActive: false }).where(eq(agentSkills.id, skillId));
+      } else {
+        await db.delete(agentSkills).where(eq(agentSkills.id, skillId));
+      }
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Delete skill error:", error);
+      res.status(500).json({ error: "Failed to delete skill" });
+    }
+  });
+
+  app.post(`/api/${ADMIN_PATH}/skills/:id/agents`, requireAdmin, async (req, res) => {
+    try {
+
+      const skillId = parseInt(req.params.id);
+      if (isNaN(skillId)) return res.status(400).json({ error: "Invalid skill ID" });
+      const { agentSlug } = req.body;
+      if (!agentSlug) return res.status(400).json({ error: "agentSlug required" });
+      const { agentSkillAssignments } = await import("@shared/schema");
+      const existing = await db.select().from(agentSkillAssignments)
+        .where(and(eq(agentSkillAssignments.skillId, skillId), eq(agentSkillAssignments.agentSlug, agentSlug)));
+      if (existing.length > 0) {
+        await db.update(agentSkillAssignments).set({ isEnabled: true })
+          .where(and(eq(agentSkillAssignments.skillId, skillId), eq(agentSkillAssignments.agentSlug, agentSlug)));
+      } else {
+        await db.insert(agentSkillAssignments).values({ skillId, agentSlug, isEnabled: true });
+      }
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Assign skill error:", error);
+      res.status(500).json({ error: "Failed to assign skill" });
+    }
+  });
+
+  app.delete(`/api/${ADMIN_PATH}/skills/:id/agents/:agentSlug`, requireAdmin, async (req, res) => {
+    try {
+
+      const skillId = parseInt(req.params.id);
+      const agentSlug = req.params.agentSlug;
+      if (isNaN(skillId)) return res.status(400).json({ error: "Invalid skill ID" });
+      const { agentSkillAssignments } = await import("@shared/schema");
+      await db.delete(agentSkillAssignments)
+        .where(and(eq(agentSkillAssignments.skillId, skillId), eq(agentSkillAssignments.agentSlug, agentSlug)));
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Unassign skill error:", error);
+      res.status(500).json({ error: "Failed to unassign skill" });
+    }
+  });
+
+  app.post(`/api/${ADMIN_PATH}/skills/:id/agents/bulk`, requireAdmin, async (req, res) => {
+    try {
+
+      const skillId = parseInt(req.params.id);
+      if (isNaN(skillId)) return res.status(400).json({ error: "Invalid skill ID" });
+      const { agents } = req.body;
+      if (!Array.isArray(agents)) return res.status(400).json({ error: "agents array required" });
+      const { agentSkillAssignments } = await import("@shared/schema");
+      await db.delete(agentSkillAssignments).where(eq(agentSkillAssignments.skillId, skillId));
+      for (const agentSlug of agents) {
+        await db.insert(agentSkillAssignments).values({ skillId, agentSlug, isEnabled: true });
+      }
+      res.json({ success: true, assignedCount: agents.length });
+    } catch (error) {
+      console.error("Bulk assign error:", error);
+      res.status(500).json({ error: "Failed to bulk assign" });
+    }
+  });
+
+  app.post(`/api/${ADMIN_PATH}/skills/seed`, requireAdmin, async (req, res) => {
+    try {
+
+      const { seedBuiltinSkills } = await import("./n8n/skillEngine");
+      await seedBuiltinSkills();
+      const { agentSkills } = await import("@shared/schema");
+      const skills = await db.select().from(agentSkills);
+      res.json({ success: true, count: skills.length, skills });
+    } catch (error) {
+      console.error("Seed skills error:", error);
+      res.status(500).json({ error: "Failed to seed skills" });
+    }
+  });
+
   const validTriggerTypes = ["agent_tool_complete", "webhook", "schedule", "manual", "threshold", "email_received"];
   const validNodeTypes = ["trigger", "action", "condition", "delay"];
-  const validActionTypes = ["send_email", "create_task", "notify_owner", "notify_boss", "update_lead", "webhook_call", "log_action", "calculate", "http_request", "set_variable", "format_data", "whatsapp_message", "multi_email", "db_query", "integration"];
+  const validActionTypes = ["send_email", "create_task", "notify_owner", "notify_boss", "update_lead", "webhook_call", "log_action", "calculate", "http_request", "set_variable", "format_data", "whatsapp_message", "multi_email", "db_query", "integration", "run_skill"];
 
   app.post("/api/automations", requireAuth, async (req, res) => {
     try {

@@ -1203,7 +1203,72 @@ export const WORKFLOW_ACTION_TYPES = [
   "whatsapp_message",
   "multi_email",
   "db_query",
+  "run_skill",
 ] as const;
+
+export const SKILL_TYPES = ["builtin", "http", "prompt", "expression"] as const;
+export const SKILL_CATEGORIES = [
+  "data_processing", "text_analysis", "communication", "calculation",
+  "integration", "file_ops", "ai_powered", "utility",
+] as const;
+
+export const agentSkills = pgTable("agent_skills", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull().unique(),
+  nameTr: text("name_tr").notNull(),
+  description: text("description").notNull(),
+  descriptionTr: text("description_tr"),
+  category: text("category").notNull(),
+  skillType: text("skill_type").notNull().default("builtin"),
+  icon: text("icon"),
+  config: jsonb("config").notNull().default({}),
+  parameters: jsonb("parameters").notNull().default([]),
+  keywords: text("keywords").array(),
+  isActive: boolean("is_active").notNull().default(true),
+  isBuiltin: boolean("is_builtin").notNull().default(false),
+  usageCount: integer("usage_count").notNull().default(0),
+  successCount: integer("success_count").notNull().default(0),
+  totalDurationMs: integer("total_duration_ms").notNull().default(0),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
+export const agentSkillAssignments = pgTable("agent_skill_assignments", {
+  id: serial("id").primaryKey(),
+  skillId: integer("skill_id").notNull().references(() => agentSkills.id, { onDelete: "cascade" }),
+  agentSlug: text("agent_slug").notNull(),
+  isEnabled: boolean("is_enabled").notNull().default(true),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
+export const insertAgentSkillSchema = createInsertSchema(agentSkills).omit({
+  id: true,
+  createdAt: true,
+  usageCount: true,
+  successCount: true,
+  totalDurationMs: true,
+});
+
+export const insertAgentSkillAssignmentSchema = createInsertSchema(agentSkillAssignments).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type AgentSkill = typeof agentSkills.$inferSelect;
+export type InsertAgentSkill = z.infer<typeof insertAgentSkillSchema>;
+export type AgentSkillAssignment = typeof agentSkillAssignments.$inferSelect;
+export type InsertAgentSkillAssignment = z.infer<typeof insertAgentSkillAssignmentSchema>;
+
+export interface SkillParameter {
+  name: string;
+  label: string;
+  labelTr: string;
+  type: "string" | "number" | "boolean" | "text" | "select" | "json";
+  required: boolean;
+  defaultValue?: any;
+  placeholder?: string;
+  options?: string[];
+  description?: string;
+}
 
 export const automationWorkflows = pgTable("automation_workflows", {
   id: serial("id").primaryKey(),

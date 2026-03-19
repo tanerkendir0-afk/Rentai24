@@ -14,7 +14,7 @@ import {
   Package, BarChart3, Headphones, AlertTriangle, ExternalLink,
   Settings, GripVertical, Link2, Unlink, RotateCcw, Eye,
   MessageSquare, Database, Variable, Globe, Hash, Users,
-  Plug, Search, X,
+  Plug, Search, X, Sparkles,
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/lib/auth";
@@ -92,6 +92,7 @@ const actionTypeLabels: Record<string, string> = {
   whatsapp_message: "WhatsApp Mesajı", multi_email: "Toplu E-posta",
   db_query: "Veritabanı Sorgusu",
   integration: "Harici Entegrasyon",
+  run_skill: "Beceri Çalıştır",
 };
 
 const actionTypeIcons: Record<string, any> = {
@@ -101,6 +102,7 @@ const actionTypeIcons: Record<string, any> = {
   format_data: Database, whatsapp_message: MessageSquare,
   multi_email: Users, db_query: Database,
   integration: Plug,
+  run_skill: Sparkles,
 };
 
 const conditionOperatorLabels: Record<string, string> = {
@@ -163,6 +165,7 @@ function getNodeColor(node: any): string {
   if (node.type === "condition") return "border-purple-500/50 bg-purple-500/10";
   if (node.type === "delay") return "border-orange-500/50 bg-orange-500/10";
   if (node.actionType === "integration") return "border-cyan-500/50 bg-cyan-500/10";
+  if (node.actionType === "run_skill") return "border-emerald-500/50 bg-emerald-500/10";
   return "border-blue-500/50 bg-blue-500/10";
 }
 
@@ -170,6 +173,7 @@ function getNodeIconColor(node: any): string {
   if (node.type === "trigger") return "text-yellow-400";
   if (node.type === "condition") return "text-purple-400";
   if (node.actionType === "integration") return "text-cyan-400";
+  if (node.actionType === "run_skill") return "text-emerald-400";
   if (node.type === "delay") return "text-orange-400";
   return "text-blue-400";
 }
@@ -337,6 +341,7 @@ function VisualWorkflowEditor({ nodes, onChange, executionResults }: {
                  node.type === "condition" ? "Koşul" :
                  node.type === "delay" ? "Bekleme" :
                  node.actionType === "integration" ? (node.config?._integrationLabel || "Entegrasyon") :
+                 node.actionType === "run_skill" ? (node.config?._skillLabel || "Beceri Çalıştır") :
                  actionTypeLabels[node.actionType] || node.actionType || "Aksiyon"}
               </span>
               {node.maxRetries && node.maxRetries > 0 && (
@@ -421,7 +426,7 @@ function NodeDetailPanel({ node, result, onClose, onChange, allNodes }: {
                 data-testid="input-node-label"
               />
             </div>
-            {node.type === "action" && node.actionType !== "integration" && (actionConfigFields[node.actionType] || Object.keys(node.config || {})).map((key: string) => (
+            {node.type === "action" && node.actionType !== "integration" && node.actionType !== "run_skill" && (actionConfigFields[node.actionType] || Object.keys(node.config || {})).map((key: string) => (
               <div key={key}>
                 <label className="text-xs text-gray-400 block mb-1">{configFieldLabels[key] || key}</label>
                 {key === "body" || key === "message" || key === "description" ? (
@@ -447,6 +452,12 @@ function NodeDetailPanel({ node, result, onClose, onChange, allNodes }: {
               <IntegrationConfigPanel
                 config={node.config || {}}
                 onChange={(config: any) => onChange({ ...node, config, label: config._integrationLabel || node.label })}
+              />
+            )}
+            {node.type === "action" && node.actionType === "run_skill" && (
+              <SkillConfigPanel
+                config={node.config || {}}
+                onChange={(config: any) => onChange({ ...node, config, label: config._skillLabel || node.label })}
               />
             )}
             {node.type === "delay" && (
@@ -789,6 +800,74 @@ function ExecutionTimeline({ execution }: { execution: Execution }) {
               </div>
             ))}
           </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SkillConfigPanel({ config, onChange }: { config: Record<string, any>; onChange: (config: Record<string, any>) => void }) {
+  const { data: skillsData } = useQuery<any>({
+    queryKey: ["/api/automations/skills"],
+  });
+  const skills = skillsData?.skills || [];
+  const selectedSkill = skills.find((s: any) => s.name === config.skillName || String(s.id) === String(config.skillId));
+
+  return (
+    <div className="space-y-2" data-testid="skill-config-panel">
+      <label className="text-xs text-gray-400 block">Beceri Seçin</label>
+      <Select
+        value={config.skillName || ""}
+        onValueChange={(val) => {
+          const skill = skills.find((s: any) => s.name === val);
+          if (skill) {
+            onChange({
+              ...config,
+              skillName: skill.name,
+              skillId: skill.id,
+              _skillLabel: `⚡ ${skill.nameTr}`,
+            });
+          }
+        }}
+      >
+        <SelectTrigger className="bg-gray-800 border-gray-700 text-white text-xs" data-testid="select-skill">
+          <SelectValue placeholder="Beceri seçin..." />
+        </SelectTrigger>
+        <SelectContent>
+          {skills.map((s: any) => (
+            <SelectItem key={s.name} value={s.name}>
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-3 h-3 text-emerald-400" />
+                <span>{s.nameTr}</span>
+                <Badge variant="outline" className="text-[9px] ml-1">{s.category}</Badge>
+              </div>
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
+      {selectedSkill && (
+        <div className="space-y-2">
+          <p className="text-[10px] text-gray-500">{selectedSkill.descriptionTr || selectedSkill.description}</p>
+          {selectedSkill.parameters && selectedSkill.parameters.length > 0 && (
+            <>
+              <label className="text-xs text-emerald-400 block mt-2">Parametreler</label>
+              {selectedSkill.parameters.map((p: any) => (
+                <div key={p.name}>
+                  <label className="text-[10px] text-gray-400 block mb-0.5">
+                    {p.name}{p.required ? " *" : ""} <span className="text-gray-600">({p.type})</span>
+                  </label>
+                  <Input
+                    value={String(config[p.name] || "")}
+                    onChange={(e) => onChange({ ...config, [p.name]: e.target.value })}
+                    placeholder={p.description || p.name}
+                    className="bg-gray-800 border-gray-700 text-white text-xs h-7"
+                    data-testid={`skill-param-${p.name}`}
+                  />
+                </div>
+              ))}
+            </>
+          )}
         </div>
       )}
     </div>

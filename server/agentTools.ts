@@ -2297,19 +2297,44 @@ const createTaskTool: OpenAI.ChatCompletionTool = {
   },
 };
 
+const delegateTaskTool: OpenAI.ChatCompletionTool = {
+  type: "function",
+  function: {
+    name: "delegate_task",
+    description: "Delegate a task to another AI agent. Use this when a task is better handled by a different specialized agent. For example, a Sales agent can delegate invoice creation to the Bookkeeping agent, or a Customer Support agent can delegate scheduling a follow-up to the Scheduling agent. Always explain to the user that you are delegating the task.",
+    parameters: {
+      type: "object",
+      properties: {
+        targetAgentType: {
+          type: "string",
+          enum: ["sales-sdr", "customer-support", "social-media", "bookkeeping", "scheduling", "hr-recruiting", "data-analyst", "ecommerce-ops", "real-estate"],
+          description: "The agent type to delegate the task to"
+        },
+        title: { type: "string", description: "Title of the task to delegate" },
+        description: { type: "string", description: "Detailed description of what the target agent should do" },
+        priority: { type: "string", enum: ["low", "medium", "high", "urgent"], description: "Task priority (default: medium)" },
+        dueDate: { type: "string", description: "Due date in YYYY-MM-DD format (optional)" },
+        project: { type: "string", description: "Project name to group the task under (optional)" },
+      },
+      required: ["targetAgentType", "title", "description"],
+    },
+  },
+};
+
 const pdfEmailTools = [generatePdfTool, sendEmailWithAttachmentTool];
 const emailOnlyTools = [sendEmailWithAttachmentTool];
 
 export const agentToolRegistry: Record<string, OpenAI.ChatCompletionTool[]> = {
-  "sales-sdr": [...salesSdrTools, createTaskTool],
-  "customer-support": [...customerSupportTools, ...pdfEmailTools, createTaskTool],
-  "scheduling": [...schedulingTools, ...emailOnlyTools, createTaskTool],
-  "data-analyst": [...dataAnalystTools, ...pdfEmailTools, createTaskTool],
-  "social-media": [...socialMediaTools, ...pdfEmailTools, createTaskTool],
-  "bookkeeping": [...bookkeepingTools, ...pdfEmailTools, createTaskTool],
-  "hr-recruiting": [...hrRecruitingTools, ...pdfEmailTools, createTaskTool],
-  "ecommerce-ops": [...ecommerceOpsTools, ...pdfEmailTools, createTaskTool],
-  "real-estate": [...realEstateTools, ...pdfEmailTools, createTaskTool],
+  "sales-sdr": [...salesSdrTools, createTaskTool, delegateTaskTool],
+  "customer-support": [...customerSupportTools, ...pdfEmailTools, createTaskTool, delegateTaskTool],
+  "scheduling": [...schedulingTools, ...emailOnlyTools, createTaskTool, delegateTaskTool],
+  "data-analyst": [...dataAnalystTools, ...pdfEmailTools, createTaskTool, delegateTaskTool],
+  "social-media": [...socialMediaTools, ...pdfEmailTools, createTaskTool, delegateTaskTool],
+  "bookkeeping": [...bookkeepingTools, ...pdfEmailTools, createTaskTool, delegateTaskTool],
+  "hr-recruiting": [...hrRecruitingTools, ...pdfEmailTools, createTaskTool, delegateTaskTool],
+  "ecommerce-ops": [...ecommerceOpsTools, ...pdfEmailTools, createTaskTool, delegateTaskTool],
+  "real-estate": [...realEstateTools, ...pdfEmailTools, createTaskTool, delegateTaskTool],
+  "manager": [createTaskTool, delegateTaskTool],
 };
 
 export function getToolsForAgent(agentType: string): OpenAI.ChatCompletionTool[] | undefined {
@@ -2420,6 +2445,7 @@ const TOOL_KEYWORD_MAP: Record<string, string[]> = {
   market_report: ["market", "piyasa", "trend", "fiyat"],
   calculate_costs: ["cost", "calculate", "maliyet", "hesapla", "expense"],
   create_task: ["task", "görev", "göreve al", "kaydet", "hatırlat", "remind", "to-do", "todo", "yapılacak", "tarihte yap", "not al", "planla"],
+  delegate_task: ["delegate", "devret", "başka ajana", "ata", "ilet", "transfer", "görev devret", "assign to", "handoff", "hand off", "yönlendir"],
   generate_pdf: ["pdf", "belge", "document", "fatura oluştur", "rapor oluştur", "teklif oluştur", "makbuz", "invoice", "report", "proposal", "receipt", "pdf oluştur", "pdf generate", "dosya oluştur"],
 };
 
@@ -7035,6 +7061,61 @@ ${activeRentals.map(r => `  ${r.agentType}: ${r.messagesUsed}/${r.messagesLimit}
         };
       } catch (err: any) {
         return { result: `❌ Görev oluşturulamadı: ${err.message || "Bilinmeyen hata"}` };
+      }
+    }
+
+    case "delegate_task": {
+      const targetAgentType = args.targetAgentType as string;
+      const title = args.title as string;
+      const description = (args.description as string) || "";
+      const priority = (args.priority as string) || "medium";
+      const dueDate = args.dueDate ? new Date(args.dueDate as string) : null;
+      const project = (args.project as string) || "";
+
+      const targetAgentDisplayNames: Record<string, string> = {
+        "sales-sdr": "Rex (Sales SDR)",
+        "customer-support": "Ava (Customer Support)",
+        "social-media": "Maya (Social Media)",
+        "bookkeeping": "Finn (Bookkeeping)",
+        "scheduling": "Cal (Scheduling)",
+        "hr-recruiting": "Harper (HR & Recruiting)",
+        "data-analyst": "DataBot (Data Analyst)",
+        "ecommerce-ops": "ShopBot (E-Commerce Ops)",
+        "real-estate": "Reno (Real Estate)",
+      };
+
+      try {
+        const activeRentals = await storage.getRentalsByUser(userId);
+        const isTargetActive = activeRentals.some(r => r.agentType === targetAgentType && r.status === "active");
+        const targetName = targetAgentDisplayNames[targetAgentType] || targetAgentType;
+        const sourceName = targetAgentDisplayNames[agentType] || agentType;
+        if (!isTargetActive) {
+          return {
+            result: `⚠️ **Görev Devredilemedi**\n\n**${targetName}** henüz aktif değil veya işe alınmamış. Görevleri yalnızca aktif ajanlara devredebilirsiniz.\n\nLütfen Workers sayfasından **${targetName}** ajanını işe alın ve tekrar deneyin.`,
+          };
+        }
+        const task = await storage.createAgentTask({
+          userId,
+          agentType: targetAgentType,
+          title,
+          description: description || null,
+          priority,
+          dueDate,
+          project: project || null,
+          status: "todo",
+          sourceAgentType: agentType,
+          targetAgentType,
+          delegationStatus: "pending",
+          delegationResult: null,
+        });
+        const dueDateStr = dueDate ? dueDate.toLocaleDateString("tr-TR") : "Belirtilmedi";
+        return {
+          result: `🔀 **Görev Devredildi!**\n\n📋 **Başlık:** ${title}\n📝 **Açıklama:** ${description || "—"}\n📅 **Tarih:** ${dueDateStr}\n🔴 **Öncelik:** ${priority}\n👤 **Kaynak:** ${sourceName}\n🎯 **Hedef Ajan:** ${targetName}\n🆔 **Görev ID:** ${task.id}\n\nGörev ${targetName} ajanına başarıyla devredildi ve görev panelinde takip edilebilir.`,
+          actionType: "delegate_task",
+          actionDescription: `Delegated task "${title}" from ${agentType} to ${targetAgentType}`,
+        };
+      } catch (err: any) {
+        return { result: `❌ Görev devredilemedi: ${err.message || "Bilinmeyen hata"}` };
       }
     }
 

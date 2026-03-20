@@ -16,6 +16,7 @@ import {
   ChevronRight,
   Calendar,
   ListTodo,
+  ArrowRightLeft,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { AgentTask } from "@shared/schema";
@@ -25,6 +26,19 @@ const PRIORITY_COLORS: Record<string, string> = {
   medium: "text-yellow-400",
   high: "text-orange-400",
   urgent: "text-red-400",
+};
+
+const AGENT_DISPLAY_NAMES: Record<string, string> = {
+  "sales-sdr": "Rex",
+  "customer-support": "Ava",
+  "social-media": "Maya",
+  "bookkeeping": "Finn",
+  "scheduling": "Cal",
+  "hr-recruiting": "Harper",
+  "data-analyst": "DataBot",
+  "ecommerce-ops": "ShopBot",
+  "real-estate": "Reno",
+  "manager": "Manager",
 };
 
 const STATUS_CONFIG: Record<string, { icon: typeof Circle; labelKey: string; color: string; bgColor: string; borderColor: string }> = {
@@ -190,6 +204,14 @@ export default function TasksPanel({ agentType, agentColor, onClose }: {
     },
   });
 
+  const { data: delegatedByMe = [] } = useQuery<AgentTask[]>({
+    queryKey: ["/api/agent-tasks/delegations", agentType],
+    queryFn: async () => {
+      const res = await fetch(`/api/agent-tasks/delegations?sourceAgentType=${agentType}`);
+      return res.json();
+    },
+  });
+
   const buildDueDateWithTime = (date: string | null, time: string): string | null => {
     if (!date) return null;
     return `${date}T${time}:00`;
@@ -219,6 +241,7 @@ export default function TasksPanel({ agentType, agentColor, onClose }: {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/agent-tasks", agentType] });
+      queryClient.invalidateQueries({ queryKey: ["/api/agent-tasks/delegations", agentType] });
     },
   });
 
@@ -228,6 +251,7 @@ export default function TasksPanel({ agentType, agentColor, onClose }: {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/agent-tasks", agentType] });
+      queryClient.invalidateQueries({ queryKey: ["/api/agent-tasks/delegations", agentType] });
     },
   });
 
@@ -240,7 +264,7 @@ export default function TasksPanel({ agentType, agentColor, onClose }: {
       })
   );
 
-  const filteredTasks = filter === "all" ? tasks : tasks.filter(t => t.status === filter);
+  const filteredTasks = filter === "all" ? tasks : filter === "delegated" ? delegatedByMe : tasks.filter(t => t.status === filter);
 
   const statusCycle = (current: string) => {
     if (current === "todo") return "in-progress";
@@ -379,7 +403,7 @@ export default function TasksPanel({ agentType, agentColor, onClose }: {
           </div>
         )}
 
-        <div className="flex items-center gap-1 p-2 border-b border-border/50">
+        <div className="flex items-center gap-1 p-2 border-b border-border/50 flex-wrap">
           {["all", "todo", "in-progress", "done"].map(f => (
             <button
               key={f}
@@ -394,6 +418,21 @@ export default function TasksPanel({ agentType, agentColor, onClose }: {
               {f === "all" ? t("tasksPanel.all") : f === "todo" ? t("tasksPanel.toDo") : f === "in-progress" ? t("tasksPanel.inProgress") : t("tasksPanel.done")}
             </button>
           ))}
+          {delegatedByMe.length > 0 && (
+            <button
+              onClick={() => setFilter("delegated")}
+              className={`text-[10px] px-2 py-1 rounded-md transition-all flex items-center gap-0.5 ${
+                filter === "delegated"
+                  ? "bg-violet-500/20 text-violet-400 font-medium"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+              data-testid="filter-delegated"
+            >
+              <ArrowRightLeft className="w-2.5 h-2.5" />
+              {t("tasksPanel.delegated") || "Devredilen"}
+              <span className="ml-0.5 text-[9px] opacity-70">({delegatedByMe.length})</span>
+            </button>
+          )}
         </div>
 
         {projects.length > 0 && (
@@ -417,6 +456,60 @@ export default function TasksPanel({ agentType, agentColor, onClose }: {
             >
               {t("tasksPanel.createFirst")}
             </button>
+          </div>
+        ) : filter === "delegated" ? (
+          <div className="space-y-0">
+            <div className="flex items-center gap-2 px-3 py-2 bg-violet-500/10 border-y border-violet-500/20 sticky top-0 z-10" data-testid="delegated-tasks-header">
+              <ArrowRightLeft className="w-3.5 h-3.5 text-violet-400 shrink-0" />
+              <span className="text-[11px] font-bold uppercase tracking-widest text-violet-400 flex-1">Devredilen Görevler</span>
+              <span className="text-[10px] font-semibold text-violet-400 opacity-60">{delegatedByMe.length}</span>
+            </div>
+            <div className="divide-y divide-border/20">
+              {delegatedByMe.map(task => {
+                const statusConf = STATUS_CONFIG[task.status] || STATUS_CONFIG.todo;
+                const StatusIcon = statusConf.icon;
+                const dueDateStr = formatDueDate(task.dueDate);
+                const isOverdue = task.dueDate && new Date(task.dueDate) < new Date() && task.status !== "done";
+                return (
+                  <div key={task.id} className="px-3 py-2.5 hover:bg-muted/20 transition-colors group" data-testid={`delegated-task-item-${task.id}`}>
+                    <div className="flex items-start gap-2">
+                      <StatusIcon className={`mt-0.5 shrink-0 w-4 h-4 ${statusConf.color}`} />
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-xs font-semibold leading-tight truncate ${task.status === "done" ? "line-through text-muted-foreground/60" : "text-foreground"}`}>{task.title}</p>
+                        {task.description && <p className="text-[10px] text-muted-foreground/70 mt-0.5 line-clamp-1">{task.description}</p>}
+                        <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                          {task.targetAgentType && (
+                            <span className="text-[9px] flex items-center gap-0.5 shrink-0 text-violet-400 font-medium" data-testid={`delegated-to-${task.id}`}>
+                              <ArrowRightLeft className="w-2.5 h-2.5" />
+                              {AGENT_DISPLAY_NAMES[task.targetAgentType] || task.targetAgentType}
+                            </span>
+                          )}
+                          <span className={`text-[10px] flex items-center gap-0.5 shrink-0 ${PRIORITY_COLORS[task.priority]}`}>
+                            <Flag className="w-2.5 h-2.5" />
+                            {t("tasksPanel.priorities." + task.priority)}
+                          </span>
+                          {dueDateStr && (
+                            <span className={`text-[10px] flex items-center gap-0.5 shrink-0 font-medium ${isOverdue ? "text-red-400" : "text-muted-foreground"}`}>
+                              <Calendar className="w-2.5 h-2.5" />
+                              {dueDateStr}
+                            </span>
+                          )}
+                          {task.delegationStatus && (
+                            <Badge
+                              variant="secondary"
+                              className={`text-[9px] h-4 px-1.5 shrink-0 ${task.delegationStatus === "completed" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : task.delegationStatus === "pending" ? "bg-yellow-500/10 text-yellow-400 border-yellow-500/20" : "bg-red-500/10 text-red-400 border-red-500/20"}`}
+                              data-testid={`delegated-status-${task.id}`}
+                            >
+                              {task.delegationStatus}
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         ) : (
           <div className="space-y-0">
@@ -476,6 +569,21 @@ export default function TasksPanel({ agentType, agentColor, onClose }: {
                                       <Calendar className="w-2.5 h-2.5" />
                                       {dueDateStr}
                                     </span>
+                                  )}
+                                  {task.sourceAgentType && (
+                                    <span className="text-[9px] flex items-center gap-0.5 shrink-0 text-violet-400 font-medium" data-testid={`delegation-badge-${task.id}`} title={`Delegated from ${AGENT_DISPLAY_NAMES[task.sourceAgentType] || task.sourceAgentType}`}>
+                                      <ArrowRightLeft className="w-2.5 h-2.5" />
+                                      {AGENT_DISPLAY_NAMES[task.sourceAgentType] || task.sourceAgentType}
+                                    </span>
+                                  )}
+                                  {task.delegationStatus && task.delegationStatus !== "pending" && (
+                                    <Badge
+                                      variant="secondary"
+                                      className={`text-[9px] h-4 px-1.5 shrink-0 ${task.delegationStatus === "completed" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : task.delegationStatus === "failed" ? "bg-red-500/10 text-red-400 border-red-500/20" : ""}`}
+                                      data-testid={`delegation-status-${task.id}`}
+                                    >
+                                      {task.delegationStatus}
+                                    </Badge>
                                   )}
                                 </div>
                               </div>

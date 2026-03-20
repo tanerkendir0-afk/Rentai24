@@ -319,6 +319,10 @@ export const agentTasks = pgTable("agent_tasks", {
   priority: text("priority").notNull().default("medium"),
   dueDate: timestamp("due_date"),
   project: text("project"),
+  sourceAgentType: text("source_agent_type"),
+  targetAgentType: text("target_agent_type"),
+  delegationStatus: text("delegation_status"),
+  delegationResult: text("delegation_result"),
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
 });
 

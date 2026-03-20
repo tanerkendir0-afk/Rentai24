@@ -60,7 +60,7 @@ export interface IStorage {
 
   createAgentTask(task: InsertAgentTask): Promise<AgentTask>;
   getAgentTasksByUser(userId: number, agentType?: string): Promise<AgentTask[]>;
-  updateAgentTask(id: number, userId: number, updates: Partial<Pick<AgentTask, "title" | "description" | "status" | "priority" | "dueDate" | "project">>): Promise<AgentTask | undefined>;
+  updateAgentTask(id: number, userId: number, updates: Partial<Pick<AgentTask, "title" | "description" | "status" | "priority" | "dueDate" | "project" | "delegationStatus" | "delegationResult">>): Promise<AgentTask | undefined>;
   deleteAgentTask(id: number, userId: number): Promise<boolean>;
 
   logTokenUsage(usage: InsertTokenUsage): Promise<TokenUsage>;
@@ -660,7 +660,7 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(agentTasks).where(eq(agentTasks.userId, userId)).orderBy(desc(agentTasks.createdAt));
   }
 
-  async updateAgentTask(id: number, userId: number, updates: Partial<Pick<AgentTask, "title" | "description" | "status" | "priority" | "dueDate" | "project">>): Promise<AgentTask | undefined> {
+  async updateAgentTask(id: number, userId: number, updates: Partial<Pick<AgentTask, "title" | "description" | "status" | "priority" | "dueDate" | "project" | "delegationStatus" | "delegationResult">>): Promise<AgentTask | undefined> {
     const [updated] = await db.update(agentTasks).set(updates).where(and(eq(agentTasks.id, id), eq(agentTasks.userId, userId))).returning();
     return updated;
   }

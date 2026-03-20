@@ -1933,6 +1933,26 @@ export async function registerRoutes(
     res.json(tasks);
   });
 
+  app.get("/api/agent-tasks/delegations", requireAuth, async (req, res) => {
+    const sourceAgentType = req.query.sourceAgentType as string | undefined;
+    const allTasks = await storage.getAgentTasksByUser(req.session.userId!);
+    const delegations = allTasks.filter(t =>
+      t.sourceAgentType !== null &&
+      (!sourceAgentType || t.sourceAgentType === sourceAgentType)
+    );
+    res.json(delegations);
+  });
+
+  app.get("/api/agent-tasks/delegation-notifications", requireAuth, async (req, res) => {
+    const agentType = req.query.agentType as string | undefined;
+    const allActions = await storage.getActionsByUser(req.session.userId!);
+    const notifications = allActions.filter(a =>
+      a.actionType === "delegation_completed" &&
+      (!agentType || a.agentType === agentType)
+    );
+    res.json(notifications);
+  });
+
   app.post("/api/agent-tasks", requireAuth, async (req, res) => {
     const { title, description, agentType, priority, dueDate, project } = req.body;
     if (!title || !agentType) {
@@ -1962,15 +1982,51 @@ export async function registerRoutes(
 
   app.patch("/api/agent-tasks/:id", requireAuth, async (req, res) => {
     const id = parseInt(req.params.id as string);
-    const updates: Partial<Pick<AgentTask, "title" | "description" | "status" | "priority" | "dueDate" | "project">> = {};
+    const updates: Partial<Pick<AgentTask, "title" | "description" | "status" | "priority" | "dueDate" | "project" | "delegationStatus" | "delegationResult">> = {};
     if (req.body.title !== undefined) updates.title = req.body.title;
     if (req.body.description !== undefined) updates.description = req.body.description;
     if (req.body.status !== undefined) updates.status = req.body.status;
     if (req.body.priority !== undefined) updates.priority = req.body.priority;
     if (req.body.project !== undefined) updates.project = req.body.project;
     if (req.body.dueDate !== undefined) updates.dueDate = req.body.dueDate ? new Date(req.body.dueDate) : null;
+    if (req.body.delegationStatus !== undefined) updates.delegationStatus = req.body.delegationStatus;
+    if (req.body.delegationResult !== undefined) updates.delegationResult = req.body.delegationResult;
+    const existingTasks = await storage.getAgentTasksByUser(req.session.userId!);
+    const found = existingTasks.find(t => t.id === id);
+    const completingDelegatedTask = found?.sourceAgentType && req.body.status === "done" && !found.delegationStatus?.includes("completed");
+    if (completingDelegatedTask) {
+      updates.delegationStatus = "completed";
+      updates.delegationResult = `Task "${found!.title}" completed by ${found!.agentType} on ${new Date().toLocaleDateString()}`;
+    }
     const task = await storage.updateAgentTask(id, req.session.userId!, updates);
     if (!task) return res.status(404).json({ error: msg("taskNotFound", req.lang!) });
+    if (completingDelegatedTask && found?.sourceAgentType) {
+      const agentDisplayNamesLocal: Record<string, string> = {
+        "sales-sdr": "Rex (Sales SDR)", "customer-support": "Ava (Customer Support)",
+        "social-media": "Maya (Social Media)", "bookkeeping": "Finn (Bookkeeping)",
+        "scheduling": "Cal (Scheduling)", "hr-recruiting": "Harper (HR & Recruiting)",
+        "data-analyst": "DataBot (Data Analyst)", "ecommerce-ops": "ShopBot (E-Commerce Ops)",
+        "real-estate": "Reno (Real Estate)", "manager": "Manager",
+      };
+      const targetName = agentDisplayNamesLocal[found.agentType] || found.agentType;
+      const sourceName = agentDisplayNamesLocal[found.sourceAgentType] || found.sourceAgentType;
+      await storage.createAgentAction({
+        userId: req.session.userId!,
+        agentType: found.sourceAgentType,
+        actionType: "delegation_completed",
+        description: `Devredilen görev tamamlandı: "${found.title}" — ${targetName} tarafından tamamlandı`,
+        metadata: {
+          taskId: found.id,
+          taskTitle: found.title,
+          sourceAgent: found.sourceAgentType,
+          targetAgent: found.agentType,
+          completedAt: new Date().toISOString(),
+          delegationResult: updates.delegationResult,
+          sourceName,
+          targetName,
+        },
+      });
+    }
     res.json(task);
   });
 
@@ -2943,8 +2999,34 @@ ${userEmail ? `- When they say "send to me", "email me", "bana gönder", "bana a
 
       const msgLower = message.toLowerCase();
       const isManagerDirectQuery = /rapor|report|iyileştir|improv|performans|performance|durum|status|özet|summary|genel|overall|değerlendir|evaluat|analiz et|analyze|nasıl gidiyor|how.*going|ne durumda/.test(msgLower);
+      const isManagerDelegationQuery = /dağıt|delegate|devret|görev ata|assign|birden fazla|multiple agents|tüm ajanlar|all agents|parçala|breakdown|orchestrat|koordine|coordinate|iş bölüşü|iş dağılımı|hepsine|ekibe dağıt|ajanlara|kampanya başlat|launch campaign|yeni proje|new project|çok aşamalı|multi.?step/.test(msgLower);
       
-      if (isManagerDirectQuery) {
+      if (isManagerDelegationQuery) {
+        const agentList = activeAgentIds.map(id => `- ${id}: ${agentPersonaMap[id] || id}`).join("\n");
+        systemPrompt = `You are the Manager / Smart Router AI for RentAI 24.
+ROLE: You are the orchestration manager. The user wants you to break down a large task and delegate parts to multiple specialized agents.
+
+AVAILABLE AGENTS ON THE TEAM:
+${agentList}
+
+DELEGATION CAPABILITY:
+You have access to the \`delegate_task\` tool. Use it to assign tasks to specific agents.
+When the user gives you a complex or multi-faceted request:
+1. Analyze the request and identify which sub-tasks each specialized agent should handle
+2. Use \`delegate_task\` tool multiple times to create tasks for each relevant agent
+3. Explain the breakdown clearly to the user — which agent gets which task and why
+4. After delegating, summarize what was done
+
+EXAMPLES of task breakdowns:
+- "Yeni bir kampanya başlat" → Sales agent (lead outreach), Social Media agent (content), Bookkeeping agent (budget tracking)
+- "Yeni çalışan işe al" → HR agent (job posting & interviews), Scheduling agent (interview slots)
+- "Müşteri şikayeti çöz" → Customer Support agent (resolution), Scheduling agent (follow-up meeting)
+
+STYLE: Strategic, decisive, clear. Break tasks into logical chunks and assign them efficiently.
+Respond in the same language the user writes in.
+${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}${QUICK_REPLY_BUTTONS}`;
+        hasActiveRental = true;
+      } else if (isManagerDirectQuery) {
         const agentUsageInfo = activeRentals.map(r => {
           const name = agentPersonaMap[r.agentType] || r.agentType;
           return `- ${name}: ${r.messagesUsed}/${r.messagesLimit} messages used (${r.plan} plan)`;

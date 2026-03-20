@@ -2776,16 +2776,22 @@ function SpendAnalysisPanel({ token }: { token: string }) {
                 const provCost = parseFloat(p.total_cost);
                 const provPct = totalCost > 0 ? ((provCost / totalCost) * 100).toFixed(1) : "0";
                 const isAnthropic = p.ai_provider === "anthropic";
+                const isNvidia = p.ai_provider === "nvidia";
+                const providerStyle = isAnthropic
+                  ? { bg: "bg-violet-900/20 border-violet-700/50", badge: "bg-violet-900/50 text-violet-300 border-violet-700", text: "text-violet-400", label: "Anthropic" }
+                  : isNvidia
+                    ? { bg: "bg-emerald-900/20 border-emerald-700/50", badge: "bg-emerald-900/50 text-emerald-300 border-emerald-700", text: "text-emerald-400", label: "NVIDIA" }
+                    : { bg: "bg-green-900/20 border-green-700/50", badge: "bg-green-900/50 text-green-300 border-green-700", text: "text-green-400", label: "OpenAI" };
                 return (
-                  <div key={p.ai_provider} className={`p-4 rounded-lg border ${isAnthropic ? "bg-violet-900/20 border-violet-700/50" : "bg-green-900/20 border-green-700/50"}`} data-testid={`provider-card-${p.ai_provider}`}>
+                  <div key={p.ai_provider} className={`p-4 rounded-lg border ${providerStyle.bg}`} data-testid={`provider-card-${p.ai_provider}`}>
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-2">
-                        <Badge className={`text-xs ${isAnthropic ? "bg-violet-900/50 text-violet-300 border-violet-700" : "bg-green-900/50 text-green-300 border-green-700"}`}>
-                          {isAnthropic ? "Anthropic" : "OpenAI"}
+                        <Badge className={`text-xs ${providerStyle.badge}`}>
+                          {providerStyle.label}
                         </Badge>
                         <span className="text-xs text-gray-400">{provPct}% of total</span>
                       </div>
-                      <span className={`text-lg font-bold ${isAnthropic ? "text-violet-400" : "text-green-400"}`}>${provCost.toFixed(4)}</span>
+                      <span className={`text-lg font-bold ${providerStyle.text}`}>${provCost.toFixed(4)}</span>
                     </div>
                     <div className="grid grid-cols-2 gap-2 text-xs">
                       <div className="bg-black/20 rounded p-2">
@@ -5306,6 +5312,9 @@ function AIProviderPanel({ token }: { token: string }) {
   const [defaultProvider, setDefaultProvider] = useState("openai");
   const [agentProviders, setAgentProviders] = useState<Record<string, string>>({});
   const [anthropicConfigured, setAnthropicConfigured] = useState(false);
+  const [nvidiaConfigured, setNvidiaConfigured] = useState(false);
+  const [nvidiaApiKey, setNvidiaApiKey] = useState("");
+  const [showNvidiaKey, setShowNvidiaKey] = useState(false);
   const [fallbackEnabled, setFallbackEnabled] = useState(true);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -5323,6 +5332,7 @@ function AIProviderPanel({ token }: { token: string }) {
       setDefaultProvider(data.defaultProvider || "openai");
       setAgentProviders(data.agentProviders || {});
       setAnthropicConfigured(data.anthropicConfigured || false);
+      setNvidiaConfigured(data.nvidiaConfigured || false);
       setFallbackEnabled(data.fallbackEnabled !== false);
     } catch {
     } finally {
@@ -5349,12 +5359,18 @@ function AIProviderPanel({ token }: { token: string }) {
   const handleSave = async () => {
     setSaving(true);
     try {
+      const body: Record<string, any> = { defaultProvider, agentProviders, fallbackEnabled };
+      if (nvidiaApiKey.trim()) body.nvidiaApiKey = nvidiaApiKey.trim();
       const res = await fetch(`${ADMIN_API}/ai-provider`, {
         method: "PUT",
         headers: { ...headers, "Content-Type": "application/json" },
-        body: JSON.stringify({ defaultProvider, agentProviders, fallbackEnabled }),
+        body: JSON.stringify(body),
       });
       if (!res.ok) throw new Error(t("adminPage.toast.saveFailed"));
+      if (nvidiaApiKey.trim()) {
+        setNvidiaConfigured(true);
+        setNvidiaApiKey("");
+      }
       toast({ title: t("adminPage.toast.aiProviderSaved") });
     } catch (err: any) {
       toast({ title: t("adminPage.toast.saveFailed"), description: err.message, variant: "destructive" });
@@ -5377,14 +5393,18 @@ function AIProviderPanel({ token }: { token: string }) {
 
   const openaiStats = statsData?.byProvider?.filter((r: any) => r.provider === "openai") || [];
   const anthropicStats = statsData?.byProvider?.filter((r: any) => r.provider === "anthropic") || [];
+  const nvidiaStats = statsData?.byProvider?.filter((r: any) => r.provider === "nvidia") || [];
   const openaiTotal = openaiStats.reduce((s: number, r: any) => s + parseFloat(r.total_cost || "0"), 0);
   const anthropicTotal = anthropicStats.reduce((s: number, r: any) => s + parseFloat(r.total_cost || "0"), 0);
+  const nvidiaTotal = nvidiaStats.reduce((s: number, r: any) => s + parseFloat(r.total_cost || "0"), 0);
   const openaiRequests = openaiStats.reduce((s: number, r: any) => s + (r.request_count || 0), 0);
   const anthropicRequests = anthropicStats.reduce((s: number, r: any) => s + (r.request_count || 0), 0);
+  const nvidiaRequests = nvidiaStats.reduce((s: number, r: any) => s + (r.request_count || 0), 0);
 
   const providerLabel = (val: string) => {
     if (val === "auto") return "Auto (Smart)";
     if (val === "anthropic") return "Anthropic";
+    if (val === "nvidia") return "NVIDIA Nemotron";
     return "OpenAI";
   };
 
@@ -5412,6 +5432,40 @@ function AIProviderPanel({ token }: { token: string }) {
 
           <div className="p-4 bg-[#111633] rounded-lg border border-[#1E2448]">
             <h4 className="text-white font-medium mb-3 flex items-center gap-2">
+              <Cpu className="w-4 h-4 text-green-400" />
+              NVIDIA Nemotron API Anahtarı
+              {nvidiaConfigured && (
+                <span className="text-xs text-green-400 bg-green-900/30 border border-green-800/50 px-2 py-0.5 rounded-full ml-auto">Yapılandırıldı</span>
+              )}
+            </h4>
+            <p className="text-gray-400 text-sm mb-3">
+              NVIDIA Cloud API anahtarınızı girin. Nemotron modellerini kullanmak için gereklidir. <a href="https://build.nvidia.com" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">build.nvidia.com</a> adresinden API anahtarı alabilirsiniz.
+            </p>
+            <div className="flex gap-2">
+              <div className="relative flex-1 max-w-md">
+                <Input
+                  type={showNvidiaKey ? "text" : "password"}
+                  placeholder={nvidiaConfigured ? "Mevcut anahtar: ******* (değiştirmek için yenisini girin)" : "nvapi-xxxxxxxxxxxx"}
+                  value={nvidiaApiKey}
+                  onChange={(e) => setNvidiaApiKey(e.target.value)}
+                  className="bg-[#0A0E27] border-[#1E2448] text-white pr-10 font-mono text-sm"
+                  data-testid="input-nvidia-api-key"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowNvidiaKey(!showNvidiaKey)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+                  data-testid="button-toggle-nvidia-key-visibility"
+                >
+                  {showNvidiaKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+            <p className="text-gray-500 text-xs mt-2">Anahtarınız sistem ayarları olarak kaydedilir. Sunucu tarafında güvenli ortam değişkeni (NVIDIA_API_KEY) ile de yapılandırılabilir.</p>
+          </div>
+
+          <div className="p-4 bg-[#111633] rounded-lg border border-[#1E2448]">
+            <h4 className="text-white font-medium mb-3 flex items-center gap-2">
               <Zap className="w-4 h-4 text-blue-400" />
               {t("adminPage.aiProvider.defaultProvider")}
             </h4>
@@ -5425,6 +5479,7 @@ function AIProviderPanel({ token }: { token: string }) {
               <SelectContent>
                 <SelectItem value="openai">{t("adminPage.select.openaiModels")}</SelectItem>
                 <SelectItem value="anthropic">{t("adminPage.select.anthropicSonnet")}</SelectItem>
+                <SelectItem value="nvidia" data-testid="option-nvidia">NVIDIA Nemotron (Llama 3.1 70B)</SelectItem>
                 <SelectItem value="auto" data-testid="option-auto-routing">Auto - Akıllı Yönlendirme</SelectItem>
               </SelectContent>
             </Select>
@@ -5459,7 +5514,7 @@ function AIProviderPanel({ token }: { token: string }) {
             </div>
             {fallbackEnabled && (
               <div className="mt-2 text-[11px] text-gray-500">
-                OpenAI hata → Claude devreye girer | Claude hata → OpenAI devreye girer
+                Örn: OpenAI hata → Anthropic devreye girer → NVIDIA devreye girer | NVIDIA birincil ise → Anthropic → OpenAI sırası uygulanır
               </div>
             )}
           </div>
@@ -5469,9 +5524,12 @@ function AIProviderPanel({ token }: { token: string }) {
               <Brain className="w-4 h-4 text-violet-400" />
               {t("adminPage.aiProvider.perAgentOverride")}
             </h4>
-            <p className="text-gray-400 text-sm mb-4">
+            <p className="text-gray-400 text-sm mb-3">
               {t("adminPage.aiProvider.perAgentDesc")}
             </p>
+            <div className="mb-3 p-2 bg-yellow-900/20 border border-yellow-700/30 rounded-lg text-[11px] text-yellow-300/70">
+              Not: NVIDIA Nemotron, araç çağrısı (tool-calling) desteklememektedir. Araç kullanan agentlara NVIDIA atanırsa araç işlevleri çalışmaz.
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {AGENTS_DATA.map(agent => (
                 <div key={agent.slug} className="flex items-center justify-between p-3 bg-[#0A0E27] rounded-lg border border-[#1E2448]" data-testid={`agent-provider-${agent.slug}`}>
@@ -5487,6 +5545,7 @@ function AIProviderPanel({ token }: { token: string }) {
                       <SelectItem value="default">{t("adminPage.aiProvider.default")} ({providerLabel(defaultProvider)})</SelectItem>
                       <SelectItem value="openai">OpenAI</SelectItem>
                       <SelectItem value="anthropic">Anthropic</SelectItem>
+                      <SelectItem value="nvidia">NVIDIA Nemotron</SelectItem>
                       <SelectItem value="auto">Auto (Akıllı)</SelectItem>
                     </SelectContent>
                   </Select>
@@ -5497,7 +5556,7 @@ function AIProviderPanel({ token }: { token: string }) {
 
           <div className="p-4 bg-[#111633] rounded-lg border border-[#1E2448]">
             <h4 className="text-white font-medium mb-3">{t("adminPage.aiProvider.modelInfo")}</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div className="p-3 bg-[#0A0E27] rounded-lg border border-[#1E2448]">
                 <div className="flex items-center gap-2 mb-2">
                   <Badge className="bg-green-900/30 text-green-400 border-green-800 text-xs">OpenAI</Badge>
@@ -5514,6 +5573,16 @@ function AIProviderPanel({ token }: { token: string }) {
                 <ul className="space-y-1 text-xs text-gray-400">
                   <li><span className="text-white">{t("adminPage.aiProvider.claudeSonnet4")}:</span> $3.00/1M input, $15.00/1M output</li>
                   <li><span className="text-white">{t("adminPage.aiProvider.claude3Haiku")}:</span> $0.25/1M input, $1.25/1M output</li>
+                </ul>
+              </div>
+              <div className="p-3 bg-[#0A0E27] rounded-lg border border-[#1E2448]">
+                <div className="flex items-center gap-2 mb-2">
+                  <Badge className="bg-green-900/30 text-green-400 border-green-800 text-xs">NVIDIA</Badge>
+                </div>
+                <ul className="space-y-1 text-xs text-gray-400">
+                  <li><span className="text-white">Nemotron 70B:</span> $0.35/1M input, $0.40/1M output</li>
+                  <li><span className="text-white">Nemotron Ultra 253B:</span> $0.60/1M input, $2.40/1M output</li>
+                  <li><span className="text-white">Nemotron 340B:</span> $4.20/1M input, $4.20/1M output</li>
                 </ul>
               </div>
             </div>
@@ -5549,7 +5618,7 @@ function AIProviderPanel({ token }: { token: string }) {
             <p className="text-gray-500 text-sm text-center py-6">Veri bulunamadı</p>
           ) : (
             <div className="space-y-5">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="p-4 bg-[#111633] rounded-lg border border-green-800/30" data-testid="stats-openai">
                   <div className="flex items-center gap-2 mb-3">
                     <Badge className="bg-green-900/30 text-green-400 border-green-800 text-xs">OpenAI</Badge>
@@ -5611,27 +5680,69 @@ function AIProviderPanel({ token }: { token: string }) {
                     </div>
                   )}
                 </div>
+
+                <div className="p-4 bg-[#111633] rounded-lg border border-green-800/30" data-testid="stats-nvidia">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Badge className="bg-green-900/30 text-green-400 border-green-800 text-xs">NVIDIA</Badge>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <p className="text-[11px] text-gray-500 uppercase tracking-wider">Toplam Maliyet</p>
+                      <p className="text-xl font-bold text-green-400">${nvidiaTotal.toFixed(4)}</p>
+                    </div>
+                    <div>
+                      <p className="text-[11px] text-gray-500 uppercase tracking-wider">İstek Sayısı</p>
+                      <p className="text-xl font-bold text-white">{nvidiaRequests.toLocaleString()}</p>
+                    </div>
+                  </div>
+                  {nvidiaRequests > 0 && (
+                    <p className="text-[11px] text-gray-500 mt-2">
+                      Ort. ${(nvidiaTotal / nvidiaRequests).toFixed(6)} / istek
+                    </p>
+                  )}
+                  {nvidiaStats.length > 0 && (
+                    <div className="mt-3 space-y-1">
+                      {nvidiaStats.map((s: any, i: number) => (
+                        <div key={i} className="flex justify-between text-[11px]">
+                          <span className="text-gray-400">{s.model}</span>
+                          <span className="text-white">{s.request_count} istek · ${parseFloat(s.total_cost || "0").toFixed(4)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {nvidiaRequests === 0 && (
+                    <p className="text-[11px] text-gray-600 mt-2 italic">Henüz NVIDIA kullanımı yok</p>
+                  )}
+                </div>
               </div>
 
-              {(openaiRequests > 0 && anthropicRequests > 0) && (
+              {(openaiRequests > 0 || anthropicRequests > 0 || nvidiaRequests > 0) && (() => {
+                const totalAll = openaiTotal + anthropicTotal + nvidiaTotal;
+                return totalAll > 0 ? (
                 <div className="p-4 bg-[#111633] rounded-lg border border-[#1E2448]">
                   <h5 className="text-white text-sm font-medium mb-3">Maliyet Dağılımı</h5>
                   <div className="h-3 bg-[#0A0E27] rounded-full overflow-hidden flex">
                     <div
                       className="h-full bg-gradient-to-r from-green-500 to-green-600 transition-all"
-                      style={{ width: `${(openaiTotal / (openaiTotal + anthropicTotal)) * 100}%` }}
+                      style={{ width: `${(openaiTotal / totalAll) * 100}%` }}
                     />
                     <div
                       className="h-full bg-gradient-to-r from-violet-500 to-violet-600 transition-all"
-                      style={{ width: `${(anthropicTotal / (openaiTotal + anthropicTotal)) * 100}%` }}
+                      style={{ width: `${(anthropicTotal / totalAll) * 100}%` }}
+                    />
+                    <div
+                      className="h-full bg-gradient-to-r from-emerald-400 to-green-400 transition-all"
+                      style={{ width: `${(nvidiaTotal / totalAll) * 100}%` }}
                     />
                   </div>
-                  <div className="flex justify-between mt-2 text-[11px]">
-                    <span className="text-green-400">OpenAI {((openaiTotal / (openaiTotal + anthropicTotal)) * 100).toFixed(1)}%</span>
-                    <span className="text-violet-400">Anthropic {((anthropicTotal / (openaiTotal + anthropicTotal)) * 100).toFixed(1)}%</span>
+                  <div className="flex flex-wrap gap-3 mt-2 text-[11px]">
+                    {openaiTotal > 0 && <span className="text-green-400">OpenAI {((openaiTotal / totalAll) * 100).toFixed(1)}%</span>}
+                    {anthropicTotal > 0 && <span className="text-violet-400">Anthropic {((anthropicTotal / totalAll) * 100).toFixed(1)}%</span>}
+                    {nvidiaTotal > 0 && <span className="text-emerald-400">NVIDIA {((nvidiaTotal / totalAll) * 100).toFixed(1)}%</span>}
                   </div>
                 </div>
-              )}
+                ) : null;
+              })()}
 
               {statsData.byAgent && statsData.byAgent.length > 0 && (
                 <div className="p-4 bg-[#111633] rounded-lg border border-[#1E2448]">

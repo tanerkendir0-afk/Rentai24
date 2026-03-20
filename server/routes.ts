@@ -67,6 +67,17 @@ const anthropicClient = process.env.ANTHROPIC_API_KEY
   ? new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
   : null;
 
+function createNvidiaClient(apiKey?: string): OpenAI | null {
+  const key = apiKey || process.env.NVIDIA_API_KEY;
+  if (!key) return null;
+  return new OpenAI({
+    apiKey: key,
+    baseURL: "https://integrate.api.nvidia.com/v1",
+  });
+}
+
+let nvidiaClient: OpenAI | null = createNvidiaClient();
+
 const PLAN_CONFIG: Record<string, { maxAgents: number; dailyMessagesPerAgent: number; allowedAgents?: string[]; excludedAgents?: string[] }> = {
   standard: { maxAgents: 3, dailyMessagesPerAgent: 100, excludedAgents: ["bookkeeping"] },
   professional: { maxAgents: 7, dailyMessagesPerAgent: 150, excludedAgents: ["bookkeeping"] },
@@ -82,6 +93,9 @@ const MODEL_PRICING: Record<string, { input: number; output: number }> = {
   "claude-sonnet-4-20250514": { input: 3.00, output: 15.00 },
   "claude-3-5-sonnet-20241022": { input: 3.00, output: 15.00 },
   "claude-3-haiku-20240307": { input: 0.25, output: 1.25 },
+  "nvidia/llama-3.1-nemotron-70b-instruct": { input: 0.35, output: 0.40 },
+  "nvidia/llama-3.1-nemotron-ultra-253b-v1": { input: 0.60, output: 2.40 },
+  "nvidia/nemotron-4-340b-instruct": { input: 4.20, output: 4.20 },
 };
 
 function calculateTokenCost(model: string, promptTokens: number, completionTokens: number): number {
@@ -91,19 +105,32 @@ function calculateTokenCost(model: string, promptTokens: number, completionToken
   return inputCost + outputCost;
 }
 
-async function resolveAiProvider(agentType: string): Promise<"openai" | "anthropic" | "auto"> {
+async function resolveAiProvider(agentType: string): Promise<"openai" | "anthropic" | "nvidia" | "auto"> {
   try {
     const agentOverride = await storage.getSystemSetting(`ai_provider_${agentType}`);
-    if (agentOverride && (agentOverride === "openai" || agentOverride === "anthropic" || agentOverride === "auto")) {
+    if (agentOverride && (agentOverride === "openai" || agentOverride === "anthropic" || agentOverride === "nvidia" || agentOverride === "auto")) {
       return agentOverride;
     }
     const defaultProvider = await storage.getSystemSetting("default_ai_provider");
-    if (defaultProvider === "anthropic" || defaultProvider === "auto") {
-      return defaultProvider as "openai" | "anthropic" | "auto";
+    if (defaultProvider === "anthropic" || defaultProvider === "nvidia" || defaultProvider === "auto") {
+      return defaultProvider as "openai" | "anthropic" | "nvidia" | "auto";
     }
   } catch {
   }
   return "openai";
+}
+
+async function getNvidiaClient(): Promise<OpenAI | null> {
+  if (nvidiaClient) return nvidiaClient;
+  try {
+    const storedKey = await storage.getSystemSetting("nvidia_api_key");
+    if (storedKey) {
+      nvidiaClient = createNvidiaClient(storedKey);
+      return nvidiaClient;
+    }
+  } catch {
+  }
+  return null;
 }
 
 async function isFallbackEnabled(): Promise<boolean> {
@@ -130,12 +157,21 @@ const DEEP_ANALYSIS_INDICATORS = [
 ];
 
 interface SmartRouteResult {
-  provider: "openai" | "anthropic";
+  provider: "openai" | "anthropic" | "nvidia";
   model: string;
   routingReason: string;
 }
 
-function smartRouteByComplexity(message: string, hasTools: boolean): SmartRouteResult {
+const NEMOTRON_PREFERRED_INDICATORS = [
+  "kod", "code", "programla", "program", "algoritma", "algorithm",
+  "debug", "hata", "error", "function", "fonksiyon", "class", "sınıf",
+  "api", "veritabanı", "database", "sql", "query", "sorgu",
+  "matematik", "math", "hesapla", "calculate", "formül", "formula",
+  "mantık", "logic", "reasoning", "açıkla", "explain",
+  "translate", "çevir", "özetle", "summarize",
+];
+
+function smartRouteByComplexity(message: string, hasTools: boolean, nvidiaAvailable?: boolean): SmartRouteResult {
   const msgLower = message.toLowerCase().trim();
 
   if (SIMPLE_MESSAGE_PATTERNS.some((p) => p.test(msgLower))) {
@@ -149,6 +185,13 @@ function smartRouteByComplexity(message: string, hasTools: boolean): SmartRouteR
       return { provider: "anthropic", model: "claude-sonnet-4-20250514", routingReason: "deep_analysis" };
     }
     return { provider: "openai", model: "gpt-4o", routingReason: "deep_analysis_no_anthropic" };
+  }
+
+  if (!hasTools && nvidiaAvailable) {
+    const nemotronScore = NEMOTRON_PREFERRED_INDICATORS.filter(k => msgLower.includes(k)).length;
+    if (nemotronScore >= 2 || (nemotronScore >= 1 && msgLower.length > 100)) {
+      return { provider: "nvidia", model: "nvidia/llama-3.1-nemotron-70b-instruct", routingReason: "nemotron_preferred" };
+    }
   }
 
   if (hasTools && TOOL_INTENT_KEYWORDS.some((k) => msgLower.includes(k))) {
@@ -3255,21 +3298,29 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}${QUICK_REPLY_BUTT
       const isAgenticAgent = !!agentTools;
 
       const aiProviderSetting = fineTunedModel ? "openai" : await resolveAiProvider(resolvedAgentType);
-      let resolvedProvider: "openai" | "anthropic" = "openai";
+      let resolvedProvider: "openai" | "anthropic" | "nvidia" = "openai";
       let routingReason = "default";
       let useAnthropic = false;
+      let useNvidia = false;
+      const resolvedNvidiaClient = await getNvidiaClient();
 
       if (!fineTunedModel) {
         if (aiProviderSetting === "auto") {
-          const smartResult = smartRouteByComplexity(message, !!agentTools);
+          const smartResult = smartRouteByComplexity(message, !!agentTools, !!resolvedNvidiaClient);
           resolvedProvider = smartResult.provider;
           modelToUse = smartResult.model;
           routingReason = smartResult.routingReason;
           useAnthropic = resolvedProvider === "anthropic" && !!anthropicClient;
+          useNvidia = resolvedProvider === "nvidia" && !!resolvedNvidiaClient;
         } else if (aiProviderSetting === "anthropic" && anthropicClient) {
           resolvedProvider = "anthropic";
           modelToUse = "claude-sonnet-4-20250514";
           useAnthropic = true;
+          routingReason = "provider_override";
+        } else if (aiProviderSetting === "nvidia" && resolvedNvidiaClient) {
+          resolvedProvider = "nvidia";
+          modelToUse = "nvidia/llama-3.1-nemotron-70b-instruct";
+          useNvidia = true;
           routingReason = "provider_override";
         } else {
           resolvedProvider = "openai";
@@ -3323,12 +3374,23 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}${QUICK_REPLY_BUTT
       let fallbackUsed = false;
       let fallbackFrom = "";
 
-      const executeWithProvider = async (providerIsAnthropic: boolean, currentModel: string) => {
+      const executeWithProvider = async (providerIsAnthropic: boolean, currentModel: string, providerIsNvidia?: boolean) => {
         totalPromptTokens = 0;
         totalCompletionTokens = 0;
         assistantMessageContent = null;
 
-      if (providerIsAnthropic && anthropicClient) {
+      if (providerIsNvidia && resolvedNvidiaClient) {
+        const nvidiaResponse = await resolvedNvidiaClient.chat.completions.create({
+          model: currentModel,
+          messages,
+          max_tokens: 2048,
+          temperature: 0.6,
+        }, { timeout: 60000 });
+
+        totalPromptTokens = nvidiaResponse.usage?.prompt_tokens || 0;
+        totalCompletionTokens = nvidiaResponse.usage?.completion_tokens || 0;
+        assistantMessageContent = nvidiaResponse.choices[0]?.message?.content ?? null;
+      } else if (providerIsAnthropic && anthropicClient) {
         const { system: anthropicSystem, messages: anthropicMessages } = convertMessagesToAnthropic(messages);
         const anthropicTools = agentTools ? convertToolsToAnthropic(agentTools) : undefined;
 
@@ -3552,29 +3614,44 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}${QUICK_REPLY_BUTT
       const fallbackEnabled = await isFallbackEnabled();
 
       try {
-        await executeWithProvider(useAnthropic, modelToUse);
+        await executeWithProvider(useAnthropic, modelToUse, useNvidia);
       } catch (primaryErr: any) {
         if (fallbackEnabled) {
-          const canFallbackToAnthropic = !useAnthropic && !!anthropicClient;
-          const canFallbackToOpenai = useAnthropic;
+          const primaryProviderName = useNvidia ? "nvidia" : (useAnthropic ? "anthropic" : "openai");
+          fallbackFrom = primaryProviderName;
 
-          if (canFallbackToAnthropic || canFallbackToOpenai) {
-            fallbackFrom = useAnthropic ? "anthropic" : "openai";
-            const fallbackProvider = useAnthropic ? false : true;
-            const fallbackModel = fallbackProvider ? "claude-sonnet-4-20250514" : routeModel(message, !!agentTools);
-            console.log(`[FALLBACK] ${fallbackFrom} failed (${primaryErr?.message}), falling back to ${fallbackProvider ? "anthropic" : "openai"} with model ${fallbackModel}`);
+          let fallbackChain: Array<{ isAnthropic: boolean; isNvidia: boolean; model: string; provider: "openai" | "anthropic" | "nvidia" }> = [];
 
-            try {
-              useAnthropic = fallbackProvider;
-              modelToUse = fallbackModel;
-              resolvedProvider = fallbackProvider ? "anthropic" : "openai";
-              await executeWithProvider(fallbackProvider, fallbackModel);
-              fallbackUsed = true;
-            } catch (fallbackErr: any) {
-              console.error(`[FALLBACK FAILED] Both providers failed. Primary: ${primaryErr?.message}, Fallback: ${fallbackErr?.message}`);
-              throw primaryErr;
-            }
+          if (useNvidia) {
+            if (anthropicClient) fallbackChain.push({ isAnthropic: true, isNvidia: false, model: "claude-sonnet-4-20250514", provider: "anthropic" });
+            fallbackChain.push({ isAnthropic: false, isNvidia: false, model: routeModel(message, !!agentTools), provider: "openai" });
+          } else if (useAnthropic) {
+            fallbackChain.push({ isAnthropic: false, isNvidia: false, model: routeModel(message, !!agentTools), provider: "openai" });
+            if (resolvedNvidiaClient) fallbackChain.push({ isAnthropic: false, isNvidia: true, model: "nvidia/llama-3.1-nemotron-70b-instruct", provider: "nvidia" });
           } else {
+            if (anthropicClient) fallbackChain.push({ isAnthropic: true, isNvidia: false, model: "claude-sonnet-4-20250514", provider: "anthropic" });
+            if (resolvedNvidiaClient) fallbackChain.push({ isAnthropic: false, isNvidia: true, model: "nvidia/llama-3.1-nemotron-70b-instruct", provider: "nvidia" });
+          }
+
+          let fallbackSucceeded = false;
+          for (const fb of fallbackChain) {
+            console.log(`[FALLBACK] ${primaryProviderName} failed (${primaryErr?.message}), trying ${fb.provider} with model ${fb.model}`);
+            try {
+              useAnthropic = fb.isAnthropic;
+              useNvidia = fb.isNvidia;
+              modelToUse = fb.model;
+              resolvedProvider = fb.provider;
+              await executeWithProvider(fb.isAnthropic, fb.model, fb.isNvidia);
+              fallbackUsed = true;
+              fallbackSucceeded = true;
+              break;
+            } catch (fallbackErr: any) {
+              console.error(`[FALLBACK] ${fb.provider} also failed: ${fallbackErr?.message}`);
+            }
+          }
+
+          if (!fallbackSucceeded) {
+            console.error(`[FALLBACK FAILED] All providers failed. Primary: ${primaryErr?.message}`);
             throw primaryErr;
           }
         } else {
@@ -3598,7 +3675,7 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}${QUICK_REPLY_BUTT
         totalTokens,
         costUsd: costUsd.toFixed(6),
         operationType,
-        aiProvider: useAnthropic ? "anthropic" : "openai",
+        aiProvider: useNvidia ? "nvidia" : (useAnthropic ? "anthropic" : "openai"),
       }).catch(err => console.error("Token usage log error:", err.message));
 
       const rawReply = assistantMessageContent ?? msg("noResponseGenerated", userLang);
@@ -6651,10 +6728,13 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
       }
       const fallbackSetting = await storage.getSystemSetting("ai_fallback_enabled");
       const fallbackEnabled = fallbackSetting !== "false";
+      const nvidiaApiKeyStored = await storage.getSystemSetting("nvidia_api_key");
+      const nvidiaConfigured = !!(process.env.NVIDIA_API_KEY || nvidiaApiKeyStored);
       res.json({
         defaultProvider,
         agentProviders,
         anthropicConfigured: !!process.env.ANTHROPIC_API_KEY,
+        nvidiaConfigured,
         fallbackEnabled,
       });
     } catch (error: unknown) {
@@ -6675,24 +6755,28 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
 
   app.put(`/api/${ADMIN_PATH}/ai-provider`, requireAdmin, async (req, res) => {
     try {
-      const validProviders = ["openai", "anthropic", "auto"];
+      const validProviders = ["openai", "anthropic", "nvidia", "auto"];
       const validAgentSlugs = new Set([
         "customer-support", "sales-sdr", "social-media", "bookkeeping",
         "scheduling", "hr-recruiting", "data-analyst", "ecommerce-ops",
         "real-estate", "manager"
       ]);
-      const { defaultProvider, agentProviders, fallbackEnabled } = req.body;
+      const { defaultProvider, agentProviders, fallbackEnabled, nvidiaApiKey } = req.body;
       if (defaultProvider && validProviders.includes(defaultProvider)) {
         await storage.setSystemSetting("default_ai_provider", defaultProvider);
       }
       if (typeof fallbackEnabled === "boolean") {
         await storage.setSystemSetting("ai_fallback_enabled", fallbackEnabled ? "true" : "false");
       }
+      if (nvidiaApiKey && typeof nvidiaApiKey === "string" && nvidiaApiKey.trim()) {
+        await storage.setSystemSetting("nvidia_api_key", nvidiaApiKey.trim());
+        nvidiaClient = createNvidiaClient(nvidiaApiKey.trim());
+      }
       if (agentProviders && typeof agentProviders === "object") {
         for (const [agentSlug, provider] of Object.entries(agentProviders)) {
           if (!validAgentSlugs.has(agentSlug)) continue;
           const prov = provider as string;
-          if (prov === "openai" || prov === "anthropic" || prov === "auto" || prov === "default") {
+          if (prov === "openai" || prov === "anthropic" || prov === "nvidia" || prov === "auto" || prov === "default") {
             await storage.setSystemSetting(
               `ai_provider_${agentSlug}`,
               prov === "default" ? "" : prov

@@ -23,7 +23,7 @@ The RentAI 24 platform utilizes a modern web stack: React, TypeScript, and Tailw
 *   **Manager Agent (Smart Router):** Classifies user messages and routes them to appropriate agents.
 *   **Human Escalation System:** Detects frustrated users, triggers escalations, and allows admin intervention in live chats.
 *   **Agent Document Handling:** All agents can read, analyze, and correct user-uploaded documents.
-*   **Multi-AI Provider Support:** Three provider modes: **OpenAI** (GPT-4o/4o-mini), **Anthropic** (Claude Sonnet 4), and **Auto (Akıllı Yönlendirme)** for dynamic routing based on message complexity and a fallback system.
+*   **Multi-AI Provider Support:** Four provider modes: **OpenAI** (GPT-4o/4o-mini), **Anthropic** (Claude Sonnet 4), **NVIDIA Nemotron** (Llama 3.1 70B/Ultra 253B/340B via NVIDIA Cloud API), and **Auto (Akıllı Yönlendirme)** for dynamic routing based on message complexity. Includes a multi-provider fallback chain (e.g., OpenAI → Anthropic → NVIDIA or NVIDIA → Anthropic → OpenAI). NVIDIA API key configurable in admin panel. Nemotron model costs tracked in token usage.
 *   **Finn Turkish Accounting Upgrade:** Specialized bookkeeping agent with Turkish accounting features, including KDV invoicing, TCMB exchange rates, financial management, and Excel report generation (Mizan, Bilanço, Bordro, Gelir Tablosu, KDV Özet). Uses PDFKit for PDF generation and supports KaTeX math rendering.
 *   **Finn Calculation Tools:** Dedicated deterministic calculation service for Finn, including tools for KDV, payroll, amortization, FX revaluation, withholding, and journal entry formatting.
 *   **White-Label PDF Generation & Email Attachments:** Agents can generate branded PDF documents (invoice, report, proposal) and send them as email attachments. Customer branding is customizable.
@@ -49,6 +49,7 @@ The RentAI 24 platform utilizes a modern web stack: React, TypeScript, and Tailw
 ## External Dependencies
 *   **OpenAI:** GPT-4o, `text-embedding-3-small`
 *   **Anthropic:** Claude Sonnet 4, Claude 3 Haiku
+*   **NVIDIA Cloud API:** Nemotron 70B, Ultra 253B, 340B Instruct (OpenAI-compatible, via `https://integrate.api.nvidia.com/v1`)
 *   **PostgreSQL (Neon serverless)**
 *   **Stripe:** Payment processing
 *   **Drizzle ORM**

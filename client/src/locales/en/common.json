@@ -12,7 +12,8 @@
     "admin": "Admin",
     "signOut": "Sign Out",
     "signIn": "Sign In",
-    "tryLiveDemo": "Try Live Demo"
+    "tryLiveDemo": "Try Live Demo",
+    "automations": "Automations"
   },
   "install": {
     "title": "Install RentAI 24",

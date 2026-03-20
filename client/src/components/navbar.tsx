@@ -302,7 +302,7 @@ export default function Navbar() {
                     <DropdownMenuItem asChild>
                       <Link href="/automations" className="flex items-center gap-2 cursor-pointer" data-testid="dropdown-item-automations">
                         <Zap className="w-4 h-4" />
-                        {t("nav.automations", "Otomasyonlar")}
+                        {t("nav.automations")}
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
@@ -433,7 +433,7 @@ export default function Navbar() {
                             data-testid="button-mobile-automations"
                           >
                             <Zap className="w-4 h-4 mr-1" />
-                            Otomasyonlar
+                            {t("nav.automations")}
                           </Button>
                         </Link>
                         <Link href="/settings">

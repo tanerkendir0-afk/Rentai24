@@ -12,7 +12,8 @@
     "admin": "Yönetici",
     "signOut": "Çıkış Yap",
     "signIn": "Giriş Yap",
-    "tryLiveDemo": "Canlı Demo Dene"
+    "tryLiveDemo": "Canlı Demo Dene",
+    "automations": "Otomasyonlar"
   },
   "install": {
     "title": "RentAI 24'ü Yükle",

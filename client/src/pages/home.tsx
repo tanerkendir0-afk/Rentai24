@@ -643,76 +643,79 @@ function LoggedInHome({ userName }: { userName: string }) {
 
   return (
     <div className="overflow-x-hidden">
-      <section className="relative min-h-[60vh] flex items-center overflow-hidden pt-16" data-testid="section-welcome">
-        <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
-          <div className="absolute top-[10%] left-[20%] w-[300px] sm:w-[500px] h-[300px] sm:h-[500px] bg-primary/10 rounded-full blur-[120px] dark:mix-blend-screen" />
-          <div className="absolute bottom-[10%] right-[10%] w-[400px] sm:w-[600px] h-[400px] sm:h-[600px] bg-primary/10 rounded-full blur-[120px] dark:mix-blend-screen" />
-        </div>
+      {/* Welcome Hero - compact, gradient banner */}
+      <section className="relative overflow-hidden pt-16" data-testid="section-welcome">
+        <div className="relative bg-gradient-to-br from-primary/5 via-primary/10 to-indigo-500/5 dark:from-primary/10 dark:via-primary/5 dark:to-indigo-500/10 border-b border-border/30">
+          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            <div className="absolute top-0 right-[20%] w-[400px] h-[400px] bg-primary/10 rounded-full blur-[100px]" />
+            <div className="absolute bottom-0 left-[10%] w-[300px] h-[300px] bg-indigo-500/10 rounded-full blur-[100px]" />
+          </div>
 
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.02)_1px,transparent_1px)] dark:bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:3rem_3rem] [mask-image:radial-gradient(ellipse_80%_80%_at_50%_50%,#000_20%,transparent_100%)] pointer-events-none" />
-
-        <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 relative z-10 py-12 sm:py-20">
-          <motion.div
-            className="text-center space-y-6"
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7 }}
-          >
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 py-10 sm:py-14">
             <motion.div
-              className="inline-flex items-center space-x-2 px-4 py-2 rounded-full bg-primary/5 dark:bg-white/5 border border-primary/10 dark:border-white/10 backdrop-blur-sm"
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.2 }}
+              className="flex flex-col sm:flex-row items-center sm:items-start gap-6 sm:gap-8"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
             >
-              <span className="flex h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)] animate-pulse" />
-              <span className="text-sm font-medium text-foreground/80">{t("home.loggedIn.teamOnline")}</span>
-            </motion.div>
+              {/* Left: Greeting */}
+              <div className="flex-1 text-center sm:text-left">
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 mb-4">
+                  <span className="flex h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.6)] animate-pulse" />
+                  <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">{t("home.loggedIn.teamOnline")}</span>
+                </div>
 
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-foreground" data-testid="text-welcome-title">
-              {t("home.loggedIn.welcomeBack", { name: firstName })}
-            </h1>
+                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-foreground mb-2" data-testid="text-welcome-title">
+                  {t("home.loggedIn.welcomeBack", { name: firstName })}
+                </h1>
 
-            <p className="text-base sm:text-lg text-muted-foreground max-w-lg mx-auto" data-testid="text-welcome-subtitle">
-              {t("home.loggedIn.subtitle")}
-            </p>
-          </motion.div>
-        </div>
-      </section>
+                <p className="text-sm sm:text-base text-muted-foreground max-w-md" data-testid="text-welcome-subtitle">
+                  {t("home.loggedIn.subtitle")}
+                </p>
 
-      <section className="py-10 sm:py-16 relative" data-testid="section-quick-actions">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.h2
-            className="text-xl sm:text-2xl font-bold text-foreground mb-6 sm:mb-8"
-            {...fadeUp}
-            data-testid="text-quick-actions"
-          >
-            {t("home.loggedIn.quickActions")}
-          </motion.h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
-            {quickActions.map((action, i) => {
-              const Icon = action.icon;
-              return (
-                <motion.div
-                  key={action.labelKey}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, delay: i * 0.08 }}
-                >
-                  <Link href={action.href}>
-                    <Card
-                      className="p-4 sm:p-5 bg-card border-border/50 hover:border-primary/30 hover:-translate-y-1 transition-all duration-300 cursor-pointer text-center group"
-                      data-testid={`quick-action-${action.labelKey}`}
-                    >
-                      <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br ${action.color} flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform duration-300`}>
-                        <Icon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-                      </div>
-                      <h3 className="font-semibold text-foreground text-sm mb-0.5">{t(`home.loggedIn.${action.labelKey}`)}</h3>
-                      <p className="text-[10px] sm:text-xs text-muted-foreground">{t(`home.loggedIn.${action.descKey}`)}</p>
-                    </Card>
+                <div className="flex flex-wrap gap-2 mt-5 justify-center sm:justify-start">
+                  <Link href="/dashboard">
+                    <Button className="bg-primary text-white border-0 shadow-md shadow-primary/20" data-testid="button-go-dashboard">
+                      <LayoutDashboard className="w-4 h-4 mr-2" />
+                      {t("home.loggedIn.dashboard")}
+                    </Button>
                   </Link>
-                </motion.div>
-              );
-            })}
+                  <Link href="/workers">
+                    <Button variant="outline" className="border-border" data-testid="button-go-workers">
+                      <Users className="w-4 h-4 mr-2" />
+                      {t("home.loggedIn.aiWorkers")}
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+
+              {/* Right: Quick Action Grid */}
+              <div className="grid grid-cols-3 sm:grid-cols-3 gap-2 sm:gap-3 w-full sm:w-auto sm:shrink-0">
+                {quickActions.slice(0, 6).map((action, i) => {
+                  const Icon = action.icon;
+                  return (
+                    <motion.div
+                      key={action.labelKey}
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ duration: 0.3, delay: 0.15 + i * 0.05 }}
+                    >
+                      <Link href={action.href}>
+                        <div
+                          className="flex flex-col items-center gap-1.5 p-3 sm:p-4 rounded-xl bg-card/80 dark:bg-card/50 border border-border/50 hover:border-primary/30 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer group"
+                          data-testid={`quick-action-${action.labelKey}`}
+                        >
+                          <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-gradient-to-br ${action.color} flex items-center justify-center group-hover:scale-110 transition-transform duration-200`}>
+                            <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                          </div>
+                          <span className="text-[10px] sm:text-xs font-medium text-foreground text-center leading-tight">{t(`home.loggedIn.${action.labelKey}`)}</span>
+                        </div>
+                      </Link>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            </motion.div>
           </div>
         </div>
       </section>

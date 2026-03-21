@@ -54,6 +54,9 @@ import {
   Square,
   Copy,
   Search,
+  FolderOpen,
+  FolderPlus,
+  Pencil,
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
@@ -92,6 +95,7 @@ interface Conversation {
   dbId?: number;
   messages: Message[];
   title: string;
+  project?: string | null;
   createdAt: number;
 }
 
@@ -161,6 +165,142 @@ function SplitScreenWrapper({ active, splitPanelCount, allowedAgents, rentedAgen
   );
 }
 
+function SwipeableConvoItem({ convo, isActive, canDelete, onSelect, onDelete, onSetProject, newChatLabel }: {
+  convo: Conversation;
+  isActive: boolean;
+  canDelete: boolean;
+  onSelect: () => void;
+  onDelete: () => void;
+  onSetProject: (project: string | null) => void;
+  newChatLabel: string;
+}) {
+  const [swipeX, setSwipeX] = useState(0);
+  const [startX, setStartX] = useState<number | null>(null);
+  const [showProjectInput, setShowProjectInput] = useState(false);
+  const [projectValue, setProjectValue] = useState(convo.project || "");
+  const deleteThreshold = -80;
+
+  const handleTouchStart = (e: React.TouchEvent) => { setStartX(e.touches[0].clientX); };
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (startX === null) return;
+    const diff = e.touches[0].clientX - startX;
+    if (diff < 0) setSwipeX(Math.max(diff, -120));
+  };
+  const handleTouchEnd = () => {
+    if (swipeX < deleteThreshold && canDelete) { onDelete(); }
+    setSwipeX(0);
+    setStartX(null);
+  };
+  const handleMouseDown = (e: React.MouseEvent) => { setStartX(e.clientX); };
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (startX === null) return;
+    const diff = e.clientX - startX;
+    if (diff < 0) setSwipeX(Math.max(diff, -120));
+  };
+  const handleMouseUp = () => {
+    if (swipeX < deleteThreshold && canDelete) { onDelete(); }
+    setSwipeX(0);
+    setStartX(null);
+  };
+
+  const handleProjectSubmit = () => {
+    const val = projectValue.trim();
+    onSetProject(val || null);
+    setShowProjectInput(false);
+  };
+
+  return (
+    <div className="relative overflow-hidden rounded-lg mb-0.5" data-testid={`sidebar-convo-${convo.id}`}>
+      <div className="absolute inset-y-0 right-0 flex items-center pr-3 bg-red-500 rounded-lg"
+        style={{ width: Math.abs(swipeX) > 20 ? `${Math.abs(swipeX) + 20}px` : 0, opacity: Math.abs(swipeX) > 20 ? 1 : 0, transition: startX === null ? 'all 0.2s' : 'none' }}
+      >
+        <Trash2 className="w-4 h-4 text-white ml-auto mr-2" />
+      </div>
+
+      <div
+        className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-left transition-all group cursor-pointer relative z-10 ${
+          isActive
+            ? "bg-primary/10 text-foreground border-l-2 border-l-primary border border-primary/20 shadow-sm"
+            : "text-muted-foreground hover:bg-muted/70 hover:text-foreground border border-transparent"
+        }`}
+        style={{ transform: `translateX(${swipeX}px)`, transition: startX === null ? 'transform 0.2s' : 'none', backgroundColor: swipeX < deleteThreshold ? 'rgba(239,68,68,0.1)' : undefined }}
+        onClick={onSelect}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onMouseDown={handleMouseDown}
+        onMouseMove={startX !== null ? handleMouseMove : undefined}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={() => { if (startX !== null) { setSwipeX(0); setStartX(null); } }}
+      >
+        <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${isActive ? "bg-primary/15" : "bg-muted/50"}`}>
+          <MessageCircle className={`w-3.5 h-3.5 ${isActive ? "text-primary" : "text-muted-foreground/50"}`} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <span className={`text-[13px] truncate block leading-snug font-medium ${isActive ? "text-foreground" : ""}`}>
+            {convo.title || newChatLabel}
+          </span>
+          <div className="flex items-center gap-1.5">
+            <span className="text-[10px] text-muted-foreground/50 leading-tight">
+              {new Date(convo.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+            </span>
+            {convo.project && (
+              <span className="text-[9px] bg-primary/10 text-primary/70 px-1.5 rounded-full leading-relaxed">
+                {convo.project}
+              </span>
+            )}
+          </div>
+        </div>
+        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all shrink-0">
+          <button
+            onClick={(e) => { e.stopPropagation(); setShowProjectInput(!showProjectInput); setProjectValue(convo.project || ""); }}
+            className="w-6 h-6 rounded-md flex items-center justify-center hover:bg-primary/20 hover:text-primary transition-all"
+            data-testid={`button-sidebar-project-convo-${convo.id}`}
+          >
+            <FolderPlus className="w-3 h-3" />
+          </button>
+          {canDelete && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onDelete(); }}
+              className="w-6 h-6 rounded-md flex items-center justify-center hover:bg-red-500/20 hover:text-red-400 transition-all"
+              data-testid={`button-sidebar-delete-convo-${convo.id}`}
+            >
+              <X className="w-3 h-3" />
+            </button>
+          )}
+        </div>
+      </div>
+
+      <AnimatePresence>
+        {showProjectInput && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="overflow-hidden"
+          >
+            <div className="px-2 py-1.5 flex gap-1">
+              <input
+                type="text"
+                value={projectValue}
+                onChange={(e) => setProjectValue(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") handleProjectSubmit(); if (e.key === "Escape") setShowProjectInput(false); }}
+                placeholder="Proje adi..."
+                className="flex-1 text-[11px] px-2 py-1 rounded-md bg-muted/50 border border-border/50 focus:outline-none focus:border-primary/50"
+                autoFocus
+                data-testid={`input-project-name-${convo.id}`}
+              />
+              <button onClick={handleProjectSubmit} className="text-[10px] px-2 py-1 rounded-md bg-primary/10 text-primary hover:bg-primary/20" data-testid={`button-project-save-${convo.id}`}>
+                <Check className="w-3 h-3" />
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean }) {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -188,6 +328,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
     dbId: c.id,
     messages: localMessages[c.visibleId] || [],
     title: c.title,
+    project: c.project || null,
     createdAt: new Date(c.createdAt).getTime(),
   }));
 
@@ -312,6 +453,14 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
           setActiveConvoId(prev => ({ ...prev, [selectedAgent]: remaining[adjacentIndex].id }));
         }
       }
+    } catch {}
+  };
+
+  const updateConversationProject = async (convo: Conversation, projectName: string | null) => {
+    if (!convo.dbId) return;
+    try {
+      await apiRequest("PATCH", `/api/conversations/${convo.dbId}`, { project: projectName });
+      queryClient.invalidateQueries({ queryKey: ['/api/conversations', selectedAgent] });
     } catch {}
   };
 
@@ -1019,7 +1168,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                 <div className="mt-3 pt-3 border-t border-border/30">
                   <div className="flex items-center justify-between px-2 mb-2">
                     <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/70" data-testid="text-chat-history-title">
-                      {t("demoPage.chats")}
+                      {t("demoPage.projects") || "Projects"}
                     </span>
                   </div>
                   <div className="px-1.5 mb-2">
@@ -1035,71 +1184,60 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                   {conversations.length > 0 && (
                     <div className="space-y-0.5 px-0.5">
                       {(() => {
-                        const now = Date.now();
-                        const groups: { label: string; convos: typeof conversations }[] = [];
-                        const today: typeof conversations = [];
-                        const yesterday: typeof conversations = [];
-                        const thisWeek: typeof conversations = [];
-                        const older: typeof conversations = [];
+                        const projectGroups: Record<string, typeof conversations> = {};
+                        const ungrouped: typeof conversations = [];
                         conversations.forEach(c => {
-                          const diff = now - c.createdAt;
-                          if (diff < 86400000) today.push(c);
-                          else if (diff < 172800000) yesterday.push(c);
-                          else if (diff < 604800000) thisWeek.push(c);
-                          else older.push(c);
+                          if (c.project) {
+                            if (!projectGroups[c.project]) projectGroups[c.project] = [];
+                            projectGroups[c.project].push(c);
+                          } else {
+                            ungrouped.push(c);
+                          }
                         });
-                        if (today.length) groups.push({ label: t("demoPage.today") || "Today", convos: today });
-                        if (yesterday.length) groups.push({ label: t("demoPage.yesterday") || "Yesterday", convos: yesterday });
-                        if (thisWeek.length) groups.push({ label: t("demoPage.thisWeek") || "This week", convos: thisWeek });
-                        if (older.length) groups.push({ label: t("demoPage.older") || "Older", convos: older });
+                        const projectNames = Object.keys(projectGroups).sort();
 
-                        return groups.map((group) => (
-                          <div key={group.label}>
-                            {groups.length > 1 && (
+                        return (
+                          <>
+                            {projectNames.map((projName) => (
+                              <div key={projName} className="mb-1">
+                                <div className="px-2 pt-2 pb-1 flex items-center gap-1.5">
+                                  <FolderOpen className="w-3 h-3 text-primary/60" />
+                                  <span className="text-[10px] font-semibold uppercase tracking-wider text-primary/70">{projName}</span>
+                                  <span className="text-[9px] text-muted-foreground/40 ml-auto">{projectGroups[projName].length}</span>
+                                </div>
+                                {projectGroups[projName].map((convo) => (
+                                  <SwipeableConvoItem
+                                    key={convo.id}
+                                    convo={convo}
+                                    isActive={convo.id === currentConvoId}
+                                    canDelete={conversations.length > 1}
+                                    onSelect={() => setActiveConvoId(prev => ({ ...prev, [selectedAgent]: convo.id }))}
+                                    onDelete={() => deleteConversation(convo.id)}
+                                    onSetProject={(proj) => updateConversationProject(convo, proj)}
+                                    newChatLabel={t("demoPage.newChat")}
+                                  />
+                                ))}
+                              </div>
+                            ))}
+                            {ungrouped.length > 0 && projectNames.length > 0 && (
                               <div className="px-2 pt-2 pb-1">
-                                <span className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground/50">{group.label}</span>
+                                <span className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground/50">{t("demoPage.chats") || "Chats"}</span>
                               </div>
                             )}
-                            {group.convos.map((convo) => {
-                              const isActive = convo.id === currentConvoId;
-                              return (
-                                <div
-                                  key={convo.id}
-                                  className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-left transition-all group cursor-pointer ${
-                                    isActive
-                                      ? "bg-primary/10 text-foreground border-l-2 border-l-primary border border-primary/20 shadow-sm"
-                                      : "text-muted-foreground hover:bg-muted/70 hover:text-foreground border border-transparent"
-                                  }`}
-                                  onClick={() => setActiveConvoId(prev => ({ ...prev, [selectedAgent]: convo.id }))}
-                                  data-testid={`sidebar-convo-${convo.id}`}
-                                >
-                                  <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${
-                                    isActive ? "bg-primary/15" : "bg-muted/50"
-                                  }`}>
-                                    <MessageCircle className={`w-3.5 h-3.5 ${isActive ? "text-primary" : "text-muted-foreground/50"}`} />
-                                  </div>
-                                  <div className="flex-1 min-w-0">
-                                    <span className={`text-[13px] truncate block leading-snug font-medium ${isActive ? "text-foreground" : ""}`}>
-                                      {convo.title || t("demoPage.newChat")}
-                                    </span>
-                                    <span className="text-[10px] text-muted-foreground/50 leading-tight">
-                                      {new Date(convo.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                                    </span>
-                                  </div>
-                                  {conversations.length > 1 && (
-                                    <button
-                                      onClick={(e) => { e.stopPropagation(); deleteConversation(convo.id); }}
-                                      className="w-6 h-6 rounded-md flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-red-500/20 hover:text-red-400 transition-all shrink-0"
-                                      data-testid={`button-sidebar-delete-convo-${convo.id}`}
-                                    >
-                                      <X className="w-3 h-3" />
-                                    </button>
-                                  )}
-                                </div>
-                              );
-                            })}
-                          </div>
-                        ));
+                            {ungrouped.map((convo) => (
+                              <SwipeableConvoItem
+                                key={convo.id}
+                                convo={convo}
+                                isActive={convo.id === currentConvoId}
+                                canDelete={conversations.length > 1}
+                                onSelect={() => setActiveConvoId(prev => ({ ...prev, [selectedAgent]: convo.id }))}
+                                onDelete={() => deleteConversation(convo.id)}
+                                onSetProject={(proj) => updateConversationProject(convo, proj)}
+                                newChatLabel={t("demoPage.newChat")}
+                              />
+                            ))}
+                          </>
+                        );
                       })()}
                     </div>
                   )}

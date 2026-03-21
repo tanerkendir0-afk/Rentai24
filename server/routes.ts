@@ -370,13 +370,33 @@ WRONG (do NOT do this):
 USE BUTTONS FOR:
 - Currency selection, invoice type, Incoterm, email confirmation, yes/no, KDV rate
 - Plan/option selection when user needs to choose between 2-5 clear options
+- Follow-up suggestions after completing a task
+- Next step recommendations during multi-step workflows
+- ANY time you can predict what the user might want to do next
 
 BUTTON RULES:
 - ALWAYS use buttons when asking a question with 2-5 discrete choices
+- PROACTIVELY offer buttons as follow-up suggestions after answering a question or completing a task
 - When creating invoices/proforma, ask EACH required info step by step with buttons where applicable
 - DO NOT use buttons for open-ended questions or when there are more than 5 options
 - The button text is sent back as the user's message when clicked
-- Combine text explanation with buttons: first explain, then show the [BUTTONS]...[/BUTTONS] block`;
+- Combine text explanation with buttons: first explain, then show the [BUTTONS]...[/BUTTONS] block
+- At the END of your responses, when appropriate, suggest 2-3 next actions as buttons
+
+PROACTIVE BUTTON EXAMPLES:
+After answering a question:
+[BUTTONS]
+Tell me more
+Show an example
+Next topic
+[/BUTTONS]
+
+After completing a task:
+[BUTTONS]
+Create another
+Review details
+Export / Send
+[/BUTTONS]`;
 
 const DOCUMENT_CAPABILITY = `
 DOCUMENT HANDLING (IMPORTANT):
@@ -2160,11 +2180,19 @@ export async function registerRoutes(
 
   app.patch("/api/conversations/:id", requireAuth, async (req, res) => {
     const id = parseInt(req.params.id as string);
-    const { title } = req.body;
-    if (!title) return res.status(400).json({ error: msg("titleRequired", req.lang!) });
-    const updated = await storage.updateConversationTitle(id, req.session.userId!, title);
-    if (!updated) return res.status(404).json({ error: msg("conversationNotFound", req.lang!) });
-    res.json(updated);
+    const { title, project } = req.body;
+    if (!title && project === undefined) return res.status(400).json({ error: msg("titleRequired", req.lang!) });
+    if (title) {
+      const updated = await storage.updateConversationTitle(id, req.session.userId!, title);
+      if (!updated) return res.status(404).json({ error: msg("conversationNotFound", req.lang!) });
+      if (project !== undefined) {
+        await db.execute(sql`UPDATE conversations SET project = ${project || null} WHERE id = ${id} AND user_id = ${req.session.userId!}`);
+      }
+      res.json(updated);
+    } else {
+      await db.execute(sql`UPDATE conversations SET project = ${project || null} WHERE id = ${id} AND user_id = ${req.session.userId!}`);
+      res.json({ success: true });
+    }
   });
 
   app.delete("/api/conversations/:id", requireAuth, async (req, res) => {

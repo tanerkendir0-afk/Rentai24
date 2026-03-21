@@ -2847,6 +2847,7 @@ export async function registerRoutes(
     }
 
     const { message, agentType, conversationHistory, sessionId: clientSessionId } = parsed.data;
+    const chatSessionId = clientSessionId || `session-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
 
     const clientIpForRL = (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() || req.ip || "unknown";
     if (!checkRateLimit(req.session.userId, agentType, clientIpForRL)) {
@@ -2862,37 +2863,49 @@ export async function registerRoutes(
     }
 
     if (req.session.userId) {
-      const boostEnforcementTarget = agentType === "manager" ? agentType : agentType;
-      const runningConvosForBoost = await db.select().from(conversations).where(
-        and(
-          eq(conversations.userId, req.session.userId),
-          eq(conversations.agentType, boostEnforcementTarget),
-          eq(conversations.boostStatus, "running")
-        )
-      );
       const boostSubEarly = await storage.getActiveBoostSubscription(req.session.userId);
-      const otherRunningEarly = clientSessionId
-        ? runningConvosForBoost.filter(c => c.visibleId !== clientSessionId)
-        : runningConvosForBoost;
+      const boostCfgEarly = boostSubEarly ? BOOST_CONFIG[boostSubEarly.boostPlan] : null;
+      const isAgentAllowedEarly = boostSubEarly && (!boostCfgEarly?.allowedAgents || boostCfgEarly.allowedAgents.includes(agentType));
+      const maxAllowedEarly = boostSubEarly ? (isAgentAllowedEarly ? boostSubEarly.maxParallelTasks : 1) : 1;
 
-      if (boostSubEarly) {
-        const boostCfgEarly = BOOST_CONFIG[boostSubEarly.boostPlan];
-        const isAgentAllowedEarly = !boostCfgEarly?.allowedAgents || boostCfgEarly.allowedAgents.includes(boostEnforcementTarget);
-        const maxAllowedEarly = isAgentAllowedEarly ? boostSubEarly.maxParallelTasks : 1;
+      const boostCheckResult = await db.execute(sql`
+        WITH running_count AS (
+          SELECT COUNT(*) as cnt FROM conversations
+          WHERE user_id = ${req.session.userId}
+            AND agent_type = ${agentType}
+            AND boost_status = 'running'
+            AND visible_id != ${chatSessionId}
+        ),
+        mark_running AS (
+          UPDATE conversations SET
+            boost_status = 'running',
+            is_boost_task = ${isAgentAllowedEarly ? sql`true` : sql`is_boost_task`}
+          WHERE user_id = ${req.session.userId}
+            AND visible_id = ${chatSessionId}
+            AND boost_status != 'running'
+            AND (SELECT cnt FROM running_count) < ${maxAllowedEarly}
+          RETURNING id
+        )
+        SELECT
+          (SELECT cnt FROM running_count) as running_count,
+          (SELECT COUNT(*) FROM mark_running) as marked
+      `);
 
-        if (otherRunningEarly.length >= maxAllowedEarly) {
+      const runningCount = Number(boostCheckResult.rows[0]?.running_count ?? 0);
+      if (runningCount >= maxAllowedEarly) {
+        if (boostSubEarly && isAgentAllowedEarly) {
           return res.status(429).json({
-            reply: isAgentAllowedEarly
-              ? `Paralel görev limitinize (${boostSubEarly.maxParallelTasks}) ulaştınız. Lütfen mevcut görevlerden birinin tamamlanmasını bekleyin veya Boost planınızı yükseltin.`
-              : "Bu ajan Boost planınız kapsamında değil. Aynı anda yalnızca 1 aktif sohbet yürütebilirsiniz.",
-            boostLimitReached: isAgentAllowedEarly,
-            boostRequired: !isAgentAllowedEarly,
-            activeCount: runningConvosForBoost.length,
-            maxCount: maxAllowedEarly,
+            reply: `Paralel görev limitinize (${boostSubEarly.maxParallelTasks}) ulaştınız. Lütfen mevcut görevlerden birinin tamamlanmasını bekleyin veya Boost planınızı yükseltin.`,
+            boostLimitReached: true,
+            activeCount: runningCount,
+            maxCount: boostSubEarly.maxParallelTasks,
           });
-        }
-      } else {
-        if (otherRunningEarly.length > 0) {
+        } else if (boostSubEarly) {
+          return res.status(429).json({
+            reply: "Bu ajan Boost planınız kapsamında değil. Aynı anda yalnızca 1 aktif sohbet yürütebilirsiniz.",
+            boostRequired: true,
+          });
+        } else {
           return res.status(429).json({
             reply: "Bu ajan için zaten aktif bir sohbet var. Paralel görev için Boost planına geçin.",
             boostRequired: true,
@@ -3257,27 +3270,6 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}${QUICK_REPLY_BUTT
         hasActiveRental = true;
         await storage.incrementUsage(rental.id);
 
-        if (req.session.userId && clientSessionId) {
-          const boostSub = await storage.getActiveBoostSubscription(req.session.userId);
-          try {
-            const [convoRow] = await db.select().from(conversations).where(
-              and(
-                eq(conversations.userId, req.session.userId!),
-                eq(conversations.visibleId, clientSessionId)
-              )
-            );
-            if (convoRow && convoRow.boostStatus !== "running") {
-              const boostCfg = boostSub ? BOOST_CONFIG[boostSub.boostPlan] : null;
-              const isBoostAllowed = boostSub && (!boostCfg?.allowedAgents || boostCfg.allowedAgents.includes(resolvedAgentType));
-              await db.update(conversations).set({
-                boostStatus: "running",
-                ...(isBoostAllowed ? { isBoostTask: true } : {}),
-              }).where(eq(conversations.id, convoRow.id));
-            }
-          } catch (bErr: unknown) {
-            console.error("Boost status tracking error:", bErr instanceof Error ? bErr.message : bErr);
-          }
-        }
       } else {
         const userSpending = await storage.getTokenSpending(req.session.userId);
         if (userSpending >= userTokenLimit) {
@@ -3397,8 +3389,6 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}${QUICK_REPLY_BUTT
           routingReason = "provider_override";
         }
       }
-
-      const chatSessionId = clientSessionId || `session-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
 
       const messages: OpenAI.ChatCompletionMessageParam[] = [
         { role: "system", content: systemPrompt },

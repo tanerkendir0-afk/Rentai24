@@ -16,9 +16,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Menu, Bot, User, LayoutDashboard, Download, Smartphone, Wifi, Bell, Settings, LogOut, BookOpen, Share, Plus, MoreHorizontal, Monitor, Globe, ExternalLink, Shield, Languages, Zap, Timer, Building2 } from "lucide-react";
+import { Menu, Bot, User, LayoutDashboard, Download, Smartphone, Wifi, Bell, Settings, LogOut, BookOpen, Share, Plus, MoreHorizontal, Monitor, Globe, ExternalLink, Shield, Languages, Zap, Timer, Building2, Sun, Moon } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useLanguage } from "@/lib/language";
+import { useTheme } from "@/hooks/use-theme";
 import { useTranslation } from "react-i18next";
 import { usePwaInstall } from "@/hooks/use-pwa-install";
 import type { PwaPlatform } from "@/hooks/use-pwa-install";
@@ -44,26 +45,26 @@ function ManualInstallGuide({ platform }: { platform: PwaPlatform }) {
         <p className="text-sm text-muted-foreground">{t("install.iosSafari.description")}</p>
         <div className="space-y-3">
           <div className="flex items-start gap-3">
-            <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0">
-              <span className="text-sm font-bold text-blue-400">1</span>
+            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+              <span className="text-sm font-bold text-primary">1</span>
             </div>
             <div className="flex items-center gap-2">
               <p className="text-sm text-foreground" dangerouslySetInnerHTML={{ __html: t("install.iosSafari.step1") }} />
-              <Share className="w-5 h-5 text-blue-400 shrink-0" />
+              <Share className="w-5 h-5 text-primary shrink-0" />
             </div>
           </div>
           <div className="flex items-start gap-3">
-            <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0">
-              <span className="text-sm font-bold text-blue-400">2</span>
+            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+              <span className="text-sm font-bold text-primary">2</span>
             </div>
             <div className="flex items-center gap-2">
               <p className="text-sm text-foreground" dangerouslySetInnerHTML={{ __html: t("install.iosSafari.step2") }} />
-              <Plus className="w-5 h-5 text-blue-400 shrink-0" />
+              <Plus className="w-5 h-5 text-primary shrink-0" />
             </div>
           </div>
           <div className="flex items-start gap-3">
-            <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0">
-              <span className="text-sm font-bold text-blue-400">3</span>
+            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+              <span className="text-sm font-bold text-primary">3</span>
             </div>
             <div>
               <p className="text-sm text-foreground" dangerouslySetInnerHTML={{ __html: t("install.iosSafari.step3") }} />
@@ -80,25 +81,25 @@ function ManualInstallGuide({ platform }: { platform: PwaPlatform }) {
         <p className="text-sm text-muted-foreground">{t("install.macosSafari.description")}</p>
         <div className="space-y-3">
           <div className="flex items-start gap-3">
-            <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0">
-              <span className="text-sm font-bold text-blue-400">1</span>
+            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+              <span className="text-sm font-bold text-primary">1</span>
             </div>
             <div className="flex items-center gap-2">
               <p className="text-sm text-foreground" dangerouslySetInnerHTML={{ __html: t("install.macosSafari.step1") }} />
-              <Monitor className="w-5 h-5 text-blue-400 shrink-0" />
+              <Monitor className="w-5 h-5 text-primary shrink-0" />
             </div>
           </div>
           <div className="flex items-start gap-3">
-            <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0">
-              <span className="text-sm font-bold text-blue-400">2</span>
+            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+              <span className="text-sm font-bold text-primary">2</span>
             </div>
             <div>
               <p className="text-sm text-foreground" dangerouslySetInnerHTML={{ __html: t("install.macosSafari.step2") }} />
             </div>
           </div>
           <div className="flex items-start gap-3">
-            <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0">
-              <span className="text-sm font-bold text-blue-400">3</span>
+            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+              <span className="text-sm font-bold text-primary">3</span>
             </div>
             <div>
               <p className="text-sm text-foreground" dangerouslySetInnerHTML={{ __html: t("install.macosSafari.step3") }} />
@@ -115,17 +116,17 @@ function ManualInstallGuide({ platform }: { platform: PwaPlatform }) {
         <p className="text-sm text-muted-foreground">{t("install.firefox.description")}</p>
         <div className="space-y-3">
           <div className="flex items-start gap-3">
-            <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0">
-              <span className="text-sm font-bold text-blue-400">1</span>
+            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+              <span className="text-sm font-bold text-primary">1</span>
             </div>
             <div className="flex items-center gap-2">
               <p className="text-sm text-foreground" dangerouslySetInnerHTML={{ __html: t("install.firefox.step1") }} />
-              <MoreHorizontal className="w-5 h-5 text-blue-400 shrink-0" />
+              <MoreHorizontal className="w-5 h-5 text-primary shrink-0" />
             </div>
           </div>
           <div className="flex items-start gap-3">
-            <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0">
-              <span className="text-sm font-bold text-blue-400">2</span>
+            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+              <span className="text-sm font-bold text-primary">2</span>
             </div>
             <div>
               <p className="text-sm text-foreground" dangerouslySetInnerHTML={{ __html: t("install.firefox.step2") }} />
@@ -144,16 +145,16 @@ function ManualInstallGuide({ platform }: { platform: PwaPlatform }) {
       <p className="text-sm text-muted-foreground">{t("install.other.description")}</p>
       <div className="space-y-3">
         <div className="flex items-start gap-3">
-          <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0">
-            <Globe className="w-4 h-4 text-blue-400" />
+          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+            <Globe className="w-4 h-4 text-primary" />
           </div>
           <div>
             <p className="text-sm text-foreground" dangerouslySetInnerHTML={{ __html: t("install.other.lookForInstall") }} />
           </div>
         </div>
         <div className="flex items-start gap-3">
-          <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0">
-            <ExternalLink className="w-4 h-4 text-blue-400" />
+          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+            <ExternalLink className="w-4 h-4 text-primary" />
           </div>
           <div>
             <p className="text-sm text-foreground" dangerouslySetInnerHTML={{ __html: t("install.other.openInBrowser") }} />
@@ -193,7 +194,7 @@ function OrgIndicator({ userId }: { userId: number }) {
         className="text-muted-foreground hover:text-foreground whitespace-nowrap hidden xl:flex"
         data-testid="button-org-indicator"
       >
-        <Building2 className="w-4 h-4 mr-1.5 text-violet-400" />
+        <Building2 className="w-4 h-4 mr-1.5 text-primary" />
         <span className="max-w-[120px] truncate text-xs">{orgData.organization.name}</span>
       </Button>
     </Link>
@@ -212,6 +213,7 @@ export default function Navbar() {
   const navLinks = useNavLinks();
   const getGuideDialogTitle = useGuideDialogTitle();
   const { canInstall, install, showManualGuide, platform } = usePwaInstall();
+  const { resolvedTheme, toggleTheme } = useTheme();
 
   const handleInstallClick = () => {
     if (canInstall) {
@@ -252,11 +254,11 @@ export default function Navbar() {
         <div className="flex items-center justify-between gap-4 h-16">
           <Link href="/" data-testid="link-home" className="shrink-0">
             <div className="flex items-center gap-2 cursor-pointer">
-              <div className="w-9 h-9 rounded-md bg-gradient-to-br from-blue-500 to-violet-500 flex items-center justify-center shrink-0">
-                <Bot className="w-5 h-5 text-white" />
+              <div className="w-9 h-9 rounded-md bg-primary flex items-center justify-center shrink-0">
+                <Bot className="w-5 h-5 text-primary-foreground" />
               </div>
               <span className="font-bold text-lg text-foreground whitespace-nowrap">
-                Rent<span className="bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent">AI</span>{" "}
+                Rent<span className="text-primary">AI</span>{" "}
                 <span className="text-foreground">24</span>
               </span>
             </div>
@@ -268,7 +270,7 @@ export default function Navbar() {
                 <span
                   className={`px-3 py-2 rounded-md text-sm font-medium transition-colors cursor-pointer whitespace-nowrap ${
                     location === link.href || (link.href !== "/" && location.startsWith(link.href))
-                      ? "text-blue-400"
+                      ? "text-primary"
                       : "text-muted-foreground"
                   }`}
                   data-testid={`link-${link.href.replace("/", "")}`}
@@ -291,11 +293,21 @@ export default function Navbar() {
               <Languages className="w-4 h-4 mr-1" />
               {language === "en" ? "TR" : "EN"}
             </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={toggleTheme}
+              className="text-muted-foreground hover:text-foreground"
+              data-testid="button-theme-toggle"
+              title={resolvedTheme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+            >
+              {resolvedTheme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </Button>
             {showInstallButton && !user && (
               <Button
                 size="sm"
                 variant="outline"
-                className="hidden xl:flex border-blue-500/30 text-blue-400 hover:bg-blue-500/10 whitespace-nowrap"
+                className="hidden xl:flex border-primary/30 text-primary hover:bg-primary/10 whitespace-nowrap"
                 onClick={handleInstallClick}
                 data-testid="button-install-pwa"
               >
@@ -307,7 +319,7 @@ export default function Navbar() {
               <div className="hidden lg:flex items-center gap-1">
                 <OrgIndicator userId={user.id} />
                 <Link href="/dashboard">
-                  <Button size="sm" className="bg-gradient-to-r from-blue-500 to-violet-500 text-white border-0 whitespace-nowrap" data-testid="button-dashboard">
+                  <Button size="sm" className="bg-primary text-primary-foreground border-0 whitespace-nowrap" data-testid="button-dashboard">
                     <LayoutDashboard className="w-4 h-4 mr-1" />
                     {t("nav.dashboard")}
                   </Button>
@@ -382,7 +394,7 @@ export default function Navbar() {
                 <Link href="/demo">
                   <Button
                     size="sm"
-                    className="bg-gradient-to-r from-blue-500 to-violet-500 text-white border-0 whitespace-nowrap"
+                    className="bg-primary text-primary-foreground border-0 whitespace-nowrap"
                     data-testid="button-demo-cta"
                   >
                     {t("nav.tryLiveDemo")}
@@ -411,7 +423,7 @@ export default function Navbar() {
                         onClick={() => setOpen(false)}
                         className={`block px-4 py-3 min-h-[44px] flex items-center rounded-md text-sm font-medium transition-colors cursor-pointer ${
                           location === link.href
-                            ? "text-blue-400 bg-blue-500/10"
+                            ? "text-primary bg-primary/10"
                             : "text-muted-foreground"
                         }`}
                         data-testid={`mobile-link-${link.href.replace("/", "")}`}
@@ -424,7 +436,7 @@ export default function Navbar() {
                     <div className="px-4 mt-4">
                       <Button
                         variant="outline"
-                        className="w-full border-blue-500/30 text-blue-400 hover:bg-blue-500/10"
+                        className="w-full border-primary/30 text-primary hover:bg-primary/10"
                         onClick={() => { setOpen(false); handleInstallClick(); }}
                         data-testid="button-mobile-install-pwa"
                       >
@@ -438,7 +450,7 @@ export default function Navbar() {
                       <>
                         <Link href="/dashboard">
                           <Button
-                            className="w-full min-h-[44px] bg-gradient-to-r from-blue-500 to-violet-500 text-white border-0"
+                            className="w-full min-h-[44px] bg-primary text-primary-foreground border-0"
                             onClick={() => setOpen(false)}
                             data-testid="button-mobile-dashboard"
                           >
@@ -527,7 +539,7 @@ export default function Navbar() {
                         </Link>
                         <Link href="/demo">
                           <Button
-                            className="w-full min-h-[44px] bg-gradient-to-r from-blue-500 to-violet-500 text-white border-0"
+                            className="w-full min-h-[44px] bg-primary text-primary-foreground border-0"
                             onClick={() => setOpen(false)}
                             data-testid="button-mobile-demo"
                           >
@@ -555,8 +567,8 @@ export default function Navbar() {
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="flex items-start gap-3">
-              <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0">
-                <Smartphone className="w-4 h-4 text-blue-400" />
+              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                <Smartphone className="w-4 h-4 text-primary" />
               </div>
               <div>
                 <p className="text-sm font-medium text-foreground">{t("install.nativeApp")}</p>
@@ -564,8 +576,8 @@ export default function Navbar() {
               </div>
             </div>
             <div className="flex items-start gap-3">
-              <div className="w-8 h-8 rounded-full bg-violet-500/10 flex items-center justify-center shrink-0">
-                <Wifi className="w-4 h-4 text-violet-400" />
+              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                <Wifi className="w-4 h-4 text-primary" />
               </div>
               <div>
                 <p className="text-sm font-medium text-foreground">{t("install.fast")}</p>
@@ -584,7 +596,7 @@ export default function Navbar() {
           </div>
           <div className="flex gap-3">
             <Button
-              className="flex-1 bg-gradient-to-r from-blue-500 to-violet-500 text-white border-0"
+              className="flex-1 bg-primary text-primary-foreground border-0"
               onClick={confirmInstall}
               data-testid="button-confirm-install-pwa"
             >

@@ -38,11 +38,11 @@ export default function Footer() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 lg:gap-12">
           <div>
             <div className="flex items-center gap-2 mb-4">
-              <div className="w-9 h-9 rounded-md bg-gradient-to-br from-blue-500 to-violet-500 flex items-center justify-center">
+              <div className="w-9 h-9 rounded-md bg-primary flex items-center justify-center">
                 <Bot className="w-5 h-5 text-white" />
               </div>
               <span className="font-bold text-lg text-foreground">
-                Rent<span className="bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent">AI</span> 24
+                Rent<span className="text-primary">AI</span> 24
               </span>
             </div>
             <p className="text-sm text-muted-foreground leading-relaxed mb-4">
@@ -125,7 +125,7 @@ export default function Footer() {
                   type="submit"
                   size="icon"
                   disabled={loading}
-                  className="bg-gradient-to-r from-blue-500 to-violet-500 text-white border-0 shrink-0"
+                  className="bg-primary text-white border-0 shrink-0"
                   aria-label="Subscribe"
                   data-testid="button-newsletter"
                 >

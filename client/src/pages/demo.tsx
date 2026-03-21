@@ -66,6 +66,9 @@ import type { AgentTask } from "@shared/schema";
 import TasksPanel from "@/components/tasks-panel";
 import { FeedbackButton } from "@/components/feedback-dialog";
 import { useAnalytics } from "@/lib/analytics";
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
+import BoostChatPanel from "@/components/boost-chat-panel";
+import BoostTaskBar from "@/components/boost-taskbar";
 
 interface AgentAction {
   type: string;
@@ -308,6 +311,8 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
   const [helpDescription, setHelpDescription] = useState("");
   const [helpSending, setHelpSending] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [splitScreenActive, setSplitScreenActive] = useState(false);
+  const [splitPanelCount, setSplitPanelCount] = useState(2);
   const dragCounterRef = useRef(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -332,6 +337,28 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
   const imageCredits = creditsData?.credits ?? 0;
   const isSocialMediaAgent = selectedAgent === "social-media";
   const isEcommerceAgent = selectedAgent === "ecommerce-ops";
+
+  const { data: boostStatus } = useQuery<{
+    active: boolean;
+    plan: string | null;
+    maxParallelTasks: number;
+    activeTaskCount: number;
+  }>({
+    queryKey: ["/api/boost/status"],
+    queryFn: async () => {
+      const res = await fetch("/api/boost/status");
+      return res.json();
+    },
+    enabled: !!user,
+    staleTime: 30000,
+  });
+
+  const hasBoost = boostStatus?.active === true;
+  const boostMaxSlots = boostStatus?.maxParallelTasks ?? 1;
+  const boostActiveCount = boostStatus?.activeTaskCount ?? 0;
+  const boostIsUnlimited = boostMaxSlots === -1;
+  const boostAllowedAgents = boostStatus?.plan === "boost-accounting" ? ["bookkeeping"] : undefined;
+  const isDesktop = typeof window !== "undefined" && window.innerWidth >= 1024;
 
   const { data: socialAccounts = [] } = useQuery<{ id: number; platform: string; username: string; profileUrl: string | null; status: string }[]>({
     queryKey: ["/api/social-accounts"],
@@ -882,6 +909,51 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                 );
               })}
 
+              {user && hasBoost && (
+                <div className="mt-2 mx-1.5 p-2.5 rounded-lg bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/20" data-testid="sidebar-boost-status">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div className="flex items-center gap-1.5">
+                      <Zap className="w-3.5 h-3.5 text-amber-400" />
+                      <span className="text-[11px] font-semibold text-amber-400">{t("boost.boostMode")}</span>
+                    </div>
+                    <Badge className="h-4 px-1.5 text-[10px] bg-amber-500/20 text-amber-400 border-amber-500/30">
+                      {boostIsUnlimited ? "∞" : `${boostActiveCount}/${boostMaxSlots}`}
+                    </Badge>
+                  </div>
+                  {!boostIsUnlimited && boostMaxSlots > 0 && (
+                    <div className="flex gap-1 mb-1.5">
+                      {Array.from({ length: boostMaxSlots }).map((_, i) => (
+                        <div
+                          key={i}
+                          className={`h-1.5 flex-1 rounded-full transition-all ${
+                            i < boostActiveCount ? "bg-amber-400" : "bg-amber-500/20"
+                          }`}
+                        />
+                      ))}
+                    </div>
+                  )}
+                  <button
+                    onClick={() => {
+                      const canAdd = boostIsUnlimited || boostActiveCount < boostMaxSlots;
+                      if (canAdd) {
+                        startNewConversation();
+                      } else {
+                        toast({
+                          title: t("boost.slotsFull"),
+                          description: t("boost.slotsFullDesc"),
+                          variant: "destructive",
+                        });
+                      }
+                    }}
+                    className="w-full flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-md text-[10px] font-medium text-amber-400 hover:bg-amber-500/10 transition-colors border border-dashed border-amber-500/30"
+                    data-testid="sidebar-boost-new-convo"
+                  >
+                    <Plus className="w-3 h-3" />
+                    {t("boost.newParallelChat")}
+                  </button>
+                </div>
+              )}
+
               {user && (
                 <div className="mt-3 pt-3 border-t border-border/30">
                   <div className="flex items-center justify-between px-2 mb-2">
@@ -1016,6 +1088,69 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
           </div>
 
           <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap">
+            {user && hasBoost && (
+              <div className="flex items-center gap-1" data-testid="boost-header-controls">
+                <button
+                  onClick={() => {
+                    if (!splitScreenActive && isDesktop) {
+                      setSplitScreenActive(true);
+                      setSplitPanelCount(2);
+                    } else {
+                      setSplitScreenActive(false);
+                    }
+                  }}
+                  className={`h-8 px-2.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
+                    splitScreenActive
+                      ? "bg-amber-500/20 text-amber-400 border border-amber-500/40 shadow-[0_0_12px_rgba(245,158,11,0.15)]"
+                      : "bg-amber-500/10 text-amber-400/80 border border-amber-500/20 hover:bg-amber-500/20 hover:text-amber-400"
+                  } hidden lg:flex`}
+                  data-testid="button-boost-split"
+                >
+                  <Zap className={`w-3.5 h-3.5 ${splitScreenActive ? "animate-pulse" : ""}`} />
+                  <span>{t("boost.splitScreen")}</span>
+                </button>
+                {splitScreenActive && isDesktop && (
+                  <>
+                    {splitPanelCount < (boostIsUnlimited ? 3 : Math.min(boostMaxSlots, 3)) && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 w-7 p-0 text-amber-400 hover:text-amber-300 hover:bg-amber-500/10"
+                        onClick={() => setSplitPanelCount(p => Math.min(p + 1, boostIsUnlimited ? 3 : Math.min(boostMaxSlots, 3)))}
+                        data-testid="button-boost-add-panel"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                      </Button>
+                    )}
+                    {splitPanelCount > 2 && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 w-7 p-0 text-amber-400 hover:text-amber-300 hover:bg-amber-500/10"
+                        onClick={() => setSplitPanelCount(p => Math.max(p - 1, 2))}
+                        data-testid="button-boost-remove-panel"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </Button>
+                    )}
+                  </>
+                )}
+                <Badge className="h-5 px-1.5 text-[10px] bg-amber-500/10 text-amber-400 border-amber-500/30 hidden sm:flex">
+                  {boostIsUnlimited ? "∞" : `${boostActiveCount}/${boostMaxSlots}`}
+                </Badge>
+              </div>
+            )}
+            {user && !hasBoost && (
+              <Link href="/pricing#boost">
+                <button
+                  className="h-8 px-2.5 rounded-lg text-xs font-medium flex items-center gap-1.5 bg-amber-500/5 text-amber-400/60 border border-amber-500/10 hover:bg-amber-500/10 hover:text-amber-400 transition-all hidden sm:flex"
+                  data-testid="button-boost-cta"
+                >
+                  <Zap className="w-3.5 h-3.5" />
+                  <span>{t("boost.getBoost")}</span>
+                </button>
+              </Link>
+            )}
             {user && (
               <FeedbackButton variant="header" />
             )}
@@ -2150,10 +2285,43 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
         </div>
        </div>
 
+        {splitScreenActive && hasBoost && isDesktop && (
+          <div className="flex-1 min-w-0 border-l border-amber-500/20" data-testid="boost-split-container">
+            <ResizablePanelGroup direction="horizontal">
+              {Array.from({ length: splitPanelCount }).map((_, idx) => (
+                <ResizablePanel key={`boost-panel-${idx}`} minSize={25} defaultSize={Math.floor(100 / splitPanelCount)}>
+                  <BoostChatPanel
+                    panelId={`split-${idx}`}
+                    allowedAgents={boostAllowedAgents}
+                    rentedAgentIds={rentedAgentIds}
+                    onClose={() => {
+                      if (splitPanelCount <= 2) {
+                        setSplitScreenActive(false);
+                      } else {
+                        setSplitPanelCount(p => Math.max(p - 1, 2));
+                      }
+                    }}
+                    isOnly={splitPanelCount <= 1}
+                  />
+                  {idx < splitPanelCount - 1 && null}
+                </ResizablePanel>
+              )).reduce<React.ReactNode[]>((acc, panel, idx) => {
+                if (idx > 0) {
+                  acc.push(
+                    <ResizableHandle key={`handle-${idx}`} withHandle className="bg-amber-500/10 hover:bg-amber-500/20" />
+                  );
+                }
+                acc.push(panel);
+                return acc;
+              }, [])}
+            </ResizablePanelGroup>
+          </div>
+        )}
+
         {user && (
           <button
             onClick={startNewConversation}
-            className="fixed bottom-20 left-4 z-40 w-11 h-11 rounded-full bg-gradient-to-r from-blue-500 to-violet-500 text-white shadow-xl shadow-blue-500/25 flex items-center justify-center hover:scale-110 hover:shadow-blue-500/40 transition-all duration-200 ring-2 ring-white/10"
+            className={`fixed left-4 z-40 w-11 h-11 rounded-full bg-gradient-to-r from-blue-500 to-violet-500 text-white shadow-xl shadow-blue-500/25 flex items-center justify-center hover:scale-110 hover:shadow-blue-500/40 transition-all duration-200 ring-2 ring-white/10 ${hasBoost ? "bottom-24" : "bottom-20"}`}
             title={t("demoPage.newChat")}
             data-testid="button-floating-new-chat"
           >
@@ -2175,6 +2343,15 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
           </>
         )}
       </div>
+
+      {user && hasBoost && (
+        <BoostTaskBar
+          onTaskClick={(task) => {
+            setSelectedAgent(task.agentType);
+            if (window.innerWidth < 1024) setSidebarOpen(false);
+          }}
+        />
+      )}
     </div>
   );
 }

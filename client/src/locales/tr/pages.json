@@ -2620,5 +2620,17 @@
       "featureRequest": "Özellik İstekleri",
       "generalCategory": "Genel"
     }
+  },
+  "boost": {
+    "splitScreen": "Bölünmüş Ekran",
+    "getBoost": "Boost Al",
+    "boostMode": "Boost Modu",
+    "newParallelChat": "Yeni Paralel Sohbet",
+    "slotsFull": "Slotlar Dolu",
+    "slotsFullDesc": "Tüm paralel sohbet slotlarınız kullanımda. Daha fazlası için planınızı yükseltin.",
+    "taskbar": "Boost Görevleri",
+    "active": "aktif",
+    "taskComplete": "Görev Tamamlandı",
+    "conversation": "Sohbet"
   }
 }

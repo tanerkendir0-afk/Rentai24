@@ -2620,5 +2620,17 @@
       "featureRequest": "Feature Requests",
       "generalCategory": "General"
     }
+  },
+  "boost": {
+    "splitScreen": "Split Screen",
+    "getBoost": "Boost Al",
+    "boostMode": "Boost Mode",
+    "newParallelChat": "New Parallel Chat",
+    "slotsFull": "Slots Full",
+    "slotsFullDesc": "All your parallel conversation slots are in use. Upgrade your plan for more.",
+    "taskbar": "Boost Tasks",
+    "active": "active",
+    "taskComplete": "Task Completed",
+    "conversation": "Conversation"
   }
 }

@@ -4230,7 +4230,7 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}${QUICK_REPLY_BUTT
   app.get("/api/boost/tasks", requireAuth, async (req, res) => {
     try {
       const { agentType } = req.query;
-      const activeConvos = await storage.getActiveBoostConversations(
+      const filteredConvos = await storage.getActiveBoostConversations(
         req.session.userId!,
         agentType as string | undefined
       );
@@ -4241,7 +4241,7 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}${QUICK_REPLY_BUTT
         )
       ).orderBy(desc(conversations.createdAt)).limit(50);
       res.json({
-        active: activeConvos,
+        active: filteredConvos,
         all: allBoostConvos,
       });
     } catch (error: any) {

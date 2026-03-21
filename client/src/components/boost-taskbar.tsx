@@ -53,7 +53,7 @@ interface BoostTaskBarProps {
 export default function BoostTaskBar({ onTaskClick, onTaskDelete }: BoostTaskBarProps) {
   const { t } = useTranslation("pages");
   const { toast } = useToast();
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(true);
   const prevTasksRef = useRef<BoostTask[]>([]);
 
   const { data: boostTasks } = useQuery<{ active: BoostTask[]; all: BoostTask[] }>({
@@ -90,30 +90,33 @@ export default function BoostTaskBar({ onTaskClick, onTaskDelete }: BoostTaskBar
   const runningCount = activeTasks.length;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-[45] pointer-events-none" data-testid="boost-taskbar">
+    <div
+      className="fixed bottom-0 left-0 right-0 z-[45] pointer-events-none"
+      data-testid="boost-taskbar"
+    >
       <div className="pointer-events-auto mx-auto max-w-screen-xl px-2 sm:px-4">
-        <div className="bg-card/95 backdrop-blur-md border border-border/50 border-b-0 rounded-t-xl shadow-2xl">
+        <div className="bg-card/95 backdrop-blur-md border border-border/50 border-b-0 rounded-t-xl shadow-lg">
           <button
             onClick={() => setCollapsed(!collapsed)}
-            className="w-full flex items-center justify-between px-3 py-1.5 hover:bg-muted/30 transition-colors rounded-t-xl"
+            className="w-full flex items-center justify-between px-3 py-1 hover:bg-muted/30 transition-colors rounded-t-xl"
             data-testid="boost-taskbar-toggle"
           >
             <div className="flex items-center gap-2">
-              <Zap className="w-3.5 h-3.5 text-amber-400" />
-              <span className="text-xs font-semibold text-foreground">
+              <Zap className="w-3 h-3 text-amber-400" />
+              <span className="text-[11px] font-semibold text-foreground">
                 {t("boost.taskbar")}
               </span>
               {runningCount > 0 && (
-                <Badge className="h-4 px-1.5 text-[10px] bg-amber-500/20 text-amber-400 border-amber-500/30">
-                  {runningCount} {t("boost.active")}
+                <Badge className="h-3.5 px-1 text-[9px] bg-amber-500/20 text-amber-400 border-amber-500/30">
+                  {runningCount}
                 </Badge>
               )}
             </div>
-            {collapsed ? <ChevronUp className="w-3.5 h-3.5 text-muted-foreground" /> : <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />}
+            {collapsed ? <ChevronUp className="w-3 h-3 text-muted-foreground" /> : <ChevronDown className="w-3 h-3 text-muted-foreground" />}
           </button>
 
           {!collapsed && (
-            <div className="px-2 pb-2 flex gap-1.5 overflow-x-auto scrollbar-thin" data-testid="boost-taskbar-cards">
+            <div className="px-1.5 pb-1.5 flex gap-1 overflow-x-auto scrollbar-thin" data-testid="boost-taskbar-cards">
               {displayTasks.map((task) => {
                 const agentInfo = agentIconMap[task.agentType] || agentIconMap["customer-support"];
                 const AgentIcon = agentInfo.icon;
@@ -124,43 +127,43 @@ export default function BoostTaskBar({ onTaskClick, onTaskDelete }: BoostTaskBar
                 return (
                   <div
                     key={task.id}
-                    className="relative flex items-center gap-2 px-2.5 py-1.5 rounded-lg border border-border/50 bg-muted/20 hover:bg-muted/40 transition-all shrink-0 min-w-[140px] max-w-[200px] text-left group cursor-pointer"
+                    className="relative flex items-center gap-1.5 px-2 py-1 rounded-lg border border-border/50 bg-muted/20 hover:bg-muted/40 transition-all shrink-0 min-w-[120px] max-w-[170px] text-left group cursor-pointer"
                     onClick={() => onTaskClick?.(task)}
                     data-testid={`boost-task-card-${task.id}`}
                   >
-                    <div className={`w-6 h-6 rounded-full bg-gradient-to-br ${agentInfo.color} flex items-center justify-center shrink-0`}>
-                      <AgentIcon className="w-3 h-3 text-white" />
+                    <div className={`w-5 h-5 rounded-full bg-gradient-to-br ${agentInfo.color} flex items-center justify-center shrink-0`}>
+                      <AgentIcon className="w-2.5 h-2.5 text-white" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-[10px] font-medium text-foreground truncate">
+                      <p className="text-[9px] font-medium text-foreground truncate">
                         {task.title || agentInfo.persona}
                       </p>
-                      <p className="text-[9px] text-muted-foreground truncate">
+                      <p className="text-[8px] text-muted-foreground truncate">
                         {agentInfo.persona}
                       </p>
                     </div>
-                    <div className="shrink-0 flex items-center gap-1">
+                    <div className="shrink-0 flex items-center gap-0.5">
                       {isRunning && (
-                        <span className="relative flex h-2.5 w-2.5" data-testid={`boost-task-status-running-${task.id}`}>
+                        <span className="relative flex h-2 w-2" data-testid={`boost-task-status-running-${task.id}`}>
                           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
-                          <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500" />
+                          <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500" />
                         </span>
                       )}
                       {isCompleted && (
-                        <Check className="w-3.5 h-3.5 text-emerald-400" data-testid={`boost-task-status-done-${task.id}`} />
+                        <Check className="w-3 h-3 text-emerald-400" data-testid={`boost-task-status-done-${task.id}`} />
                       )}
                       {isError && (
-                        <AlertCircle className="w-3.5 h-3.5 text-red-400" data-testid={`boost-task-status-error-${task.id}`} />
+                        <AlertCircle className="w-3 h-3 text-red-400" data-testid={`boost-task-status-error-${task.id}`} />
                       )}
                       {!isRunning && !isCompleted && !isError && (
-                        <span className="w-2.5 h-2.5 rounded-full bg-muted-foreground/30 inline-block" />
+                        <span className="w-2 h-2 rounded-full bg-muted-foreground/30 inline-block" />
                       )}
                       <button
                         onClick={(e) => { e.stopPropagation(); onTaskDelete?.(task); }}
-                        className="w-4 h-4 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-red-500/30 hover:text-red-400 text-muted-foreground/50 transition-all"
+                        className="w-3.5 h-3.5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-red-500/30 hover:text-red-400 text-muted-foreground/50 transition-all"
                         data-testid={`boost-task-delete-${task.id}`}
                       >
-                        <X className="w-2.5 h-2.5" />
+                        <X className="w-2 h-2" />
                       </button>
                     </div>
                   </div>

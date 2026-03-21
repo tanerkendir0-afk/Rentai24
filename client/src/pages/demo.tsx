@@ -994,7 +994,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
   ];
 
   return (
-    <div className="fixed inset-0 pt-16 flex bg-background">
+    <div className={`fixed inset-0 pt-16 flex bg-background ${hasBoost ? "pb-7" : ""}`}>
       {sidebarOpen && (
         <div
           className="fixed inset-0 bg-black/50 z-40 lg:hidden"

@@ -420,6 +420,56 @@ app.use((req, res, next) => {
         )
       `).catch((err: unknown) => console.warn("scheduled_reports table setup:", err instanceof Error ? err.message : String(err)));
 
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS organizations (
+          id SERIAL PRIMARY KEY,
+          name TEXT NOT NULL,
+          owner_id INTEGER NOT NULL REFERENCES users(id),
+          logo_url TEXT,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+        )
+      `).catch((err: unknown) => console.warn("organizations table setup:", err instanceof Error ? err.message : String(err)));
+
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS organization_members (
+          id SERIAL PRIMARY KEY,
+          organization_id INTEGER NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          role TEXT NOT NULL DEFAULT 'member',
+          joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+        )
+      `).catch((err: unknown) => console.warn("organization_members table setup:", err instanceof Error ? err.message : String(err)));
+
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS organization_invites (
+          id SERIAL PRIMARY KEY,
+          organization_id INTEGER NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+          email TEXT NOT NULL,
+          role TEXT NOT NULL DEFAULT 'member',
+          token TEXT NOT NULL UNIQUE,
+          invited_by_id INTEGER NOT NULL REFERENCES users(id),
+          status TEXT NOT NULL DEFAULT 'pending',
+          expires_at TIMESTAMP NOT NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+        )
+      `).catch((err: unknown) => console.warn("organization_invites table setup:", err instanceof Error ? err.message : String(err)));
+
+      await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS organization_id INTEGER`)
+        .catch((err: unknown) => console.warn("users.organization_id:", err instanceof Error ? err.message : String(err)));
+
+      await pool.query(`ALTER TABLE rentals ADD COLUMN IF NOT EXISTS organization_id INTEGER`)
+        .catch((err: unknown) => console.warn("rentals.organization_id:", err instanceof Error ? err.message : String(err)));
+
+      await pool.query(`ALTER TABLE agent_documents ADD COLUMN IF NOT EXISTS organization_id INTEGER`)
+        .catch((err: unknown) => console.warn("agent_documents.organization_id:", err instanceof Error ? err.message : String(err)));
+
+      await pool.query(`ALTER TABLE conversations ADD COLUMN IF NOT EXISTS organization_id INTEGER`)
+        .catch((err: unknown) => console.warn("conversations.organization_id:", err instanceof Error ? err.message : String(err)));
+
+      await pool.query(`ALTER TABLE rex_contacts ADD COLUMN IF NOT EXISTS organization_id INTEGER`)
+        .catch((err: unknown) => console.warn("rex_contacts.organization_id:", err instanceof Error ? err.message : String(err)));
+
       console.log('Initializing Stripe schema...');
       await runMigrations({ databaseUrl });
       console.log('Stripe schema ready');

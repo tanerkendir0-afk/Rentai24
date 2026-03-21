@@ -35,6 +35,14 @@ const allowlist = [
 async function buildAll() {
   await rm("dist", { recursive: true, force: true });
 
+  console.log("running database migrations...");
+  const { execSync } = await import("child_process");
+  try {
+    execSync("npx tsx script/migrate.ts", { stdio: "inherit" });
+  } catch (e) {
+    console.warn("Migration warning (non-fatal):", e);
+  }
+
   console.log("building client...");
   await viteBuild();
 

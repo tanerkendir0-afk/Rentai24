@@ -3217,104 +3217,94 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}${QUICK_REPLY_BUTT
         hasActiveRental = true;
         await storage.incrementUsage(rental.id);
 
-        if (clientSessionId && req.session.userId) {
+        if (req.session.userId) {
           const boostSub = await storage.getActiveBoostSubscription(req.session.userId);
-          const activeBoostConvos = await storage.getActiveBoostConversations(req.session.userId, resolvedAgentType);
+          const runningConvosForAgent = await db.select().from(conversations).where(
+            and(
+              eq(conversations.userId, req.session.userId),
+              eq(conversations.agentType, resolvedAgentType),
+              eq(conversations.boostStatus, "running")
+            )
+          );
+
+          const otherRunning = clientSessionId
+            ? runningConvosForAgent.filter(c => c.visibleId !== clientSessionId)
+            : runningConvosForAgent;
 
           if (boostSub) {
             const boostCfg = BOOST_CONFIG[boostSub.boostPlan];
-            if (boostCfg?.allowedAgents && !boostCfg.allowedAgents.includes(resolvedAgentType)) {
-              const runningConvos = await db.select().from(conversations).where(
-                and(
-                  eq(conversations.userId, req.session.userId!),
-                  eq(conversations.agentType, resolvedAgentType),
-                  eq(conversations.boostStatus, "running")
-                )
-              );
-              const otherRunning = runningConvos.filter(c => c.visibleId !== clientSessionId);
-              if (otherRunning.length > 0) {
+            const isAgentAllowed = !boostCfg?.allowedAgents || boostCfg.allowedAgents.includes(resolvedAgentType);
+            const maxAllowed = isAgentAllowed ? boostSub.maxParallelTasks : 1;
+
+            if (otherRunning.length >= maxAllowed) {
+              if (isAgentAllowed) {
+                return res.status(429).json({
+                  reply: `Paralel görev limitinize (${boostSub.maxParallelTasks}) ulaştınız. Lütfen mevcut görevlerden birinin tamamlanmasını bekleyin veya Boost planınızı yükseltin.`,
+                  boostLimitReached: true,
+                  activeCount: runningConvosForAgent.length,
+                  maxCount: boostSub.maxParallelTasks,
+                });
+              } else {
                 return res.status(429).json({
                   reply: "Bu ajan Boost planınız kapsamında değil. Aynı anda yalnızca 1 aktif sohbet yürütebilirsiniz.",
                   boostRequired: true,
                 });
               }
+            }
+
+            if (clientSessionId && isAgentAllowed) {
               try {
                 const [convoRow] = await db.select().from(conversations).where(
                   and(
                     eq(conversations.userId, req.session.userId!),
-                    eq(conversations.visibleId, clientSessionId!)
+                    eq(conversations.visibleId, clientSessionId)
+                  )
+                );
+                if (convoRow && convoRow.boostStatus !== "running") {
+                  await db.update(conversations).set({
+                    isBoostTask: true,
+                    boostStatus: "running",
+                  }).where(eq(conversations.id, convoRow.id));
+                }
+              } catch (bErr: unknown) {
+                console.error("Boost task registration error:", bErr instanceof Error ? bErr.message : bErr);
+              }
+            } else if (clientSessionId) {
+              try {
+                const [convoRow] = await db.select().from(conversations).where(
+                  and(
+                    eq(conversations.userId, req.session.userId!),
+                    eq(conversations.visibleId, clientSessionId)
                   )
                 );
                 if (convoRow && convoRow.boostStatus !== "running") {
                   await db.update(conversations).set({ boostStatus: "running" }).where(eq(conversations.id, convoRow.id));
                 }
-              } catch (bErr: any) {
-                console.error("Boost status tracking error (disallowed agent):", bErr.message);
-              }
-            } else {
-              const isThisConvoBoost = activeBoostConvos.some(c => c.visibleId === clientSessionId);
-              if (!isThisConvoBoost && activeBoostConvos.length >= boostSub.maxParallelTasks) {
-                return res.status(429).json({
-                  reply: `Paralel görev limitinize (${boostSub.maxParallelTasks}) ulaştınız. Lütfen mevcut görevlerden birinin tamamlanmasını bekleyin veya Boost planınızı yükseltin.`,
-                  boostLimitReached: true,
-                  activeCount: activeBoostConvos.length,
-                  maxCount: boostSub.maxParallelTasks,
-                });
-              }
-
-              if (!isThisConvoBoost) {
-                try {
-                  const [convoRow] = await db.select().from(conversations).where(
-                    and(
-                      eq(conversations.userId, req.session.userId),
-                      eq(conversations.visibleId, clientSessionId)
-                    )
-                  );
-                  if (convoRow) {
-                    await db.update(conversations).set({
-                      isBoostTask: true,
-                      boostStatus: "running",
-                    }).where(eq(conversations.id, convoRow.id));
-                  }
-                } catch (bErr: any) {
-                  console.error("Boost task registration error:", bErr.message);
-                }
-              } else {
-                const thisConvo = activeBoostConvos.find(c => c.visibleId === clientSessionId);
-                if (thisConvo && thisConvo.boostStatus !== "running") {
-                  await storage.updateConversationBoostStatus(thisConvo.id, "running");
-                }
+              } catch (bErr: unknown) {
+                console.error("Boost status tracking error:", bErr instanceof Error ? bErr.message : bErr);
               }
             }
           } else {
-            if (activeBoostConvos.length === 0) {
-              const runningConvos = await db.select().from(conversations).where(
-                and(
-                  eq(conversations.userId, req.session.userId),
-                  eq(conversations.agentType, resolvedAgentType),
-                  eq(conversations.boostStatus, "running")
-                )
-              );
-              const otherRunning = runningConvos.filter(c => c.visibleId !== clientSessionId);
-              if (otherRunning.length > 0) {
-                return res.status(429).json({
-                  reply: "Bu ajan için zaten aktif bir sohbet var. Paralel görev için Boost planına geçin.",
-                  boostRequired: true,
-                });
-              }
+            if (otherRunning.length > 0) {
+              return res.status(429).json({
+                reply: "Bu ajan için zaten aktif bir sohbet var. Paralel görev için Boost planına geçin.",
+                boostRequired: true,
+              });
             }
-            try {
-              const [convoRow] = await db.select().from(conversations).where(
-                and(
-                  eq(conversations.userId, req.session.userId),
-                  eq(conversations.visibleId, clientSessionId)
-                )
-              );
-              if (convoRow && convoRow.boostStatus !== "running") {
-                await db.update(conversations).set({ boostStatus: "running" }).where(eq(conversations.id, convoRow.id));
+            if (clientSessionId) {
+              try {
+                const [convoRow] = await db.select().from(conversations).where(
+                  and(
+                    eq(conversations.userId, req.session.userId!),
+                    eq(conversations.visibleId, clientSessionId)
+                  )
+                );
+                if (convoRow && convoRow.boostStatus !== "running") {
+                  await db.update(conversations).set({ boostStatus: "running" }).where(eq(conversations.id, convoRow.id));
+                }
+              } catch (bErr: unknown) {
+                console.error("Boost status tracking error (non-boost):", bErr instanceof Error ? bErr.message : bErr);
               }
-            } catch (bErr: any) {
-              console.error("Boost status tracking error (non-boost):", bErr.message);
             }
           }
         }

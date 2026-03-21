@@ -63,11 +63,11 @@ export default function OnboardingWizard({ open, onComplete }: OnboardingWizardP
 
   return (
     <Dialog open={open} onOpenChange={() => {}}>
-      <DialogContent className="max-w-2xl bg-slate-900 border-slate-700 text-white p-0 overflow-hidden">
+      <DialogContent className="max-w-2xl bg-card border-border text-foreground p-0 overflow-hidden">
         {/* Progress bar */}
         <div className="px-6 pt-6">
-          <Progress value={progress} className="h-2 bg-slate-800" />
-          <p className="text-xs text-slate-400 mt-2">Step {step + 1} of {totalSteps}</p>
+          <Progress value={progress} className="h-2 bg-muted" />
+          <p className="text-xs text-muted-foreground mt-2">Step {step + 1} of {totalSteps}</p>
         </div>
 
         <div className="p-6 min-h-[400px] flex flex-col">
@@ -75,24 +75,24 @@ export default function OnboardingWizard({ open, onComplete }: OnboardingWizardP
           {step === 0 && (
             <div className="flex-1 flex flex-col items-center justify-center text-center">
               <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-violet-500 rounded-2xl flex items-center justify-center mb-6">
-                <Sparkles className="w-8 h-8 text-white" />
+                <Sparkles className="w-8 h-8 text-foreground" />
               </div>
               <h2 className="text-2xl font-bold mb-3">Welcome to RentAI24!</h2>
-              <p className="text-slate-400 max-w-md mb-6">
+              <p className="text-muted-foreground max-w-md mb-6">
                 Let's set up your AI workforce in just a few steps. We'll help you pick the right agents for your business.
               </p>
               <div className="grid grid-cols-3 gap-4 text-center">
                 <div className="p-3">
                   <MessageSquare className="w-6 h-6 text-blue-400 mx-auto mb-2" />
-                  <p className="text-xs text-slate-400">Chat with AI Agents</p>
+                  <p className="text-xs text-muted-foreground">Chat with AI Agents</p>
                 </div>
                 <div className="p-3">
                   <Zap className="w-6 h-6 text-yellow-400 mx-auto mb-2" />
-                  <p className="text-xs text-slate-400">Automate Workflows</p>
+                  <p className="text-xs text-muted-foreground">Automate Workflows</p>
                 </div>
                 <div className="p-3">
                   <BarChart3 className="w-6 h-6 text-green-400 mx-auto mb-2" />
-                  <p className="text-xs text-slate-400">Track Performance</p>
+                  <p className="text-xs text-muted-foreground">Track Performance</p>
                 </div>
               </div>
             </div>
@@ -102,7 +102,7 @@ export default function OnboardingWizard({ open, onComplete }: OnboardingWizardP
           {step === 1 && (
             <div className="flex-1">
               <h2 className="text-xl font-bold mb-2">What's your industry?</h2>
-              <p className="text-slate-400 text-sm mb-6">This helps us recommend the right agents for you.</p>
+              <p className="text-muted-foreground text-sm mb-6">This helps us recommend the right agents for you.</p>
               <div className="grid grid-cols-2 gap-3">
                 {INDUSTRIES.map(ind => (
                   <button
@@ -110,8 +110,8 @@ export default function OnboardingWizard({ open, onComplete }: OnboardingWizardP
                     onClick={() => setIndustry(ind)}
                     className={`p-3 rounded-lg text-left transition-all border ${
                       industry === ind
-                        ? "bg-blue-500/20 border-blue-500 text-white"
-                        : "bg-slate-800/50 border-slate-700 text-slate-300 hover:border-slate-600"
+                        ? "bg-blue-500/20 border-blue-500 text-foreground"
+                        : "bg-muted/50 border-border text-foreground/80 hover:border-primary/30"
                     }`}
                   >
                     {ind}
@@ -119,7 +119,7 @@ export default function OnboardingWizard({ open, onComplete }: OnboardingWizardP
                 ))}
               </div>
               <div className="mt-4">
-                <p className="text-sm text-slate-400 mb-2">Company size</p>
+                <p className="text-sm text-muted-foreground mb-2">Company size</p>
                 <div className="flex gap-2">
                   {["1-10", "11-50", "51-200", "200+"].map(size => (
                     <button
@@ -128,7 +128,7 @@ export default function OnboardingWizard({ open, onComplete }: OnboardingWizardP
                       className={`px-4 py-2 rounded-lg text-sm border transition-all ${
                         companySize === size
                           ? "bg-violet-500/20 border-violet-500"
-                          : "bg-slate-800/50 border-slate-700 hover:border-slate-600"
+                          : "bg-muted/50 border-border hover:border-primary/30"
                       }`}
                     >
                       {size}
@@ -143,7 +143,7 @@ export default function OnboardingWizard({ open, onComplete }: OnboardingWizardP
           {step === 2 && (
             <div className="flex-1">
               <h2 className="text-xl font-bold mb-2">Choose your AI agents</h2>
-              <p className="text-slate-400 text-sm mb-4">Select the agents you want to work with. You can always add more later.</p>
+              <p className="text-muted-foreground text-sm mb-4">Select the agents you want to work with. You can always add more later.</p>
               <div className="grid grid-cols-1 gap-2 max-h-[320px] overflow-y-auto pr-2">
                 {AGENTS.map(agent => (
                   <button
@@ -152,16 +152,16 @@ export default function OnboardingWizard({ open, onComplete }: OnboardingWizardP
                     className={`p-3 rounded-lg flex items-center gap-3 transition-all border ${
                       selectedAgents.includes(agent.id)
                         ? "bg-blue-500/15 border-blue-500/50"
-                        : "bg-slate-800/50 border-slate-700 hover:border-slate-600"
+                        : "bg-muted/50 border-border hover:border-primary/30"
                     }`}
                   >
                     <span className="text-2xl">{agent.emoji}</span>
                     <div className="text-left flex-1">
                       <div className="flex items-center gap-2">
-                        <span className="font-semibold text-white">{agent.name}</span>
+                        <span className="font-semibold text-foreground">{agent.name}</span>
                         <Badge variant="secondary" className="text-xs">{agent.role}</Badge>
                       </div>
-                      <p className="text-xs text-slate-400">{agent.description}</p>
+                      <p className="text-xs text-muted-foreground">{agent.description}</p>
                     </div>
                     {selectedAgents.includes(agent.id) && (
                       <CheckCircle2 className="w-5 h-5 text-blue-400" />
@@ -169,7 +169,7 @@ export default function OnboardingWizard({ open, onComplete }: OnboardingWizardP
                   </button>
                 ))}
               </div>
-              <p className="text-xs text-slate-500 mt-2">{selectedAgents.length} agent(s) selected</p>
+              <p className="text-xs text-muted-foreground/70 mt-2">{selectedAgents.length} agent(s) selected</p>
             </div>
           )}
 
@@ -177,17 +177,17 @@ export default function OnboardingWizard({ open, onComplete }: OnboardingWizardP
           {step === 3 && (
             <div className="flex-1 flex flex-col items-center justify-center text-center">
               <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-emerald-500 rounded-2xl flex items-center justify-center mb-6">
-                <CheckCircle2 className="w-8 h-8 text-white" />
+                <CheckCircle2 className="w-8 h-8 text-foreground" />
               </div>
               <h2 className="text-2xl font-bold mb-3">You're all set!</h2>
-              <p className="text-slate-400 max-w-md mb-6">
+              <p className="text-muted-foreground max-w-md mb-6">
                 Your AI workforce is ready. Head to the dashboard to start chatting with your agents.
               </p>
               <div className="flex flex-wrap gap-2 justify-center">
                 {selectedAgents.map(id => {
                   const agent = AGENTS.find(a => a.id === id);
                   return agent ? (
-                    <Badge key={id} className="bg-slate-800 text-white px-3 py-1">
+                    <Badge key={id} className="bg-muted text-foreground px-3 py-1">
                       {agent.emoji} {agent.name}
                     </Badge>
                   ) : null;
@@ -197,9 +197,9 @@ export default function OnboardingWizard({ open, onComplete }: OnboardingWizardP
           )}
 
           {/* Navigation */}
-          <div className="flex justify-between mt-6 pt-4 border-t border-slate-800">
+          <div className="flex justify-between mt-6 pt-4 border-t border-border">
             {step > 0 ? (
-              <Button variant="ghost" onClick={() => setStep(s => s - 1)} className="text-slate-400">
+              <Button variant="ghost" onClick={() => setStep(s => s - 1)} className="text-muted-foreground">
                 <ArrowLeft className="w-4 h-4 mr-2" /> Back
               </Button>
             ) : (

@@ -108,14 +108,14 @@ function AdminLoginForm({ onLogin }: { onLogin: (token: string) => void }) {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#0A0E27]">
-      <Card className="w-full max-w-md bg-[#111633] border-[#1E2448]">
+    <div className="min-h-screen flex items-center justify-center bg-background">
+      <Card className="w-full max-w-md bg-card border-border">
         <CardHeader className="text-center">
           <div className="mx-auto w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-violet-500 flex items-center justify-center mb-4">
-            <Shield className="w-8 h-8 text-white" />
+            <Shield className="w-8 h-8 text-foreground" />
           </div>
-          <CardTitle className="text-2xl text-white">{t("adminPage.login.title")}</CardTitle>
-          <CardDescription className="text-gray-400">{t("adminPage.login.subtitle")}</CardDescription>
+          <CardTitle className="text-2xl text-foreground">{t("adminPage.login.title")}</CardTitle>
+          <CardDescription className="text-muted-foreground">{t("adminPage.login.subtitle")}</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -124,7 +124,7 @@ function AdminLoginForm({ onLogin }: { onLogin: (token: string) => void }) {
               placeholder={t("adminPage.login.passwordPlaceholder")}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="bg-[#0A0E27] border-[#1E2448] text-white"
+              className="bg-background border-border text-foreground"
               data-testid="input-admin-password"
             />
             <Button
@@ -175,7 +175,7 @@ function OverviewPanel({ token }: { token: string }) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+        <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
           <BarChart3 className="w-5 h-5 text-blue-400" />
           {t("adminPage.overview.platformOverview")}
         </h3>
@@ -185,13 +185,13 @@ function OverviewPanel({ token }: { token: string }) {
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
         {cards.map((card) => (
-          <Card key={card.label} className="bg-[#0A0E27] border-[#1E2448]">
+          <Card key={card.label} className="bg-background border-border">
             <CardContent className="p-3 sm:p-4 flex items-center gap-2 sm:gap-3">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-[#111633] flex items-center justify-center shrink-0">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-card flex items-center justify-center shrink-0">
                 <card.icon className={`w-4 h-4 sm:w-5 sm:h-5 ${card.color}`} />
               </div>
               <div className="min-w-0">
-                <p className="text-[10px] sm:text-xs text-gray-400 truncate">{card.label}</p>
+                <p className="text-[10px] sm:text-xs text-muted-foreground truncate">{card.label}</p>
                 <p className={`text-lg sm:text-xl font-bold ${card.color}`} data-testid={`text-overview-${card.label.toLowerCase().replace(/\s/g, "-")}`}>
                   {typeof card.value === "number" ? card.value.toLocaleString() : card.value}
                 </p>
@@ -268,14 +268,14 @@ function UsersPanel({ token }: { token: string }) {
 
   return (
     <div className="space-y-6">
-      <Card className="bg-[#0A0E27] border-[#1E2448]">
+      <Card className="bg-background border-border">
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
-            <CardTitle className="text-lg text-white flex items-center gap-2">
+            <CardTitle className="text-lg text-foreground flex items-center gap-2">
               <Users className="w-5 h-5 text-blue-400" />
               {t("adminPage.users.registeredUsers", { count: users.length })}
             </CardTitle>
-            <CardDescription className="text-gray-400">{t("adminPage.users.description")}</CardDescription>
+            <CardDescription className="text-muted-foreground">{t("adminPage.users.description")}</CardDescription>
           </div>
           <Button variant="ghost" size="sm" onClick={fetchUsers} disabled={loading} data-testid="button-refresh-users">
             <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
@@ -286,20 +286,20 @@ function UsersPanel({ token }: { token: string }) {
             placeholder={t("adminPage.users.searchPlaceholder")}
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="bg-[#111633] border-[#1E2448] text-white mb-4"
+            className="bg-card border-border text-foreground mb-4"
             data-testid="input-search-users"
           />
           {filtered.length === 0 ? (
-            <p className="text-gray-500 text-center py-8">{users.length === 0 ? t("adminPage.users.noUsersYet") : t("adminPage.users.noUsersMatch")}</p>
+            <p className="text-muted-foreground/70 text-center py-8">{users.length === 0 ? t("adminPage.users.noUsersYet") : t("adminPage.users.noUsersMatch")}</p>
           ) : (
             <div className="space-y-3 max-h-[600px] overflow-y-auto">
               {filtered.map((user) => (
-                <div key={user.id} className="p-4 bg-[#111633] rounded-lg border border-[#1E2448]" data-testid={`user-row-${user.id}`}>
+                <div key={user.id} className="p-4 bg-card rounded-lg border border-border" data-testid={`user-row-${user.id}`}>
                   <div className="flex items-start justify-between mb-2">
                     <div>
-                      <p className="text-white font-medium">{user.full_name || "—"}</p>
-                      <p className="text-gray-400 text-sm">{user.email}</p>
-                      {user.company && <p className="text-gray-500 text-xs">{user.company}</p>}
+                      <p className="text-foreground font-medium">{user.full_name || "—"}</p>
+                      <p className="text-muted-foreground text-sm">{user.email}</p>
+                      {user.company && <p className="text-muted-foreground/70 text-xs">{user.company}</p>}
                     </div>
                     <div className="flex items-center gap-2">
                       {user.stripe_subscription_id ? (
@@ -308,7 +308,7 @@ function UsersPanel({ token }: { token: string }) {
                           {t("adminPage.users.subscribed")}
                         </Badge>
                       ) : (
-                        <Badge variant="outline" className="border-[#1E2448] text-gray-500 text-xs">{t("adminPage.users.free")}</Badge>
+                        <Badge variant="outline" className="border-border text-muted-foreground/70 text-xs">{t("adminPage.users.free")}</Badge>
                       )}
                       {user.image_credits > 0 && (
                         <Badge variant="outline" className="border-yellow-800 text-yellow-400 text-xs">
@@ -322,16 +322,16 @@ function UsersPanel({ token }: { token: string }) {
                       {user.rentals.map((r, i) => (
                         <Badge
                           key={i}
-                          className={`text-xs ${r.status === "active" ? "bg-blue-900/30 text-blue-400 border-blue-800" : "bg-gray-900/30 text-gray-500 border-gray-700"}`}
+                          className={`text-xs ${r.status === "active" ? "bg-blue-900/30 text-blue-400 border-blue-800" : "bg-gray-900/30 text-muted-foreground/70 border-gray-700"}`}
                         >
                           {agentLabel(r.agentType)} · {r.plan} · {r.messagesUsed}/{r.messagesLimit}
                         </Badge>
                       ))}
                     </div>
                   )}
-                  <div className="flex items-center gap-2 mt-2 pt-2 border-t border-[#1E2448]">
+                  <div className="flex items-center gap-2 mt-2 pt-2 border-t border-border">
                     <DollarSign className="w-3.5 h-3.5 text-yellow-400" />
-                    <span className="text-gray-400 text-xs">{t("admin.tokenLimitLabel")}</span>
+                    <span className="text-muted-foreground text-xs">{t("admin.tokenLimitLabel")}</span>
                     {editingLimit === user.id ? (
                       <div className="flex items-center gap-1">
                         <span className="text-yellow-400 text-xs">$</span>
@@ -341,7 +341,7 @@ function UsersPanel({ token }: { token: string }) {
                           min="0"
                           value={limitValue}
                           onChange={e => setLimitValue(e.target.value)}
-                          className="w-20 h-6 px-1 text-xs bg-[#0A0E27] border border-[#1E2448] text-white rounded"
+                          className="w-20 h-6 px-1 text-xs bg-background border border-border text-foreground rounded"
                           data-testid={`input-token-limit-${user.id}`}
                           autoFocus
                           onKeyDown={e => {
@@ -359,7 +359,7 @@ function UsersPanel({ token }: { token: string }) {
                         </button>
                         <button
                           onClick={() => setEditingLimit(null)}
-                          className="p-0.5 text-gray-400 hover:text-gray-300"
+                          className="p-0.5 text-muted-foreground hover:text-foreground/70"
                           data-testid={`button-cancel-limit-${user.id}`}
                         >
                           <X className="w-3.5 h-3.5" />
@@ -372,7 +372,7 @@ function UsersPanel({ token }: { token: string }) {
                         </span>
                         <button
                           onClick={() => { setEditingLimit(user.id); setLimitValue(parseFloat(user.token_spending_limit || "5.00").toFixed(2)); }}
-                          className="p-0.5 text-gray-500 hover:text-gray-300"
+                          className="p-0.5 text-muted-foreground/70 hover:text-foreground/70"
                           data-testid={`button-edit-limit-${user.id}`}
                         >
                           <Pencil className="w-3 h-3" />
@@ -427,11 +427,11 @@ function DemographicsPanel({ token }: { token: string }) {
     const pct = total > 0 ? Math.round((count / total) * 100) : 0;
     return (
       <div className="flex items-center gap-3">
-        <span className="text-sm text-gray-300 w-36 truncate">{label}</span>
-        <div className="flex-1 h-5 bg-[#111633] rounded-full overflow-hidden">
+        <span className="text-sm text-foreground/70 w-36 truncate">{label}</span>
+        <div className="flex-1 h-5 bg-card rounded-full overflow-hidden">
           <div className="h-full bg-gradient-to-r from-blue-500 to-violet-500 rounded-full transition-all" style={{ width: `${pct}%` }} />
         </div>
-        <span className="text-xs text-gray-400 w-16 text-right">{count} ({pct}%)</span>
+        <span className="text-xs text-muted-foreground w-16 text-right">{count} ({pct}%)</span>
       </div>
     );
   };
@@ -449,7 +449,7 @@ function DemographicsPanel({ token }: { token: string }) {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+        <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
           <BarChart3 className="w-5 h-5 text-emerald-400" />
           {t("adminPage.demographics.title")}
         </h3>
@@ -459,73 +459,73 @@ function DemographicsPanel({ token }: { token: string }) {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card className="bg-[#0A0E27] border-[#1E2448]">
+        <Card className="bg-background border-border">
           <CardContent className="p-4 text-center">
-            <p className="text-xs text-gray-400">{t("adminPage.demographics.onboardingCompleted")}</p>
+            <p className="text-xs text-muted-foreground">{t("adminPage.demographics.onboardingCompleted")}</p>
             <p className="text-2xl font-bold text-emerald-400">{data.onboarding?.completed || 0}</p>
           </CardContent>
         </Card>
-        <Card className="bg-[#0A0E27] border-[#1E2448]">
+        <Card className="bg-background border-border">
           <CardContent className="p-4 text-center">
-            <p className="text-xs text-gray-400">{t("adminPage.demographics.onboardingPending")}</p>
+            <p className="text-xs text-muted-foreground">{t("adminPage.demographics.onboardingPending")}</p>
             <p className="text-2xl font-bold text-yellow-400">{data.onboarding?.pending || 0}</p>
           </CardContent>
         </Card>
-        <Card className="bg-[#0A0E27] border-[#1E2448]">
+        <Card className="bg-background border-border">
           <CardContent className="p-4 text-center">
-            <p className="text-xs text-gray-400">{t("adminPage.demographics.totalUsers")}</p>
+            <p className="text-xs text-muted-foreground">{t("adminPage.demographics.totalUsers")}</p>
             <p className="text-2xl font-bold text-blue-400">{data.onboarding?.total || 0}</p>
           </CardContent>
         </Card>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card className="bg-[#0A0E27] border-[#1E2448]">
+        <Card className="bg-background border-border">
           <CardHeader>
-            <CardTitle className="text-base text-white">{t("adminPage.demographics.industryDistribution")}</CardTitle>
+            <CardTitle className="text-base text-foreground">{t("adminPage.demographics.industryDistribution")}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             {data.industry.length === 0 ? (
-              <p className="text-gray-500 text-sm text-center py-4">{t("adminPage.demographics.noData")}</p>
+              <p className="text-muted-foreground/70 text-sm text-center py-4">{t("adminPage.demographics.noData")}</p>
             ) : data.industry.map((row) => (
               <DistributionBar key={row.industry} label={t(`onboarding.industries.${row.industry}`, row.industry)} count={row.count} total={sumCounts(data.industry)} />
             ))}
           </CardContent>
         </Card>
 
-        <Card className="bg-[#0A0E27] border-[#1E2448]">
+        <Card className="bg-background border-border">
           <CardHeader>
-            <CardTitle className="text-base text-white">{t("adminPage.demographics.companySizeDistribution")}</CardTitle>
+            <CardTitle className="text-base text-foreground">{t("adminPage.demographics.companySizeDistribution")}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             {data.companySize.length === 0 ? (
-              <p className="text-gray-500 text-sm text-center py-4">{t("adminPage.demographics.noData")}</p>
+              <p className="text-muted-foreground/70 text-sm text-center py-4">{t("adminPage.demographics.noData")}</p>
             ) : data.companySize.map((row) => (
               <DistributionBar key={row.company_size} label={t(`onboarding.companySizes.${row.company_size}`, row.company_size)} count={row.count} total={sumCounts(data.companySize)} />
             ))}
           </CardContent>
         </Card>
 
-        <Card className="bg-[#0A0E27] border-[#1E2448]">
+        <Card className="bg-background border-border">
           <CardHeader>
-            <CardTitle className="text-base text-white">{t("adminPage.demographics.countryDistribution")}</CardTitle>
+            <CardTitle className="text-base text-foreground">{t("adminPage.demographics.countryDistribution")}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             {data.country.length === 0 ? (
-              <p className="text-gray-500 text-sm text-center py-4">{t("adminPage.demographics.noData")}</p>
+              <p className="text-muted-foreground/70 text-sm text-center py-4">{t("adminPage.demographics.noData")}</p>
             ) : data.country.map((row) => (
               <DistributionBar key={row.country} label={t(`onboarding.countries.${row.country}`, row.country)} count={row.count} total={sumCounts(data.country)} />
             ))}
           </CardContent>
         </Card>
 
-        <Card className="bg-[#0A0E27] border-[#1E2448]">
+        <Card className="bg-background border-border">
           <CardHeader>
-            <CardTitle className="text-base text-white">{t("adminPage.demographics.referralDistribution")}</CardTitle>
+            <CardTitle className="text-base text-foreground">{t("adminPage.demographics.referralDistribution")}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             {data.referralSource.length === 0 ? (
-              <p className="text-gray-500 text-sm text-center py-4">{t("adminPage.demographics.noData")}</p>
+              <p className="text-muted-foreground/70 text-sm text-center py-4">{t("adminPage.demographics.noData")}</p>
             ) : data.referralSource.map((row) => (
               <DistributionBar key={row.referral_source} label={t(`onboarding.referralSources.${row.referral_source}`, row.referral_source)} count={row.count} total={sumCounts(data.referralSource)} />
             ))}
@@ -533,13 +533,13 @@ function DemographicsPanel({ token }: { token: string }) {
         </Card>
       </div>
 
-      <Card className="bg-[#0A0E27] border-[#1E2448]">
+      <Card className="bg-background border-border">
         <CardHeader>
-          <CardTitle className="text-base text-white">{t("adminPage.demographics.intendedAgentsDistribution")}</CardTitle>
+          <CardTitle className="text-base text-foreground">{t("adminPage.demographics.intendedAgentsDistribution")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
           {data.intendedAgents.length === 0 ? (
-            <p className="text-gray-500 text-sm text-center py-4">{t("adminPage.demographics.noData")}</p>
+            <p className="text-muted-foreground/70 text-sm text-center py-4">{t("adminPage.demographics.noData")}</p>
           ) : data.intendedAgents.map((row) => (
             <DistributionBar key={row.agent} label={agentLabel(row.agent)} count={row.count} total={sumCounts(data.intendedAgents)} />
           ))}
@@ -642,21 +642,21 @@ function DocumentsPanel({ agentType, token }: { agentType: string; token: string
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card className="bg-[#0A0E27] border-[#1E2448]">
+        <Card className="bg-background border-border">
           <CardHeader>
-            <CardTitle className="text-lg text-white flex items-center gap-2">
+            <CardTitle className="text-lg text-foreground flex items-center gap-2">
               <Upload className="w-5 h-5 text-blue-400" />
               {t("adminPage.documents.uploadDocument")}
             </CardTitle>
-            <CardDescription className="text-gray-400">
+            <CardDescription className="text-muted-foreground">
               {t("adminPage.documents.supportedFormats")}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <label className="block">
-              <div className="border-2 border-dashed border-[#1E2448] rounded-lg p-8 text-center cursor-pointer hover:border-blue-500/50 transition-colors">
-                <Upload className="w-10 h-10 mx-auto text-gray-500 mb-2" />
-                <p className="text-gray-400 text-sm">
+              <div className="border-2 border-dashed border-border rounded-lg p-8 text-center cursor-pointer hover:border-blue-500/50 transition-colors">
+                <Upload className="w-10 h-10 mx-auto text-muted-foreground/70 mb-2" />
+                <p className="text-muted-foreground text-sm">
                   {uploading ? t("adminPage.documents.processing") : t("adminPage.documents.clickToUpload")}
                 </p>
               </div>
@@ -672,13 +672,13 @@ function DocumentsPanel({ agentType, token }: { agentType: string; token: string
           </CardContent>
         </Card>
 
-        <Card className="bg-[#0A0E27] border-[#1E2448]">
+        <Card className="bg-background border-border">
           <CardHeader>
-            <CardTitle className="text-lg text-white flex items-center gap-2">
+            <CardTitle className="text-lg text-foreground flex items-center gap-2">
               <Link2 className="w-5 h-5 text-violet-400" />
               {t("adminPage.documents.addFromUrl")}
             </CardTitle>
-            <CardDescription className="text-gray-400">
+            <CardDescription className="text-muted-foreground">
               {t("adminPage.documents.extractDescription")}
             </CardDescription>
           </CardHeader>
@@ -687,7 +687,7 @@ function DocumentsPanel({ agentType, token }: { agentType: string; token: string
               placeholder={t("adminPage.documents.urlPlaceholder")}
               value={urlInput}
               onChange={(e) => setUrlInput(e.target.value)}
-              className="bg-[#111633] border-[#1E2448] text-white"
+              className="bg-card border-border text-foreground"
               data-testid="input-url"
             />
             <Button
@@ -702,10 +702,10 @@ function DocumentsPanel({ agentType, token }: { agentType: string; token: string
         </Card>
       </div>
 
-      <Card className="bg-[#0A0E27] border-[#1E2448]">
+      <Card className="bg-background border-border">
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
-            <CardTitle className="text-lg text-white flex items-center gap-2">
+            <CardTitle className="text-lg text-foreground flex items-center gap-2">
               <Database className="w-5 h-5 text-green-400" />
               {t("adminPage.documents.knowledgeBase", { count: documents.length })}
             </CardTitle>
@@ -716,16 +716,16 @@ function DocumentsPanel({ agentType, token }: { agentType: string; token: string
         </CardHeader>
         <CardContent>
           {documents.length === 0 ? (
-            <p className="text-gray-500 text-center py-8">{t("adminPage.documents.noDocuments")}</p>
+            <p className="text-muted-foreground/70 text-center py-8">{t("adminPage.documents.noDocuments")}</p>
           ) : (
             <div className="space-y-2">
               {documents.map((doc) => (
-                <div key={doc.id} className="flex items-center justify-between p-3 bg-[#111633] rounded-lg border border-[#1E2448]" data-testid={`document-item-${doc.id}`}>
+                <div key={doc.id} className="flex items-center justify-between p-3 bg-card rounded-lg border border-border" data-testid={`document-item-${doc.id}`}>
                   <div className="flex items-center gap-3 min-w-0">
                     <FileText className="w-5 h-5 text-blue-400 shrink-0" />
                     <div className="min-w-0">
-                      <p className="text-white text-sm truncate">{doc.filename}</p>
-                      <p className="text-gray-500 text-xs">
+                      <p className="text-foreground text-sm truncate">{doc.filename}</p>
+                      <p className="text-muted-foreground/70 text-xs">
                         {doc.chunkCount} {t("adminPage.documents.chunks")} · {formatSize(doc.fileSize || 0)} · {doc.contentType}
                       </p>
                     </div>
@@ -799,44 +799,44 @@ function PerformancePanel({ token }: { token: string }) {
 
   return (
     <div className="space-y-6">
-      <Card className="bg-[#111633] border-[#1E2448]">
+      <Card className="bg-card border-border">
         <CardHeader>
-          <CardTitle className="text-white flex items-center gap-2">
+          <CardTitle className="text-foreground flex items-center gap-2">
             <Activity className="w-5 h-5 text-green-400" />
             {t("adminPage.performance.title")}
           </CardTitle>
-          <CardDescription className="text-gray-400">
+          <CardDescription className="text-muted-foreground">
             {t("adminPage.performance.description")}
           </CardDescription>
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="flex items-center gap-2 text-gray-400"><RefreshCw className="w-4 h-4 animate-spin" /> {t("adminPage.common.loading")}</div>
+            <div className="flex items-center gap-2 text-muted-foreground"><RefreshCw className="w-4 h-4 animate-spin" /> {t("adminPage.common.loading")}</div>
           ) : (
             <>
             <div className="hidden sm:block overflow-x-auto">
               <table className="w-full text-sm" data-testid="table-agent-performance">
                 <thead>
-                  <tr className="border-b border-[#1E2448]">
-                    <th className="text-left p-2 text-gray-400">{t("adminPage.performance.agent")}</th>
-                    <th className="text-center p-2 text-gray-400">{t("adminPage.performance.sessions")}</th>
-                    <th className="text-center p-2 text-gray-400">{t("adminPage.performance.messages")}</th>
-                    <th className="text-center p-2 text-gray-400">{t("adminPage.performance.actions")}</th>
-                    <th className="text-center p-2 text-gray-400">{t("adminPage.performance.avgTools")}</th>
-                    <th className="text-center p-2 text-gray-400">{t("adminPage.performance.error")}</th>
-                    <th className="text-center p-2 text-gray-400">{t("adminPage.performance.dup")}</th>
-                    <th className="text-center p-2 text-gray-400">{t("adminPage.performance.health")}</th>
+                  <tr className="border-b border-border">
+                    <th className="text-left p-2 text-muted-foreground">{t("adminPage.performance.agent")}</th>
+                    <th className="text-center p-2 text-muted-foreground">{t("adminPage.performance.sessions")}</th>
+                    <th className="text-center p-2 text-muted-foreground">{t("adminPage.performance.messages")}</th>
+                    <th className="text-center p-2 text-muted-foreground">{t("adminPage.performance.actions")}</th>
+                    <th className="text-center p-2 text-muted-foreground">{t("adminPage.performance.avgTools")}</th>
+                    <th className="text-center p-2 text-muted-foreground">{t("adminPage.performance.error")}</th>
+                    <th className="text-center p-2 text-muted-foreground">{t("adminPage.performance.dup")}</th>
+                    <th className="text-center p-2 text-muted-foreground">{t("adminPage.performance.health")}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {stats.map(s => {
                     const health = s.errorRate > 20 ? "critical" : s.errorRate > 10 ? "warning" : s.dupRate > 10 ? "warning" : "good";
                     return (
-                      <tr key={s.agentType} className="border-b border-[#1E2448]/50 hover:bg-[#0A0E27]/50" data-testid={`row-agent-${s.agentType}`}>
-                        <td className="p-2 text-white font-medium">{agentNameMap[s.agentType] || s.agentType}</td>
-                        <td className="p-2 text-center text-gray-300">{s.totalSessions}</td>
-                        <td className="p-2 text-center text-gray-300">{s.totalMessages}</td>
-                        <td className="p-2 text-center text-gray-300">{s.totalActions}</td>
+                      <tr key={s.agentType} className="border-b border-border/50 hover:bg-background/50" data-testid={`row-agent-${s.agentType}`}>
+                        <td className="p-2 text-foreground font-medium">{agentNameMap[s.agentType] || s.agentType}</td>
+                        <td className="p-2 text-center text-foreground/70">{s.totalSessions}</td>
+                        <td className="p-2 text-center text-foreground/70">{s.totalMessages}</td>
+                        <td className="p-2 text-center text-foreground/70">{s.totalActions}</td>
                         <td className="p-2 text-center text-cyan-400">{s.avgToolsPerSession}</td>
                         <td className="p-2 text-center">
                           <span className={s.errorRate > 20 ? "text-red-400" : s.errorRate > 10 ? "text-yellow-400" : "text-green-400"}>
@@ -863,27 +863,27 @@ function PerformancePanel({ token }: { token: string }) {
               {stats.map(s => {
                 const health = s.errorRate > 20 ? "critical" : s.errorRate > 10 ? "warning" : s.dupRate > 10 ? "warning" : "good";
                 return (
-                  <div key={s.agentType} className="bg-[#0A0E27] rounded-lg p-3 border border-[#1E2448]" data-testid={`card-agent-${s.agentType}`}>
+                  <div key={s.agentType} className="bg-background rounded-lg p-3 border border-border" data-testid={`card-agent-${s.agentType}`}>
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-white font-medium text-sm">{agentNameMap[s.agentType] || s.agentType}</span>
+                      <span className="text-foreground font-medium text-sm">{agentNameMap[s.agentType] || s.agentType}</span>
                       {health === "good" && <Badge className="bg-green-900/30 text-green-400 border-green-800 text-[10px]">{t("adminPage.convReview.good")}</Badge>}
                       {health === "warning" && <Badge className="bg-yellow-900/30 text-yellow-400 border-yellow-800 text-[10px]">{t("adminPage.performance.warning")}</Badge>}
                       {health === "critical" && <Badge className="bg-red-900/30 text-red-400 border-red-800 text-[10px]">{t("adminPage.performance.critical")}</Badge>}
                     </div>
                     <div className="grid grid-cols-3 gap-2 text-xs">
-                      <div><span className="text-gray-500">{t("adminPage.performance.sessions")}</span><p className="text-gray-300">{s.totalSessions}</p></div>
-                      <div><span className="text-gray-500">{t("adminPage.performance.messages")}</span><p className="text-gray-300">{s.totalMessages}</p></div>
-                      <div><span className="text-gray-500">{t("adminPage.performance.actions")}</span><p className="text-gray-300">{s.totalActions}</p></div>
-                      <div><span className="text-gray-500">{t("adminPage.performance.avgTools")}</span><p className="text-cyan-400">{s.avgToolsPerSession}</p></div>
-                      <div><span className="text-gray-500">{t("adminPage.performance.error")}</span><p className={s.errorRate > 20 ? "text-red-400" : s.errorRate > 10 ? "text-yellow-400" : "text-green-400"}>{s.errorRate}%</p></div>
-                      <div><span className="text-gray-500">{t("adminPage.performance.dup")}</span><p className={s.dupRate > 10 ? "text-orange-400" : "text-green-400"}>{s.dupRate}%</p></div>
+                      <div><span className="text-muted-foreground/70">{t("adminPage.performance.sessions")}</span><p className="text-foreground/70">{s.totalSessions}</p></div>
+                      <div><span className="text-muted-foreground/70">{t("adminPage.performance.messages")}</span><p className="text-foreground/70">{s.totalMessages}</p></div>
+                      <div><span className="text-muted-foreground/70">{t("adminPage.performance.actions")}</span><p className="text-foreground/70">{s.totalActions}</p></div>
+                      <div><span className="text-muted-foreground/70">{t("adminPage.performance.avgTools")}</span><p className="text-cyan-400">{s.avgToolsPerSession}</p></div>
+                      <div><span className="text-muted-foreground/70">{t("adminPage.performance.error")}</span><p className={s.errorRate > 20 ? "text-red-400" : s.errorRate > 10 ? "text-yellow-400" : "text-green-400"}>{s.errorRate}%</p></div>
+                      <div><span className="text-muted-foreground/70">{t("adminPage.performance.dup")}</span><p className={s.dupRate > 10 ? "text-orange-400" : "text-green-400"}>{s.dupRate}%</p></div>
                     </div>
                   </div>
                 );
               })}
             </div>
               {stats.length === 0 && (
-                <p className="text-gray-500 text-center py-8">{t("adminPage.performance.noData")}</p>
+                <p className="text-muted-foreground/70 text-center py-8">{t("adminPage.performance.noData")}</p>
               )}
             </>
           )}
@@ -891,30 +891,30 @@ function PerformancePanel({ token }: { token: string }) {
       </Card>
 
       {problematic.length > 0 && (
-        <Card className="bg-[#111633] border-[#1E2448]">
+        <Card className="bg-card border-border">
           <CardHeader>
-            <CardTitle className="text-white flex items-center gap-2">
+            <CardTitle className="text-foreground flex items-center gap-2">
               <AlertTriangle className="w-5 h-5 text-orange-400" />
               {t("adminPage.performance.problematicSessions")}
             </CardTitle>
-            <CardDescription className="text-gray-400">
+            <CardDescription className="text-muted-foreground">
               {t("adminPage.performance.problematicDesc")}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
               {problematic.map((s: ProblematicSession, i: number) => (
-                <div key={i} className="flex flex-col sm:flex-row sm:items-center sm:justify-between bg-[#0A0E27] rounded-lg p-3 border border-[#1E2448] gap-2" data-testid={`row-problematic-${i}`}>
+                <div key={i} className="flex flex-col sm:flex-row sm:items-center sm:justify-between bg-background rounded-lg p-3 border border-border gap-2" data-testid={`row-problematic-${i}`}>
                   <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-                    <Badge variant="outline" className="border-[#1E2448] text-gray-300 text-[10px] sm:text-xs shrink-0">{(agentNameMap[s.agent_type] || s.agent_type).split(" — ")[0]}</Badge>
-                    <span className="text-[10px] sm:text-xs text-gray-400 truncate">{t("adminPage.performance.session")}: {String(s.session_id).slice(0, 8)}...</span>
+                    <Badge variant="outline" className="border-border text-foreground/70 text-[10px] sm:text-xs shrink-0">{(agentNameMap[s.agent_type] || s.agent_type).split(" — ")[0]}</Badge>
+                    <span className="text-[10px] sm:text-xs text-muted-foreground truncate">{t("adminPage.performance.session")}: {String(s.session_id).slice(0, 8)}...</span>
                   </div>
                   <div className="flex flex-wrap gap-2 sm:gap-3 text-[10px] sm:text-xs">
-                    <span className="text-gray-400">{s.msg_count} {t("adminPage.performance.msgs")}</span>
-                    <span className={Number(s.tool_count) > 5 ? "text-orange-400" : "text-gray-400"}>{s.tool_count} {t("adminPage.performance.tools")}</span>
+                    <span className="text-muted-foreground">{s.msg_count} {t("adminPage.performance.msgs")}</span>
+                    <span className={Number(s.tool_count) > 5 ? "text-orange-400" : "text-muted-foreground"}>{s.tool_count} {t("adminPage.performance.tools")}</span>
                     {Number(s.auth_error_count) > 0 && <span className="text-red-400">{s.auth_error_count} {t("adminPage.performance.authErrs")}</span>}
                     {Number(s.max_response_length) > 3000 && <span className="text-yellow-400">{t("adminPage.performance.longResp")}</span>}
-                    <span className="text-gray-500">{s.started_at ? new Date(s.started_at).toLocaleDateString() : ""}</span>
+                    <span className="text-muted-foreground/70">{s.started_at ? new Date(s.started_at).toLocaleDateString() : ""}</span>
                   </div>
                 </div>
               ))}
@@ -1007,15 +1007,15 @@ function ConversationReviewPanel({ token }: { token: string }) {
   if (selectedConv) {
     return (
       <div className="space-y-4">
-        <Button variant="outline" onClick={() => { setSelectedConv(null); setMessages([]); }} className="border-[#1E2448] text-gray-300" data-testid="button-back-to-list">
+        <Button variant="outline" onClick={() => { setSelectedConv(null); setMessages([]); }} className="border-border text-foreground/70" data-testid="button-back-to-list">
           <ChevronLeft className="w-4 h-4 mr-1" /> {t("adminPage.convReview.backToList")}
         </Button>
-        <Card className="bg-[#111633] border-[#1E2448]">
+        <Card className="bg-card border-border">
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-white text-base">{selectedConv.title}</CardTitle>
-                <CardDescription className="text-gray-400">
+                <CardTitle className="text-foreground text-base">{selectedConv.title}</CardTitle>
+                <CardDescription className="text-muted-foreground">
                   {agentNameMap[selectedConv.agent_type] || selectedConv.agent_type} — {new Date(selectedConv.created_at).toLocaleString()}
                 </CardDescription>
               </div>
@@ -1037,26 +1037,26 @@ function ConversationReviewPanel({ token }: { token: string }) {
           </CardHeader>
           <CardContent>
             {loadingMsgs ? (
-              <div className="flex items-center gap-2 text-gray-400"><RefreshCw className="w-4 h-4 animate-spin" /> {t("adminPage.convReview.loadingMessages")}</div>
+              <div className="flex items-center gap-2 text-muted-foreground"><RefreshCw className="w-4 h-4 animate-spin" /> {t("adminPage.convReview.loadingMessages")}</div>
             ) : (
               <div className="space-y-3 max-h-[500px] overflow-y-auto">
                 {messages.map((msg, i) => (
                   <div key={i} className={`p-3 rounded-lg text-sm ${
                     msg.role === "user" ? "bg-blue-900/20 border border-blue-800/30 ml-8" :
-                    msg.role === "assistant" ? "bg-[#0A0E27] border border-[#1E2448] mr-8" :
-                    "bg-gray-900/20 border border-gray-800/30 text-gray-500 text-xs"
+                    msg.role === "assistant" ? "bg-background border border-border mr-8" :
+                    "bg-gray-900/20 border border-gray-800/30 text-muted-foreground/70 text-xs"
                   }`}>
                     <div className="flex items-center gap-2 mb-1">
                       <Badge variant="outline" className={`text-[10px] ${
                         msg.role === "user" ? "border-blue-800 text-blue-400" : "border-purple-800 text-purple-400"
                       }`}>{msg.role}</Badge>
                       {msg.used_tool && <Badge className="bg-violet-900/30 text-violet-400 border-violet-800 text-[10px]">{t("adminPage.messages.toolUsed")}</Badge>}
-                      <span className="text-[10px] text-gray-500">{new Date(msg.created_at).toLocaleTimeString()}</span>
+                      <span className="text-[10px] text-muted-foreground/70">{new Date(msg.created_at).toLocaleTimeString()}</span>
                     </div>
-                    <p className="text-gray-300 whitespace-pre-wrap">{msg.content.substring(0, 500)}{msg.content.length > 500 ? "..." : ""}</p>
+                    <p className="text-foreground/70 whitespace-pre-wrap">{msg.content.substring(0, 500)}{msg.content.length > 500 ? "..." : ""}</p>
                   </div>
                 ))}
-                {messages.length === 0 && <p className="text-gray-500 text-center py-4">{t("adminPage.messages.noMessages")}</p>}
+                {messages.length === 0 && <p className="text-muted-foreground/70 text-center py-4">{t("adminPage.messages.noMessages")}</p>}
               </div>
             )}
           </CardContent>
@@ -1067,61 +1067,61 @@ function ConversationReviewPanel({ token }: { token: string }) {
 
   return (
     <div className="space-y-4">
-      <Card className="bg-[#111633] border-[#1E2448]">
+      <Card className="bg-card border-border">
         <CardHeader>
-          <CardTitle className="text-white flex items-center gap-2">
+          <CardTitle className="text-foreground flex items-center gap-2">
             <MessageSquare className="w-5 h-5 text-teal-400" />
             {t("adminPage.convReview.title")}
           </CardTitle>
-          <CardDescription className="text-gray-400">
+          <CardDescription className="text-muted-foreground">
             {t("adminPage.convReview.description")}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex gap-3">
             <Select value={agentFilter} onValueChange={setAgentFilter}>
-              <SelectTrigger className="bg-[#0A0E27] border-[#1E2448] text-white w-48" data-testid="select-review-agent">
+              <SelectTrigger className="bg-background border-border text-foreground w-48" data-testid="select-review-agent">
                 <SelectValue placeholder={t("adminPage.select.allAgents")} />
               </SelectTrigger>
-              <SelectContent className="bg-[#111633] border-[#1E2448]">
-                <SelectItem value="all" className="text-white">{t("adminPage.select.allAgents")}</SelectItem>
+              <SelectContent className="bg-card border-border">
+                <SelectItem value="all" className="text-foreground">{t("adminPage.select.allAgents")}</SelectItem>
                 {AGENTS_DATA.map(a => (
-                  <SelectItem key={a.slug} value={a.slug} className="text-white">{`${a.persona} — ${t("adminPage.agents." + a.roleKey)}`}</SelectItem>
+                  <SelectItem key={a.slug} value={a.slug} className="text-foreground">{`${a.persona} — ${t("adminPage.agents." + a.roleKey)}`}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
             <Select value={ratingFilter} onValueChange={setRatingFilter}>
-              <SelectTrigger className="bg-[#0A0E27] border-[#1E2448] text-white w-40" data-testid="select-review-rating">
+              <SelectTrigger className="bg-background border-border text-foreground w-40" data-testid="select-review-rating">
                 <SelectValue placeholder={t("adminPage.select.allRatings")} />
               </SelectTrigger>
-              <SelectContent className="bg-[#111633] border-[#1E2448]">
-                <SelectItem value="all" className="text-white">{t("adminPage.select.all")}</SelectItem>
-                <SelectItem value="unrated" className="text-white">{t("adminPage.convReview.unrated")}</SelectItem>
-                <SelectItem value="good" className="text-white">{t("adminPage.convReview.good")}</SelectItem>
-                <SelectItem value="bad" className="text-white">{t("adminPage.convReview.bad")}</SelectItem>
+              <SelectContent className="bg-card border-border">
+                <SelectItem value="all" className="text-foreground">{t("adminPage.select.all")}</SelectItem>
+                <SelectItem value="unrated" className="text-foreground">{t("adminPage.convReview.unrated")}</SelectItem>
+                <SelectItem value="good" className="text-foreground">{t("adminPage.convReview.good")}</SelectItem>
+                <SelectItem value="bad" className="text-foreground">{t("adminPage.convReview.bad")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           {loading ? (
-            <div className="flex items-center gap-2 text-gray-400"><RefreshCw className="w-4 h-4 animate-spin" /> {t("adminPage.common.loading")}</div>
+            <div className="flex items-center gap-2 text-muted-foreground"><RefreshCw className="w-4 h-4 animate-spin" /> {t("adminPage.common.loading")}</div>
           ) : (
             <div className="space-y-2">
               {conversations.map((c: any) => (
-                <div key={c.id} className="flex items-center justify-between bg-[#0A0E27] rounded-lg p-3 border border-[#1E2448] hover:border-[#2E3468] cursor-pointer transition-colors"
+                <div key={c.id} className="flex items-center justify-between bg-background rounded-lg p-3 border border-border hover:border-border/80 cursor-pointer transition-colors"
                   onClick={() => viewMessages(c)} data-testid={`row-conversation-${c.id}`}>
                   <div className="flex items-center gap-3 flex-1 min-w-0">
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm text-white truncate">{c.title}</p>
-                      <p className="text-xs text-gray-500">{agentNameMap[c.agent_type] || c.agent_type} — {new Date(c.created_at).toLocaleDateString()}</p>
+                      <p className="text-sm text-foreground truncate">{c.title}</p>
+                      <p className="text-xs text-muted-foreground/70">{agentNameMap[c.agent_type] || c.agent_type} — {new Date(c.created_at).toLocaleDateString()}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    <span className="text-xs text-gray-500">{c.message_count} msgs</span>
+                    <span className="text-xs text-muted-foreground/70">{c.message_count} msgs</span>
                     {Number(c.tool_count) > 0 && <Badge variant="outline" className="border-violet-800 text-violet-400 text-[10px]">{c.tool_count} tools</Badge>}
                     {c.quality_rating === "good" && <Badge className="bg-green-900/30 text-green-400 border-green-800 text-[10px]">{t("adminPage.convReview.good")}</Badge>}
                     {c.quality_rating === "bad" && <Badge className="bg-red-900/30 text-red-400 border-red-800 text-[10px]">{t("adminPage.convReview.bad")}</Badge>}
-                    {!c.quality_rating && <Badge variant="outline" className="border-gray-700 text-gray-500 text-[10px]">{t("adminPage.convReview.unrated")}</Badge>}
+                    {!c.quality_rating && <Badge variant="outline" className="border-gray-700 text-muted-foreground/70 text-[10px]">{t("adminPage.convReview.unrated")}</Badge>}
                     <div className="flex gap-1">
                       <button onClick={(e) => { e.stopPropagation(); rateConversation(c.id, c.quality_rating === "good" ? null : "good"); }}
                         className={`p-1 rounded ${c.quality_rating === "good" ? "text-green-400" : "text-gray-600 hover:text-green-400"}`}
@@ -1138,7 +1138,7 @@ function ConversationReviewPanel({ token }: { token: string }) {
                 </div>
               ))}
               {conversations.length === 0 && (
-                <p className="text-gray-500 text-center py-8">{t("adminPage.convReview.noConversations")}</p>
+                <p className="text-muted-foreground/70 text-center py-8">{t("adminPage.convReview.noConversations")}</p>
               )}
             </div>
           )}
@@ -1229,13 +1229,13 @@ function TrainingDataPanel({ agentType, token }: { agentType: string; token: str
 
   return (
     <div className="space-y-6">
-      <Card className="bg-[#111633] border-[#1E2448]">
+      <Card className="bg-card border-border">
         <CardHeader>
-          <CardTitle className="text-white flex items-center gap-2">
+          <CardTitle className="text-foreground flex items-center gap-2">
             <FileText className="w-5 h-5 text-blue-400" />
             {t("adminPage.trainingData.agentRulesDoc")}
           </CardTitle>
-          <CardDescription className="text-gray-400">
+          <CardDescription className="text-muted-foreground">
             {t("adminPage.trainingData.agentRulesDesc")}
           </CardDescription>
         </CardHeader>
@@ -1251,43 +1251,43 @@ function TrainingDataPanel({ agentType, token }: { agentType: string; token: str
         </CardContent>
       </Card>
 
-      <Card className="bg-[#111633] border-[#1E2448]">
+      <Card className="bg-card border-border">
         <CardHeader>
-          <CardTitle className="text-white flex items-center gap-2">
+          <CardTitle className="text-foreground flex items-center gap-2">
             <Database className="w-5 h-5 text-violet-400" />
             {t("adminPage.trainingData.exportTitle")} — {agentName}
           </CardTitle>
-          <CardDescription className="text-gray-400">
+          <CardDescription className="text-muted-foreground">
             {t("adminPage.trainingData.exportDesc")}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {loading ? (
-            <div className="flex items-center gap-2 text-gray-400">
+            <div className="flex items-center gap-2 text-muted-foreground">
               <RefreshCw className="w-4 h-4 animate-spin" /> {t("adminPage.common.loadingStats")}
             </div>
           ) : stats ? (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <div className="bg-[#0A0E27] rounded-lg p-3 border border-[#1E2448]">
-                <p className="text-xs text-gray-400">{t("adminPage.trainingData.totalConversations")}</p>
-                <p className="text-xl font-bold text-white" data-testid="text-total-conversations">{stats.total_conversations}</p>
+              <div className="bg-background rounded-lg p-3 border border-border">
+                <p className="text-xs text-muted-foreground">{t("adminPage.trainingData.totalConversations")}</p>
+                <p className="text-xl font-bold text-foreground" data-testid="text-total-conversations">{stats.total_conversations}</p>
               </div>
-              <div className="bg-[#0A0E27] rounded-lg p-3 border border-[#1E2448]">
-                <p className="text-xs text-gray-400">{t("adminPage.trainingData.withToolUsage")}</p>
+              <div className="bg-background rounded-lg p-3 border border-border">
+                <p className="text-xs text-muted-foreground">{t("adminPage.trainingData.withToolUsage")}</p>
                 <p className="text-xl font-bold text-violet-400">{stats.with_tools}</p>
               </div>
-              <div className="bg-[#0A0E27] rounded-lg p-3 border border-[#1E2448]">
-                <p className="text-xs text-gray-400">{t("adminPage.trainingData.avgMessagesConv")}</p>
+              <div className="bg-background rounded-lg p-3 border border-border">
+                <p className="text-xs text-muted-foreground">{t("adminPage.trainingData.avgMessagesConv")}</p>
                 <p className="text-xl font-bold text-cyan-400">{stats.avg_messages}</p>
               </div>
-              <div className="bg-[#0A0E27] rounded-lg p-3 border border-[#1E2448]">
-                <p className="text-xs text-gray-400">{t("adminPage.trainingData.status")}</p>
+              <div className="bg-background rounded-lg p-3 border border-border">
+                <p className="text-xs text-muted-foreground">{t("adminPage.trainingData.status")}</p>
                 <p className="text-xl font-bold">{stats.total_conversations >= 10 ? (
                   <span className="text-green-400">{t("adminPage.trainingData.ready")}</span>
                 ) : stats.total_conversations > 0 ? (
                   <span className="text-yellow-400">{t("adminPage.trainingData.needMore")}</span>
                 ) : (
-                  <span className="text-gray-500">{t("adminPage.trainingData.noDataLabel")}</span>
+                  <span className="text-muted-foreground/70">{t("adminPage.trainingData.noDataLabel")}</span>
                 )}</p>
               </div>
             </div>
@@ -1295,26 +1295,26 @@ function TrainingDataPanel({ agentType, token }: { agentType: string; token: str
 
           <div className="flex flex-col sm:flex-row gap-3 items-end">
             <div className="flex-1">
-              <label className="text-xs text-gray-400 mb-1 block">{t("adminPage.trainingData.minConvTurns")}</label>
+              <label className="text-xs text-muted-foreground mb-1 block">{t("adminPage.trainingData.minConvTurns")}</label>
               <Select value={minTurns} onValueChange={setMinTurns}>
-                <SelectTrigger className="bg-[#0A0E27] border-[#1E2448] text-white" data-testid="select-min-turns">
+                <SelectTrigger className="bg-background border-border text-foreground" data-testid="select-min-turns">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="bg-[#111633] border-[#1E2448]">
-                  <SelectItem value="1" className="text-white">1+ {t("adminPage.trainingData.turns")}</SelectItem>
-                  <SelectItem value="2" className="text-white">2+ {t("adminPage.trainingData.turns")}</SelectItem>
-                  <SelectItem value="3" className="text-white">3+ {t("adminPage.trainingData.turns")}</SelectItem>
-                  <SelectItem value="5" className="text-white">5+ {t("adminPage.trainingData.turns")}</SelectItem>
+                <SelectContent className="bg-card border-border">
+                  <SelectItem value="1" className="text-foreground">1+ {t("adminPage.trainingData.turns")}</SelectItem>
+                  <SelectItem value="2" className="text-foreground">2+ {t("adminPage.trainingData.turns")}</SelectItem>
+                  <SelectItem value="3" className="text-foreground">3+ {t("adminPage.trainingData.turns")}</SelectItem>
+                  <SelectItem value="5" className="text-foreground">5+ {t("adminPage.trainingData.turns")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="flex-1">
-              <label className="flex items-center gap-2 text-xs text-gray-400 cursor-pointer">
+              <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
                 <input
                   type="checkbox"
                   checked={toolsOnly}
                   onChange={(e) => setToolsOnly(e.target.checked)}
-                  className="rounded border-[#1E2448]"
+                  className="rounded border-border"
                   data-testid="checkbox-tools-only"
                 />
                 {t("adminPage.trainingData.toolUsageOnly")}
@@ -1445,21 +1445,21 @@ function FineTuningPanel({ agentType, token }: { agentType: string; token: strin
 
   return (
     <div className="space-y-6">
-      <Card className="bg-[#0A0E27] border-[#1E2448]">
+      <Card className="bg-background border-border">
         <CardHeader>
-          <CardTitle className="text-lg text-white flex items-center gap-2">
+          <CardTitle className="text-lg text-foreground flex items-center gap-2">
             <Brain className="w-5 h-5 text-violet-400" />
             {t("adminPage.fineTuning.startNew")}
           </CardTitle>
-          <CardDescription className="text-gray-400">
+          <CardDescription className="text-muted-foreground">
             {t("adminPage.fineTuning.uploadDesc")}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <label className="block">
-            <div className="border-2 border-dashed border-[#1E2448] rounded-lg p-8 text-center cursor-pointer hover:border-violet-500/50 transition-colors">
-              <Cpu className="w-10 h-10 mx-auto text-gray-500 mb-2" />
-              <p className="text-gray-400 text-sm">
+            <div className="border-2 border-dashed border-border rounded-lg p-8 text-center cursor-pointer hover:border-violet-500/50 transition-colors">
+              <Cpu className="w-10 h-10 mx-auto text-muted-foreground/70 mb-2" />
+              <p className="text-muted-foreground text-sm">
                 {uploading ? t("adminPage.fineTuning.uploading") : t("adminPage.fineTuning.clickToUpload")}
               </p>
             </div>
@@ -1475,16 +1475,16 @@ function FineTuningPanel({ agentType, token }: { agentType: string; token: strin
         </CardContent>
       </Card>
 
-      <Card className="bg-[#0A0E27] border-[#1E2448]">
+      <Card className="bg-background border-border">
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
-            <CardTitle className="text-lg text-white flex items-center gap-2">
+            <CardTitle className="text-lg text-foreground flex items-center gap-2">
               <Zap className="w-5 h-5 text-yellow-400" />
               {t("adminPage.fineTuning.jobs", { count: jobs.length })}
             </CardTitle>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={handleDeactivate} className="text-xs border-[#1E2448] text-gray-400" data-testid="button-deactivate-all">
+            <Button variant="outline" size="sm" onClick={handleDeactivate} className="text-xs border-border text-muted-foreground" data-testid="button-deactivate-all">
               {t("adminPage.fineTuning.resetToBase")}
             </Button>
             <Button variant="ghost" size="sm" onClick={fetchJobs} disabled={loading} data-testid="button-refresh-jobs">
@@ -1494,11 +1494,11 @@ function FineTuningPanel({ agentType, token }: { agentType: string; token: strin
         </CardHeader>
         <CardContent>
           {jobs.length === 0 ? (
-            <p className="text-gray-500 text-center py-8">{t("adminPage.fineTuning.noJobs")}</p>
+            <p className="text-muted-foreground/70 text-center py-8">{t("adminPage.fineTuning.noJobs")}</p>
           ) : (
             <div className="space-y-3">
               {jobs.map((job) => (
-                <div key={job.id} className="p-4 bg-[#111633] rounded-lg border border-[#1E2448] space-y-3" data-testid={`ft-job-${job.id}`}>
+                <div key={job.id} className="p-4 bg-card rounded-lg border border-border space-y-3" data-testid={`ft-job-${job.id}`}>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <Badge className={statusColor(job.status)}>{job.status}</Badge>
@@ -1516,13 +1516,13 @@ function FineTuningPanel({ agentType, token }: { agentType: string; token: strin
                     </div>
                   </div>
                   <div className="text-sm space-y-1">
-                    <p className="text-gray-400"><span className="text-gray-500">{t("adminPage.fineTuning.file")}:</span> {job.trainingFile}</p>
-                    <p className="text-gray-400"><span className="text-gray-500">{t("adminPage.fineTuning.jobId")}:</span> {job.openaiJobId || "N/A"}</p>
+                    <p className="text-muted-foreground"><span className="text-muted-foreground/70">{t("adminPage.fineTuning.file")}:</span> {job.trainingFile}</p>
+                    <p className="text-muted-foreground"><span className="text-muted-foreground/70">{t("adminPage.fineTuning.jobId")}:</span> {job.openaiJobId || "N/A"}</p>
                     {job.fineTunedModel && (
-                      <p className="text-gray-400"><span className="text-gray-500">{t("adminPage.fineTuning.model")}:</span> <span className="text-green-400 font-mono text-xs">{job.fineTunedModel}</span></p>
+                      <p className="text-muted-foreground"><span className="text-muted-foreground/70">{t("adminPage.fineTuning.model")}:</span> <span className="text-green-400 font-mono text-xs">{job.fineTunedModel}</span></p>
                     )}
                     {job.error && <p className="text-red-400 text-xs mt-1">{job.error}</p>}
-                    <p className="text-gray-500 text-xs">{t("adminPage.fineTuning.created")}: {new Date(job.createdAt).toLocaleString()}</p>
+                    <p className="text-muted-foreground/70 text-xs">{t("adminPage.fineTuning.created")}: {new Date(job.createdAt).toLocaleString()}</p>
                   </div>
                 </div>
               ))}
@@ -1580,10 +1580,10 @@ function MessagesPanel({ token }: { token: string }) {
 
   return (
     <div className="space-y-6">
-      <Card className="bg-[#0A0E27] border-[#1E2448]">
+      <Card className="bg-background border-border">
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
-            <CardTitle className="text-lg text-white flex items-center gap-2">
+            <CardTitle className="text-lg text-foreground flex items-center gap-2">
               <MessageSquare className="w-5 h-5 text-blue-400" />
               {t("adminPage.contactMessages.title")} ({messages.length})
             </CardTitle>
@@ -1594,22 +1594,22 @@ function MessagesPanel({ token }: { token: string }) {
         </CardHeader>
         <CardContent>
           {messages.length === 0 ? (
-            <p className="text-gray-500 text-center py-8">{t("adminPage.overview.noMessages")}</p>
+            <p className="text-muted-foreground/70 text-center py-8">{t("adminPage.overview.noMessages")}</p>
           ) : (
             <div className="space-y-3">
               {messages.map((msg) => (
-                <div key={msg.id} className="p-4 bg-[#111633] rounded-lg border border-[#1E2448]" data-testid={`message-item-${msg.id}`}>
+                <div key={msg.id} className="p-4 bg-card rounded-lg border border-border" data-testid={`message-item-${msg.id}`}>
                   <div className="flex items-start justify-between mb-2">
                     <div>
-                      <p className="text-white font-medium">{msg.name}</p>
-                      <p className="text-gray-400 text-sm">{msg.email} &middot; {msg.company} ({msg.companySize})</p>
+                      <p className="text-foreground font-medium">{msg.name}</p>
+                      <p className="text-muted-foreground text-sm">{msg.email} &middot; {msg.company} ({msg.companySize})</p>
                     </div>
-                    <span className="text-gray-500 text-xs">{new Date(msg.createdAt).toLocaleString()}</span>
+                    <span className="text-muted-foreground/70 text-xs">{new Date(msg.createdAt).toLocaleString()}</span>
                   </div>
                   {msg.aiWorkerInterest && (
                     <Badge className="mb-2 bg-blue-900/30 text-blue-400 border-blue-800 text-xs">{t("adminPage.contactMessages.interest")}: {msg.aiWorkerInterest}</Badge>
                   )}
-                  <p className="text-gray-300 text-sm leading-relaxed">{msg.message}</p>
+                  <p className="text-foreground/70 text-sm leading-relaxed">{msg.message}</p>
                 </div>
               ))}
             </div>
@@ -1617,22 +1617,22 @@ function MessagesPanel({ token }: { token: string }) {
         </CardContent>
       </Card>
 
-      <Card className="bg-[#0A0E27] border-[#1E2448]">
+      <Card className="bg-background border-border">
         <CardHeader>
-          <CardTitle className="text-lg text-white flex items-center gap-2">
+          <CardTitle className="text-lg text-foreground flex items-center gap-2">
             <Mail className="w-5 h-5 text-violet-400" />
             {t("adminPage.newsletter.title")} ({subscribers.length})
           </CardTitle>
         </CardHeader>
         <CardContent>
           {subscribers.length === 0 ? (
-            <p className="text-gray-500 text-center py-8">{t("adminPage.overview.noSubscribers")}</p>
+            <p className="text-muted-foreground/70 text-center py-8">{t("adminPage.overview.noSubscribers")}</p>
           ) : (
             <div className="space-y-2">
               {subscribers.map((sub) => (
-                <div key={sub.id} className="flex items-center justify-between p-3 bg-[#111633] rounded-lg border border-[#1E2448]" data-testid={`subscriber-item-${sub.id}`}>
-                  <p className="text-white text-sm">{sub.email}</p>
-                  <span className="text-gray-500 text-xs">{new Date(sub.subscribedAt).toLocaleString()}</span>
+                <div key={sub.id} className="flex items-center justify-between p-3 bg-card rounded-lg border border-border" data-testid={`subscriber-item-${sub.id}`}>
+                  <p className="text-foreground text-sm">{sub.email}</p>
+                  <span className="text-muted-foreground/70 text-xs">{new Date(sub.subscribedAt).toLocaleString()}</span>
                 </div>
               ))}
             </div>
@@ -1734,7 +1734,7 @@ function TokenOptimizationPanel({ token }: { token: string }) {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+        <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
           <Zap className="w-5 h-5 text-yellow-400" />
           {t("adminPage.tokenOpt.title")}
         </h3>
@@ -1744,91 +1744,91 @@ function TokenOptimizationPanel({ token }: { token: string }) {
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="bg-[#0A0E27] border-[#1E2448]">
+        <Card className="bg-background border-border">
           <CardContent className="p-4">
-            <p className="text-xs text-gray-400">{t("adminPage.tokenOpt.avgPromptTokens")}</p>
+            <p className="text-xs text-muted-foreground">{t("adminPage.tokenOpt.avgPromptTokens")}</p>
             <p className="text-2xl font-bold text-blue-400" data-testid="text-avg-prompt-tokens">
               {data?.averages?.avg_prompt?.toLocaleString() || 0}
             </p>
-            <p className="text-xs text-gray-500">{t("adminPage.tokenOpt.perMessage")}</p>
+            <p className="text-xs text-muted-foreground/70">{t("adminPage.tokenOpt.perMessage")}</p>
           </CardContent>
         </Card>
 
-        <Card className="bg-[#0A0E27] border-[#1E2448]">
+        <Card className="bg-background border-border">
           <CardContent className="p-4">
-            <p className="text-xs text-gray-400">{t("adminPage.tokenOpt.avgTotalTokens")}</p>
+            <p className="text-xs text-muted-foreground">{t("adminPage.tokenOpt.avgTotalTokens")}</p>
             <p className="text-2xl font-bold text-violet-400" data-testid="text-avg-total-tokens">
               {data?.averages?.avg_total?.toLocaleString() || 0}
             </p>
-            <p className="text-xs text-gray-500">{t("adminPage.tokenOpt.perMessage")}</p>
+            <p className="text-xs text-muted-foreground/70">{t("adminPage.tokenOpt.perMessage")}</p>
           </CardContent>
         </Card>
 
-        <Card className="bg-[#0A0E27] border-[#1E2448]">
+        <Card className="bg-background border-border">
           <CardContent className="p-4">
-            <p className="text-xs text-gray-400">{t("adminPage.tokenOpt.miniUsage")}</p>
+            <p className="text-xs text-muted-foreground">{t("adminPage.tokenOpt.miniUsage")}</p>
             <p className="text-2xl font-bold text-emerald-400" data-testid="text-mini-usage-percent">
               {data?.miniUsagePercent || "0"}%
             </p>
-            <p className="text-xs text-gray-500">{t("adminPage.tokenOpt.ofTotalRequests")}</p>
+            <p className="text-xs text-muted-foreground/70">{t("adminPage.tokenOpt.ofTotalRequests")}</p>
           </CardContent>
         </Card>
 
-        <Card className="bg-[#0A0E27] border-[#1E2448]">
+        <Card className="bg-background border-border">
           <CardContent className="p-4">
-            <p className="text-xs text-gray-400">{t("adminPage.tokenOpt.estSavings")}</p>
+            <p className="text-xs text-muted-foreground">{t("adminPage.tokenOpt.estSavings")}</p>
             <p className="text-2xl font-bold text-green-400" data-testid="text-estimated-savings">
               ${data?.estimatedSavingsUsd || "0.00"}
             </p>
-            <p className="text-xs text-gray-500">{t("adminPage.tokenOpt.fromMiniRouting")}</p>
+            <p className="text-xs text-muted-foreground/70">{t("adminPage.tokenOpt.fromMiniRouting")}</p>
           </CardContent>
         </Card>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-        <Card className="bg-[#0A0E27] border-[#1E2448]">
+        <Card className="bg-background border-border">
           <CardContent className="p-4">
-            <p className="text-xs text-gray-400">{t("adminPage.tokenOpt.summariesGenerated")}</p>
+            <p className="text-xs text-muted-foreground">{t("adminPage.tokenOpt.summariesGenerated")}</p>
             <p className="text-2xl font-bold text-orange-400" data-testid="text-summarization-count">
               {data?.summarizationCount?.toLocaleString() || 0}
             </p>
-            <p className="text-xs text-gray-500">{t("adminPage.tokenOpt.conversationSummaries")}</p>
+            <p className="text-xs text-muted-foreground/70">{t("adminPage.tokenOpt.conversationSummaries")}</p>
           </CardContent>
         </Card>
 
-        <Card className="bg-[#0A0E27] border-[#1E2448]">
+        <Card className="bg-background border-border">
           <CardContent className="p-4">
-            <p className="text-xs text-gray-400">{t("adminPage.tokenOpt.cacheHits")}</p>
+            <p className="text-xs text-muted-foreground">{t("adminPage.tokenOpt.cacheHits")}</p>
             <p className="text-2xl font-bold text-cyan-400" data-testid="text-cache-hits">
               {data?.summaryCacheHits?.toLocaleString() || 0}
             </p>
-            <p className="text-xs text-gray-500">{t("adminPage.tokenOpt.reusedSummaries")}</p>
+            <p className="text-xs text-muted-foreground/70">{t("adminPage.tokenOpt.reusedSummaries")}</p>
           </CardContent>
         </Card>
 
-        <Card className="bg-[#0A0E27] border-[#1E2448]">
+        <Card className="bg-background border-border">
           <CardContent className="p-4">
-            <p className="text-xs text-gray-400">{t("adminPage.tokenOpt.cacheHitRate")}</p>
+            <p className="text-xs text-muted-foreground">{t("adminPage.tokenOpt.cacheHitRate")}</p>
             <p className="text-2xl font-bold text-teal-400" data-testid="text-cache-hit-rate">
               {data && (data.summarizationCount + data.summaryCacheHits) > 0
                 ? ((data.summaryCacheHits / (data.summarizationCount + data.summaryCacheHits)) * 100).toFixed(1)
                 : "0"}%
             </p>
-            <p className="text-xs text-gray-500">{t("adminPage.tokenOpt.summaryReuseRate")}</p>
+            <p className="text-xs text-muted-foreground/70">{t("adminPage.tokenOpt.summaryReuseRate")}</p>
           </CardContent>
         </Card>
       </div>
 
-      <Card className="bg-[#0A0E27] border-[#1E2448]">
+      <Card className="bg-background border-border">
         <CardHeader>
-          <CardTitle className="text-lg text-white flex items-center gap-2">
+          <CardTitle className="text-lg text-foreground flex items-center gap-2">
             <Bot className="w-5 h-5 text-blue-400" />
             {t("adminPage.tokenOpt.modelDistribution")}
           </CardTitle>
         </CardHeader>
         <CardContent>
           {!data?.modelDistribution?.length ? (
-            <p className="text-gray-500 text-center py-4">{t("adminPage.tokenOpt.noDataYet")}</p>
+            <p className="text-muted-foreground/70 text-center py-4">{t("adminPage.tokenOpt.noDataYet")}</p>
           ) : (
             <div className="space-y-3">
               {data.modelDistribution.map((m) => {
@@ -1837,18 +1837,18 @@ function TokenOptimizationPanel({ token }: { token: string }) {
                 return (
                   <div key={m.model} className="space-y-1" data-testid={`model-dist-${m.model}`}>
                     <div className="flex items-center justify-between text-sm">
-                      <span className="text-white font-medium">{m.model}</span>
-                      <span className="text-gray-400">
+                      <span className="text-foreground font-medium">{m.model}</span>
+                      <span className="text-muted-foreground">
                         {m.count.toLocaleString()} {t("adminPage.tokenOpt.requests")} ({pct}%) · ${parseFloat(m.total_cost).toFixed(4)}
                       </span>
                     </div>
-                    <div className="w-full bg-[#111633] rounded-full h-2">
+                    <div className="w-full bg-card rounded-full h-2">
                       <div
                         className={`h-2 rounded-full ${m.model.includes('mini') ? 'bg-emerald-500' : 'bg-blue-500'}`}
                         style={{ width: `${pct}%` }}
                       />
                     </div>
-                    <div className="flex justify-between text-xs text-gray-500">
+                    <div className="flex justify-between text-xs text-muted-foreground/70">
                       <span>{t("adminPage.tokenOpt.avgPrompt")}: {m.avg_prompt_tokens}</span>
                       <span>{t("adminPage.tokenOpt.avgCompletion")}: {m.avg_completion_tokens}</span>
                     </div>
@@ -1860,23 +1860,23 @@ function TokenOptimizationPanel({ token }: { token: string }) {
         </CardContent>
       </Card>
 
-      <Card className="bg-[#0A0E27] border-[#1E2448]">
+      <Card className="bg-background border-border">
         <CardHeader>
-          <CardTitle className="text-lg text-white flex items-center gap-2">
+          <CardTitle className="text-lg text-foreground flex items-center gap-2">
             <Activity className="w-5 h-5 text-violet-400" />
             {t("adminPage.tokenOpt.last7Days")}
           </CardTitle>
         </CardHeader>
         <CardContent>
           {!data?.dailyStats?.length ? (
-            <p className="text-gray-500 text-center py-4">{t("adminPage.tokenOpt.noRecentData")}</p>
+            <p className="text-muted-foreground/70 text-center py-4">{t("adminPage.tokenOpt.noRecentData")}</p>
           ) : (
             <div className="space-y-2">
               {data.dailyStats.map((d) => (
-                <div key={d.date} className="flex items-center justify-between p-3 bg-[#111633] rounded-lg" data-testid={`daily-stat-${d.date}`}>
+                <div key={d.date} className="flex items-center justify-between p-3 bg-card rounded-lg" data-testid={`daily-stat-${d.date}`}>
                   <div>
-                    <p className="text-white text-sm font-medium">{new Date(d.date).toLocaleDateString()}</p>
-                    <p className="text-gray-500 text-xs">{d.requests} {t("adminPage.tokenOpt.requests")} · {t("adminPage.tokenOpt.avgLabel")} {d.avg_prompt} {t("adminPage.tokenOpt.promptTokens")}</p>
+                    <p className="text-foreground text-sm font-medium">{new Date(d.date).toLocaleDateString()}</p>
+                    <p className="text-muted-foreground/70 text-xs">{d.requests} {t("adminPage.tokenOpt.requests")} · {t("adminPage.tokenOpt.avgLabel")} {d.avg_prompt} {t("adminPage.tokenOpt.promptTokens")}</p>
                   </div>
                   <div className="text-right">
                     <p className="text-red-400 text-sm">${parseFloat(d.cost).toFixed(4)}</p>
@@ -1934,33 +1934,33 @@ function CostTrackerPanel({ token }: { token: string }) {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="bg-[#0A0E27] border-[#1E2448]">
+        <Card className="bg-background border-border">
           <CardContent className="p-4">
-            <p className="text-xs text-gray-400">{t("adminPage.costs.totalCost")}</p>
+            <p className="text-xs text-muted-foreground">{t("adminPage.costs.totalCost")}</p>
             <p className="text-xl font-bold text-red-400" data-testid="text-total-cost">
               ${totals ? parseFloat(totals.total_cost).toFixed(4) : "0.0000"}
             </p>
           </CardContent>
         </Card>
-        <Card className="bg-[#0A0E27] border-[#1E2448]">
+        <Card className="bg-background border-border">
           <CardContent className="p-4">
-            <p className="text-xs text-gray-400">{t("adminPage.costs.totalRequests")}</p>
+            <p className="text-xs text-muted-foreground">{t("adminPage.costs.totalRequests")}</p>
             <p className="text-xl font-bold text-blue-400" data-testid="text-total-requests">
               {totals?.total_requests || 0}
             </p>
           </CardContent>
         </Card>
-        <Card className="bg-[#0A0E27] border-[#1E2448]">
+        <Card className="bg-background border-border">
           <CardContent className="p-4">
-            <p className="text-xs text-gray-400">{t("adminPage.costs.totalTokens")}</p>
+            <p className="text-xs text-muted-foreground">{t("adminPage.costs.totalTokens")}</p>
             <p className="text-xl font-bold text-violet-400" data-testid="text-total-tokens">
               {totals?.total_tokens ? totals.total_tokens.toLocaleString() : "0"}
             </p>
           </CardContent>
         </Card>
-        <Card className="bg-[#0A0E27] border-[#1E2448]">
+        <Card className="bg-background border-border">
           <CardContent className="p-4">
-            <p className="text-xs text-gray-400">{t("adminPage.costs.uniqueUsers")}</p>
+            <p className="text-xs text-muted-foreground">{t("adminPage.costs.uniqueUsers")}</p>
             <p className="text-xl font-bold text-emerald-400" data-testid="text-unique-users">
               {totals?.unique_users || 0}
             </p>
@@ -1968,21 +1968,21 @@ function CostTrackerPanel({ token }: { token: string }) {
         </Card>
       </div>
 
-      <Card className="bg-[#0A0E27] border-[#1E2448]">
+      <Card className="bg-background border-border">
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
-            <CardTitle className="text-lg text-white flex items-center gap-2">
+            <CardTitle className="text-lg text-foreground flex items-center gap-2">
               <DollarSign className="w-5 h-5 text-yellow-400" />
               {t("adminPage.costs.tokenCostBreakdown")}
             </CardTitle>
-            <CardDescription className="text-gray-400">{t("adminPage.costs.description")}</CardDescription>
+            <CardDescription className="text-muted-foreground">{t("adminPage.costs.description")}</CardDescription>
           </div>
           <div className="flex items-center gap-2">
             <Button
               variant={showExpensive ? "default" : "outline"}
               size="sm"
               onClick={() => setShowExpensive(!showExpensive)}
-              className={showExpensive ? "bg-red-600 hover:bg-red-700 text-white" : "border-[#1E2448] text-gray-300"}
+              className={showExpensive ? "bg-red-600 hover:bg-red-700 text-white" : "border-border text-foreground/70"}
               data-testid="button-filter-expensive"
             >
               <AlertTriangle className="w-3.5 h-3.5 mr-1" />
@@ -1992,7 +1992,7 @@ function CostTrackerPanel({ token }: { token: string }) {
               variant={view === "summary" ? "default" : "outline"}
               size="sm"
               onClick={() => setView("summary")}
-              className={view === "summary" ? "bg-blue-600 text-white" : "border-[#1E2448] text-gray-300"}
+              className={view === "summary" ? "bg-blue-600 text-white" : "border-border text-foreground/70"}
               data-testid="button-view-summary"
             >
               {t("adminPage.costs.summary")}
@@ -2001,7 +2001,7 @@ function CostTrackerPanel({ token }: { token: string }) {
               variant={view === "detailed" ? "default" : "outline"}
               size="sm"
               onClick={() => setView("detailed")}
-              className={view === "detailed" ? "bg-violet-600 text-white" : "border-[#1E2448] text-gray-300"}
+              className={view === "detailed" ? "bg-violet-600 text-foreground" : "border-border text-foreground/70"}
               data-testid="button-view-detailed"
             >
               {t("adminPage.costs.detailed")}
@@ -2015,21 +2015,21 @@ function CostTrackerPanel({ token }: { token: string }) {
           {view === "summary" ? (
             <div className="space-y-2">
               {summary.length === 0 && (
-                <p className="text-gray-500 text-sm text-center py-8">{t("adminPage.costs.noData")}</p>
+                <p className="text-muted-foreground/70 text-sm text-center py-8">{t("adminPage.costs.noData")}</p>
               )}
               {summary.map((row, i) => (
-                <div key={i} className="flex items-center justify-between p-3 bg-[#111633] rounded-lg border border-[#1E2448]" data-testid={`cost-summary-row-${i}`}>
+                <div key={i} className="flex items-center justify-between p-3 bg-card rounded-lg border border-border" data-testid={`cost-summary-row-${i}`}>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-white">{row.user_name}</span>
-                      <span className="text-xs text-gray-500">{row.user_email}</span>
+                      <span className="text-sm font-medium text-foreground">{row.user_name}</span>
+                      <span className="text-xs text-muted-foreground/70">{row.user_email}</span>
                     </div>
                     <div className="flex items-center gap-3 mt-1">
-                      <Badge variant="outline" className="border-[#1E2448] text-gray-400 text-xs">
+                      <Badge variant="outline" className="border-border text-muted-foreground text-xs">
                         {agentLabel(row.agent_type)}
                       </Badge>
-                      <span className="text-xs text-gray-500">{row.request_count} requests</span>
-                      <span className="text-xs text-gray-500">{row.total_tokens.toLocaleString()} tokens</span>
+                      <span className="text-xs text-muted-foreground/70">{row.request_count} requests</span>
+                      <span className="text-xs text-muted-foreground/70">{row.total_tokens.toLocaleString()} tokens</span>
                     </div>
                   </div>
                   <div className="text-right">
@@ -2043,16 +2043,16 @@ function CostTrackerPanel({ token }: { token: string }) {
           ) : (
             <div className="space-y-2 max-h-[500px] overflow-y-auto">
               {detailed.length === 0 && (
-                <p className="text-gray-500 text-sm text-center py-8">
+                <p className="text-muted-foreground/70 text-sm text-center py-8">
                   {showExpensive ? t("adminPage.tokenOpt.noExpensiveRequests") : t("adminPage.tokenOpt.noTokenData")}
                 </p>
               )}
               {detailed.map((row) => (
-                <div key={row.id} className="flex items-center justify-between p-3 bg-[#111633] rounded-lg border border-[#1E2448]" data-testid={`cost-detail-row-${row.id}`}>
+                <div key={row.id} className="flex items-center justify-between p-3 bg-card rounded-lg border border-border" data-testid={`cost-detail-row-${row.id}`}>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm text-white">{row.user_name}</span>
-                      <Badge variant="outline" className="border-[#1E2448] text-gray-400 text-xs">
+                      <span className="text-sm text-foreground">{row.user_name}</span>
+                      <Badge variant="outline" className="border-border text-muted-foreground text-xs">
                         {agentLabel(row.agent_type)}
                       </Badge>
                       <Badge variant="outline" className={`text-xs ${row.operation_type === "tool_call" ? "border-violet-800 text-violet-400" : "border-blue-800 text-blue-400"}`}>
@@ -2060,10 +2060,10 @@ function CostTrackerPanel({ token }: { token: string }) {
                       </Badge>
                     </div>
                     <div className="flex items-center gap-3 mt-1">
-                      <span className="text-xs text-gray-500">{row.model}</span>
-                      <span className="text-xs text-gray-500">{t("adminPage.spend.in")}: {row.prompt_tokens.toLocaleString()}</span>
-                      <span className="text-xs text-gray-500">{t("adminPage.spend.out")}: {row.completion_tokens.toLocaleString()}</span>
-                      <span className="text-xs text-gray-500">{new Date(row.created_at).toLocaleString()}</span>
+                      <span className="text-xs text-muted-foreground/70">{row.model}</span>
+                      <span className="text-xs text-muted-foreground/70">{t("adminPage.spend.in")}: {row.prompt_tokens.toLocaleString()}</span>
+                      <span className="text-xs text-muted-foreground/70">{t("adminPage.spend.out")}: {row.completion_tokens.toLocaleString()}</span>
+                      <span className="text-xs text-muted-foreground/70">{new Date(row.created_at).toLocaleString()}</span>
                     </div>
                   </div>
                   <span className={`text-sm font-bold ${parseFloat(row.cost_usd) >= 0.01 ? "text-red-400" : "text-emerald-400"}`}>
@@ -2252,14 +2252,14 @@ function CollaborationPanel({ token }: { token: string }) {
 
   const formatCollabText = (text: string) => {
     return text.split("\n").map((line, i) => {
-      if (line.startsWith("# ")) return <h2 key={i} className="text-xl font-bold text-white mt-4 mb-2">{line.slice(2)}</h2>;
-      if (line.startsWith("## ")) return <h3 key={i} className="text-lg font-semibold text-white mt-3 mb-1">{line.slice(3)}</h3>;
+      if (line.startsWith("# ")) return <h2 key={i} className="text-xl font-bold text-foreground mt-4 mb-2">{line.slice(2)}</h2>;
+      if (line.startsWith("## ")) return <h3 key={i} className="text-lg font-semibold text-foreground mt-3 mb-1">{line.slice(3)}</h3>;
       if (line.startsWith("### ")) return <h4 key={i} className="text-md font-semibold text-gray-200 mt-2 mb-1">{line.slice(4)}</h4>;
-      if (line.startsWith("- ") || line.startsWith("• ")) return <li key={i} className="text-gray-300 ml-4 list-disc">{line.slice(2)}</li>;
-      if (line.match(/^\d+\.\s/)) return <li key={i} className="text-gray-300 ml-4 list-decimal">{line.replace(/^\d+\.\s/, "")}</li>;
+      if (line.startsWith("- ") || line.startsWith("• ")) return <li key={i} className="text-foreground/70 ml-4 list-disc">{line.slice(2)}</li>;
+      if (line.match(/^\d+\.\s/)) return <li key={i} className="text-foreground/70 ml-4 list-decimal">{line.replace(/^\d+\.\s/, "")}</li>;
       if (line.trim() === "") return <br key={i} />;
-      const formatted = line.replace(/\*\*(.*?)\*\*/g, '<strong class="text-white">$1</strong>');
-      return <p key={i} className="text-gray-300" dangerouslySetInnerHTML={{ __html: formatted }} />;
+      const formatted = line.replace(/\*\*(.*?)\*\*/g, '<strong class="text-foreground">$1</strong>');
+      return <p key={i} className="text-foreground/70" dangerouslySetInnerHTML={{ __html: formatted }} />;
     });
   };
 
@@ -2268,7 +2268,7 @@ function CollaborationPanel({ token }: { token: string }) {
       <Card className="bg-gradient-to-r from-indigo-900/50 to-purple-900/50 border-indigo-500/30">
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle className="text-xl text-white flex items-center gap-2">
+            <CardTitle className="text-xl text-foreground flex items-center gap-2">
               <Brain className="w-6 h-6 text-indigo-400" />
               {t("adminPage.collaboration.title")}
             </CardTitle>
@@ -2276,20 +2276,20 @@ function CollaborationPanel({ token }: { token: string }) {
               variant="outline"
               size="sm"
               onClick={() => setShowHistory(!showHistory)}
-              className={`border-[#1E2448] ${showHistory ? "bg-indigo-600 text-white" : "text-gray-300"}`}
+              className={`border-border ${showHistory ? "bg-indigo-600 text-foreground" : "text-foreground/70"}`}
               data-testid="button-collab-history"
             >
               <History className="w-3.5 h-3.5 mr-1" />
               {t("adminPage.collaboration.history")} ({sessions.length})
             </Button>
           </div>
-          <CardDescription className="text-gray-300">
+          <CardDescription className="text-foreground/70">
             {t("adminPage.collaboration.description")}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <label className="text-sm text-gray-400 mb-2 block">{t("adminPage.collaboration.selectAgents")}</label>
+            <label className="text-sm text-muted-foreground mb-2 block">{t("adminPage.collaboration.selectAgents")}</label>
             <div className="flex flex-wrap gap-2">
               {AGENTS_DATA.map(agent => (
                 <button
@@ -2298,7 +2298,7 @@ function CollaborationPanel({ token }: { token: string }) {
                   className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
                     selectedAgents.includes(agent.slug)
                       ? `bg-gradient-to-r ${agentColors[agent.slug]} text-white shadow-lg`
-                      : "bg-[#1E2448] text-gray-400 hover:text-gray-200"
+                      : "bg-muted text-muted-foreground hover:text-gray-200"
                   }`}
                   data-testid={`toggle-agent-${agent.slug}`}
                 >
@@ -2307,7 +2307,7 @@ function CollaborationPanel({ token }: { token: string }) {
               ))}
               <button
                 onClick={() => setSelectedAgents(selectedAgents.length === AGENTS_DATA.length ? [] : AGENTS_DATA.map(a => a.slug))}
-                className="px-3 py-1.5 rounded-full text-sm font-medium bg-[#0A0E27] text-gray-400 hover:text-white border border-[#1E2448]"
+                className="px-3 py-1.5 rounded-full text-sm font-medium bg-background text-muted-foreground hover:text-foreground border border-border"
                 data-testid="toggle-all-agents"
               >
                 {selectedAgents.length === AGENTS_DATA.length ? t("adminPage.collaboration.deselectAll") : t("adminPage.collaboration.selectAll")}
@@ -2315,9 +2315,9 @@ function CollaborationPanel({ token }: { token: string }) {
             </div>
           </div>
           <div className="flex items-center gap-2 mb-2">
-            <label className="text-sm text-gray-400">{t("adminPage.collaboration.aiProvider")}:</label>
+            <label className="text-sm text-muted-foreground">{t("adminPage.collaboration.aiProvider")}:</label>
             <Select value={collabProvider} onValueChange={setCollabProvider}>
-              <SelectTrigger className="w-[200px] bg-[#0A0E27] border-[#1E2448] text-white text-xs h-8" data-testid="select-collab-provider">
+              <SelectTrigger className="w-[200px] bg-background border-border text-foreground text-xs h-8" data-testid="select-collab-provider">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -2334,7 +2334,7 @@ function CollaborationPanel({ token }: { token: string }) {
               value={topic}
               onChange={(e) => setTopic(e.target.value)}
               placeholder={t("adminPage.collaboration.topicPlaceholder")}
-              className="bg-[#0A0E27] border-[#1E2448] text-white flex-1"
+              className="bg-background border-border text-foreground flex-1"
               onKeyDown={(e) => e.key === "Enter" && !loading && startBrainstorm()}
               disabled={loading}
               data-testid="input-collaboration-topic"
@@ -2356,7 +2356,7 @@ function CollaborationPanel({ token }: { token: string }) {
                 <Loader2 className="w-4 h-4 animate-spin" />
                 {selectedAgents.length} agents are analyzing the topic...
               </div>
-              <div className="w-full bg-[#0A0E27] rounded-full h-2">
+              <div className="w-full bg-background rounded-full h-2">
                 <div
                   className="bg-gradient-to-r from-indigo-500 to-purple-500 h-2 rounded-full transition-all duration-500"
                   style={{ width: `${progress}%` }}
@@ -2368,28 +2368,28 @@ function CollaborationPanel({ token }: { token: string }) {
       </Card>
 
       {showHistory && (
-        <Card className="bg-[#0A0E27] border-[#1E2448]">
+        <Card className="bg-background border-border">
           <CardHeader>
-            <CardTitle className="text-lg text-white flex items-center gap-2">
+            <CardTitle className="text-lg text-foreground flex items-center gap-2">
               <History className="w-5 h-5 text-indigo-400" />
               {t("adminPage.collaboration.pastSessions")}
             </CardTitle>
           </CardHeader>
           <CardContent>
             {sessions.length === 0 ? (
-              <p className="text-gray-500 text-center py-6">{t("adminPage.collaboration.noSessions")}</p>
+              <p className="text-muted-foreground/70 text-center py-6">{t("adminPage.collaboration.noSessions")}</p>
             ) : (
               <div className="space-y-2 max-h-80 overflow-y-auto">
                 {sessions.map(session => (
                   <div
                     key={session.id}
-                    className="flex items-center justify-between p-3 bg-[#131740] rounded-lg hover:bg-[#1a1f50] cursor-pointer transition-colors"
+                    className="flex items-center justify-between p-3 bg-accent rounded-lg hover:bg-muted/80 cursor-pointer transition-colors"
                     onClick={() => loadSession(session)}
                     data-testid={`collab-session-${session.id}`}
                   >
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm text-white font-medium truncate">{session.topic}</p>
-                      <div className="flex items-center gap-3 mt-1 text-xs text-gray-400">
+                      <p className="text-sm text-foreground font-medium truncate">{session.topic}</p>
+                      <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
                         <span>{session.agentCount} agents</span>
                         <span>${parseFloat(session.totalCost).toFixed(4)}</span>
                         <span>{new Date(session.createdAt).toLocaleDateString()}</span>
@@ -2398,7 +2398,7 @@ function CollaborationPanel({ token }: { token: string }) {
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-7 w-7 p-0 text-gray-500 hover:text-red-400 shrink-0"
+                      className="h-7 w-7 p-0 text-muted-foreground/70 hover:text-red-400 shrink-0"
                       onClick={(e) => { e.stopPropagation(); deleteSession(session.id); }}
                       data-testid={`collab-session-delete-${session.id}`}
                     >
@@ -2417,7 +2417,7 @@ function CollaborationPanel({ token }: { token: string }) {
           <Card className="bg-gradient-to-r from-amber-900/30 to-orange-900/30 border-amber-500/30">
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle className="text-lg text-white flex items-center gap-2">
+                <CardTitle className="text-lg text-foreground flex items-center gap-2">
                   <Crown className="w-5 h-5 text-amber-400" />
                   {t("adminPage.bossAi.unifiedSynthesis")}
                 </CardTitle>
@@ -2433,7 +2433,7 @@ function CollaborationPanel({ token }: { token: string }) {
                   </Badge>
                 </div>
               </div>
-              <CardDescription className="text-gray-400 mt-1">
+              <CardDescription className="text-muted-foreground mt-1">
                 Topic: "{result.topic}"
               </CardDescription>
             </CardHeader>
@@ -2448,24 +2448,24 @@ function CollaborationPanel({ token }: { token: string }) {
             {result.agentResponses.map((agent) => (
               <Card
                 key={agent.slug}
-                className={`bg-[#0A0E27] border-[#1E2448] ${agent.error ? "opacity-60" : ""}`}
+                className={`bg-background border-border ${agent.error ? "opacity-60" : ""}`}
                 data-testid={`card-agent-response-${agent.slug}`}
               >
                 <CardHeader className="pb-2">
                   <div className="flex items-center justify-between">
-                    <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
+                    <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
                       <span className={`w-8 h-8 rounded-full bg-gradient-to-r ${agentColors[agent.slug]} flex items-center justify-center text-lg`}>
                         {agentIcons[agent.slug]}
                       </span>
                       {(() => { const a = AGENTS_DATA.find(x => x.slug === agent.slug); return a ? `${a.persona} — ${t("adminPage.agents." + a.roleKey)}` : agent.name; })()}
                     </CardTitle>
                     {!agent.error && (
-                      <Badge className="bg-[#1E2448] text-gray-400 text-xs">
+                      <Badge className="bg-muted text-muted-foreground text-xs">
                         ${agent.cost.toFixed(4)}
                       </Badge>
                     )}
                   </div>
-                  <p className="text-xs text-gray-500 mt-1">{agent.perspective}</p>
+                  <p className="text-xs text-muted-foreground/70 mt-1">{agent.perspective}</p>
                 </CardHeader>
                 <CardContent>
                   <div className="text-sm max-h-60 overflow-y-auto" data-testid={`text-agent-perspective-${agent.slug}`}>
@@ -2592,7 +2592,7 @@ function SpendAnalysisPanel({ token }: { token: string }) {
 
   if (loading && !data) {
     return (
-      <div className="flex items-center justify-center py-20 text-gray-400">
+      <div className="flex items-center justify-center py-20 text-muted-foreground">
         <Loader2 className="w-6 h-6 animate-spin mr-2" /> {t("adminPage.spend.loading")}
       </div>
     );
@@ -2606,76 +2606,76 @@ function SpendAnalysisPanel({ token }: { token: string }) {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="bg-[#0A0E27] border-[#1E2448]">
+        <Card className="bg-background border-border">
           <CardContent className="p-4">
-            <p className="text-xs text-gray-400">{t("adminPage.spend.totalSpend")}</p>
+            <p className="text-xs text-muted-foreground">{t("adminPage.spend.totalSpend")}</p>
             <p className="text-2xl font-bold text-red-400" data-testid="text-spend-total">${totalCost.toFixed(4)}</p>
-            <p className="text-xs text-gray-500 mt-1">{data.overall.total_requests} requests</p>
+            <p className="text-xs text-muted-foreground/70 mt-1">{data.overall.total_requests} requests</p>
           </CardContent>
         </Card>
-        <Card className="bg-[#0A0E27] border-[#1E2448]">
+        <Card className="bg-background border-border">
           <CardContent className="p-4">
-            <p className="text-xs text-gray-400">{t("adminPage.spend.totalTokens")}</p>
+            <p className="text-xs text-muted-foreground">{t("adminPage.spend.totalTokens")}</p>
             <p className="text-2xl font-bold text-violet-400" data-testid="text-spend-tokens">{parseInt(data.overall.total_tokens).toLocaleString()}</p>
-            <p className="text-xs text-gray-500 mt-1">{t("adminPage.spend.prompt")}: {parseInt(data.overall.total_prompt_tokens).toLocaleString()}</p>
+            <p className="text-xs text-muted-foreground/70 mt-1">{t("adminPage.spend.prompt")}: {parseInt(data.overall.total_prompt_tokens).toLocaleString()}</p>
           </CardContent>
         </Card>
-        <Card className="bg-[#0A0E27] border-[#1E2448]">
+        <Card className="bg-background border-border">
           <CardContent className="p-4">
-            <p className="text-xs text-gray-400">{t("adminPage.spend.avgCostRequest")}</p>
+            <p className="text-xs text-muted-foreground">{t("adminPage.spend.avgCostRequest")}</p>
             <p className="text-2xl font-bold text-blue-400" data-testid="text-spend-avg">${parseFloat(data.overall.avg_cost_per_request).toFixed(4)}</p>
-            <p className="text-xs text-gray-500 mt-1">{data.overall.unique_users} users</p>
+            <p className="text-xs text-muted-foreground/70 mt-1">{data.overall.unique_users} users</p>
           </CardContent>
         </Card>
-        <Card className="bg-[#0A0E27] border-[#1E2448]">
+        <Card className="bg-background border-border">
           <CardContent className="p-4">
-            <p className="text-xs text-gray-400">{t("adminPage.spend.collaborationCost")}</p>
+            <p className="text-xs text-muted-foreground">{t("adminPage.spend.collaborationCost")}</p>
             <p className="text-2xl font-bold text-indigo-400" data-testid="text-spend-collab">${collabCost.toFixed(4)}</p>
-            <p className="text-xs text-gray-500 mt-1">{data.collaboration.total_requests} sessions</p>
+            <p className="text-xs text-muted-foreground/70 mt-1">{data.collaboration.total_requests} sessions</p>
           </CardContent>
         </Card>
       </div>
 
-      <Card className="bg-[#0A0E27] border-[#1E2448]">
+      <Card className="bg-background border-border">
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle className="text-lg text-white flex items-center gap-2">
+            <CardTitle className="text-lg text-foreground flex items-center gap-2">
               <BarChart3 className="w-5 h-5 text-emerald-400" />
               {t("adminPage.spend.perAgentBreakdown")}
             </CardTitle>
-            <Button size="sm" variant="outline" onClick={fetchData} className="border-[#1E2448] text-gray-300" data-testid="button-refresh-spend">
+            <Button size="sm" variant="outline" onClick={fetchData} className="border-border text-foreground/70" data-testid="button-refresh-spend">
               <RefreshCw className="w-3.5 h-3.5 mr-1" /> {t("adminPage.common.refresh")}
             </Button>
           </div>
         </CardHeader>
         <CardContent className="space-y-3">
           {data.perAgent.length === 0 ? (
-            <p className="text-gray-500 text-center py-8">{t("adminPage.spend.noUsageData")}</p>
+            <p className="text-muted-foreground/70 text-center py-8">{t("adminPage.spend.noUsageData")}</p>
           ) : (
             data.perAgent.map((agent) => {
               const cost = parseFloat(agent.total_cost);
               const pct = maxAgentCost > 0 ? (cost / maxAgentCost) * 100 : 0;
               const costPctOfTotal = totalCost > 0 ? ((cost / totalCost) * 100).toFixed(1) : "0";
               return (
-                <div key={agent.agent_type} className="bg-[#131740] rounded-lg p-3" data-testid={`spend-agent-${agent.agent_type}`}>
+                <div key={agent.agent_type} className="bg-accent rounded-lg p-3" data-testid={`spend-agent-${agent.agent_type}`}>
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-white">{agentLabel(agent.agent_type)}</span>
-                      <Badge className="bg-[#1E2448] text-gray-400 text-xs">{costPctOfTotal}%</Badge>
+                      <span className="text-sm font-medium text-foreground">{agentLabel(agent.agent_type)}</span>
+                      <Badge className="bg-muted text-muted-foreground text-xs">{costPctOfTotal}%</Badge>
                     </div>
-                    <div className="flex items-center gap-3 text-xs text-gray-400">
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
                       <span>{agent.total_requests} reqs</span>
                       <span>{parseInt(agent.total_tokens).toLocaleString()} tokens</span>
                       <span className="text-red-400 font-semibold">${cost.toFixed(4)}</span>
                     </div>
                   </div>
-                  <div className="w-full bg-[#0A0E27] rounded-full h-2">
+                  <div className="w-full bg-background rounded-full h-2">
                     <div
                       className="bg-gradient-to-r from-emerald-500 to-emerald-600 h-2 rounded-full transition-all"
                       style={{ width: `${pct}%` }}
                     />
                   </div>
-                  <div className="flex items-center justify-between mt-1 text-xs text-gray-500">
+                  <div className="flex items-center justify-between mt-1 text-xs text-muted-foreground/70">
                     <span>{t("adminPage.spend.avg")}: ${parseFloat(agent.avg_cost_per_request).toFixed(4)}/{t("adminPage.spend.req")}</span>
                     <span>{t("adminPage.spend.max")}: ${parseFloat(agent.max_single_cost).toFixed(4)}</span>
                     <span>{agent.unique_users} users</span>
@@ -2688,17 +2688,17 @@ function SpendAnalysisPanel({ token }: { token: string }) {
       </Card>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card className="bg-[#0A0E27] border-[#1E2448]">
+        <Card className="bg-background border-border">
           <CardHeader>
-            <CardTitle className="text-md text-white flex items-center gap-2">
+            <CardTitle className="text-md text-foreground flex items-center gap-2">
               <Cpu className="w-4 h-4 text-cyan-400" /> {t("adminPage.spend.costByModel")}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             {data.byModel.map((m) => (
-              <div key={m.model} className="flex items-center justify-between p-2 bg-[#131740] rounded" data-testid={`spend-model-${m.model}`}>
-                <span className="text-sm text-white font-mono">{m.model}</span>
-                <div className="flex items-center gap-3 text-xs text-gray-400">
+              <div key={m.model} className="flex items-center justify-between p-2 bg-accent rounded" data-testid={`spend-model-${m.model}`}>
+                <span className="text-sm text-foreground font-mono">{m.model}</span>
+                <div className="flex items-center gap-3 text-xs text-muted-foreground">
                   <span>{m.total_requests} reqs</span>
                   <span className="text-red-400 font-semibold">${parseFloat(m.total_cost).toFixed(4)}</span>
                 </div>
@@ -2707,17 +2707,17 @@ function SpendAnalysisPanel({ token }: { token: string }) {
           </CardContent>
         </Card>
 
-        <Card className="bg-[#0A0E27] border-[#1E2448]">
+        <Card className="bg-background border-border">
           <CardHeader>
-            <CardTitle className="text-md text-white flex items-center gap-2">
+            <CardTitle className="text-md text-foreground flex items-center gap-2">
               <Activity className="w-4 h-4 text-yellow-400" /> {t("adminPage.spend.costByOperation")}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             {data.byOperation.map((op) => (
-              <div key={op.operation_type} className="flex items-center justify-between p-2 bg-[#131740] rounded" data-testid={`spend-op-${op.operation_type}`}>
-                <span className="text-sm text-white capitalize">{op.operation_type}</span>
-                <div className="flex items-center gap-3 text-xs text-gray-400">
+              <div key={op.operation_type} className="flex items-center justify-between p-2 bg-accent rounded" data-testid={`spend-op-${op.operation_type}`}>
+                <span className="text-sm text-foreground capitalize">{op.operation_type}</span>
+                <div className="flex items-center gap-3 text-xs text-muted-foreground">
                   <span>{op.total_requests} reqs</span>
                   <span className="text-red-400 font-semibold">${parseFloat(op.total_cost).toFixed(4)}</span>
                 </div>
@@ -2727,15 +2727,15 @@ function SpendAnalysisPanel({ token }: { token: string }) {
         </Card>
       </div>
 
-      <Card className="bg-[#0A0E27] border-[#1E2448]">
+      <Card className="bg-background border-border">
         <CardHeader>
-          <CardTitle className="text-md text-white flex items-center gap-2">
+          <CardTitle className="text-md text-foreground flex items-center gap-2">
             <Clock className="w-4 h-4 text-blue-400" /> {t("adminPage.spend.dailyTrend")}
           </CardTitle>
         </CardHeader>
         <CardContent>
           {data.dailyTrend.length === 0 ? (
-            <p className="text-gray-500 text-center py-4">{t("adminPage.spend.noDailyData")}</p>
+            <p className="text-muted-foreground/70 text-center py-4">{t("adminPage.spend.noDailyData")}</p>
           ) : (
             <div className="space-y-1">
               {data.dailyTrend.slice(0, 14).map((day) => {
@@ -2744,16 +2744,16 @@ function SpendAnalysisPanel({ token }: { token: string }) {
                 const barWidth = maxDayCost > 0 ? (dayCost / maxDayCost) * 100 : 0;
                 return (
                   <div key={day.day} className="flex items-center gap-3" data-testid={`spend-day-${day.day}`}>
-                    <span className="text-xs text-gray-400 w-24 shrink-0">{day.day}</span>
-                    <div className="flex-1 bg-[#131740] rounded-full h-4 relative">
+                    <span className="text-xs text-muted-foreground w-24 shrink-0">{day.day}</span>
+                    <div className="flex-1 bg-accent rounded-full h-4 relative">
                       <div
                         className="bg-gradient-to-r from-blue-500 to-blue-600 h-4 rounded-full transition-all flex items-center justify-end pr-2"
                         style={{ width: `${Math.max(barWidth, 5)}%` }}
                       >
-                        <span className="text-[10px] text-white font-medium">${dayCost.toFixed(4)}</span>
+                        <span className="text-[10px] text-foreground font-medium">${dayCost.toFixed(4)}</span>
                       </div>
                     </div>
-                    <span className="text-xs text-gray-500 w-16 text-right">{day.requests} reqs</span>
+                    <span className="text-xs text-muted-foreground/70 w-16 text-right">{day.requests} reqs</span>
                   </div>
                 );
               })}
@@ -2765,7 +2765,7 @@ function SpendAnalysisPanel({ token }: { token: string }) {
       {data.byProvider && data.byProvider.length > 0 && (
         <Card className="bg-gradient-to-r from-violet-900/20 to-blue-900/20 border-violet-500/30">
           <CardHeader>
-            <CardTitle className="text-lg text-white flex items-center gap-2">
+            <CardTitle className="text-lg text-foreground flex items-center gap-2">
               <ArrowLeftRight className="w-5 h-5 text-violet-400" />
               {t("adminPage.spend.providerComparison")}
             </CardTitle>
@@ -2789,26 +2789,26 @@ function SpendAnalysisPanel({ token }: { token: string }) {
                         <Badge className={`text-xs ${providerStyle.badge}`}>
                           {providerStyle.label}
                         </Badge>
-                        <span className="text-xs text-gray-400">{provPct}% of total</span>
+                        <span className="text-xs text-muted-foreground">{provPct}% of total</span>
                       </div>
                       <span className={`text-lg font-bold ${providerStyle.text}`}>${provCost.toFixed(4)}</span>
                     </div>
                     <div className="grid grid-cols-2 gap-2 text-xs">
                       <div className="bg-black/20 rounded p-2">
-                        <p className="text-gray-500">{t("adminPage.spend.requests")}</p>
-                        <p className="text-white font-semibold">{p.total_requests.toLocaleString()}</p>
+                        <p className="text-muted-foreground/70">{t("adminPage.spend.requests")}</p>
+                        <p className="text-foreground font-semibold">{p.total_requests.toLocaleString()}</p>
                       </div>
                       <div className="bg-black/20 rounded p-2">
-                        <p className="text-gray-500">{t("adminPage.spend.tokens")}</p>
-                        <p className="text-white font-semibold">{parseInt(p.total_tokens).toLocaleString()}</p>
+                        <p className="text-muted-foreground/70">{t("adminPage.spend.tokens")}</p>
+                        <p className="text-foreground font-semibold">{parseInt(p.total_tokens).toLocaleString()}</p>
                       </div>
                       <div className="bg-black/20 rounded p-2">
-                        <p className="text-gray-500">{t("adminPage.spend.avgRequest")}</p>
-                        <p className="text-white font-semibold">${parseFloat(p.avg_cost_per_request).toFixed(4)}</p>
+                        <p className="text-muted-foreground/70">{t("adminPage.spend.avgRequest")}</p>
+                        <p className="text-foreground font-semibold">${parseFloat(p.avg_cost_per_request).toFixed(4)}</p>
                       </div>
                       <div className="bg-black/20 rounded p-2">
-                        <p className="text-gray-500">{t("adminPage.spend.users")}</p>
-                        <p className="text-white font-semibold">{p.unique_users}</p>
+                        <p className="text-muted-foreground/70">{t("adminPage.spend.users")}</p>
+                        <p className="text-foreground font-semibold">{p.unique_users}</p>
                       </div>
                     </div>
                   </div>
@@ -2818,12 +2818,12 @@ function SpendAnalysisPanel({ token }: { token: string }) {
 
             {data.providerByAgent && data.providerByAgent.length > 0 && (
               <div className="mt-4">
-                <h4 className="text-sm font-medium text-gray-300 mb-3">{t("adminPage.spend.providerAgentDetail")}</h4>
+                <h4 className="text-sm font-medium text-foreground/70 mb-3">{t("adminPage.spend.providerAgentDetail")}</h4>
                 <div className="overflow-x-auto">
                   <table className="w-full text-xs">
                     <thead>
-                      <tr className="border-b border-[#1E2448]">
-                        <th className="text-left text-gray-400 pb-2 pr-4">{t("adminPage.spend.agentHeader")}</th>
+                      <tr className="border-b border-border">
+                        <th className="text-left text-muted-foreground pb-2 pr-4">{t("adminPage.spend.agentHeader")}</th>
                         <th className="text-center text-green-400 pb-2 px-2">{t("adminPage.spend.openaiCost")}</th>
                         <th className="text-center text-green-400 pb-2 px-2">{t("adminPage.spend.openaiReqs")}</th>
                         <th className="text-center text-violet-400 pb-2 px-2">{t("adminPage.spend.anthropicCost")}</th>
@@ -2844,13 +2844,13 @@ function SpendAnalysisPanel({ token }: { token: string }) {
                           const diff = antCost - oaiCost;
                           const diffPct = oaiCost > 0 ? ((diff / oaiCost) * 100).toFixed(0) : "N/A";
                           return (
-                            <tr key={agentType} className="border-b border-[#1E2448]/50" data-testid={`provider-agent-row-${agentType}`}>
-                              <td className="py-2 pr-4 text-white font-medium">{agentLabel(agentType)}</td>
+                            <tr key={agentType} className="border-b border-border/50" data-testid={`provider-agent-row-${agentType}`}>
+                              <td className="py-2 pr-4 text-foreground font-medium">{agentLabel(agentType)}</td>
                               <td className="py-2 px-2 text-center text-green-300">${oaiCost.toFixed(4)}</td>
-                              <td className="py-2 px-2 text-center text-gray-400">{providers.openai?.total_requests || 0}</td>
+                              <td className="py-2 px-2 text-center text-muted-foreground">{providers.openai?.total_requests || 0}</td>
                               <td className="py-2 px-2 text-center text-violet-300">${antCost.toFixed(4)}</td>
-                              <td className="py-2 px-2 text-center text-gray-400">{providers.anthropic?.total_requests || 0}</td>
-                              <td className={`py-2 px-2 text-center font-semibold ${diff > 0 ? "text-red-400" : diff < 0 ? "text-green-400" : "text-gray-400"}`}>
+                              <td className="py-2 px-2 text-center text-muted-foreground">{providers.anthropic?.total_requests || 0}</td>
+                              <td className={`py-2 px-2 text-center font-semibold ${diff > 0 ? "text-red-400" : diff < 0 ? "text-green-400" : "text-muted-foreground"}`}>
                                 {diff !== 0 ? `${diff > 0 ? "+" : ""}${diffPct}%` : "-"}
                               </td>
                             </tr>
@@ -3057,12 +3057,12 @@ function BossAIPanel({ token }: { token: string }) {
   const activeConv = conversations.find(c => c.id === activeConvId);
 
   return (
-    <Card className="bg-[#111633] border-[#1E2448]">
+    <Card className="bg-card border-border">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-white flex items-center gap-2">
+          <CardTitle className="text-foreground flex items-center gap-2">
             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center">
-              <Crown className="w-4 h-4 text-white" />
+              <Crown className="w-4 h-4 text-foreground" />
             </div>
             {t("adminPage.bossAi.platformCommander")}
             {savingConv && <Loader2 className="w-3 h-3 animate-spin text-amber-400 ml-2" />}
@@ -3072,7 +3072,7 @@ function BossAIPanel({ token }: { token: string }) {
               variant="outline"
               size="sm"
               onClick={() => setShowHistory(!showHistory)}
-              className="border-[#1E2448] text-gray-400 hover:text-white hover:border-amber-500/50"
+              className="border-border text-muted-foreground hover:text-foreground hover:border-amber-500/50"
               data-testid="boss-history-toggle"
             >
               <History className="w-3.5 h-3.5 mr-1" />
@@ -3082,7 +3082,7 @@ function BossAIPanel({ token }: { token: string }) {
               variant="outline"
               size="sm"
               onClick={startNewConversation}
-              className="border-[#1E2448] text-gray-400 hover:text-white hover:border-green-500/50"
+              className="border-border text-muted-foreground hover:text-foreground hover:border-green-500/50"
               data-testid="boss-new-conversation"
             >
               <Plus className="w-3.5 h-3.5 mr-1" />
@@ -3090,12 +3090,12 @@ function BossAIPanel({ token }: { token: string }) {
             </Button>
           </div>
         </div>
-        <CardDescription className="text-gray-400">
+        <CardDescription className="text-muted-foreground">
           {activeConv
             ? <span className="flex items-center gap-1.5">
                 <MessageSquare className="w-3 h-3" />
                 {activeConv.topic}
-                <span className="text-gray-500 text-xs">({activeConv.messageCount} {t("adminPage.bossAi.messages")})</span>
+                <span className="text-muted-foreground/70 text-xs">({activeConv.messageCount} {t("adminPage.bossAi.messages")})</span>
               </span>
             : t("adminPage.bossAi.description")
           }
@@ -3104,13 +3104,13 @@ function BossAIPanel({ token }: { token: string }) {
       <CardContent className="p-0">
         {showHistory ? (
           <div className="h-[500px] flex flex-col">
-            <div className="px-4 py-2 border-b border-[#1E2448] flex items-center justify-between">
-              <span className="text-sm font-medium text-white">{t("adminPage.bossAi.conversationHistory")}</span>
+            <div className="px-4 py-2 border-b border-border flex items-center justify-between">
+              <span className="text-sm font-medium text-foreground">{t("adminPage.bossAi.conversationHistory")}</span>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setShowHistory(false)}
-                className="text-gray-400 hover:text-white h-7"
+                className="text-muted-foreground hover:text-foreground h-7"
               >
                 <ChevronLeft className="w-3.5 h-3.5 mr-1" />
                 {t("adminPage.bossAi.backToChat")}
@@ -3120,7 +3120,7 @@ function BossAIPanel({ token }: { token: string }) {
               {conversations.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-center space-y-3">
                   <History className="w-10 h-10 text-gray-600" />
-                  <p className="text-gray-500 text-sm">{t("adminPage.bossAi.noConversations")}</p>
+                  <p className="text-muted-foreground/70 text-sm">{t("adminPage.bossAi.noConversations")}</p>
                   <p className="text-gray-600 text-xs">{t("adminPage.bossAi.startChatting")}</p>
                 </div>
               ) : (
@@ -3130,7 +3130,7 @@ function BossAIPanel({ token }: { token: string }) {
                     className={`group rounded-lg border p-3 cursor-pointer transition-all ${
                       activeConvId === conv.id
                         ? "bg-amber-500/10 border-amber-500/30"
-                        : "bg-[#0A0E27] border-[#1E2448] hover:border-[#2E3468]"
+                        : "bg-background border-border hover:border-border/80"
                     }`}
                     data-testid={`boss-conversation-${conv.id}`}
                   >
@@ -3142,19 +3142,19 @@ function BossAIPanel({ token }: { token: string }) {
                             onChange={(e) => setEditTopicValue(e.target.value)}
                             onBlur={() => updateTopic(conv.id, editTopicValue)}
                             onKeyDown={(e) => { if (e.key === "Enter") updateTopic(conv.id, editTopicValue); }}
-                            className="h-6 text-sm bg-[#0A0E27] border-amber-500/30 text-white px-1"
+                            className="h-6 text-sm bg-background border-amber-500/30 text-foreground px-1"
                             autoFocus
                             onClick={(e) => e.stopPropagation()}
                           />
                         ) : (
-                          <p className="text-sm font-medium text-white truncate">{conv.topic}</p>
+                          <p className="text-sm font-medium text-foreground truncate">{conv.topic}</p>
                         )}
                         <div className="flex items-center gap-2 mt-1">
-                          <span className="text-xs text-gray-500 flex items-center gap-1">
+                          <span className="text-xs text-muted-foreground/70 flex items-center gap-1">
                             <Clock className="w-2.5 h-2.5" />
                             {new Date(conv.updatedAt).toLocaleDateString("tr-TR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
                           </span>
-                          <span className="text-xs text-gray-500">{conv.messageCount} msg</span>
+                          <span className="text-xs text-muted-foreground/70">{conv.messageCount} msg</span>
                           {conv.toolsUsed && (
                             <Badge className="bg-violet-900/30 text-violet-400 border-violet-800 text-[10px] px-1 py-0">
                               <Database className="w-2 h-2 mr-0.5" /> data
@@ -3166,7 +3166,7 @@ function BossAIPanel({ token }: { token: string }) {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-6 w-6 p-0 text-gray-500 hover:text-amber-400"
+                          className="h-6 w-6 p-0 text-muted-foreground/70 hover:text-amber-400"
                           onClick={(e) => {
                             e.stopPropagation();
                             setEditingTopic(conv.id);
@@ -3179,7 +3179,7 @@ function BossAIPanel({ token }: { token: string }) {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-6 w-6 p-0 text-gray-500 hover:text-red-400"
+                          className="h-6 w-6 p-0 text-muted-foreground/70 hover:text-red-400"
                           onClick={(e) => { e.stopPropagation(); deleteConversation(conv.id); }}
                           data-testid={`boss-conv-delete-${conv.id}`}
                         >
@@ -3201,8 +3201,8 @@ function BossAIPanel({ token }: { token: string }) {
                     <Crown className="w-8 h-8 text-amber-400" />
                   </div>
                   <div>
-                    <p className="text-white font-medium text-lg">{t("adminPage.tabs.bossAi")}</p>
-                    <p className="text-gray-400 text-sm max-w-md mt-1">
+                    <p className="text-foreground font-medium text-lg">{t("adminPage.tabs.bossAi")}</p>
+                    <p className="text-muted-foreground text-sm max-w-md mt-1">
                       {t("adminPage.bossAi.welcomeMessage")}
                     </p>
                   </div>
@@ -3216,7 +3216,7 @@ function BossAIPanel({ token }: { token: string }) {
                       <button
                         key={i}
                         onClick={() => { setInput(q); }}
-                        className="text-left text-xs bg-[#0A0E27] hover:bg-[#1E2448] border border-[#1E2448] rounded-lg px-3 py-2 text-gray-400 hover:text-white transition-colors"
+                        className="text-left text-xs bg-background hover:bg-muted border border-border rounded-lg px-3 py-2 text-muted-foreground hover:text-foreground transition-colors"
                         data-testid={`boss-suggestion-${i}`}
                       >
                         {q}
@@ -3231,7 +3231,7 @@ function BossAIPanel({ token }: { token: string }) {
                   <div className={`max-w-[85%] rounded-xl px-4 py-3 ${
                     msg.role === "user"
                       ? "bg-blue-600 text-white"
-                      : "bg-[#0A0E27] border border-[#1E2448] text-gray-200"
+                      : "bg-background border border-border text-gray-200"
                   }`}>
                     {msg.role === "assistant" && (
                       <div className="flex items-center gap-1.5 mb-2">
@@ -3253,11 +3253,11 @@ function BossAIPanel({ token }: { token: string }) {
 
               {loading && (
                 <div className="flex justify-start">
-                  <div className="bg-[#0A0E27] border border-[#1E2448] rounded-xl px-4 py-3">
+                  <div className="bg-background border border-border rounded-xl px-4 py-3">
                     <div className="flex items-center gap-2">
                       <Crown className="w-3.5 h-3.5 text-amber-400" />
                       <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
-                      <span className="text-sm text-gray-400">{t("adminPage.bossAi.analyzing")}</span>
+                      <span className="text-sm text-muted-foreground">{t("adminPage.bossAi.analyzing")}</span>
                     </div>
                   </div>
                 </div>
@@ -3266,11 +3266,11 @@ function BossAIPanel({ token }: { token: string }) {
               <div ref={messagesEndRef} />
             </div>
 
-            <div className="border-t border-[#1E2448] px-4 py-3 space-y-2">
+            <div className="border-t border-border px-4 py-3 space-y-2">
               <div className="flex items-center gap-2">
-                <label className="text-xs text-gray-500">{t("adminPage.bossAi.provider")}:</label>
+                <label className="text-xs text-muted-foreground/70">{t("adminPage.bossAi.provider")}:</label>
                 <Select value={bossProvider} onValueChange={setBossProvider}>
-                  <SelectTrigger className="w-[160px] bg-[#0A0E27] border-[#1E2448] text-white text-xs h-7" data-testid="select-boss-provider">
+                  <SelectTrigger className="w-[160px] bg-background border-border text-foreground text-xs h-7" data-testid="select-boss-provider">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -3288,7 +3288,7 @@ function BossAIPanel({ token }: { token: string }) {
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
                   placeholder={t("adminPage.bossAi.askPlaceholder")}
-                  className="flex-1 bg-[#0A0E27] border-[#1E2448] text-white placeholder:text-gray-500"
+                  className="flex-1 bg-background border-border text-foreground placeholder:text-muted-foreground/70"
                   disabled={loading}
                   data-testid="boss-input"
                 />
@@ -3368,57 +3368,57 @@ function GuardrailsPanel({ token }: { token: string }) {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="bg-[#0D1129] border-[#1E2448]">
+        <Card className="bg-background/80 border-border">
           <CardContent className="pt-4 pb-4">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-red-500/20">
                 <Shield className="w-5 h-5 text-red-400" />
               </div>
               <div>
-                <p className="text-xs text-slate-400" data-testid="text-guardrail-today-label">{t("adminPage.guardrails.todaysBlocks")}</p>
-                <p className="text-2xl font-bold text-white" data-testid="text-guardrail-today-count">{todayCount}</p>
+                <p className="text-xs text-muted-foreground" data-testid="text-guardrail-today-label">{t("adminPage.guardrails.todaysBlocks")}</p>
+                <p className="text-2xl font-bold text-foreground" data-testid="text-guardrail-today-count">{todayCount}</p>
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card className="bg-[#0D1129] border-[#1E2448]">
+        <Card className="bg-background/80 border-border">
           <CardContent className="pt-4 pb-4">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-orange-500/20">
                 <AlertTriangle className="w-5 h-5 text-orange-400" />
               </div>
               <div>
-                <p className="text-xs text-slate-400" data-testid="text-guardrail-total-label">{t("adminPage.guardrails.totalBlocks")}</p>
-                <p className="text-2xl font-bold text-white" data-testid="text-guardrail-total-count">{logs.length}</p>
+                <p className="text-xs text-muted-foreground" data-testid="text-guardrail-total-label">{t("adminPage.guardrails.totalBlocks")}</p>
+                <p className="text-2xl font-bold text-foreground" data-testid="text-guardrail-total-count">{logs.length}</p>
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card className="bg-[#0D1129] border-[#1E2448]">
+        <Card className="bg-background/80 border-border">
           <CardContent className="pt-4 pb-4">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-cyan-500/20">
                 <Activity className="w-5 h-5 text-cyan-400" />
               </div>
               <div>
-                <p className="text-xs text-slate-400" data-testid="text-guardrail-toprule-label">{t("adminPage.guardrails.mostTriggered")}</p>
-                <p className="text-lg font-bold text-white" data-testid="text-guardrail-toprule">{topRule.replace("_", " ")}</p>
+                <p className="text-xs text-muted-foreground" data-testid="text-guardrail-toprule-label">{t("adminPage.guardrails.mostTriggered")}</p>
+                <p className="text-lg font-bold text-foreground" data-testid="text-guardrail-toprule">{topRule.replace("_", " ")}</p>
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      <Card className="bg-[#0D1129] border-[#1E2448]">
+      <Card className="bg-background/80 border-border">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between flex-wrap gap-3">
-            <CardTitle className="text-lg text-white flex items-center gap-2">
+            <CardTitle className="text-lg text-foreground flex items-center gap-2">
               <Shield className="w-5 h-5 text-red-400" />
               {t("adminPage.guardrails.logs")}
             </CardTitle>
             <div className="flex gap-2 flex-wrap">
               <Select value={agentFilter} onValueChange={setAgentFilter}>
-                <SelectTrigger className="w-[180px] bg-[#111633] border-[#1E2448] text-white" data-testid="select-guardrail-agent">
+                <SelectTrigger className="w-[180px] bg-card border-border text-foreground" data-testid="select-guardrail-agent">
                   <SelectValue placeholder={t("adminPage.select.allAgents")} />
                 </SelectTrigger>
                 <SelectContent>
@@ -3429,7 +3429,7 @@ function GuardrailsPanel({ token }: { token: string }) {
                 </SelectContent>
               </Select>
               <Select value={ruleFilter} onValueChange={setRuleFilter}>
-                <SelectTrigger className="w-[180px] bg-[#111633] border-[#1E2448] text-white" data-testid="select-guardrail-rule">
+                <SelectTrigger className="w-[180px] bg-card border-border text-foreground" data-testid="select-guardrail-rule">
                   <SelectValue placeholder={t("adminPage.select.allRules")} />
                 </SelectTrigger>
                 <SelectContent>
@@ -3442,17 +3442,17 @@ function GuardrailsPanel({ token }: { token: string }) {
                 type="date"
                 value={dateFrom}
                 onChange={e => setDateFrom(e.target.value)}
-                className="h-9 px-2 rounded-md bg-[#111633] border border-[#1E2448] text-white text-sm"
+                className="h-9 px-2 rounded-md bg-card border border-border text-foreground text-sm"
                 data-testid="input-guardrail-date-from"
               />
               <input
                 type="date"
                 value={dateTo}
                 onChange={e => setDateTo(e.target.value)}
-                className="h-9 px-2 rounded-md bg-[#111633] border border-[#1E2448] text-white text-sm"
+                className="h-9 px-2 rounded-md bg-card border border-border text-foreground text-sm"
                 data-testid="input-guardrail-date-to"
               />
-              <Button size="sm" variant="outline" onClick={fetchLogs} className="border-[#1E2448] text-slate-300" data-testid="button-refresh-guardrails">
+              <Button size="sm" variant="outline" onClick={fetchLogs} className="border-border text-foreground/80" data-testid="button-refresh-guardrails">
                 <RefreshCw className="w-4 h-4" />
               </Button>
             </div>
@@ -3461,38 +3461,38 @@ function GuardrailsPanel({ token }: { token: string }) {
         <CardContent>
           {loading ? (
             <div className="flex justify-center py-8">
-              <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
+              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
             </div>
           ) : logs.length === 0 ? (
-            <div className="text-center py-8 text-slate-400">
+            <div className="text-center py-8 text-muted-foreground">
               <Shield className="w-10 h-10 mx-auto mb-2 opacity-30" />
               <p>{t("adminPage.guardrails.noBlocks")}</p>
             </div>
           ) : (
             <div className="space-y-2 max-h-[500px] overflow-y-auto">
               {logs.map((log: any) => (
-                <div key={log.id} className="flex items-start gap-3 p-3 rounded-lg bg-[#111633] border border-[#1E2448]" data-testid={`guardrail-log-${log.id}`}>
+                <div key={log.id} className="flex items-start gap-3 p-3 rounded-lg bg-card border border-border" data-testid={`guardrail-log-${log.id}`}>
                   <div className="mt-0.5">
                     <Shield className="w-4 h-4 text-red-400" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap mb-1">
-                      <Badge className={`text-xs ${ruleColors[log.ruleType] || "bg-slate-500/20 text-slate-400"}`} data-testid={`badge-rule-${log.id}`}>
+                      <Badge className={`text-xs ${ruleColors[log.ruleType] || "bg-muted/30 text-muted-foreground"}`} data-testid={`badge-rule-${log.id}`}>
                         {log.ruleType?.replace("_", " ")}
                       </Badge>
-                      <Badge variant="outline" className="text-xs border-[#1E2448] text-slate-300" data-testid={`badge-agent-${log.id}`}>
+                      <Badge variant="outline" className="text-xs border-border text-foreground/80" data-testid={`badge-agent-${log.id}`}>
                         {(() => { const a = AGENTS_DATA.find(x => x.slug === log.agentType); return a ? `${a.persona} — ${t("adminPage.agents." + a.roleKey)}` : log.agentType; })()}
                       </Badge>
                       {log.userId && (
-                        <span className="text-xs text-slate-500">User #{log.userId}</span>
+                        <span className="text-xs text-muted-foreground/70">User #{log.userId}</span>
                       )}
                     </div>
-                    <p className="text-sm text-slate-300 mb-1">{log.reason}</p>
+                    <p className="text-sm text-foreground/80 mb-1">{log.reason}</p>
                     {log.inputPreview && (
-                      <p className="text-xs text-slate-500 truncate">{log.inputPreview}</p>
+                      <p className="text-xs text-muted-foreground/70 truncate">{log.inputPreview}</p>
                     )}
                   </div>
-                  <span className="text-xs text-slate-500 whitespace-nowrap">
+                  <span className="text-xs text-muted-foreground/70 whitespace-nowrap">
                     {new Date(log.createdAt).toLocaleString()}
                   </span>
                 </div>
@@ -3553,11 +3553,11 @@ function SupportTicketsPanel({ token }: { token: string }) {
   const inProgressCount = tickets.filter(t => t.status === "in_progress").length;
 
   return (
-    <Card className="bg-[#0C1029] border-[#1E2448]">
+    <Card className="bg-background border-border">
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle className="text-white flex items-center gap-2">
+            <CardTitle className="text-foreground flex items-center gap-2">
               <HelpCircle className="w-5 h-5 text-orange-400" />
               {t("adminPage.tickets.title")}
               {openCount > 0 && (
@@ -3571,7 +3571,7 @@ function SupportTicketsPanel({ token }: { token: string }) {
           </div>
           <div className="flex items-center gap-2">
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[130px] h-8 text-xs bg-[#111633] border-[#1E2448]">
+              <SelectTrigger className="w-[130px] h-8 text-xs bg-card border-border">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -3599,12 +3599,12 @@ function SupportTicketsPanel({ token }: { token: string }) {
         ) : (
           <div className="space-y-3">
             {filtered.map((ticket: any) => (
-              <div key={ticket.id} className="p-4 rounded-xl border border-[#1E2448] bg-[#111633]" data-testid={`admin-ticket-${ticket.id}`}>
+              <div key={ticket.id} className="p-4 rounded-xl border border-border bg-card" data-testid={`admin-ticket-${ticket.id}`}>
                 <div className="flex items-start justify-between gap-3 mb-2">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="text-sm font-semibold text-white">#{ticket.id}</span>
-                      <span className="text-sm font-medium text-white truncate">{ticket.subject}</span>
+                      <span className="text-sm font-semibold text-foreground">#{ticket.id}</span>
+                      <span className="text-sm font-medium text-foreground truncate">{ticket.subject}</span>
                     </div>
                     <p className="text-xs text-muted-foreground line-clamp-2">{ticket.description}</p>
                   </div>
@@ -3659,7 +3659,7 @@ function SupportTicketsPanel({ token }: { token: string }) {
                       value={replyText}
                       onChange={(e) => setReplyText(e.target.value)}
                       placeholder={t("adminPage.tickets.replyPlaceholder")}
-                      className="flex-1 h-8 text-xs bg-[#0C1029] border-[#1E2448]"
+                      className="flex-1 h-8 text-xs bg-background border-border"
                       data-testid={`input-admin-reply-${ticket.id}`}
                     />
                     <Button size="sm" className="h-8 bg-emerald-500 hover:bg-emerald-600 text-white text-xs" onClick={() => handleReply(ticket.id)} data-testid={`button-admin-send-reply-${ticket.id}`}>
@@ -3743,13 +3743,13 @@ function SecurityReportPanel({ token }: { token: string }) {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+        <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
           <AlertTriangle className="w-5 h-5 text-red-400" />
           {t("adminPage.security.title")}
         </h3>
         <div className="flex items-center gap-2">
           <Select value={period} onValueChange={setPeriod}>
-            <SelectTrigger className="w-[120px] bg-[#0A0E27] border-[#1E2448] text-white" data-testid="select-security-period">
+            <SelectTrigger className="w-[120px] bg-background border-border text-foreground" data-testid="select-security-period">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -3768,9 +3768,9 @@ function SecurityReportPanel({ token }: { token: string }) {
         {Object.entries(eventTypeLabels).map(([type, cfg]) => {
           const count = data?.typeCounts.find(t => t.eventType === type)?.count || 0;
           return (
-            <Card key={type} className="bg-[#0A0E27] border-[#1E2448]">
+            <Card key={type} className="bg-background border-border">
               <CardContent className="p-4">
-                <p className="text-xs text-gray-400">{cfg.label}</p>
+                <p className="text-xs text-muted-foreground">{cfg.label}</p>
                 <p className={`text-2xl font-bold ${cfg.color.split(" ")[0]}`} data-testid={`text-security-count-${type}`}>
                   {count}
                 </p>
@@ -3781,9 +3781,9 @@ function SecurityReportPanel({ token }: { token: string }) {
       </div>
 
       {data?.hourlyStats && data.hourlyStats.length > 0 && (
-        <Card className="bg-[#0A0E27] border-[#1E2448]">
+        <Card className="bg-background border-border">
           <CardHeader>
-            <CardTitle className="text-lg text-white flex items-center gap-2">
+            <CardTitle className="text-lg text-foreground flex items-center gap-2">
               <BarChart3 className="w-5 h-5 text-blue-400" />
               {t("adminPage.security.eventsOverTime")}
             </CardTitle>
@@ -3796,7 +3796,7 @@ function SecurityReportPanel({ token }: { token: string }) {
                     className="w-5 bg-gradient-to-t from-red-500 to-orange-400 rounded-t"
                     style={{ height: `${(stat.count / maxHourlyCount) * 100}%`, minHeight: stat.count > 0 ? "4px" : "0px" }}
                   />
-                  <span className="text-[9px] text-gray-500 mt-1 rotate-[-45deg] origin-top-left whitespace-nowrap">
+                  <span className="text-[9px] text-muted-foreground/70 mt-1 rotate-[-45deg] origin-top-left whitespace-nowrap">
                     {stat.hour.split(" ")[1] || stat.hour}
                   </span>
                 </div>
@@ -3806,27 +3806,27 @@ function SecurityReportPanel({ token }: { token: string }) {
         </Card>
       )}
 
-      <Card className="bg-[#0A0E27] border-[#1E2448]">
+      <Card className="bg-background border-border">
         <CardHeader>
-          <CardTitle className="text-lg text-white flex items-center gap-2">
+          <CardTitle className="text-lg text-foreground flex items-center gap-2">
             <Shield className="w-5 h-5 text-orange-400" />
             Top Suspicious IPs ({data?.topIps?.length || 0})
           </CardTitle>
         </CardHeader>
         <CardContent>
           {!data?.topIps || data.topIps.length === 0 ? (
-            <p className="text-gray-500 text-center py-6">{t("adminPage.security.noSuspicious")}</p>
+            <p className="text-muted-foreground/70 text-center py-6">{t("adminPage.security.noSuspicious")}</p>
           ) : (
             <div className="space-y-2">
               {data.topIps.map((ip, i) => (
-                <div key={i} className="flex items-center justify-between p-3 bg-[#111633] rounded-lg border border-[#1E2448]" data-testid={`security-ip-row-${i}`}>
+                <div key={i} className="flex items-center justify-between p-3 bg-card rounded-lg border border-border" data-testid={`security-ip-row-${i}`}>
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full bg-red-900/30 flex items-center justify-center">
                       <AlertTriangle className="w-4 h-4 text-red-400" />
                     </div>
                     <div>
-                      <p className="text-white text-sm font-mono">{ip.ipAddress}</p>
-                      <p className="text-gray-500 text-xs">Last seen: {new Date(ip.lastSeen).toLocaleString()}</p>
+                      <p className="text-foreground text-sm font-mono">{ip.ipAddress}</p>
+                      <p className="text-muted-foreground/70 text-xs">Last seen: {new Date(ip.lastSeen).toLocaleString()}</p>
                     </div>
                   </div>
                   <Badge className="bg-red-900/30 text-red-400 border-red-800">
@@ -3839,31 +3839,31 @@ function SecurityReportPanel({ token }: { token: string }) {
         </CardContent>
       </Card>
 
-      <Card className="bg-[#0A0E27] border-[#1E2448]">
+      <Card className="bg-background border-border">
         <CardHeader>
-          <CardTitle className="text-lg text-white flex items-center gap-2">
+          <CardTitle className="text-lg text-foreground flex items-center gap-2">
             <Clock className="w-5 h-5 text-cyan-400" />
             Recent Security Events ({data?.totalCount || 0})
           </CardTitle>
         </CardHeader>
         <CardContent>
           {!data?.events || data.events.length === 0 ? (
-            <p className="text-gray-500 text-center py-6">{t("adminPage.security.noEvents")}</p>
+            <p className="text-muted-foreground/70 text-center py-6">{t("adminPage.security.noEvents")}</p>
           ) : (
             <div className="space-y-2 max-h-[500px] overflow-y-auto">
               {data.events.slice(0, 50).map((evt) => {
-                const cfg = eventTypeLabels[evt.eventType] || { label: evt.eventType, color: "text-gray-400 bg-gray-900/30 border-gray-700" };
+                const cfg = eventTypeLabels[evt.eventType] || { label: evt.eventType, color: "text-muted-foreground bg-gray-900/30 border-gray-700" };
                 return (
-                  <div key={evt.id} className="p-3 bg-[#111633] rounded-lg border border-[#1E2448]" data-testid={`security-event-${evt.id}`}>
+                  <div key={evt.id} className="p-3 bg-card rounded-lg border border-border" data-testid={`security-event-${evt.id}`}>
                     <div className="flex items-start justify-between mb-1">
                       <div className="flex items-center gap-2">
                         <Badge className={`text-xs ${cfg.color}`}>{cfg.label}</Badge>
-                        <span className="text-gray-500 text-xs font-mono">{evt.ipAddress}</span>
+                        <span className="text-muted-foreground/70 text-xs font-mono">{evt.ipAddress}</span>
                       </div>
-                      <span className="text-gray-500 text-xs">{new Date(evt.createdAt).toLocaleString()}</span>
+                      <span className="text-muted-foreground/70 text-xs">{new Date(evt.createdAt).toLocaleString()}</span>
                     </div>
-                    {evt.endpoint && <p className="text-gray-400 text-xs">Endpoint: {evt.endpoint}</p>}
-                    {evt.detail && <p className="text-gray-300 text-xs mt-1">{evt.detail}</p>}
+                    {evt.endpoint && <p className="text-muted-foreground text-xs">Endpoint: {evt.endpoint}</p>}
+                    {evt.detail && <p className="text-foreground/70 text-xs mt-1">{evt.detail}</p>}
                     {evt.userAgent && <p className="text-gray-600 text-xs mt-1 truncate" title={evt.userAgent}>UA: {evt.userAgent}</p>}
                   </div>
                 );
@@ -3978,11 +3978,11 @@ function PackageManagementPanel({ token }: { token: string }) {
     <div className="space-y-6">
       <Card className="bg-gradient-to-r from-violet-900/50 to-purple-900/50 border-violet-500/30">
         <CardHeader>
-          <CardTitle className="text-xl text-white flex items-center gap-2">
+          <CardTitle className="text-xl text-foreground flex items-center gap-2">
             <CreditCard className="w-5 h-5 text-violet-400" />
             {t("adminPage.packages.title")}
           </CardTitle>
-          <CardDescription className="text-gray-300">
+          <CardDescription className="text-foreground/70">
             {t("adminPage.packages.description")}
           </CardDescription>
         </CardHeader>
@@ -3991,7 +3991,7 @@ function PackageManagementPanel({ token }: { token: string }) {
             {PLANS.map((plan) => (
               <div
                 key={plan.id}
-                className={`relative p-5 rounded-xl border ${plan.popular ? "border-violet-500/50 bg-violet-900/20" : "border-[#1E2448] bg-[#0A0E27]"}`}
+                className={`relative p-5 rounded-xl border ${plan.popular ? "border-violet-500/50 bg-violet-900/20" : "border-border bg-background"}`}
                 data-testid={`plan-card-${plan.id}`}
               >
                 {plan.popular && (
@@ -4000,29 +4000,29 @@ function PackageManagementPanel({ token }: { token: string }) {
                   </Badge>
                 )}
                 <div className={`w-10 h-10 rounded-lg bg-gradient-to-r ${plan.color} flex items-center justify-center mb-3`}>
-                  <Crown className="w-5 h-5 text-white" />
+                  <Crown className="w-5 h-5 text-foreground" />
                 </div>
-                <h3 className="text-lg font-bold text-white">{plan.name}</h3>
-                <p className="text-2xl font-bold text-white mt-1">{plan.price}</p>
+                <h3 className="text-lg font-bold text-foreground">{plan.name}</h3>
+                <p className="text-2xl font-bold text-foreground mt-1">{plan.price}</p>
                 <div className="mt-3 space-y-1">
                   <div className="flex items-center gap-2">
                     <MessageSquare className="w-4 h-4 text-violet-400" />
-                    <span className="text-sm text-gray-300">{plan.messages} {t("adminPage.limits.messagesPerDay")}</span>
+                    <span className="text-sm text-foreground/70">{plan.messages} {t("adminPage.limits.messagesPerDay")}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Users className="w-4 h-4 text-blue-400" />
-                    <span className="text-sm text-gray-300">{t("adminPage.limits.maxAgentsLabel", { count: plan.maxAgents } as Record<string, string | number>)}</span>
+                    <span className="text-sm text-foreground/70">{t("adminPage.limits.maxAgentsLabel", { count: plan.maxAgents } as Record<string, string | number>)}</span>
                   </div>
                   {plan.features.map((f, i) => (
                     <div key={i} className="flex items-center gap-2">
                       <CheckCircle className="w-3 h-3 text-green-400" />
-                      <span className="text-xs text-gray-400">{f}</span>
+                      <span className="text-xs text-muted-foreground">{f}</span>
                     </div>
                   ))}
                 </div>
-                <div className="mt-3 pt-3 border-t border-[#1E2448]">
-                  <p className="text-xs text-gray-500">{t("adminPage.limits.planRules")}:</p>
-                  <ul className="text-xs text-gray-400 mt-1 space-y-0.5">
+                <div className="mt-3 pt-3 border-t border-border">
+                  <p className="text-xs text-muted-foreground/70">{t("adminPage.limits.planRules")}:</p>
+                  <ul className="text-xs text-muted-foreground mt-1 space-y-0.5">
                     <li>• {t("adminPage.limits.dailyMsgLimit", { count: plan.messages } as Record<string, string | number>)}</li>
                     <li>• {t("adminPage.limits.limitExceeded")}</li>
                     <li>• {t("adminPage.limits.dailyReset")}</li>
@@ -4034,14 +4034,14 @@ function PackageManagementPanel({ token }: { token: string }) {
         </CardContent>
       </Card>
 
-      <Card className="bg-[#0A0E27] border-[#1E2448]">
+      <Card className="bg-background border-border">
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
-            <CardTitle className="text-lg text-white flex items-center gap-2">
+            <CardTitle className="text-lg text-foreground flex items-center gap-2">
               <Users className="w-5 h-5 text-blue-400" />
               {t("adminPage.limits.activeRentalMgmt")}
             </CardTitle>
-            <CardDescription className="text-gray-400">
+            <CardDescription className="text-muted-foreground">
               {t("adminPage.limits.editUsersLimits")}
             </CardDescription>
           </div>
@@ -4051,37 +4051,37 @@ function PackageManagementPanel({ token }: { token: string }) {
         </CardHeader>
         <CardContent>
           {rentals.length === 0 ? (
-            <p className="text-gray-500 text-center py-6">{t("adminPage.limits.noActiveRental")}</p>
+            <p className="text-muted-foreground/70 text-center py-6">{t("adminPage.limits.noActiveRental")}</p>
           ) : (
             <div className="space-y-3 max-h-[500px] overflow-y-auto">
               {rentals.map((rental) => (
                 <div
                   key={rental.id}
-                  className="p-4 bg-[#111633] rounded-lg border border-[#1E2448]"
+                  className="p-4 bg-card rounded-lg border border-border"
                   data-testid={`rental-row-${rental.id}`}
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="text-white font-medium">{agentLabel(rental.agent_type)}</span>
-                        <Badge className={`text-xs ${rental.status === "active" ? "bg-green-900/30 text-green-400 border-green-800" : "bg-gray-900/30 text-gray-500 border-gray-700"}`}>
+                        <span className="text-foreground font-medium">{agentLabel(rental.agent_type)}</span>
+                        <Badge className={`text-xs ${rental.status === "active" ? "bg-green-900/30 text-green-400 border-green-800" : "bg-gray-900/30 text-muted-foreground/70 border-gray-700"}`}>
                           {rental.status}
                         </Badge>
                       </div>
-                      <p className="text-gray-400 text-sm">{rental.full_name || rental.email}</p>
-                      <p className="text-gray-500 text-xs">{rental.email}</p>
+                      <p className="text-muted-foreground text-sm">{rental.full_name || rental.email}</p>
+                      <p className="text-muted-foreground/70 text-xs">{rental.email}</p>
                     </div>
                     {editingId === rental.id ? (
                       <div className="flex gap-2">
                         <Button size="sm" onClick={() => saveEdit(rental.id)} className="bg-green-600 hover:bg-green-700 text-white" data-testid={`button-save-rental-${rental.id}`}>
                           <CheckCircle className="w-3 h-3 mr-1" /> {t("adminPage.limits.save")}
                         </Button>
-                        <Button size="sm" variant="ghost" onClick={() => setEditingId(null)} className="text-gray-400">
+                        <Button size="sm" variant="ghost" onClick={() => setEditingId(null)} className="text-muted-foreground">
                           {t("adminPage.limits.cancel")}
                         </Button>
                       </div>
                     ) : (
-                      <Button size="sm" variant="outline" onClick={() => startEdit(rental)} className="border-[#1E2448] text-gray-300" data-testid={`button-edit-rental-${rental.id}`}>
+                      <Button size="sm" variant="outline" onClick={() => startEdit(rental)} className="border-border text-foreground/70" data-testid={`button-edit-rental-${rental.id}`}>
                         {t("adminPage.limits.edit")}
                       </Button>
                     )}
@@ -4089,56 +4089,56 @@ function PackageManagementPanel({ token }: { token: string }) {
                   {editingId === rental.id ? (
                     <div className="mt-3 grid grid-cols-3 gap-3">
                       <div>
-                        <label className="text-xs text-gray-500 block mb-1">{t("adminPage.limits.plan")}</label>
+                        <label className="text-xs text-muted-foreground/70 block mb-1">{t("adminPage.limits.plan")}</label>
                         <Select value={editPlan} onValueChange={setEditPlan}>
-                          <SelectTrigger className="bg-[#0A0E27] border-[#1E2448] text-white h-8 text-sm">
+                          <SelectTrigger className="bg-background border-border text-foreground h-8 text-sm">
                             <SelectValue />
                           </SelectTrigger>
-                          <SelectContent className="bg-[#111633] border-[#1E2448]">
-                            <SelectItem value="standard" className="text-white">{t("adminPage.limits.standard")}</SelectItem>
-                            <SelectItem value="professional" className="text-white">{t("adminPage.limits.professional")}</SelectItem>
-                            <SelectItem value="all-in-one" className="text-white">{t("adminPage.limits.allInOne")}</SelectItem>
-                            <SelectItem value="accounting" className="text-white">{t("adminPage.limits.accounting")}</SelectItem>
+                          <SelectContent className="bg-card border-border">
+                            <SelectItem value="standard" className="text-foreground">{t("adminPage.limits.standard")}</SelectItem>
+                            <SelectItem value="professional" className="text-foreground">{t("adminPage.limits.professional")}</SelectItem>
+                            <SelectItem value="all-in-one" className="text-foreground">{t("adminPage.limits.allInOne")}</SelectItem>
+                            <SelectItem value="accounting" className="text-foreground">{t("adminPage.limits.accounting")}</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
                       <div>
-                        <label className="text-xs text-gray-500 block mb-1">{t("adminPage.limits.messageLimit")}</label>
+                        <label className="text-xs text-muted-foreground/70 block mb-1">{t("adminPage.limits.messageLimit")}</label>
                         <Input
                           type="number"
                           value={editLimit}
                           onChange={(e) => setEditLimit(e.target.value)}
-                          className="bg-[#0A0E27] border-[#1E2448] text-white h-8 text-sm"
+                          className="bg-background border-border text-foreground h-8 text-sm"
                           data-testid={`input-limit-${rental.id}`}
                         />
                       </div>
                       <div>
-                        <label className="text-xs text-gray-500 block mb-1">{t("adminPage.limits.used")}</label>
+                        <label className="text-xs text-muted-foreground/70 block mb-1">{t("adminPage.limits.used")}</label>
                         <Input
                           type="number"
                           value={editUsed}
                           onChange={(e) => setEditUsed(e.target.value)}
-                          className="bg-[#0A0E27] border-[#1E2448] text-white h-8 text-sm"
+                          className="bg-background border-border text-foreground h-8 text-sm"
                           data-testid={`input-used-${rental.id}`}
                         />
                       </div>
                     </div>
                   ) : (
                     <div className="mt-2 flex items-center gap-4">
-                      <Badge variant="outline" className="border-[#1E2448] text-gray-300 text-xs capitalize">{rental.plan}</Badge>
+                      <Badge variant="outline" className="border-border text-foreground/70 text-xs capitalize">{rental.plan}</Badge>
                       <div className="flex-1">
-                        <div className="flex justify-between text-xs text-gray-400 mb-1">
+                        <div className="flex justify-between text-xs text-muted-foreground mb-1">
                           <span>{rental.messages_used}/{rental.messages_limit} {t("adminPage.limits.messages")}</span>
                           <span>{Math.round((rental.messages_used / rental.messages_limit) * 100)}%</span>
                         </div>
-                        <div className="w-full bg-[#0A0E27] rounded-full h-1.5">
+                        <div className="w-full bg-background rounded-full h-1.5">
                           <div
                             className={`h-1.5 rounded-full ${(rental.messages_used / rental.messages_limit) > 0.8 ? "bg-red-500" : "bg-blue-500"}`}
                             style={{ width: `${Math.min((rental.messages_used / rental.messages_limit) * 100, 100)}%` }}
                           />
                         </div>
                       </div>
-                      <span className="text-xs text-gray-500">
+                      <span className="text-xs text-muted-foreground/70">
                         {rental.started_at ? new Date(rental.started_at).toLocaleDateString("tr-TR") : "—"}
                       </span>
                     </div>
@@ -4314,24 +4314,24 @@ function LimitManagementPanel({ token }: { token: string }) {
 
   return (
     <div className="space-y-6">
-      <Card className="bg-[#0A0E27] border-[#1E2448]">
+      <Card className="bg-background border-border">
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
-            <CardTitle className="text-lg text-white flex items-center gap-2">
+            <CardTitle className="text-lg text-foreground flex items-center gap-2">
               <Zap className="w-5 h-5 text-yellow-400" />
               {t("adminPage.tabs.limitManagement")}
             </CardTitle>
-            <CardDescription className="text-gray-400">{t("adminPage.limits.agentLimitsDesc")}</CardDescription>
+            <CardDescription className="text-muted-foreground">{t("adminPage.limits.agentLimitsDesc")}</CardDescription>
           </div>
           <div className="flex items-center gap-2">
             <Select value={selectedAgentFilter} onValueChange={setSelectedAgentFilter}>
-              <SelectTrigger className="bg-[#111633] border-[#1E2448] text-white w-48" data-testid="select-limit-agent-filter">
+              <SelectTrigger className="bg-card border-border text-foreground w-48" data-testid="select-limit-agent-filter">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="bg-[#111633] border-[#1E2448]">
-                <SelectItem value="all" className="text-white">{t("adminPage.limits.allAgents")}</SelectItem>
+              <SelectContent className="bg-card border-border">
+                <SelectItem value="all" className="text-foreground">{t("adminPage.limits.allAgents")}</SelectItem>
                 {AGENTS_DATA.filter(a => a.slug !== "manager").map(a => (
-                  <SelectItem key={a.slug} value={a.slug} className="text-white">{`${a.persona} — ${t("adminPage.agents." + a.roleKey)}`}</SelectItem>
+                  <SelectItem key={a.slug} value={a.slug} className="text-foreground">{`${a.persona} — ${t("adminPage.agents." + a.roleKey)}`}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -4343,11 +4343,11 @@ function LimitManagementPanel({ token }: { token: string }) {
         <CardContent>
           <div className="space-y-6">
             {agentsToShow.map(agent => (
-              <div key={agent.slug} className="p-4 bg-[#111633] rounded-lg border border-[#1E2448]" data-testid={`limit-agent-${agent.slug}`}>
+              <div key={agent.slug} className="p-4 bg-card rounded-lg border border-border" data-testid={`limit-agent-${agent.slug}`}>
                 <div className="flex items-center gap-2 mb-4">
                   <Bot className="w-5 h-5 text-blue-400" />
-                  <h4 className="text-white font-medium">{`${agent.persona} — ${t("adminPage.agents." + agent.roleKey)}`}</h4>
-                  <Badge variant="outline" className="border-[#1E2448] text-gray-400 text-xs ml-auto">
+                  <h4 className="text-foreground font-medium">{`${agent.persona} — ${t("adminPage.agents." + agent.roleKey)}`}</h4>
+                  <Badge variant="outline" className="border-border text-muted-foreground text-xs ml-auto">
                     {t("adminPage.limits.default")}: {getDefaultTokenLimit(agent.slug).toLocaleString()} token/{t("adminPage.limits.day")}
                   </Badge>
                 </div>
@@ -4362,9 +4362,9 @@ function LimitManagementPanel({ token }: { token: string }) {
                     const messagePercent = editVal.messageLimit > 0 ? Math.min(100, (usage.messages / editVal.messageLimit) * 100) : 0;
 
                     return (
-                      <div key={period} className="p-3 bg-[#0A0E27] rounded-lg border border-[#1E2448]">
+                      <div key={period} className="p-3 bg-background rounded-lg border border-border">
                         <div className="flex items-center justify-between mb-3">
-                          <span className="text-sm font-medium text-gray-300">{periodLabels[period]}</span>
+                          <span className="text-sm font-medium text-foreground/70">{periodLabels[period]}</span>
                           {existingLimit && (
                             <Button variant="ghost" size="sm" onClick={() => handleDeleteLimit(existingLimit.id)} className="text-red-400 hover:text-red-300 h-6 w-6 p-0" data-testid={`button-delete-limit-${agent.slug}-${period}`}>
                               <Trash2 className="w-3 h-3" />
@@ -4373,22 +4373,22 @@ function LimitManagementPanel({ token }: { token: string }) {
                         </div>
                         <div className="space-y-3">
                           <div>
-                            <label className="text-xs text-gray-500 mb-1 block">{t("adminPage.limits.tokenLimit")}</label>
+                            <label className="text-xs text-muted-foreground/70 mb-1 block">{t("adminPage.limits.tokenLimit")}</label>
                             <Input
                               type="number"
                               value={editVal.tokenLimit || ""}
                               onChange={e => setEditValue(agent.slug, period, "tokenLimit", parseInt(e.target.value) || 0)}
                               placeholder={period === "daily" ? getDefaultTokenLimit(agent.slug).toString() : t("adminPage.limits.unlimited")}
-                              className="bg-[#111633] border-[#1E2448] text-white h-8 text-sm"
+                              className="bg-card border-border text-foreground h-8 text-sm"
                               data-testid={`input-token-limit-${agent.slug}-${period}`}
                             />
                             {effectiveTokenLimit > 0 && (
                               <div className="mt-1">
-                                <div className="flex justify-between text-xs text-gray-500 mb-1">
+                                <div className="flex justify-between text-xs text-muted-foreground/70 mb-1">
                                   <span>{usage.tokens.toLocaleString()} / {effectiveTokenLimit.toLocaleString()}</span>
                                   <span>{tokenPercent.toFixed(0)}%</span>
                                 </div>
-                                <div className="w-full bg-[#1E2448] rounded-full h-1.5">
+                                <div className="w-full bg-muted rounded-full h-1.5">
                                   <div
                                     className={`h-1.5 rounded-full transition-all ${tokenPercent >= 90 ? "bg-red-500" : tokenPercent >= 70 ? "bg-yellow-500" : "bg-emerald-500"}`}
                                     style={{ width: `${tokenPercent}%` }}
@@ -4398,22 +4398,22 @@ function LimitManagementPanel({ token }: { token: string }) {
                             )}
                           </div>
                           <div>
-                            <label className="text-xs text-gray-500 mb-1 block">{t("adminPage.limits.messageLimitLabel")}</label>
+                            <label className="text-xs text-muted-foreground/70 mb-1 block">{t("adminPage.limits.messageLimitLabel")}</label>
                             <Input
                               type="number"
                               value={editVal.messageLimit || ""}
                               onChange={e => setEditValue(agent.slug, period, "messageLimit", parseInt(e.target.value) || 0)}
                               placeholder={t("adminPage.limits.unlimited")}
-                              className="bg-[#111633] border-[#1E2448] text-white h-8 text-sm"
+                              className="bg-card border-border text-foreground h-8 text-sm"
                               data-testid={`input-message-limit-${agent.slug}-${period}`}
                             />
                             {editVal.messageLimit > 0 && (
                               <div className="mt-1">
-                                <div className="flex justify-between text-xs text-gray-500 mb-1">
+                                <div className="flex justify-between text-xs text-muted-foreground/70 mb-1">
                                   <span>{usage.messages.toLocaleString()} / {editVal.messageLimit.toLocaleString()}</span>
                                   <span>{messagePercent.toFixed(0)}%</span>
                                 </div>
-                                <div className="w-full bg-[#1E2448] rounded-full h-1.5">
+                                <div className="w-full bg-muted rounded-full h-1.5">
                                   <div
                                     className={`h-1.5 rounded-full transition-all ${messagePercent >= 90 ? "bg-red-500" : messagePercent >= 70 ? "bg-yellow-500" : "bg-emerald-500"}`}
                                     style={{ width: `${messagePercent}%` }}
@@ -4442,74 +4442,74 @@ function LimitManagementPanel({ token }: { token: string }) {
         </CardContent>
       </Card>
 
-      <Card className="bg-[#0A0E27] border-[#1E2448]">
+      <Card className="bg-background border-border">
         <CardHeader>
-          <CardTitle className="text-lg text-white flex items-center gap-2">
+          <CardTitle className="text-lg text-foreground flex items-center gap-2">
             <Crown className="w-5 h-5 text-yellow-400" />
             {t("adminPage.limits.userLimitOverride")}
           </CardTitle>
-          <CardDescription className="text-gray-400">{t("adminPage.limits.userOverrideDesc")})</CardDescription>
+          <CardDescription className="text-muted-foreground">{t("adminPage.limits.userOverrideDesc")})</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
             <div>
-              <label className="text-xs text-gray-500 mb-1 block">{t("adminPage.limits.user")}</label>
+              <label className="text-xs text-muted-foreground/70 mb-1 block">{t("adminPage.limits.user")}</label>
               <Select value={userOverrideUserId} onValueChange={setUserOverrideUserId}>
-                <SelectTrigger className="bg-[#111633] border-[#1E2448] text-white" data-testid="select-override-user">
+                <SelectTrigger className="bg-card border-border text-foreground" data-testid="select-override-user">
                   <SelectValue placeholder={t("adminPage.limits.selectUser")} />
                 </SelectTrigger>
-                <SelectContent className="bg-[#111633] border-[#1E2448] max-h-48">
+                <SelectContent className="bg-card border-border max-h-48">
                   {users.map(u => (
-                    <SelectItem key={u.id} value={u.id.toString()} className="text-white">{u.full_name} ({u.email})</SelectItem>
+                    <SelectItem key={u.id} value={u.id.toString()} className="text-foreground">{u.full_name} ({u.email})</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <label className="text-xs text-gray-500 mb-1 block">{t("adminPage.limits.agent")}</label>
+              <label className="text-xs text-muted-foreground/70 mb-1 block">{t("adminPage.limits.agent")}</label>
               <Select value={userOverrideAgent} onValueChange={setUserOverrideAgent}>
-                <SelectTrigger className="bg-[#111633] border-[#1E2448] text-white" data-testid="select-override-agent">
+                <SelectTrigger className="bg-card border-border text-foreground" data-testid="select-override-agent">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="bg-[#111633] border-[#1E2448]">
+                <SelectContent className="bg-card border-border">
                   {AGENTS_DATA.filter(a => a.slug !== "manager").map(a => (
-                    <SelectItem key={a.slug} value={a.slug} className="text-white">{`${a.persona} — ${t("adminPage.agents." + a.roleKey)}`}</SelectItem>
+                    <SelectItem key={a.slug} value={a.slug} className="text-foreground">{`${a.persona} — ${t("adminPage.agents." + a.roleKey)}`}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <label className="text-xs text-gray-500 mb-1 block">{t("adminPage.limits.period")}</label>
+              <label className="text-xs text-muted-foreground/70 mb-1 block">{t("adminPage.limits.period")}</label>
               <Select value={userOverridePeriod} onValueChange={setUserOverridePeriod}>
-                <SelectTrigger className="bg-[#111633] border-[#1E2448] text-white" data-testid="select-override-period">
+                <SelectTrigger className="bg-card border-border text-foreground" data-testid="select-override-period">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="bg-[#111633] border-[#1E2448]">
-                  <SelectItem value="daily" className="text-white">{t("adminPage.limits.daily")}</SelectItem>
-                  <SelectItem value="weekly" className="text-white">{t("adminPage.limits.weekly")}</SelectItem>
-                  <SelectItem value="monthly" className="text-white">{t("adminPage.limits.monthly")}</SelectItem>
+                <SelectContent className="bg-card border-border">
+                  <SelectItem value="daily" className="text-foreground">{t("adminPage.limits.daily")}</SelectItem>
+                  <SelectItem value="weekly" className="text-foreground">{t("adminPage.limits.weekly")}</SelectItem>
+                  <SelectItem value="monthly" className="text-foreground">{t("adminPage.limits.monthly")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <label className="text-xs text-gray-500 mb-1 block">{t("adminPage.limits.tokenLimit")}</label>
+              <label className="text-xs text-muted-foreground/70 mb-1 block">{t("adminPage.limits.tokenLimit")}</label>
               <Input
                 type="number"
                 value={userOverrideTokenLimit}
                 onChange={e => setUserOverrideTokenLimit(e.target.value)}
                 placeholder="0"
-                className="bg-[#111633] border-[#1E2448] text-white"
+                className="bg-card border-border text-foreground"
                 data-testid="input-override-token-limit"
               />
             </div>
             <div>
-              <label className="text-xs text-gray-500 mb-1 block">{t("adminPage.limits.messageLimitLabel")}</label>
+              <label className="text-xs text-muted-foreground/70 mb-1 block">{t("adminPage.limits.messageLimitLabel")}</label>
               <Input
                 type="number"
                 value={userOverrideMessageLimit}
                 onChange={e => setUserOverrideMessageLimit(e.target.value)}
                 placeholder="0"
-                className="bg-[#111633] border-[#1E2448] text-white"
+                className="bg-card border-border text-foreground"
                 data-testid="input-override-message-limit"
               />
             </div>
@@ -4528,21 +4528,21 @@ function LimitManagementPanel({ token }: { token: string }) {
 
           {userOverrides.length > 0 && (
             <div className="space-y-2 mt-4">
-              <h4 className="text-sm font-medium text-gray-400 mb-2">{t("adminPage.limits.existingOverrides")}</h4>
+              <h4 className="text-sm font-medium text-muted-foreground mb-2">{t("adminPage.limits.existingOverrides")}</h4>
               {userOverrides.map(override => {
                 const user = users.find(u => u.id === override.userId);
                 const agentName = (() => { const a = AGENTS_DATA.find(x => x.slug === override.agentType); return a ? `${a.persona} — ${t("adminPage.agents." + a.roleKey)}` : override.agentType; })();
                 return (
-                  <div key={override.id} className="flex items-center justify-between p-3 bg-[#111633] rounded-lg border border-[#1E2448]" data-testid={`override-row-${override.id}`}>
+                  <div key={override.id} className="flex items-center justify-between p-3 bg-card rounded-lg border border-border" data-testid={`override-row-${override.id}`}>
                     <div className="flex items-center gap-3">
                       <Crown className="w-4 h-4 text-yellow-400" />
                       <div>
-                        <span className="text-white text-sm">{user?.full_name || `User #${override.userId}`}</span>
-                        <span className="text-gray-500 text-xs ml-2">({user?.email})</span>
+                        <span className="text-foreground text-sm">{user?.full_name || `User #${override.userId}`}</span>
+                        <span className="text-muted-foreground/70 text-xs ml-2">({user?.email})</span>
                       </div>
-                      <Badge variant="outline" className="border-[#1E2448] text-gray-300 text-xs">{agentName}</Badge>
-                      <Badge variant="outline" className="border-[#1E2448] text-gray-300 text-xs">{periodLabels[override.period] || override.period}</Badge>
-                      <span className="text-gray-400 text-xs">Token: {override.tokenLimit.toLocaleString()} · Mesaj: {override.messageLimit.toLocaleString()}</span>
+                      <Badge variant="outline" className="border-border text-foreground/70 text-xs">{agentName}</Badge>
+                      <Badge variant="outline" className="border-border text-foreground/70 text-xs">{periodLabels[override.period] || override.period}</Badge>
+                      <span className="text-muted-foreground text-xs">Token: {override.tokenLimit.toLocaleString()} · Mesaj: {override.messageLimit.toLocaleString()}</span>
                     </div>
                     <Button variant="ghost" size="sm" onClick={() => handleDeleteLimit(override.id)} className="text-red-400 hover:text-red-300" data-testid={`button-delete-override-${override.id}`}>
                       <Trash2 className="w-4 h-4" />
@@ -4830,7 +4830,7 @@ function EscalationsPanel({ token, autoOpenId }: { token: string; autoOpenId?: n
   };
 
   const priorityColors: Record<string, string> = {
-    low: "bg-gray-500/20 text-gray-400",
+    low: "bg-gray-500/20 text-muted-foreground",
     medium: "bg-yellow-500/20 text-yellow-400",
     high: "bg-orange-500/20 text-orange-400",
     critical: "bg-red-500/20 text-red-400",
@@ -4840,7 +4840,7 @@ function EscalationsPanel({ token, autoOpenId }: { token: string; autoOpenId?: n
     pending: "bg-yellow-500/20 text-yellow-400",
     admin_joined: "bg-blue-500/20 text-blue-400",
     resolved: "bg-green-500/20 text-green-400",
-    dismissed: "bg-gray-500/20 text-gray-400",
+    dismissed: "bg-gray-500/20 text-muted-foreground",
   };
 
   const statusLabels: Record<string, string> = {
@@ -4866,8 +4866,8 @@ function EscalationsPanel({ token, autoOpenId }: { token: string; autoOpenId?: n
             <ChevronLeft className="w-4 h-4 mr-1" /> {t("adminPage.escalations.back")}
           </Button>
           <div className="flex-1">
-            <h3 className="text-white font-medium">{chatEscalation.userName} — {reasonLabels[chatEscalation.reason] || chatEscalation.reason}</h3>
-            <p className="text-gray-400 text-xs">{chatEscalation.userEmail} · {chatEscalation.agentType}</p>
+            <h3 className="text-foreground font-medium">{chatEscalation.userName} — {reasonLabels[chatEscalation.reason] || chatEscalation.reason}</h3>
+            <p className="text-muted-foreground text-xs">{chatEscalation.userEmail} · {chatEscalation.agentType}</p>
           </div>
           <Badge className={statusColors[chatEscalation.status]} data-testid="badge-escalation-status">{statusLabels[chatEscalation.status]}</Badge>
           {(chatEscalation.status === "pending" || chatEscalation.status === "admin_joined") && (
@@ -4877,17 +4877,17 @@ function EscalationsPanel({ token, autoOpenId }: { token: string; autoOpenId?: n
           )}
         </div>
 
-        <Card className="bg-[#0D1135] border-[#1E2448]">
-          <CardHeader className="py-2 px-4 border-b border-[#1E2448]">
-            <CardTitle className="text-sm text-gray-300">{t("adminPage.escalations.originalMessage")}</CardTitle>
+        <Card className="bg-card/80 border-border">
+          <CardHeader className="py-2 px-4 border-b border-border">
+            <CardTitle className="text-sm text-foreground/70">{t("adminPage.escalations.originalMessage")}</CardTitle>
           </CardHeader>
           <CardContent className="p-4">
-            <p className="text-gray-300 text-sm">{chatEscalation.userMessage}</p>
+            <p className="text-foreground/70 text-sm">{chatEscalation.userMessage}</p>
             {chatEscalation.chatHistory && Array.isArray(chatEscalation.chatHistory) && chatEscalation.chatHistory.length > 0 && (
-              <div className="mt-3 space-y-2 border-t border-[#1E2448] pt-3">
-                <p className="text-xs text-gray-500 mb-2">{t("adminPage.escalations.recentChatHistory")}:</p>
+              <div className="mt-3 space-y-2 border-t border-border pt-3">
+                <p className="text-xs text-muted-foreground/70 mb-2">{t("adminPage.escalations.recentChatHistory")}:</p>
                 {(chatEscalation.chatHistory as any[]).slice(-4).map((m: any, i: number) => (
-                  <div key={i} className={`text-xs p-2 rounded ${m.role === "user" ? "bg-blue-500/10 text-blue-300" : "bg-[#111633] text-gray-400"}`}>
+                  <div key={i} className={`text-xs p-2 rounded ${m.role === "user" ? "bg-blue-500/10 text-blue-300" : "bg-card text-muted-foreground"}`}>
                     <span className="font-medium">{m.role === "user" ? t("adminPage.escalations.customer") : t("adminPage.escalations.agentLabel")}:</span> {(m.content || "").slice(0, 200)}
                   </div>
                 ))}
@@ -4896,17 +4896,17 @@ function EscalationsPanel({ token, autoOpenId }: { token: string; autoOpenId?: n
           </CardContent>
         </Card>
 
-        <Card className="bg-[#0D1135] border-[#1E2448] flex flex-col" style={{ height: "400px" }}>
+        <Card className="bg-card/80 border-border flex flex-col" style={{ height: "400px" }}>
           <CardContent className="flex-1 overflow-y-auto p-4 space-y-3" data-testid="escalation-chat-messages">
             {chatMessages.length === 0 && (
-              <p className="text-center text-gray-500 text-sm py-8">{t("adminPage.escalations.noMessagesYet")}</p>
+              <p className="text-center text-muted-foreground/70 text-sm py-8">{t("adminPage.escalations.noMessagesYet")}</p>
             )}
             {chatMessages.map((msg: any) => (
               <div key={msg.id} className={`flex ${msg.senderType === "admin" ? "justify-end" : "justify-start"}`}>
                 <div className={`max-w-[75%] rounded-xl px-4 py-2.5 ${
                   msg.senderType === "admin"
                     ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-tr-md"
-                    : "bg-[#111633] text-gray-300 border border-[#1E2448] rounded-tl-md"
+                    : "bg-card text-foreground/70 border border-border rounded-tl-md"
                 }`} data-testid={`escalation-msg-${msg.id}`}>
                   <p className="text-xs font-medium mb-1 opacity-70">{msg.senderType === "admin" ? t("adminPage.escalations.admin") : t("adminPage.escalations.customer")}</p>
                   <p className="text-sm">{msg.content}</p>
@@ -4917,12 +4917,12 @@ function EscalationsPanel({ token, autoOpenId }: { token: string; autoOpenId?: n
             <div ref={chatEndRef} />
           </CardContent>
           {(chatEscalation.status === "pending" || chatEscalation.status === "admin_joined") && (
-            <div className="border-t border-[#1E2448] p-3 flex gap-2">
+            <div className="border-t border-border p-3 flex gap-2">
               <Input
                 value={adminMessage}
                 onChange={(e) => setAdminMessage(e.target.value)}
                 placeholder={t("adminPage.escalations.messagePlaceholder")}
-                className="bg-[#111633] border-[#1E2448] text-white"
+                className="bg-card border-border text-foreground"
                 onKeyDown={(e) => e.key === "Enter" && sendAdminMessage()}
                 data-testid="input-admin-message"
               />
@@ -4938,22 +4938,22 @@ function EscalationsPanel({ token, autoOpenId }: { token: string; autoOpenId?: n
 
   return (
     <div className="space-y-6" data-testid="escalations-panel">
-      <Card className="bg-[#0D1135] border-[#1E2448]">
+      <Card className="bg-card/80 border-border">
         <CardHeader>
-          <CardTitle className="text-white flex items-center gap-2"><AlertTriangle className="w-5 h-5 text-orange-400" /> {t("adminPage.escalations.rules")}</CardTitle>
-          <CardDescription className="text-gray-400">{t("adminPage.escalations.rulesDescription")}</CardDescription>
+          <CardTitle className="text-foreground flex items-center gap-2"><AlertTriangle className="w-5 h-5 text-orange-400" /> {t("adminPage.escalations.rules")}</CardTitle>
+          <CardDescription className="text-muted-foreground">{t("adminPage.escalations.rulesDescription")}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {rules.map(rule => (
-            <div key={rule.id} className="p-4 bg-[#111633] rounded-lg border border-[#1E2448]" data-testid={`rule-card-${rule.id}`}>
+            <div key={rule.id} className="p-4 bg-card rounded-lg border border-border" data-testid={`rule-card-${rule.id}`}>
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-3">
                   <button onClick={() => toggleRule(rule.id, rule.isActive)} data-testid={`toggle-rule-${rule.id}`}>
-                    {rule.isActive ? <ToggleRight className="w-8 h-5 text-green-400" /> : <ToggleLeft className="w-8 h-5 text-gray-500" />}
+                    {rule.isActive ? <ToggleRight className="w-8 h-5 text-green-400" /> : <ToggleLeft className="w-8 h-5 text-muted-foreground/70" />}
                   </button>
                   <div>
-                    <h4 className="text-white font-medium text-sm">{rule.name}</h4>
-                    <span className="text-xs text-gray-500">{reasonLabels[rule.type] || rule.type}</span>
+                    <h4 className="text-foreground font-medium text-sm">{rule.name}</h4>
+                    <span className="text-xs text-muted-foreground/70">{reasonLabels[rule.type] || rule.type}</span>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -4973,35 +4973,35 @@ function EscalationsPanel({ token, autoOpenId }: { token: string; autoOpenId?: n
 
               <div className="flex flex-wrap gap-1 mb-2">
                 {rule.keywords.slice(0, 8).map((kw: string, i: number) => (
-                  <span key={i} className="text-[10px] px-2 py-0.5 rounded-full bg-[#1a1f4a] text-gray-400 border border-[#2a2f5a]">{kw}</span>
+                  <span key={i} className="text-[10px] px-2 py-0.5 rounded-full bg-muted/70 text-muted-foreground border border-border/70">{kw}</span>
                 ))}
-                {rule.keywords.length > 8 && <span className="text-[10px] px-2 py-0.5 text-gray-500">+{rule.keywords.length - 8} more</span>}
+                {rule.keywords.length > 8 && <span className="text-[10px] px-2 py-0.5 text-muted-foreground/70">+{rule.keywords.length - 8} more</span>}
               </div>
 
               {editingRule === rule.id && (
-                <div className="mt-3 space-y-3 pt-3 border-t border-[#2a2f5a]">
+                <div className="mt-3 space-y-3 pt-3 border-t border-border/70">
                   <div>
-                    <label className="text-xs text-gray-400 mb-1 block">{t("adminPage.escalations.keywords")}</label>
+                    <label className="text-xs text-muted-foreground mb-1 block">{t("adminPage.escalations.keywords")}</label>
                     <textarea
                       value={editKeywords}
                       onChange={(e) => setEditKeywords(e.target.value)}
-                      className="w-full bg-[#0D1135] border border-[#1E2448] rounded-lg p-2 text-sm text-white min-h-[60px]"
+                      className="w-full bg-card/80 border border-border rounded-lg p-2 text-sm text-foreground min-h-[60px]"
                       data-testid={`input-keywords-${rule.id}`}
                     />
                   </div>
                   <div>
-                    <label className="text-xs text-gray-400 mb-1 block">{t("adminPage.escalations.escalationMessage")}</label>
+                    <label className="text-xs text-muted-foreground mb-1 block">{t("adminPage.escalations.escalationMessage")}</label>
                     <textarea
                       value={editMessage}
                       onChange={(e) => setEditMessage(e.target.value)}
-                      className="w-full bg-[#0D1135] border border-[#1E2448] rounded-lg p-2 text-sm text-white min-h-[60px]"
+                      className="w-full bg-card/80 border border-border rounded-lg p-2 text-sm text-foreground min-h-[60px]"
                       data-testid={`input-message-${rule.id}`}
                     />
                   </div>
                   {rule.type === "repeated_failure" && (
                     <div>
-                      <label className="text-xs text-gray-400 mb-1 block">{t("adminPage.escalations.threshold")}</label>
-                      <Input type="number" value={editThreshold} onChange={(e) => setEditThreshold(Number(e.target.value))} className="bg-[#0D1135] border-[#1E2448] text-white w-24" data-testid={`input-threshold-${rule.id}`} />
+                      <label className="text-xs text-muted-foreground mb-1 block">{t("adminPage.escalations.threshold")}</label>
+                      <Input type="number" value={editThreshold} onChange={(e) => setEditThreshold(Number(e.target.value))} className="bg-card/80 border-border text-foreground w-24" data-testid={`input-threshold-${rule.id}`} />
                     </div>
                   )}
                   <Button size="sm" onClick={() => saveRule(rule.id)} className="bg-blue-600 text-white" data-testid={`button-save-rule-${rule.id}`}>
@@ -5014,16 +5014,16 @@ function EscalationsPanel({ token, autoOpenId }: { token: string; autoOpenId?: n
         </CardContent>
       </Card>
 
-      <Card className="bg-[#0D1135] border-[#1E2448]">
+      <Card className="bg-card/80 border-border">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-white flex items-center gap-2"><MessageSquare className="w-5 h-5 text-blue-400" /> {t("adminPage.escalations.title")}</CardTitle>
-              <CardDescription className="text-gray-400">{t("adminPage.escalations.historyDescription")}</CardDescription>
+              <CardTitle className="text-foreground flex items-center gap-2"><MessageSquare className="w-5 h-5 text-blue-400" /> {t("adminPage.escalations.title")}</CardTitle>
+              <CardDescription className="text-muted-foreground">{t("adminPage.escalations.historyDescription")}</CardDescription>
             </div>
             <div className="flex items-center gap-2">
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-[140px] bg-[#111633] border-[#1E2448] text-white" data-testid="select-escalation-filter">
+                <SelectTrigger className="w-[140px] bg-card border-border text-foreground" data-testid="select-escalation-filter">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -5042,23 +5042,23 @@ function EscalationsPanel({ token, autoOpenId }: { token: string; autoOpenId?: n
         </CardHeader>
         <CardContent>
           {escalationsList.length === 0 ? (
-            <p className="text-gray-500 text-center py-8">{t("adminPage.escalations.noEscalations")}</p>
+            <p className="text-muted-foreground/70 text-center py-8">{t("adminPage.escalations.noEscalations")}</p>
           ) : (
             <div className="space-y-3">
               {escalationsList.map(esc => (
-                <div key={esc.id} className="p-4 bg-[#111633] rounded-lg border border-[#1E2448] flex items-center gap-4" data-testid={`escalation-row-${esc.id}`}>
+                <div key={esc.id} className="p-4 bg-card rounded-lg border border-border flex items-center gap-4" data-testid={`escalation-row-${esc.id}`}>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="text-white font-medium text-sm truncate">{esc.userName}</span>
-                      <span className="text-gray-500 text-xs">{esc.userEmail}</span>
+                      <span className="text-foreground font-medium text-sm truncate">{esc.userName}</span>
+                      <span className="text-muted-foreground/70 text-xs">{esc.userEmail}</span>
                     </div>
                     <div className="flex items-center gap-2 flex-wrap">
                       <Badge className={statusColors[esc.status]} data-testid={`badge-status-${esc.id}`}>{statusLabels[esc.status] || esc.status}</Badge>
-                      <span className="text-xs text-gray-500">{reasonLabels[esc.reason] || esc.reason}</span>
+                      <span className="text-xs text-muted-foreground/70">{reasonLabels[esc.reason] || esc.reason}</span>
                       <span className="text-xs text-gray-600">{esc.agentType}</span>
                       <span className="text-xs text-gray-600">{new Date(esc.createdAt).toLocaleDateString("tr-TR")} {new Date(esc.createdAt).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })}</span>
                     </div>
-                    <p className="text-xs text-gray-400 mt-1 truncate">{esc.userMessage}</p>
+                    <p className="text-xs text-muted-foreground mt-1 truncate">{esc.userMessage}</p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     {(esc.status === "pending" || esc.status === "admin_joined") && (
@@ -5066,7 +5066,7 @@ function EscalationsPanel({ token, autoOpenId }: { token: string; autoOpenId?: n
                         <Button size="sm" className="bg-gradient-to-r from-amber-500 to-orange-500 text-white" onClick={() => openChat(esc)} data-testid={`button-join-chat-${esc.id}`}>
                           <MessageSquare className="w-3.5 h-3.5 mr-1" /> {t("adminPage.escalations.joinChat")}
                         </Button>
-                        <Button size="sm" variant="ghost" className="text-gray-400 hover:text-red-400" onClick={() => dismissEscalation(esc.id)} data-testid={`button-dismiss-${esc.id}`}>
+                        <Button size="sm" variant="ghost" className="text-muted-foreground hover:text-red-400" onClick={() => dismissEscalation(esc.id)} data-testid={`button-dismiss-${esc.id}`}>
                           <XCircle className="w-3.5 h-3.5" />
                         </Button>
                       </>
@@ -5131,15 +5131,15 @@ function ABTestPanel({ token }: { token: string }) {
 
   const formatResponse = (text: string) => {
     return text.split("\n").map((line, i) => {
-      if (line.startsWith("# ")) return <h2 key={i} className="text-lg font-bold text-white mt-3 mb-1">{line.slice(2)}</h2>;
-      if (line.startsWith("## ")) return <h3 key={i} className="text-md font-semibold text-white mt-2 mb-1">{line.slice(3)}</h3>;
-      if (line.startsWith("- ") || line.startsWith("* ")) return <li key={i} className="text-gray-300 ml-4 list-disc text-sm">{line.slice(2)}</li>;
-      if (line.match(/^\d+\.\s/)) return <li key={i} className="text-gray-300 ml-4 list-decimal text-sm">{line.replace(/^\d+\.\s/, "")}</li>;
+      if (line.startsWith("# ")) return <h2 key={i} className="text-lg font-bold text-foreground mt-3 mb-1">{line.slice(2)}</h2>;
+      if (line.startsWith("## ")) return <h3 key={i} className="text-md font-semibold text-foreground mt-2 mb-1">{line.slice(3)}</h3>;
+      if (line.startsWith("- ") || line.startsWith("* ")) return <li key={i} className="text-foreground/70 ml-4 list-disc text-sm">{line.slice(2)}</li>;
+      if (line.match(/^\d+\.\s/)) return <li key={i} className="text-foreground/70 ml-4 list-decimal text-sm">{line.replace(/^\d+\.\s/, "")}</li>;
       if (line.trim() === "") return <br key={i} />;
       const parts = line.split(/\*\*(.*?)\*\*/g);
       return (
-        <p key={i} className="text-gray-300 text-sm">
-          {parts.map((part, j) => j % 2 === 1 ? <strong key={j} className="text-white">{part}</strong> : part)}
+        <p key={i} className="text-foreground/70 text-sm">
+          {parts.map((part, j) => j % 2 === 1 ? <strong key={j} className="text-foreground">{part}</strong> : part)}
         </p>
       );
     });
@@ -5152,19 +5152,19 @@ function ABTestPanel({ token }: { token: string }) {
     <div className="space-y-6">
       <Card className="bg-gradient-to-r from-orange-900/30 to-violet-900/30 border-orange-500/30">
         <CardHeader>
-          <CardTitle className="text-xl text-white flex items-center gap-2">
+          <CardTitle className="text-xl text-foreground flex items-center gap-2">
             <FlaskConical className="w-6 h-6 text-orange-400" />
             {t("adminPage.abTest.title")}
           </CardTitle>
-          <CardDescription className="text-gray-300">
+          <CardDescription className="text-foreground/70">
             {t("adminPage.abTest.description")}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <label className="text-sm text-gray-400 mb-2 block">{t("adminPage.abTest.agentContext")}</label>
+            <label className="text-sm text-muted-foreground mb-2 block">{t("adminPage.abTest.agentContext")}</label>
             <Select value={agentType} onValueChange={setAgentType}>
-              <SelectTrigger className="w-full max-w-xs bg-[#0A0E27] border-[#1E2448] text-white" data-testid="select-ab-agent">
+              <SelectTrigger className="w-full max-w-xs bg-background border-border text-foreground" data-testid="select-ab-agent">
                 <SelectValue placeholder={t("adminPage.abTest.generalNoAgent")} />
               </SelectTrigger>
               <SelectContent>
@@ -5179,7 +5179,7 @@ function ABTestPanel({ token }: { token: string }) {
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               placeholder={t("adminPage.abTest.promptPlaceholder")}
-              className="bg-[#0A0E27] border-[#1E2448] text-white flex-1"
+              className="bg-background border-border text-foreground flex-1"
               onKeyDown={(e) => e.key === "Enter" && !loading && runTest()}
               disabled={loading}
               data-testid="input-ab-prompt"
@@ -5206,9 +5206,9 @@ function ABTestPanel({ token }: { token: string }) {
 
       {results.length > 0 && (
         <>
-          <div className="p-3 bg-[#111633] rounded-lg border border-[#1E2448]">
-            <p className="text-xs text-gray-500">{t("adminPage.abTest.testPrompt")}:</p>
-            <p className="text-sm text-white font-medium">"{testedPrompt}"</p>
+          <div className="p-3 bg-card rounded-lg border border-border">
+            <p className="text-xs text-muted-foreground/70">{t("adminPage.abTest.testPrompt")}:</p>
+            <p className="text-sm text-foreground font-medium">"{testedPrompt}"</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -5235,18 +5235,18 @@ function ABTestPanel({ token }: { token: string }) {
                   ? (openaiResult.tokens < anthropicResult.tokens ? "openai" : "anthropic") : null,
               },
             ].map((metric) => (
-              <Card key={metric.label} className="bg-[#0A0E27] border-[#1E2448]">
+              <Card key={metric.label} className="bg-background border-border">
                 <CardContent className="p-4 text-center">
-                  <p className="text-xs text-gray-400 mb-2">{metric.label}</p>
+                  <p className="text-xs text-muted-foreground mb-2">{metric.label}</p>
                   <div className="flex items-center justify-center gap-4">
                     <div className={`${metric.winner === "openai" ? "ring-2 ring-green-500 rounded-lg" : ""} p-2`}>
                       <p className="text-xs text-green-400">OpenAI</p>
-                      <p className="text-lg font-bold text-white">{metric.openai}</p>
+                      <p className="text-lg font-bold text-foreground">{metric.openai}</p>
                     </div>
                     <span className="text-gray-600">{t("adminPage.abTest.vs")}</span>
                     <div className={`${metric.winner === "anthropic" ? "ring-2 ring-violet-500 rounded-lg" : ""} p-2`}>
                       <p className="text-xs text-violet-400">Anthropic</p>
-                      <p className="text-lg font-bold text-white">{metric.anthropic}</p>
+                      <p className="text-lg font-bold text-foreground">{metric.anthropic}</p>
                     </div>
                   </div>
                 </CardContent>
@@ -5257,11 +5257,11 @@ function ABTestPanel({ token }: { token: string }) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Card className="bg-green-900/10 border-green-700/30">
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm text-white flex items-center gap-2">
+                <CardTitle className="text-sm text-foreground flex items-center gap-2">
                   <Badge className="bg-green-900/50 text-green-300 border-green-700 text-xs">OpenAI</Badge>
-                  <span className="font-mono text-xs text-gray-400">{openaiResult?.model || "gpt-4o"}</span>
+                  <span className="font-mono text-xs text-muted-foreground">{openaiResult?.model || "gpt-4o"}</span>
                   {openaiResult && !openaiResult.error && (
-                    <span className="text-xs text-gray-500 ml-auto">{(openaiResult.latencyMs / 1000).toFixed(2)}s | ${openaiResult.cost.toFixed(4)}</span>
+                    <span className="text-xs text-muted-foreground/70 ml-auto">{(openaiResult.latencyMs / 1000).toFixed(2)}s | ${openaiResult.cost.toFixed(4)}</span>
                   )}
                 </CardTitle>
               </CardHeader>
@@ -5272,7 +5272,7 @@ function ABTestPanel({ token }: { token: string }) {
                   ) : openaiResult ? (
                     formatResponse(openaiResult.response)
                   ) : (
-                    <p className="text-gray-500 text-sm">{t("adminPage.abTest.noResult")}</p>
+                    <p className="text-muted-foreground/70 text-sm">{t("adminPage.abTest.noResult")}</p>
                   )}
                 </div>
               </CardContent>
@@ -5280,11 +5280,11 @@ function ABTestPanel({ token }: { token: string }) {
 
             <Card className="bg-violet-900/10 border-violet-700/30">
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm text-white flex items-center gap-2">
+                <CardTitle className="text-sm text-foreground flex items-center gap-2">
                   <Badge className="bg-violet-900/50 text-violet-300 border-violet-700 text-xs">Anthropic</Badge>
-                  <span className="font-mono text-xs text-gray-400">{anthropicResult?.model || "claude-sonnet-4-20250514"}</span>
+                  <span className="font-mono text-xs text-muted-foreground">{anthropicResult?.model || "claude-sonnet-4-20250514"}</span>
                   {anthropicResult && !anthropicResult.error && (
-                    <span className="text-xs text-gray-500 ml-auto">{(anthropicResult.latencyMs / 1000).toFixed(2)}s | ${anthropicResult.cost.toFixed(4)}</span>
+                    <span className="text-xs text-muted-foreground/70 ml-auto">{(anthropicResult.latencyMs / 1000).toFixed(2)}s | ${anthropicResult.cost.toFixed(4)}</span>
                   )}
                 </CardTitle>
               </CardHeader>
@@ -5295,7 +5295,7 @@ function ABTestPanel({ token }: { token: string }) {
                   ) : anthropicResult ? (
                     formatResponse(anthropicResult.response)
                   ) : (
-                    <p className="text-gray-500 text-sm">{t("adminPage.abTest.noResult")}</p>
+                    <p className="text-muted-foreground/70 text-sm">{t("adminPage.abTest.noResult")}</p>
                   )}
                 </div>
               </CardContent>
@@ -5410,13 +5410,13 @@ function AIProviderPanel({ token }: { token: string }) {
 
   return (
     <div className="space-y-6">
-      <Card className="bg-[#0A0E27] border-[#1E2448]">
+      <Card className="bg-background border-border">
         <CardHeader>
-          <CardTitle className="text-lg text-white flex items-center gap-2">
+          <CardTitle className="text-lg text-foreground flex items-center gap-2">
             <Bot className="w-5 h-5 text-violet-400" />
             {t("adminPage.aiProvider.settings")}
           </CardTitle>
-          <CardDescription className="text-gray-400">
+          <CardDescription className="text-muted-foreground">
             {t("adminPage.aiProvider.settingsDesc")}
           </CardDescription>
         </CardHeader>
@@ -5430,15 +5430,15 @@ function AIProviderPanel({ token }: { token: string }) {
             </div>
           )}
 
-          <div className="p-4 bg-[#111633] rounded-lg border border-[#1E2448]">
-            <h4 className="text-white font-medium mb-3 flex items-center gap-2">
+          <div className="p-4 bg-card rounded-lg border border-border">
+            <h4 className="text-foreground font-medium mb-3 flex items-center gap-2">
               <Cpu className="w-4 h-4 text-green-400" />
               {t("admin.nvidiaApiKeyTitle")}
               {nvidiaConfigured && (
                 <span className="text-xs text-green-400 bg-green-900/30 border border-green-800/50 px-2 py-0.5 rounded-full ml-auto">{t("admin.nvidiaConfigured")}</span>
               )}
             </h4>
-            <p className="text-gray-400 text-sm mb-3">
+            <p className="text-muted-foreground text-sm mb-3">
               {t("admin.nvidiaApiKeyDesc")} <a href="https://build.nvidia.com" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">build.nvidia.com</a> {t("admin.nvidiaGetApiKey")}
             </p>
             <div className="flex gap-2">
@@ -5448,32 +5448,32 @@ function AIProviderPanel({ token }: { token: string }) {
                   placeholder={nvidiaConfigured ? t("admin.nvidiaPlaceholderExisting") : "nvapi-xxxxxxxxxxxx"}
                   value={nvidiaApiKey}
                   onChange={(e) => setNvidiaApiKey(e.target.value)}
-                  className="bg-[#0A0E27] border-[#1E2448] text-white pr-10 font-mono text-sm"
+                  className="bg-background border-border text-foreground pr-10 font-mono text-sm"
                   data-testid="input-nvidia-api-key"
                 />
                 <button
                   type="button"
                   onClick={() => setShowNvidiaKey(!showNvidiaKey)}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                   data-testid="button-toggle-nvidia-key-visibility"
                 >
                   {showNvidiaKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
             </div>
-            <p className="text-gray-500 text-xs mt-2">{t("admin.nvidiaKeyNote")}</p>
+            <p className="text-muted-foreground/70 text-xs mt-2">{t("admin.nvidiaKeyNote")}</p>
           </div>
 
-          <div className="p-4 bg-[#111633] rounded-lg border border-[#1E2448]">
-            <h4 className="text-white font-medium mb-3 flex items-center gap-2">
+          <div className="p-4 bg-card rounded-lg border border-border">
+            <h4 className="text-foreground font-medium mb-3 flex items-center gap-2">
               <Zap className="w-4 h-4 text-blue-400" />
               {t("adminPage.aiProvider.defaultProvider")}
             </h4>
-            <p className="text-gray-400 text-sm mb-3">
+            <p className="text-muted-foreground text-sm mb-3">
               {t("adminPage.aiProvider.defaultProviderDesc")}
             </p>
             <Select value={defaultProvider} onValueChange={setDefaultProvider}>
-              <SelectTrigger className="w-full max-w-xs bg-[#0A0E27] border-[#1E2448] text-white" data-testid="select-default-provider">
+              <SelectTrigger className="w-full max-w-xs bg-background border-border text-foreground" data-testid="select-default-provider">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -5492,12 +5492,12 @@ function AIProviderPanel({ token }: { token: string }) {
             )}
           </div>
 
-          <div className="p-4 bg-[#111633] rounded-lg border border-[#1E2448]">
-            <h4 className="text-white font-medium mb-3 flex items-center gap-2">
+          <div className="p-4 bg-card rounded-lg border border-border">
+            <h4 className="text-foreground font-medium mb-3 flex items-center gap-2">
               <Shield className="w-4 h-4 text-emerald-400" />
               {t("admin.fallbackTitle")}
             </h4>
-            <p className="text-gray-400 text-sm mb-3">
+            <p className="text-muted-foreground text-sm mb-3">
               {t("admin.fallbackDesc")}
             </p>
             <div className="flex items-center gap-3">
@@ -5508,23 +5508,23 @@ function AIProviderPanel({ token }: { token: string }) {
               >
                 <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${fallbackEnabled ? "translate-x-6" : "translate-x-0.5"}`} />
               </button>
-              <span className={`text-sm ${fallbackEnabled ? "text-emerald-400" : "text-gray-500"}`}>
+              <span className={`text-sm ${fallbackEnabled ? "text-emerald-400" : "text-muted-foreground/70"}`}>
                 {fallbackEnabled ? t("admin.fallbackActive") : t("admin.fallbackDisabled")}
               </span>
             </div>
             {fallbackEnabled && (
-              <div className="mt-2 text-[11px] text-gray-500">
+              <div className="mt-2 text-[11px] text-muted-foreground/70">
                 {t("admin.fallbackExample")}
               </div>
             )}
           </div>
 
-          <div className="p-4 bg-[#111633] rounded-lg border border-[#1E2448]">
-            <h4 className="text-white font-medium mb-3 flex items-center gap-2">
+          <div className="p-4 bg-card rounded-lg border border-border">
+            <h4 className="text-foreground font-medium mb-3 flex items-center gap-2">
               <Brain className="w-4 h-4 text-violet-400" />
               {t("adminPage.aiProvider.perAgentOverride")}
             </h4>
-            <p className="text-gray-400 text-sm mb-3">
+            <p className="text-muted-foreground text-sm mb-3">
               {t("adminPage.aiProvider.perAgentDesc")}
             </p>
             <div className="mb-3 p-2 bg-yellow-900/20 border border-yellow-700/30 rounded-lg text-[11px] text-yellow-300/70">
@@ -5532,13 +5532,13 @@ function AIProviderPanel({ token }: { token: string }) {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {AGENTS_DATA.map(agent => (
-                <div key={agent.slug} className="flex items-center justify-between p-3 bg-[#0A0E27] rounded-lg border border-[#1E2448]" data-testid={`agent-provider-${agent.slug}`}>
-                  <span className="text-white text-sm font-medium">{`${agent.persona} — ${t("adminPage.agents." + agent.roleKey)}`}</span>
+                <div key={agent.slug} className="flex items-center justify-between p-3 bg-background rounded-lg border border-border" data-testid={`agent-provider-${agent.slug}`}>
+                  <span className="text-foreground text-sm font-medium">{`${agent.persona} — ${t("adminPage.agents." + agent.roleKey)}`}</span>
                   <Select
                     value={agentProviders[agent.slug] || "default"}
                     onValueChange={(val) => handleAgentProviderChange(agent.slug, val)}
                   >
-                    <SelectTrigger className="w-[180px] bg-[#111633] border-[#1E2448] text-white text-xs h-8" data-testid={`select-provider-${agent.slug}`}>
+                    <SelectTrigger className="w-[180px] bg-card border-border text-foreground text-xs h-8" data-testid={`select-provider-${agent.slug}`}>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -5554,35 +5554,35 @@ function AIProviderPanel({ token }: { token: string }) {
             </div>
           </div>
 
-          <div className="p-4 bg-[#111633] rounded-lg border border-[#1E2448]">
-            <h4 className="text-white font-medium mb-3">{t("adminPage.aiProvider.modelInfo")}</h4>
+          <div className="p-4 bg-card rounded-lg border border-border">
+            <h4 className="text-foreground font-medium mb-3">{t("adminPage.aiProvider.modelInfo")}</h4>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <div className="p-3 bg-[#0A0E27] rounded-lg border border-[#1E2448]">
+              <div className="p-3 bg-background rounded-lg border border-border">
                 <div className="flex items-center gap-2 mb-2">
                   <Badge className="bg-green-900/30 text-green-400 border-green-800 text-xs">OpenAI</Badge>
                 </div>
-                <ul className="space-y-1 text-xs text-gray-400">
-                  <li><span className="text-white">{t("adminPage.aiProvider.gpt4o")}:</span> $2.50/1M input, $10.00/1M output</li>
-                  <li><span className="text-white">{t("adminPage.aiProvider.gpt4oMini")}:</span> $0.15/1M input, $0.60/1M output</li>
+                <ul className="space-y-1 text-xs text-muted-foreground">
+                  <li><span className="text-foreground">{t("adminPage.aiProvider.gpt4o")}:</span> $2.50/1M input, $10.00/1M output</li>
+                  <li><span className="text-foreground">{t("adminPage.aiProvider.gpt4oMini")}:</span> $0.15/1M input, $0.60/1M output</li>
                 </ul>
               </div>
-              <div className="p-3 bg-[#0A0E27] rounded-lg border border-[#1E2448]">
+              <div className="p-3 bg-background rounded-lg border border-border">
                 <div className="flex items-center gap-2 mb-2">
                   <Badge className="bg-violet-900/30 text-violet-400 border-violet-800 text-xs">Anthropic</Badge>
                 </div>
-                <ul className="space-y-1 text-xs text-gray-400">
-                  <li><span className="text-white">{t("adminPage.aiProvider.claudeSonnet4")}:</span> $3.00/1M input, $15.00/1M output</li>
-                  <li><span className="text-white">{t("adminPage.aiProvider.claude3Haiku")}:</span> $0.25/1M input, $1.25/1M output</li>
+                <ul className="space-y-1 text-xs text-muted-foreground">
+                  <li><span className="text-foreground">{t("adminPage.aiProvider.claudeSonnet4")}:</span> $3.00/1M input, $15.00/1M output</li>
+                  <li><span className="text-foreground">{t("adminPage.aiProvider.claude3Haiku")}:</span> $0.25/1M input, $1.25/1M output</li>
                 </ul>
               </div>
-              <div className="p-3 bg-[#0A0E27] rounded-lg border border-[#1E2448]">
+              <div className="p-3 bg-background rounded-lg border border-border">
                 <div className="flex items-center gap-2 mb-2">
                   <Badge className="bg-green-900/30 text-green-400 border-green-800 text-xs">NVIDIA</Badge>
                 </div>
-                <ul className="space-y-1 text-xs text-gray-400">
-                  <li><span className="text-white">Nemotron 70B:</span> $0.35/1M input, $0.40/1M output</li>
-                  <li><span className="text-white">Nemotron Ultra 253B:</span> $0.60/1M input, $2.40/1M output</li>
-                  <li><span className="text-white">Nemotron 340B:</span> $4.20/1M input, $4.20/1M output</li>
+                <ul className="space-y-1 text-xs text-muted-foreground">
+                  <li><span className="text-foreground">Nemotron 70B:</span> $0.35/1M input, $0.40/1M output</li>
+                  <li><span className="text-foreground">Nemotron Ultra 253B:</span> $0.60/1M input, $2.40/1M output</li>
+                  <li><span className="text-foreground">Nemotron 340B:</span> $4.20/1M input, $4.20/1M output</li>
                 </ul>
               </div>
             </div>
@@ -5599,13 +5599,13 @@ function AIProviderPanel({ token }: { token: string }) {
         </CardContent>
       </Card>
 
-      <Card className="bg-[#0A0E27] border-[#1E2448]">
+      <Card className="bg-background border-border">
         <CardHeader>
-          <CardTitle className="text-lg text-white flex items-center gap-2">
+          <CardTitle className="text-lg text-foreground flex items-center gap-2">
             <BarChart3 className="w-5 h-5 text-blue-400" />
             {t("admin.providerCostComparison")}
           </CardTitle>
-          <CardDescription className="text-gray-400">
+          <CardDescription className="text-muted-foreground">
             {t("admin.providerCostDesc")}
           </CardDescription>
         </CardHeader>
@@ -5615,26 +5615,26 @@ function AIProviderPanel({ token }: { token: string }) {
               <Loader2 className="w-6 h-6 animate-spin text-blue-400" />
             </div>
           ) : !statsData ? (
-            <p className="text-gray-500 text-sm text-center py-6">{t("admin.noDataFound")}</p>
+            <p className="text-muted-foreground/70 text-sm text-center py-6">{t("admin.noDataFound")}</p>
           ) : (
             <div className="space-y-5">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="p-4 bg-[#111633] rounded-lg border border-green-800/30" data-testid="stats-openai">
+                <div className="p-4 bg-card rounded-lg border border-green-800/30" data-testid="stats-openai">
                   <div className="flex items-center gap-2 mb-3">
                     <Badge className="bg-green-900/30 text-green-400 border-green-800 text-xs">OpenAI</Badge>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <p className="text-[11px] text-gray-500 uppercase tracking-wider">{t("admin.totalCost")}</p>
+                      <p className="text-[11px] text-muted-foreground/70 uppercase tracking-wider">{t("admin.totalCost")}</p>
                       <p className="text-xl font-bold text-green-400">${openaiTotal.toFixed(4)}</p>
                     </div>
                     <div>
-                      <p className="text-[11px] text-gray-500 uppercase tracking-wider">{t("admin.requestCount")}</p>
-                      <p className="text-xl font-bold text-white">{openaiRequests.toLocaleString()}</p>
+                      <p className="text-[11px] text-muted-foreground/70 uppercase tracking-wider">{t("admin.requestCount")}</p>
+                      <p className="text-xl font-bold text-foreground">{openaiRequests.toLocaleString()}</p>
                     </div>
                   </div>
                   {openaiRequests > 0 && (
-                    <p className="text-[11px] text-gray-500 mt-2">
+                    <p className="text-[11px] text-muted-foreground/70 mt-2">
                       {t("admin.avgPerRequest", { value: (openaiTotal / openaiRequests).toFixed(6) })}
                     </p>
                   )}
@@ -5642,30 +5642,30 @@ function AIProviderPanel({ token }: { token: string }) {
                     <div className="mt-3 space-y-1">
                       {openaiStats.map((s: any, i: number) => (
                         <div key={i} className="flex justify-between text-[11px]">
-                          <span className="text-gray-400">{s.model}</span>
-                          <span className="text-white">{t("admin.requestsCount", { count: s.request_count })} · ${parseFloat(s.total_cost || "0").toFixed(4)}</span>
+                          <span className="text-muted-foreground">{s.model}</span>
+                          <span className="text-foreground">{t("admin.requestsCount", { count: s.request_count })} · ${parseFloat(s.total_cost || "0").toFixed(4)}</span>
                         </div>
                       ))}
                     </div>
                   )}
                 </div>
 
-                <div className="p-4 bg-[#111633] rounded-lg border border-violet-800/30" data-testid="stats-anthropic">
+                <div className="p-4 bg-card rounded-lg border border-violet-800/30" data-testid="stats-anthropic">
                   <div className="flex items-center gap-2 mb-3">
                     <Badge className="bg-violet-900/30 text-violet-400 border-violet-800 text-xs">Anthropic</Badge>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <p className="text-[11px] text-gray-500 uppercase tracking-wider">{t("admin.totalCost")}</p>
+                      <p className="text-[11px] text-muted-foreground/70 uppercase tracking-wider">{t("admin.totalCost")}</p>
                       <p className="text-xl font-bold text-violet-400">${anthropicTotal.toFixed(4)}</p>
                     </div>
                     <div>
-                      <p className="text-[11px] text-gray-500 uppercase tracking-wider">{t("admin.requestCount")}</p>
-                      <p className="text-xl font-bold text-white">{anthropicRequests.toLocaleString()}</p>
+                      <p className="text-[11px] text-muted-foreground/70 uppercase tracking-wider">{t("admin.requestCount")}</p>
+                      <p className="text-xl font-bold text-foreground">{anthropicRequests.toLocaleString()}</p>
                     </div>
                   </div>
                   {anthropicRequests > 0 && (
-                    <p className="text-[11px] text-gray-500 mt-2">
+                    <p className="text-[11px] text-muted-foreground/70 mt-2">
                       {t("admin.avgPerRequest", { value: (anthropicTotal / anthropicRequests).toFixed(6) })}
                     </p>
                   )}
@@ -5673,30 +5673,30 @@ function AIProviderPanel({ token }: { token: string }) {
                     <div className="mt-3 space-y-1">
                       {anthropicStats.map((s: any, i: number) => (
                         <div key={i} className="flex justify-between text-[11px]">
-                          <span className="text-gray-400">{s.model}</span>
-                          <span className="text-white">{t("admin.requestsCount", { count: s.request_count })} · ${parseFloat(s.total_cost || "0").toFixed(4)}</span>
+                          <span className="text-muted-foreground">{s.model}</span>
+                          <span className="text-foreground">{t("admin.requestsCount", { count: s.request_count })} · ${parseFloat(s.total_cost || "0").toFixed(4)}</span>
                         </div>
                       ))}
                     </div>
                   )}
                 </div>
 
-                <div className="p-4 bg-[#111633] rounded-lg border border-green-800/30" data-testid="stats-nvidia">
+                <div className="p-4 bg-card rounded-lg border border-green-800/30" data-testid="stats-nvidia">
                   <div className="flex items-center gap-2 mb-3">
                     <Badge className="bg-green-900/30 text-green-400 border-green-800 text-xs">NVIDIA</Badge>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <p className="text-[11px] text-gray-500 uppercase tracking-wider">{t("admin.totalCost")}</p>
+                      <p className="text-[11px] text-muted-foreground/70 uppercase tracking-wider">{t("admin.totalCost")}</p>
                       <p className="text-xl font-bold text-green-400">${nvidiaTotal.toFixed(4)}</p>
                     </div>
                     <div>
-                      <p className="text-[11px] text-gray-500 uppercase tracking-wider">{t("admin.requestCount")}</p>
-                      <p className="text-xl font-bold text-white">{nvidiaRequests.toLocaleString()}</p>
+                      <p className="text-[11px] text-muted-foreground/70 uppercase tracking-wider">{t("admin.requestCount")}</p>
+                      <p className="text-xl font-bold text-foreground">{nvidiaRequests.toLocaleString()}</p>
                     </div>
                   </div>
                   {nvidiaRequests > 0 && (
-                    <p className="text-[11px] text-gray-500 mt-2">
+                    <p className="text-[11px] text-muted-foreground/70 mt-2">
                       {t("admin.avgPerRequest", { value: (nvidiaTotal / nvidiaRequests).toFixed(6) })}
                     </p>
                   )}
@@ -5704,8 +5704,8 @@ function AIProviderPanel({ token }: { token: string }) {
                     <div className="mt-3 space-y-1">
                       {nvidiaStats.map((s: any, i: number) => (
                         <div key={i} className="flex justify-between text-[11px]">
-                          <span className="text-gray-400">{s.model}</span>
-                          <span className="text-white">{t("admin.requestsCount", { count: s.request_count })} · ${parseFloat(s.total_cost || "0").toFixed(4)}</span>
+                          <span className="text-muted-foreground">{s.model}</span>
+                          <span className="text-foreground">{t("admin.requestsCount", { count: s.request_count })} · ${parseFloat(s.total_cost || "0").toFixed(4)}</span>
                         </div>
                       ))}
                     </div>
@@ -5719,9 +5719,9 @@ function AIProviderPanel({ token }: { token: string }) {
               {(openaiRequests > 0 || anthropicRequests > 0 || nvidiaRequests > 0) && (() => {
                 const totalAll = openaiTotal + anthropicTotal + nvidiaTotal;
                 return totalAll > 0 ? (
-                <div className="p-4 bg-[#111633] rounded-lg border border-[#1E2448]">
-                  <h5 className="text-white text-sm font-medium mb-3">{t("admin.costDistribution")}</h5>
-                  <div className="h-3 bg-[#0A0E27] rounded-full overflow-hidden flex">
+                <div className="p-4 bg-card rounded-lg border border-border">
+                  <h5 className="text-foreground text-sm font-medium mb-3">{t("admin.costDistribution")}</h5>
+                  <div className="h-3 bg-background rounded-full overflow-hidden flex">
                     <div
                       className="h-full bg-gradient-to-r from-green-500 to-green-600 transition-all"
                       style={{ width: `${(openaiTotal / totalAll) * 100}%` }}
@@ -5745,14 +5745,14 @@ function AIProviderPanel({ token }: { token: string }) {
               })()}
 
               {statsData.byAgent && statsData.byAgent.length > 0 && (
-                <div className="p-4 bg-[#111633] rounded-lg border border-[#1E2448]">
-                  <h5 className="text-white text-sm font-medium mb-3">{t("admin.agentBasedUsage")}</h5>
+                <div className="p-4 bg-card rounded-lg border border-border">
+                  <h5 className="text-foreground text-sm font-medium mb-3">{t("admin.agentBasedUsage")}</h5>
                   <div className="space-y-2">
                     {Array.from(new Set(statsData.byAgent.map((r: any) => r.agent_type))).map((agentType: any) => {
                       const agentRows = statsData.byAgent.filter((r: any) => r.agent_type === agentType);
                       return (
-                        <div key={agentType} className="flex items-center justify-between p-2 bg-[#0A0E27] rounded-lg" data-testid={`stats-agent-${agentType}`}>
-                          <span className="text-white text-xs font-medium capitalize">{agentType.replace(/-/g, " ")}</span>
+                        <div key={agentType} className="flex items-center justify-between p-2 bg-background rounded-lg" data-testid={`stats-agent-${agentType}`}>
+                          <span className="text-foreground text-xs font-medium capitalize">{agentType.replace(/-/g, " ")}</span>
                           <div className="flex gap-2">
                             {agentRows.map((r: any, i: number) => (
                               <Badge key={i} className={`text-[10px] ${r.provider === "anthropic" ? "bg-violet-900/30 text-violet-400 border-violet-800" : "bg-green-900/30 text-green-400 border-green-800"}`}>
@@ -5819,7 +5819,7 @@ function BehaviorAnalyticsPanel({ token }: { token: string }) {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+        <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
           <BarChart3 className="w-5 h-5 text-cyan-400" />
           {t("adminPage.analytics.title")}
         </h3>
@@ -5830,7 +5830,7 @@ function BehaviorAnalyticsPanel({ token }: { token: string }) {
               size="sm"
               variant={period === p ? "default" : "outline"}
               onClick={() => setPeriod(p)}
-              className={period === p ? "bg-cyan-600 hover:bg-cyan-700 text-white" : "border-[#1E2448] text-gray-400"}
+              className={period === p ? "bg-cyan-600 hover:bg-cyan-700 text-foreground" : "border-border text-muted-foreground"}
               data-testid={`button-analytics-period-${p}`}
             >
               {periodLabels[p]}
@@ -5843,59 +5843,59 @@ function BehaviorAnalyticsPanel({ token }: { token: string }) {
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <Card className="bg-[#0A0E27] border-[#1E2448]">
+        <Card className="bg-background border-border">
           <CardContent className="p-4 text-center">
             <p className="text-2xl font-bold text-cyan-400">{data?.activeUsers || 0}</p>
-            <p className="text-xs text-gray-400 mt-1">{t("adminPage.analytics.activeUsers")}</p>
+            <p className="text-xs text-muted-foreground mt-1">{t("adminPage.analytics.activeUsers")}</p>
           </CardContent>
         </Card>
-        <Card className="bg-[#0A0E27] border-[#1E2448]">
+        <Card className="bg-background border-border">
           <CardContent className="p-4 text-center">
             <p className="text-2xl font-bold text-blue-400">{data?.totalPageViews || 0}</p>
-            <p className="text-xs text-gray-400 mt-1">{t("adminPage.analytics.totalPageViews")}</p>
+            <p className="text-xs text-muted-foreground mt-1">{t("adminPage.analytics.totalPageViews")}</p>
           </CardContent>
         </Card>
-        <Card className="bg-[#0A0E27] border-[#1E2448]">
+        <Card className="bg-background border-border">
           <CardContent className="p-4 text-center">
             <p className="text-2xl font-bold text-violet-400">{data?.totalEvents || 0}</p>
-            <p className="text-xs text-gray-400 mt-1">{t("adminPage.analytics.totalEvents")}</p>
+            <p className="text-xs text-muted-foreground mt-1">{t("adminPage.analytics.totalEvents")}</p>
           </CardContent>
         </Card>
-        <Card className="bg-[#0A0E27] border-[#1E2448]">
+        <Card className="bg-background border-border">
           <CardContent className="p-4 text-center">
             <p className="text-2xl font-bold text-emerald-400">{conversionRate}%</p>
-            <p className="text-xs text-gray-400 mt-1">{t("adminPage.analytics.conversionRate")}</p>
+            <p className="text-xs text-muted-foreground mt-1">{t("adminPage.analytics.conversionRate")}</p>
           </CardContent>
         </Card>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card className="bg-[#0A0E27] border-[#1E2448]">
+        <Card className="bg-background border-border">
           <CardHeader>
-            <CardTitle className="text-sm text-white">{t("adminPage.analytics.popularPages")}</CardTitle>
+            <CardTitle className="text-sm text-foreground">{t("adminPage.analytics.popularPages")}</CardTitle>
           </CardHeader>
           <CardContent>
             {data?.popularPages?.length > 0 ? (
               <div className="space-y-2 max-h-[300px] overflow-y-auto">
                 {data.popularPages.map((p: any, i: number) => (
-                  <div key={i} className="flex items-center justify-between p-2 bg-[#111633] rounded border border-[#1E2448]">
-                    <span className="text-sm text-white truncate flex-1 mr-2">{p.path}</span>
+                  <div key={i} className="flex items-center justify-between p-2 bg-card rounded border border-border">
+                    <span className="text-sm text-foreground truncate flex-1 mr-2">{p.path}</span>
                     <div className="flex items-center gap-3 shrink-0">
                       <Badge variant="outline" className="border-cyan-800 text-cyan-400 text-xs">{p.views} {t("adminPage.analytics.views")}</Badge>
-                      <span className="text-xs text-gray-500">{p.unique_users} {t("adminPage.analytics.uniqueUsers")}</span>
+                      <span className="text-xs text-muted-foreground/70">{p.unique_users} {t("adminPage.analytics.uniqueUsers")}</span>
                     </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-gray-500 text-center py-4 text-sm">{t("adminPage.analytics.noData")}</p>
+              <p className="text-muted-foreground/70 text-center py-4 text-sm">{t("adminPage.analytics.noData")}</p>
             )}
           </CardContent>
         </Card>
 
-        <Card className="bg-[#0A0E27] border-[#1E2448]">
+        <Card className="bg-background border-border">
           <CardHeader>
-            <CardTitle className="text-sm text-white">{t("adminPage.analytics.topAgents")}</CardTitle>
+            <CardTitle className="text-sm text-foreground">{t("adminPage.analytics.topAgents")}</CardTitle>
           </CardHeader>
           <CardContent>
             {data?.agentUsage?.length > 0 ? (
@@ -5903,44 +5903,44 @@ function BehaviorAnalyticsPanel({ token }: { token: string }) {
                 {data.agentUsage.map((a: any, i: number) => {
                   const agentName = AGENTS_DATA.find(ag => ag.slug === a.agent_type)?.persona || a.agent_type;
                   return (
-                    <div key={i} className="flex items-center justify-between p-2 bg-[#111633] rounded border border-[#1E2448]">
-                      <span className="text-sm text-white">{agentName}</span>
+                    <div key={i} className="flex items-center justify-between p-2 bg-card rounded border border-border">
+                      <span className="text-sm text-foreground">{agentName}</span>
                       <div className="flex items-center gap-3">
                         <Badge variant="outline" className="border-violet-800 text-violet-400 text-xs">{a.event_count} {t("adminPage.analytics.events")}</Badge>
-                        <span className="text-xs text-gray-500">{a.unique_users} {t("adminPage.analytics.users")}</span>
+                        <span className="text-xs text-muted-foreground/70">{a.unique_users} {t("adminPage.analytics.users")}</span>
                       </div>
                     </div>
                   );
                 })}
               </div>
             ) : (
-              <p className="text-gray-500 text-center py-4 text-sm">{t("adminPage.analytics.noData")}</p>
+              <p className="text-muted-foreground/70 text-center py-4 text-sm">{t("adminPage.analytics.noData")}</p>
             )}
           </CardContent>
         </Card>
       </div>
 
-      <Card className="bg-[#0A0E27] border-[#1E2448]">
+      <Card className="bg-background border-border">
         <CardHeader>
-          <CardTitle className="text-sm text-white">{t("adminPage.analytics.topEvents")}</CardTitle>
+          <CardTitle className="text-sm text-foreground">{t("adminPage.analytics.topEvents")}</CardTitle>
         </CardHeader>
         <CardContent>
           {data?.topEvents?.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-[#1E2448]">
-                    <th className="text-left p-2 text-gray-400">{t("adminPage.analytics.eventName")}</th>
-                    <th className="text-left p-2 text-gray-400">{t("adminPage.analytics.category")}</th>
-                    <th className="text-center p-2 text-gray-400">{t("adminPage.analytics.count")}</th>
+                  <tr className="border-b border-border">
+                    <th className="text-left p-2 text-muted-foreground">{t("adminPage.analytics.eventName")}</th>
+                    <th className="text-left p-2 text-muted-foreground">{t("adminPage.analytics.category")}</th>
+                    <th className="text-center p-2 text-muted-foreground">{t("adminPage.analytics.count")}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {data.topEvents.map((ev: any, i: number) => (
-                    <tr key={i} className="border-b border-[#1E2448]/50">
-                      <td className="p-2 text-white">{ev.event_name}</td>
+                    <tr key={i} className="border-b border-border/50">
+                      <td className="p-2 text-foreground">{ev.event_name}</td>
                       <td className="p-2">
-                        <Badge variant="outline" className="border-[#1E2448] text-gray-300 text-xs">{ev.event_category}</Badge>
+                        <Badge variant="outline" className="border-border text-foreground/70 text-xs">{ev.event_category}</Badge>
                       </td>
                       <td className="p-2 text-center text-cyan-400">{ev.count}</td>
                     </tr>
@@ -5949,45 +5949,45 @@ function BehaviorAnalyticsPanel({ token }: { token: string }) {
               </table>
             </div>
           ) : (
-            <p className="text-gray-500 text-center py-4 text-sm">{t("adminPage.analytics.noData")}</p>
+            <p className="text-muted-foreground/70 text-center py-4 text-sm">{t("adminPage.analytics.noData")}</p>
           )}
         </CardContent>
       </Card>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <Card className="bg-[#0A0E27] border-[#1E2448]">
+        <Card className="bg-background border-border">
           <CardContent className="p-4 text-center">
             <p className="text-2xl font-bold text-orange-400">{data?.avgSessionDuration || 0}s</p>
-            <p className="text-xs text-gray-400 mt-1">{t("adminPage.analytics.avgDuration")}</p>
+            <p className="text-xs text-muted-foreground mt-1">{t("adminPage.analytics.avgDuration")}</p>
           </CardContent>
         </Card>
       </div>
 
       {data?.userFlows?.length > 0 && (
-        <Card className="bg-[#0A0E27] border-[#1E2448]">
+        <Card className="bg-background border-border">
           <CardHeader>
-            <CardTitle className="text-sm text-white">{t("adminPage.analytics.userFlows")}</CardTitle>
+            <CardTitle className="text-sm text-foreground">{t("adminPage.analytics.userFlows")}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-2 max-h-[300px] overflow-y-auto">
               {data.userFlows.map((f: any, i: number) => (
-                <div key={i} className="flex items-center gap-2 p-2 bg-[#111633] rounded border border-[#1E2448]">
+                <div key={i} className="flex items-center gap-2 p-2 bg-card rounded border border-border">
                   <span className="text-sm text-cyan-400 truncate flex-1">{f.from_path}</span>
-                  <span className="text-gray-500">→</span>
+                  <span className="text-muted-foreground/70">→</span>
                   <span className="text-sm text-blue-400 truncate flex-1">{f.to_path}</span>
-                  <Badge variant="outline" className="border-[#1E2448] text-gray-300 text-xs shrink-0">{f.transitions}x</Badge>
+                  <Badge variant="outline" className="border-border text-foreground/70 text-xs shrink-0">{f.transitions}x</Badge>
                 </div>
               ))}
             </div>
-            <p className="text-xs text-gray-500 mt-2">{t("adminPage.analytics.flowsLegend")}</p>
+            <p className="text-xs text-muted-foreground/70 mt-2">{t("adminPage.analytics.flowsLegend")}</p>
           </CardContent>
         </Card>
       )}
 
       {data?.dailyActive?.length > 0 && (
-        <Card className="bg-[#0A0E27] border-[#1E2448]">
+        <Card className="bg-background border-border">
           <CardHeader>
-            <CardTitle className="text-sm text-white">{t("adminPage.analytics.dailyActivity")}</CardTitle>
+            <CardTitle className="text-sm text-foreground">{t("adminPage.analytics.dailyActivity")}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-1 max-h-[200px] overflow-y-auto">
@@ -5996,37 +5996,37 @@ function BehaviorAnalyticsPanel({ token }: { token: string }) {
                 const barWidth = Math.max(5, (d.total_views / maxViews) * 100);
                 return (
                   <div key={i} className="flex items-center gap-3">
-                    <span className="text-xs text-gray-400 w-20 shrink-0">{new Date(d.date).toLocaleDateString()}</span>
-                    <div className="flex-1 h-5 bg-[#111633] rounded overflow-hidden">
+                    <span className="text-xs text-muted-foreground w-20 shrink-0">{new Date(d.date).toLocaleDateString()}</span>
+                    <div className="flex-1 h-5 bg-card rounded overflow-hidden">
                       <div className="h-full bg-gradient-to-r from-cyan-500 to-blue-500 rounded" style={{ width: `${barWidth}%` }} />
                     </div>
-                    <span className="text-xs text-white w-16 text-right shrink-0">{d.active_users} / {d.total_views}</span>
+                    <span className="text-xs text-foreground w-16 text-right shrink-0">{d.active_users} / {d.total_views}</span>
                   </div>
                 );
               })}
             </div>
-            <p className="text-xs text-gray-500 mt-2">{t("adminPage.analytics.dailyLegend")}</p>
+            <p className="text-xs text-muted-foreground/70 mt-2">{t("adminPage.analytics.dailyLegend")}</p>
           </CardContent>
         </Card>
       )}
 
-      <Card className="bg-[#0A0E27] border-[#1E2448]">
+      <Card className="bg-background border-border">
         <CardHeader>
-          <CardTitle className="text-sm text-white">{t("adminPage.analytics.conversionFunnel")}</CardTitle>
+          <CardTitle className="text-sm text-foreground">{t("adminPage.analytics.conversionFunnel")}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="p-4 bg-[#111633] rounded-lg border border-[#1E2448] text-center">
+            <div className="p-4 bg-card rounded-lg border border-border text-center">
               <p className="text-xl font-bold text-blue-400">{data?.conversion?.new_users || 0}</p>
-              <p className="text-xs text-gray-400 mt-1">{t("adminPage.analytics.newUsers")}</p>
+              <p className="text-xs text-muted-foreground mt-1">{t("adminPage.analytics.newUsers")}</p>
             </div>
-            <div className="p-4 bg-[#111633] rounded-lg border border-[#1E2448] text-center">
+            <div className="p-4 bg-card rounded-lg border border-border text-center">
               <p className="text-xl font-bold text-emerald-400">{data?.conversion?.users_with_rentals || 0}</p>
-              <p className="text-xs text-gray-400 mt-1">{t("adminPage.analytics.usersWithRentals")}</p>
+              <p className="text-xs text-muted-foreground mt-1">{t("adminPage.analytics.usersWithRentals")}</p>
             </div>
-            <div className="p-4 bg-[#111633] rounded-lg border border-[#1E2448] text-center">
+            <div className="p-4 bg-card rounded-lg border border-border text-center">
               <p className="text-xl font-bold text-yellow-400">{conversionRate}%</p>
-              <p className="text-xs text-gray-400 mt-1">{t("adminPage.analytics.conversionRateLabel")}</p>
+              <p className="text-xs text-muted-foreground mt-1">{t("adminPage.analytics.conversionRateLabel")}</p>
             </div>
           </div>
         </CardContent>
@@ -6073,32 +6073,32 @@ function ConsentStatsPanel({ token }: { token: string }) {
     <div className="space-y-6">
       <Card className="bg-gradient-to-r from-green-900/50 to-emerald-900/50 border-green-500/30">
         <CardHeader>
-          <CardTitle className="text-xl text-white flex items-center gap-2">
+          <CardTitle className="text-xl text-foreground flex items-center gap-2">
             <Shield className="w-5 h-5 text-green-400" />
             {t("adminPage.consentStats.title")}
           </CardTitle>
-          <CardDescription className="text-gray-300">
+          <CardDescription className="text-foreground/70">
             {t("adminPage.consentStats.description")}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div>
-            <h3 className="text-sm font-medium text-gray-300 mb-3">{t("adminPage.consentStats.userConsentOverview")}</h3>
+            <h3 className="text-sm font-medium text-foreground/70 mb-3">{t("adminPage.consentStats.userConsentOverview")}</h3>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="p-4 bg-[#0A0E27] rounded-lg border border-[#1E2448] text-center">
-                <p className="text-2xl font-bold text-white">{userConsent.totalUsers}</p>
-                <p className="text-xs text-gray-400 mt-1">{t("adminPage.consentStats.totalUsers")}</p>
+              <div className="p-4 bg-background rounded-lg border border-border text-center">
+                <p className="text-2xl font-bold text-foreground">{userConsent.totalUsers}</p>
+                <p className="text-xs text-muted-foreground mt-1">{t("adminPage.consentStats.totalUsers")}</p>
               </div>
-              <div className="p-4 bg-[#0A0E27] rounded-lg border border-[#1E2448] text-center">
+              <div className="p-4 bg-background rounded-lg border border-border text-center">
                 <p className="text-2xl font-bold text-green-400">{userConsent.cookieConsent}</p>
-                <p className="text-xs text-gray-400 mt-1">{t("adminPage.consentStats.cookieConsent")}</p>
+                <p className="text-xs text-muted-foreground mt-1">{t("adminPage.consentStats.cookieConsent")}</p>
                 <p className="text-xs text-emerald-500 mt-0.5">
                   {userConsent.totalUsers > 0 ? `${Math.round((userConsent.cookieConsent / userConsent.totalUsers) * 100)}%` : "0%"} {t("adminPage.consentStats.consentRate")}
                 </p>
               </div>
-              <div className="p-4 bg-[#0A0E27] rounded-lg border border-[#1E2448] text-center">
+              <div className="p-4 bg-background rounded-lg border border-border text-center">
                 <p className="text-2xl font-bold text-blue-400">{userConsent.dataProcessingConsent}</p>
-                <p className="text-xs text-gray-400 mt-1">{t("adminPage.consentStats.dataProcessing")}</p>
+                <p className="text-xs text-muted-foreground mt-1">{t("adminPage.consentStats.dataProcessing")}</p>
                 <p className="text-xs text-blue-500 mt-0.5">
                   {userConsent.totalUsers > 0 ? `${Math.round((userConsent.dataProcessingConsent / userConsent.totalUsers) * 100)}%` : "0%"} {t("adminPage.consentStats.consentRate")}
                 </p>
@@ -6108,28 +6108,28 @@ function ConsentStatsPanel({ token }: { token: string }) {
 
           {consentLogs.length > 0 && (
             <div>
-              <h3 className="text-sm font-medium text-gray-300 mb-3">{t("adminPage.consentStats.consentLogHistory")}</h3>
+              <h3 className="text-sm font-medium text-foreground/70 mb-3">{t("adminPage.consentStats.consentLogHistory")}</h3>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-[#1E2448]">
-                      <th className="text-left p-2 text-gray-400">{t("adminPage.consentStats.consentType")}</th>
-                      <th className="text-center p-2 text-gray-400">{t("adminPage.consentStats.granted")}</th>
-                      <th className="text-center p-2 text-gray-400">{t("adminPage.consentStats.revoked")}</th>
-                      <th className="text-center p-2 text-gray-400">{t("adminPage.consentStats.total")}</th>
+                    <tr className="border-b border-border">
+                      <th className="text-left p-2 text-muted-foreground">{t("adminPage.consentStats.consentType")}</th>
+                      <th className="text-center p-2 text-muted-foreground">{t("adminPage.consentStats.granted")}</th>
+                      <th className="text-center p-2 text-muted-foreground">{t("adminPage.consentStats.revoked")}</th>
+                      <th className="text-center p-2 text-muted-foreground">{t("adminPage.consentStats.total")}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {consentLogs.map((log: any) => (
-                      <tr key={log.consentType} className="border-b border-[#1E2448]/50">
-                        <td className="p-2 text-white capitalize">
+                      <tr key={log.consentType} className="border-b border-border/50">
+                        <td className="p-2 text-foreground capitalize">
                           {log.consentType === "cookie" ? t("adminPage.consentStats.cookie") :
                            log.consentType === "dataProcessing" ? t("adminPage.consentStats.dataProcessingType") :
                            t("adminPage.consentStats.kvkk")}
                         </td>
                         <td className="p-2 text-center text-green-400">{log.granted}</td>
                         <td className="p-2 text-center text-red-400">{log.revoked}</td>
-                        <td className="p-2 text-center text-gray-300">{log.total}</td>
+                        <td className="p-2 text-center text-foreground/70">{log.total}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -6139,7 +6139,7 @@ function ConsentStatsPanel({ token }: { token: string }) {
           )}
 
           {consentLogs.length === 0 && (
-            <div className="text-center py-8 text-gray-500">
+            <div className="text-center py-8 text-muted-foreground/70">
               <Shield className="w-10 h-10 mx-auto mb-2 opacity-30" />
               <p className="text-sm">{t("adminPage.consentStats.noData")}</p>
             </div>
@@ -6182,45 +6182,45 @@ function AdminFeedbackPanel({ token }: { token: string }) {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card className="bg-gradient-to-br from-blue-900/50 to-blue-800/30 border-blue-500/30">
           <CardContent className="pt-5 text-center">
-            <p className="text-2xl font-bold text-white">{summary?.npsAvg?.toFixed(1) ?? "—"}</p>
+            <p className="text-2xl font-bold text-foreground">{summary?.npsAvg?.toFixed(1) ?? "—"}</p>
             <p className="text-xs text-blue-300 mt-1">{t("feedback.admin.npsAverage")}</p>
           </CardContent>
         </Card>
         <Card className="bg-gradient-to-br from-violet-900/50 to-violet-800/30 border-violet-500/30">
           <CardContent className="pt-5 text-center">
-            <p className="text-2xl font-bold text-white">{(summary?.npsCount ?? 0) + (summary?.chatRatingCount ?? 0) + (summary?.generalCount ?? 0)}</p>
+            <p className="text-2xl font-bold text-foreground">{(summary?.npsCount ?? 0) + (summary?.chatRatingCount ?? 0) + (summary?.generalCount ?? 0)}</p>
             <p className="text-xs text-violet-300 mt-1">{t("feedback.admin.totalFeedback")}</p>
           </CardContent>
         </Card>
         <Card className="bg-gradient-to-br from-emerald-900/50 to-emerald-800/30 border-emerald-500/30">
           <CardContent className="pt-5 text-center">
-            <p className="text-2xl font-bold text-white">{summary?.chatRatingAvg?.toFixed(1) ?? "—"}</p>
+            <p className="text-2xl font-bold text-foreground">{summary?.chatRatingAvg?.toFixed(1) ?? "—"}</p>
             <p className="text-xs text-emerald-300 mt-1">{t("feedback.admin.chatSatisfaction")}</p>
           </CardContent>
         </Card>
         <Card className="bg-gradient-to-br from-rose-900/50 to-rose-800/30 border-rose-500/30">
           <CardContent className="pt-5 text-center">
-            <p className="text-2xl font-bold text-white">{summary?.npsCount ?? 0}</p>
+            <p className="text-2xl font-bold text-foreground">{summary?.npsCount ?? 0}</p>
             <p className="text-xs text-rose-300 mt-1">{t("feedback.admin.filterNps")}</p>
           </CardContent>
         </Card>
       </div>
 
       {summary?.agentSatisfaction && summary.agentSatisfaction.length > 0 && (
-        <Card className="bg-[#0D1230] border-[#1E2448]">
+        <Card className="bg-background/90 border-border">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-white">{t("feedback.admin.chatSatisfaction")}</CardTitle>
+            <CardTitle className="text-sm text-foreground">{t("feedback.admin.chatSatisfaction")}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
               {summary.agentSatisfaction.map(a => (
                 <div key={a.agentType} className="flex items-center gap-3">
-                  <span className="text-xs text-gray-400 w-28 truncate">{a.agentType}</span>
-                  <div className="flex-1 h-2 bg-[#1E2448] rounded-full overflow-hidden">
+                  <span className="text-xs text-muted-foreground w-28 truncate">{a.agentType}</span>
+                  <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
                     <div className="h-full bg-gradient-to-r from-blue-500 to-emerald-500 rounded-full" style={{ width: `${(a.avgScore / 10) * 100}%` }} />
                   </div>
-                  <span className="text-xs text-white w-12 text-right">{a.avgScore.toFixed(1)}/10</span>
-                  <span className="text-[10px] text-gray-500">({a.count})</span>
+                  <span className="text-xs text-foreground w-12 text-right">{a.avgScore.toFixed(1)}/10</span>
+                  <span className="text-[10px] text-muted-foreground/70">({a.count})</span>
                 </div>
               ))}
             </div>
@@ -6229,9 +6229,9 @@ function AdminFeedbackPanel({ token }: { token: string }) {
       )}
 
       {summary?.categoryDist && summary.categoryDist.length > 0 && (
-        <Card className="bg-[#0D1230] border-[#1E2448]">
+        <Card className="bg-background/90 border-border">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-white">{t("feedback.admin.categoryDistribution")}</CardTitle>
+            <CardTitle className="text-sm text-foreground">{t("feedback.admin.categoryDistribution")}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex gap-4 flex-wrap">
@@ -6250,16 +6250,16 @@ function AdminFeedbackPanel({ token }: { token: string }) {
         </Card>
       )}
 
-      <Card className="bg-[#0D1230] border-[#1E2448]">
+      <Card className="bg-background/90 border-border">
         <CardHeader className="pb-2 flex flex-row items-center justify-between">
-          <CardTitle className="text-sm text-white">{t("feedback.admin.recentFeedback")}</CardTitle>
+          <CardTitle className="text-sm text-foreground">{t("feedback.admin.recentFeedback")}</CardTitle>
           <div className="flex gap-1">
             {["all", "nps", "chat_rating", "general"].map(f => (
               <button
                 key={f}
                 onClick={() => setFilter(f)}
                 className={`px-2 py-1 rounded text-[10px] font-medium transition-colors ${
-                  filter === f ? "bg-blue-600 text-white" : "bg-[#1E2448] text-gray-400 hover:text-white"
+                  filter === f ? "bg-blue-600 text-white" : "bg-muted text-muted-foreground hover:text-foreground"
                 }`}
                 data-testid={`button-filter-${f}`}
               >
@@ -6273,12 +6273,12 @@ function AdminFeedbackPanel({ token }: { token: string }) {
         </CardHeader>
         <CardContent>
           {filtered.length === 0 ? (
-            <p className="text-sm text-gray-500 text-center py-6">{t("feedback.admin.noFeedback")}</p>
+            <p className="text-sm text-muted-foreground/70 text-center py-6">{t("feedback.admin.noFeedback")}</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
                 <thead>
-                  <tr className="text-gray-400 border-b border-[#1E2448]">
+                  <tr className="text-muted-foreground border-b border-border">
                     <th className="text-left py-2 px-2">{t("feedback.admin.type")}</th>
                     <th className="text-left py-2 px-2">{t("feedback.admin.score")}</th>
                     <th className="text-left py-2 px-2">{t("feedback.admin.user")}</th>
@@ -6289,7 +6289,7 @@ function AdminFeedbackPanel({ token }: { token: string }) {
                 </thead>
                 <tbody>
                   {filtered.slice(0, 50).map((f: any) => (
-                    <tr key={f.id} className="border-b border-[#1E2448]/50 hover:bg-[#1E2448]/30" data-testid={`feedback-row-${f.id}`}>
+                    <tr key={f.id} className="border-b border-border/50 hover:bg-muted/30" data-testid={`feedback-row-${f.id}`}>
                       <td className="py-2 px-2">
                         <Badge variant="outline" className={`text-[10px] ${
                           f.type === "nps" ? "border-blue-500/50 text-blue-400" :
@@ -6297,11 +6297,11 @@ function AdminFeedbackPanel({ token }: { token: string }) {
                           "border-violet-500/50 text-violet-400"
                         }`}>{f.type}</Badge>
                       </td>
-                      <td className="py-2 px-2 text-white font-medium">{f.score ?? "—"}</td>
-                      <td className="py-2 px-2 text-gray-300 truncate max-w-[120px]">{f.userEmail}</td>
-                      <td className="py-2 px-2 text-gray-400 truncate max-w-[200px]">{f.comment || "—"}</td>
-                      <td className="py-2 px-2 text-gray-400">{f.agentType || "—"}</td>
-                      <td className="py-2 px-2 text-gray-500">{new Date(f.createdAt).toLocaleDateString()}</td>
+                      <td className="py-2 px-2 text-foreground font-medium">{f.score ?? "—"}</td>
+                      <td className="py-2 px-2 text-foreground/70 truncate max-w-[120px]">{f.userEmail}</td>
+                      <td className="py-2 px-2 text-muted-foreground truncate max-w-[200px]">{f.comment || "—"}</td>
+                      <td className="py-2 px-2 text-muted-foreground">{f.agentType || "—"}</td>
+                      <td className="py-2 px-2 text-muted-foreground/70">{new Date(f.createdAt).toLocaleDateString()}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -6457,42 +6457,42 @@ function SkillsPanel({ token }: { token: string }) {
         <Card className="bg-gradient-to-br from-cyan-900/40 to-blue-900/40 border-cyan-700/30">
           <CardContent className="p-4 text-center">
             <div className="text-2xl font-bold text-cyan-300" data-testid="skills-total-count">{skills.length}</div>
-            <div className="text-xs text-gray-400">{t("admin.totalSkills")}</div>
+            <div className="text-xs text-muted-foreground">{t("admin.totalSkills")}</div>
           </CardContent>
         </Card>
         <Card className="bg-gradient-to-br from-green-900/40 to-emerald-900/40 border-green-700/30">
           <CardContent className="p-4 text-center">
             <div className="text-2xl font-bold text-green-300" data-testid="skills-active-count">{activeCount}</div>
-            <div className="text-xs text-gray-400">{t("admin.activeLabel")}</div>
+            <div className="text-xs text-muted-foreground">{t("admin.activeLabel")}</div>
           </CardContent>
         </Card>
         <Card className="bg-gradient-to-br from-violet-900/40 to-purple-900/40 border-violet-700/30">
           <CardContent className="p-4 text-center">
             <div className="text-2xl font-bold text-violet-300" data-testid="skills-builtin-count">{builtinCount}</div>
-            <div className="text-xs text-gray-400">{t("admin.builtinLabel")}</div>
+            <div className="text-xs text-muted-foreground">{t("admin.builtinLabel")}</div>
           </CardContent>
         </Card>
         <Card className="bg-gradient-to-br from-amber-900/40 to-orange-900/40 border-amber-700/30">
           <CardContent className="p-4 text-center">
             <div className="text-2xl font-bold text-amber-300" data-testid="skills-custom-count">{customCount}</div>
-            <div className="text-xs text-gray-400">{t("admin.customLabel")}</div>
+            <div className="text-xs text-muted-foreground">{t("admin.customLabel")}</div>
           </CardContent>
         </Card>
       </div>
 
       <div className="flex flex-wrap gap-2 items-center">
         <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
             placeholder={t("admin.searchSkills")}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-9 bg-[#0B0F2E] border-[#1E2448] text-white"
+            className="pl-9 bg-muted/50 border-border text-foreground"
             data-testid="skills-search-input"
           />
         </div>
         <Select value={filterCategory} onValueChange={setFilterCategory}>
-          <SelectTrigger className="w-[160px] bg-[#0B0F2E] border-[#1E2448] text-white" data-testid="skills-filter-category">
+          <SelectTrigger className="w-[160px] bg-muted/50 border-border text-foreground" data-testid="skills-filter-category">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -6503,7 +6503,7 @@ function SkillsPanel({ token }: { token: string }) {
           </SelectContent>
         </Select>
         <Select value={filterType} onValueChange={setFilterType}>
-          <SelectTrigger className="w-[130px] bg-[#0B0F2E] border-[#1E2448] text-white" data-testid="skills-filter-type">
+          <SelectTrigger className="w-[130px] bg-muted/50 border-border text-foreground" data-testid="skills-filter-type">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -6529,40 +6529,40 @@ function SkillsPanel({ token }: { token: string }) {
           const IconComp = SKILL_ICONS[skill.icon] || Sparkles;
           const assignedAgents = assignments.filter(a => a.skillId === skill.id && a.isEnabled);
           return (
-            <Card key={skill.id} className={`border transition-all ${skill.isActive ? "bg-[#0B0F2E]/80 border-[#1E2448] hover:border-cyan-700/50" : "bg-[#0B0F2E]/40 border-[#1E2448]/50 opacity-60"}`} data-testid={`skill-card-${skill.id}`}>
+            <Card key={skill.id} className={`border transition-all ${skill.isActive ? "bg-muted/50/80 border-border hover:border-cyan-700/50" : "bg-muted/50/40 border-border/50 opacity-60"}`} data-testid={`skill-card-${skill.id}`}>
               <CardContent className="p-4">
                 <div className="flex items-start gap-3">
-                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${skill.isActive ? "bg-cyan-900/50 text-cyan-400" : "bg-gray-800 text-gray-500"}`}>
+                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${skill.isActive ? "bg-cyan-900/50 text-cyan-400" : "bg-gray-800 text-muted-foreground/70"}`}>
                     <IconComp className="w-5 h-5" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="font-semibold text-white text-sm" data-testid={`skill-name-${skill.id}`}>{skill.nameTr}</h3>
+                      <h3 className="font-semibold text-foreground text-sm" data-testid={`skill-name-${skill.id}`}>{skill.nameTr}</h3>
                       <Badge variant="outline" className={`text-[10px] ${skill.isBuiltin ? "border-violet-600 text-violet-400" : "border-amber-600 text-amber-400"}`}>
                         {skill.isBuiltin ? t("admin.builtinBadge") : t("admin.customBadge")}
                       </Badge>
                       <Badge variant="outline" className="text-[10px] border-blue-600 text-blue-400">
                         {t("admin.skillCategories." + skill.category, skill.category)}
                       </Badge>
-                      <Badge variant="outline" className="text-[10px] border-gray-600 text-gray-400">
+                      <Badge variant="outline" className="text-[10px] border-gray-600 text-muted-foreground">
                         {t("admin.skillTypes." + skill.skillType, skill.skillType)}
                       </Badge>
                     </div>
-                    <p className="text-xs text-gray-400 mt-1">{skill.descriptionTr || skill.description}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{skill.descriptionTr || skill.description}</p>
                     {skillStats?.skillStats && (() => {
                       const stat = skillStats.skillStats.find((s: any) => s.id === skill.id);
                       return stat && stat.usageCount > 0 ? (
                         <div className="flex gap-3 mt-1.5 text-[10px]">
-                          <span className="text-gray-500">{t("admin.usageLabel")} <span className="text-cyan-400">{stat.usageCount}</span></span>
-                          <span className="text-gray-500">{t("admin.successLabel")} <span className={stat.successRate >= 80 ? "text-green-400" : stat.successRate >= 50 ? "text-amber-400" : "text-red-400"}>{stat.successRate}%</span></span>
-                          <span className="text-gray-500">{t("admin.avgLabel")} <span className="text-blue-400">{stat.avgDurationMs}ms</span></span>
+                          <span className="text-muted-foreground/70">{t("admin.usageLabel")} <span className="text-cyan-400">{stat.usageCount}</span></span>
+                          <span className="text-muted-foreground/70">{t("admin.successLabel")} <span className={stat.successRate >= 80 ? "text-green-400" : stat.successRate >= 50 ? "text-amber-400" : "text-red-400"}>{stat.successRate}%</span></span>
+                          <span className="text-muted-foreground/70">{t("admin.avgLabel")} <span className="text-blue-400">{stat.avgDurationMs}ms</span></span>
                         </div>
                       ) : null;
                     })()}
                     {skill.parameters && skill.parameters.length > 0 && (
                       <div className="flex gap-1 mt-2 flex-wrap">
                         {skill.parameters.map((p: any) => (
-                          <span key={p.name} className={`text-[10px] px-1.5 py-0.5 rounded ${p.required ? "bg-red-900/30 text-red-400 border border-red-800/30" : "bg-gray-800 text-gray-500"}`}>
+                          <span key={p.name} className={`text-[10px] px-1.5 py-0.5 rounded ${p.required ? "bg-red-900/30 text-red-400 border border-red-800/30" : "bg-gray-800 text-muted-foreground/70"}`}>
                             {p.name}{p.required ? "*" : ""}
                           </span>
                         ))}
@@ -6582,17 +6582,17 @@ function SkillsPanel({ token }: { token: string }) {
                     )}
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
-                    <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-gray-400 hover:text-cyan-400" onClick={() => { setAssignSkill(skill); setShowAssignModal(true); }} data-testid={`skill-assign-${skill.id}`} title={t("admin.assignAgentTitle")}>
+                    <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-muted-foreground hover:text-cyan-400" onClick={() => { setAssignSkill(skill); setShowAssignModal(true); }} data-testid={`skill-assign-${skill.id}`} title={t("admin.assignAgentTitle")}>
                       <Users className="w-4 h-4" />
                     </Button>
-                    <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-gray-400 hover:text-blue-400" onClick={() => setSelectedSkill(skill)} data-testid={`skill-detail-${skill.id}`} title={t("admin.detailTitle")}>
+                    <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-muted-foreground hover:text-blue-400" onClick={() => setSelectedSkill(skill)} data-testid={`skill-detail-${skill.id}`} title={t("admin.detailTitle")}>
                       <Eye className="w-4 h-4" />
                     </Button>
-                    <Button size="sm" variant="ghost" className={`h-8 w-8 p-0 ${skill.isActive ? "text-green-400 hover:text-red-400" : "text-gray-500 hover:text-green-400"}`} onClick={() => toggleSkill(skill)} data-testid={`skill-toggle-${skill.id}`} title={skill.isActive ? t("admin.disableTitle") : t("admin.enableTitle")}>
+                    <Button size="sm" variant="ghost" className={`h-8 w-8 p-0 ${skill.isActive ? "text-green-400 hover:text-red-400" : "text-muted-foreground/70 hover:text-green-400"}`} onClick={() => toggleSkill(skill)} data-testid={`skill-toggle-${skill.id}`} title={skill.isActive ? t("admin.disableTitle") : t("admin.enableTitle")}>
                       {skill.isActive ? <ToggleRight className="w-4 h-4" /> : <ToggleLeft className="w-4 h-4" />}
                     </Button>
                     {!skill.isBuiltin && (
-                      <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-gray-400 hover:text-red-400" onClick={() => deleteSkill(skill)} data-testid={`skill-delete-${skill.id}`} title={t("admin.deleteTitle")}>
+                      <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-muted-foreground hover:text-red-400" onClick={() => deleteSkill(skill)} data-testid={`skill-delete-${skill.id}`} title={t("admin.deleteTitle")}>
                         <Trash2 className="w-4 h-4" />
                       </Button>
                     )}
@@ -6603,7 +6603,7 @@ function SkillsPanel({ token }: { token: string }) {
           );
         })}
         {filteredSkills.length === 0 && (
-          <div className="text-center py-12 text-gray-500">
+          <div className="text-center py-12 text-muted-foreground/70">
             <Sparkles className="w-12 h-12 mx-auto mb-3 opacity-30" />
             <p className="text-sm">{skills.length === 0 ? t("admin.noSkillsYet") : t("admin.noSkillsMatch")}</p>
           </div>
@@ -6650,12 +6650,12 @@ function AgentAssignModal({ skill, currentAssignments, onSave, onClose }: {
   };
   return (
     <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-[#0B0F2E] border border-[#1E2448] rounded-xl w-full max-w-md p-6 space-y-4" onClick={e => e.stopPropagation()} data-testid="agent-assign-modal">
+      <div className="bg-muted/50 border border-border rounded-xl w-full max-w-md p-6 space-y-4" onClick={e => e.stopPropagation()} data-testid="agent-assign-modal">
         <div className="flex justify-between items-center">
-          <h3 className="text-lg font-semibold text-white">{t("admin.agentAssignTitle")} {skill.nameTr}</h3>
-          <Button size="sm" variant="ghost" onClick={onClose} className="text-gray-400"><X className="w-4 h-4" /></Button>
+          <h3 className="text-lg font-semibold text-foreground">{t("admin.agentAssignTitle")} {skill.nameTr}</h3>
+          <Button size="sm" variant="ghost" onClick={onClose} className="text-muted-foreground"><X className="w-4 h-4" /></Button>
         </div>
-        <p className="text-xs text-gray-400">{t("admin.agentAssignDesc")}</p>
+        <p className="text-xs text-muted-foreground">{t("admin.agentAssignDesc")}</p>
         <div className="space-y-2 max-h-[300px] overflow-y-auto">
           {AGENTS_DATA.map(agent => (
             <button
@@ -6663,8 +6663,8 @@ function AgentAssignModal({ skill, currentAssignments, onSave, onClose }: {
               onClick={() => toggle(agent.slug)}
               className={`w-full flex items-center gap-3 p-3 rounded-lg border transition-all ${
                 selected.includes(agent.slug)
-                  ? "bg-cyan-900/30 border-cyan-600 text-white"
-                  : "bg-[#111633] border-[#1E2448] text-gray-400 hover:border-gray-500"
+                  ? "bg-cyan-900/30 border-cyan-600 text-foreground"
+                  : "bg-card border-border text-muted-foreground hover:border-gray-500"
               }`}
               data-testid={`assign-agent-${agent.slug}`}
             >
@@ -6675,8 +6675,8 @@ function AgentAssignModal({ skill, currentAssignments, onSave, onClose }: {
           ))}
         </div>
         <div className="flex gap-2">
-          <Button onClick={() => setSelected(AGENTS_DATA.map(a => a.slug))} variant="outline" className="flex-1 text-xs border-gray-600 text-gray-300" data-testid="assign-select-all">{t("admin.selectAll")}</Button>
-          <Button onClick={() => setSelected([])} variant="outline" className="flex-1 text-xs border-gray-600 text-gray-300" data-testid="assign-clear-all">{t("admin.clearAll")}</Button>
+          <Button onClick={() => setSelected(AGENTS_DATA.map(a => a.slug))} variant="outline" className="flex-1 text-xs border-gray-600 text-foreground/70" data-testid="assign-select-all">{t("admin.selectAll")}</Button>
+          <Button onClick={() => setSelected([])} variant="outline" className="flex-1 text-xs border-gray-600 text-foreground/70" data-testid="assign-clear-all">{t("admin.clearAll")}</Button>
         </div>
         <Button onClick={() => onSave(selected)} className="w-full bg-cyan-600 hover:bg-cyan-700" data-testid="assign-save-btn">
           {t("admin.saveWithCount", { count: selected.length })}
@@ -6732,33 +6732,33 @@ function CreateSkillModal({ token, onClose, onCreated }: { token: string; onClos
 
   return (
     <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-[#0B0F2E] border border-[#1E2448] rounded-xl w-full max-w-lg p-6 space-y-4 max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()} data-testid="create-skill-modal">
+      <div className="bg-muted/50 border border-border rounded-xl w-full max-w-lg p-6 space-y-4 max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()} data-testid="create-skill-modal">
         <div className="flex justify-between items-center">
-          <h3 className="text-lg font-semibold text-white">{t("admin.createSkillTitle")}</h3>
-          <Button size="sm" variant="ghost" onClick={onClose} className="text-gray-400"><X className="w-4 h-4" /></Button>
+          <h3 className="text-lg font-semibold text-foreground">{t("admin.createSkillTitle")}</h3>
+          <Button size="sm" variant="ghost" onClick={onClose} className="text-muted-foreground"><X className="w-4 h-4" /></Button>
         </div>
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="text-xs text-gray-400 mb-1 block">{t("admin.labelNameEN")}</label>
-            <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="my_skill" className="bg-[#111633] border-[#1E2448] text-white" data-testid="create-skill-name" />
+            <label className="text-xs text-muted-foreground mb-1 block">{t("admin.labelNameEN")}</label>
+            <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="my_skill" className="bg-card border-border text-foreground" data-testid="create-skill-name" />
           </div>
           <div>
-            <label className="text-xs text-gray-400 mb-1 block">{t("admin.labelNameTR")}</label>
-            <Input value={form.nameTr} onChange={e => setForm(f => ({ ...f, nameTr: e.target.value }))} placeholder={t("admin.mySkillPlaceholder")} className="bg-[#111633] border-[#1E2448] text-white" data-testid="create-skill-name-tr" />
+            <label className="text-xs text-muted-foreground mb-1 block">{t("admin.labelNameTR")}</label>
+            <Input value={form.nameTr} onChange={e => setForm(f => ({ ...f, nameTr: e.target.value }))} placeholder={t("admin.mySkillPlaceholder")} className="bg-card border-border text-foreground" data-testid="create-skill-name-tr" />
           </div>
         </div>
 
         <div>
-          <label className="text-xs text-gray-400 mb-1 block">{t("admin.labelDescription")}</label>
-          <Input value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="What this skill does..." className="bg-[#111633] border-[#1E2448] text-white" data-testid="create-skill-description" />
+          <label className="text-xs text-muted-foreground mb-1 block">{t("admin.labelDescription")}</label>
+          <Input value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="What this skill does..." className="bg-card border-border text-foreground" data-testid="create-skill-description" />
         </div>
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="text-xs text-gray-400 mb-1 block">{t("admin.labelCategory")}</label>
+            <label className="text-xs text-muted-foreground mb-1 block">{t("admin.labelCategory")}</label>
             <Select value={form.category} onValueChange={v => setForm(f => ({ ...f, category: v }))}>
-              <SelectTrigger className="bg-[#111633] border-[#1E2448] text-white" data-testid="create-skill-category">
+              <SelectTrigger className="bg-card border-border text-foreground" data-testid="create-skill-category">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -6769,9 +6769,9 @@ function CreateSkillModal({ token, onClose, onCreated }: { token: string; onClos
             </Select>
           </div>
           <div>
-            <label className="text-xs text-gray-400 mb-1 block">{t("admin.labelType")}</label>
+            <label className="text-xs text-muted-foreground mb-1 block">{t("admin.labelType")}</label>
             <Select value={form.skillType} onValueChange={v => setForm(f => ({ ...f, skillType: v }))}>
-              <SelectTrigger className="bg-[#111633] border-[#1E2448] text-white" data-testid="create-skill-type">
+              <SelectTrigger className="bg-card border-border text-foreground" data-testid="create-skill-type">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -6784,11 +6784,11 @@ function CreateSkillModal({ token, onClose, onCreated }: { token: string; onClos
         </div>
 
         {form.skillType === "http" && (
-          <div className="space-y-2 p-3 bg-[#111633] rounded-lg border border-[#1E2448]">
+          <div className="space-y-2 p-3 bg-card rounded-lg border border-border">
             <label className="text-xs font-medium text-cyan-400">{t("admin.httpConfig")}</label>
             <div className="grid grid-cols-3 gap-2">
               <Select value={form.config.method} onValueChange={v => setForm(f => ({ ...f, config: { ...f.config, method: v } }))}>
-                <SelectTrigger className="bg-[#0B0F2E] border-[#1E2448] text-white" data-testid="create-skill-method"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="bg-muted/50 border-border text-foreground" data-testid="create-skill-method"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="GET">GET</SelectItem>
                   <SelectItem value="POST">POST</SelectItem>
@@ -6796,51 +6796,51 @@ function CreateSkillModal({ token, onClose, onCreated }: { token: string; onClos
                   <SelectItem value="DELETE">DELETE</SelectItem>
                 </SelectContent>
               </Select>
-              <Input value={form.config.url || ""} onChange={e => setForm(f => ({ ...f, config: { ...f.config, url: e.target.value } }))} placeholder="https://api.example.com/..." className="col-span-2 bg-[#0B0F2E] border-[#1E2448] text-white" data-testid="create-skill-url" />
+              <Input value={form.config.url || ""} onChange={e => setForm(f => ({ ...f, config: { ...f.config, url: e.target.value } }))} placeholder="https://api.example.com/..." className="col-span-2 bg-muted/50 border-border text-foreground" data-testid="create-skill-url" />
             </div>
           </div>
         )}
 
         {form.skillType === "prompt" && (
-          <div className="space-y-2 p-3 bg-[#111633] rounded-lg border border-[#1E2448]">
+          <div className="space-y-2 p-3 bg-card rounded-lg border border-border">
             <label className="text-xs font-medium text-cyan-400">{t("admin.aiPromptTemplate")}</label>
             <textarea
               value={form.config.userPromptTemplate || ""}
               onChange={e => setForm(f => ({ ...f, config: { ...f.config, userPromptTemplate: e.target.value } }))}
               placeholder={t("admin.promptPlaceholder")}
-              className="w-full h-24 bg-[#0B0F2E] border border-[#1E2448] text-white rounded-md p-2 text-sm resize-none"
+              className="w-full h-24 bg-muted/50 border border-border text-foreground rounded-md p-2 text-sm resize-none"
               data-testid="create-skill-prompt"
             />
           </div>
         )}
 
         {form.skillType === "expression" && (
-          <div className="space-y-2 p-3 bg-[#111633] rounded-lg border border-[#1E2448]">
+          <div className="space-y-2 p-3 bg-card rounded-lg border border-border">
             <label className="text-xs font-medium text-cyan-400">{t("admin.jsExpression")}</label>
             <textarea
               value={form.config.expression || ""}
               onChange={e => setForm(f => ({ ...f, config: { ...f.config, expression: e.target.value } }))}
               placeholder="return params.a + params.b;"
-              className="w-full h-24 bg-[#0B0F2E] border border-[#1E2448] text-white rounded-md p-2 text-sm font-mono resize-none"
+              className="w-full h-24 bg-muted/50 border border-border text-foreground rounded-md p-2 text-sm font-mono resize-none"
               data-testid="create-skill-expression"
             />
           </div>
         )}
 
         <div className="space-y-2">
-          <label className="text-xs font-medium text-gray-400">{t("admin.parametersLabel")}</label>
+          <label className="text-xs font-medium text-muted-foreground">{t("admin.parametersLabel")}</label>
           {form.parameters.map((p, i) => (
-            <div key={i} className="flex items-center gap-2 text-xs bg-[#111633] p-2 rounded border border-[#1E2448]">
-              <span className="text-white font-medium">{p.name}</span>
+            <div key={i} className="flex items-center gap-2 text-xs bg-card p-2 rounded border border-border">
+              <span className="text-foreground font-medium">{p.name}</span>
               <Badge variant="outline" className="text-[10px]">{p.type}</Badge>
               {p.required && <Badge variant="outline" className="text-[10px] border-red-600 text-red-400">{t("admin.requiredBadge")}</Badge>}
-              <span className="text-gray-500 flex-1 truncate">{p.description}</span>
+              <span className="text-muted-foreground/70 flex-1 truncate">{p.description}</span>
               <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-red-400" onClick={() => removeParam(i)}><X className="w-3 h-3" /></Button>
             </div>
           ))}
           <div className="flex gap-2">
-            <Input value={newParam.name} onChange={e => setNewParam(p => ({ ...p, name: e.target.value }))} placeholder={t("admin.paramNamePlaceholder")} className="flex-1 bg-[#111633] border-[#1E2448] text-white text-xs" data-testid="create-skill-param-name" />
-            <Input value={newParam.description} onChange={e => setNewParam(p => ({ ...p, description: e.target.value }))} placeholder={t("admin.descriptionPlaceholder")} className="flex-1 bg-[#111633] border-[#1E2448] text-white text-xs" data-testid="create-skill-param-desc" />
+            <Input value={newParam.name} onChange={e => setNewParam(p => ({ ...p, name: e.target.value }))} placeholder={t("admin.paramNamePlaceholder")} className="flex-1 bg-card border-border text-foreground text-xs" data-testid="create-skill-param-name" />
+            <Input value={newParam.description} onChange={e => setNewParam(p => ({ ...p, description: e.target.value }))} placeholder={t("admin.descriptionPlaceholder")} className="flex-1 bg-card border-border text-foreground text-xs" data-testid="create-skill-param-desc" />
             <Button size="sm" onClick={addParam} className="bg-cyan-700 text-xs" data-testid="create-skill-add-param"><Plus className="w-3 h-3" /></Button>
           </div>
         </div>
@@ -6888,45 +6888,45 @@ function SkillDetailModal({ skill, assignments, onClose, token, onUpdated }: {
 
   return (
     <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-[#0B0F2E] border border-[#1E2448] rounded-xl w-full max-w-lg p-6 space-y-4 max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()} data-testid="skill-detail-modal">
+      <div className="bg-muted/50 border border-border rounded-xl w-full max-w-lg p-6 space-y-4 max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()} data-testid="skill-detail-modal">
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-cyan-900/50 flex items-center justify-center text-cyan-400">
               <IconComp className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-semibold text-white">{skill.nameTr}</h3>
-              <p className="text-xs text-gray-400">{skill.name}</p>
+              <h3 className="font-semibold text-foreground">{skill.nameTr}</h3>
+              <p className="text-xs text-muted-foreground">{skill.name}</p>
             </div>
           </div>
           <div className="flex items-center gap-1">
             {!skill.isBuiltin && !editing && (
-              <Button size="sm" variant="ghost" onClick={() => setEditing(true)} className="text-gray-400 hover:text-cyan-400" data-testid="skill-edit-btn">
+              <Button size="sm" variant="ghost" onClick={() => setEditing(true)} className="text-muted-foreground hover:text-cyan-400" data-testid="skill-edit-btn">
                 <Pencil className="w-4 h-4" />
               </Button>
             )}
-            <Button size="sm" variant="ghost" onClick={onClose} className="text-gray-400"><X className="w-4 h-4" /></Button>
+            <Button size="sm" variant="ghost" onClick={onClose} className="text-muted-foreground"><X className="w-4 h-4" /></Button>
           </div>
         </div>
 
         {editing ? (
           <div className="space-y-3">
             <div>
-              <label className="text-xs text-gray-400">{t("admin.labelNameTrEdit")}</label>
-              <Input value={editForm.nameTr} onChange={e => setEditForm(f => ({ ...f, nameTr: e.target.value }))} className="bg-[#111633] border-[#1E2448] text-white" data-testid="edit-skill-name-tr" />
+              <label className="text-xs text-muted-foreground">{t("admin.labelNameTrEdit")}</label>
+              <Input value={editForm.nameTr} onChange={e => setEditForm(f => ({ ...f, nameTr: e.target.value }))} className="bg-card border-border text-foreground" data-testid="edit-skill-name-tr" />
             </div>
             <div>
-              <label className="text-xs text-gray-400">{t("admin.labelDescriptionEdit")}</label>
-              <Input value={editForm.description} onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))} className="bg-[#111633] border-[#1E2448] text-white" data-testid="edit-skill-description" />
+              <label className="text-xs text-muted-foreground">{t("admin.labelDescriptionEdit")}</label>
+              <Input value={editForm.description} onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))} className="bg-card border-border text-foreground" data-testid="edit-skill-description" />
             </div>
             <div>
-              <label className="text-xs text-gray-400">{t("admin.labelDescriptionTrEdit")}</label>
-              <Input value={editForm.descriptionTr} onChange={e => setEditForm(f => ({ ...f, descriptionTr: e.target.value }))} className="bg-[#111633] border-[#1E2448] text-white" data-testid="edit-skill-description-tr" />
+              <label className="text-xs text-muted-foreground">{t("admin.labelDescriptionTrEdit")}</label>
+              <Input value={editForm.descriptionTr} onChange={e => setEditForm(f => ({ ...f, descriptionTr: e.target.value }))} className="bg-card border-border text-foreground" data-testid="edit-skill-description-tr" />
             </div>
             <div>
-              <label className="text-xs text-gray-400">{t("admin.labelCategory")}</label>
+              <label className="text-xs text-muted-foreground">{t("admin.labelCategory")}</label>
               <Select value={editForm.category} onValueChange={v => setEditForm(f => ({ ...f, category: v }))}>
-                <SelectTrigger className="bg-[#111633] border-[#1E2448] text-white" data-testid="edit-skill-category">
+                <SelectTrigger className="bg-card border-border text-foreground" data-testid="edit-skill-category">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -6940,40 +6940,40 @@ function SkillDetailModal({ skill, assignments, onClose, token, onUpdated }: {
               <Button onClick={saveEdit} disabled={saving} className="flex-1 bg-cyan-600 hover:bg-cyan-700" data-testid="edit-skill-save">
                 {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : t("admin.saveButton")}
               </Button>
-              <Button onClick={() => setEditing(false)} variant="outline" className="flex-1 border-gray-600 text-gray-300" data-testid="edit-skill-cancel">
+              <Button onClick={() => setEditing(false)} variant="outline" className="flex-1 border-gray-600 text-foreground/70" data-testid="edit-skill-cancel">
                 {t("admin.cancelButton")}
               </Button>
             </div>
           </div>
         ) : (
           <>
-            <p className="text-sm text-gray-300">{skill.descriptionTr || skill.description}</p>
+            <p className="text-sm text-foreground/70">{skill.descriptionTr || skill.description}</p>
 
             <div className="grid grid-cols-3 gap-2 text-center">
-              <div className="bg-[#111633] rounded-lg p-2">
-                <div className="text-xs text-gray-400">{t("admin.labelType")}</div>
-                <div className="text-sm font-medium text-white">{t("admin.skillTypes." + skill.skillType, skill.skillType)}</div>
+              <div className="bg-card rounded-lg p-2">
+                <div className="text-xs text-muted-foreground">{t("admin.labelType")}</div>
+                <div className="text-sm font-medium text-foreground">{t("admin.skillTypes." + skill.skillType, skill.skillType)}</div>
               </div>
-              <div className="bg-[#111633] rounded-lg p-2">
-                <div className="text-xs text-gray-400">{t("admin.labelCategory")}</div>
-                <div className="text-sm font-medium text-white">{t("admin.skillCategories." + skill.category, skill.category)}</div>
+              <div className="bg-card rounded-lg p-2">
+                <div className="text-xs text-muted-foreground">{t("admin.labelCategory")}</div>
+                <div className="text-sm font-medium text-foreground">{t("admin.skillCategories." + skill.category, skill.category)}</div>
               </div>
-              <div className="bg-[#111633] rounded-lg p-2">
-                <div className="text-xs text-gray-400">{t("admin.statusLabel")}</div>
+              <div className="bg-card rounded-lg p-2">
+                <div className="text-xs text-muted-foreground">{t("admin.statusLabel")}</div>
                 <div className={`text-sm font-medium ${skill.isActive ? "text-green-400" : "text-red-400"}`}>{skill.isActive ? t("admin.activeLabel") : t("admin.passiveLabel")}</div>
               </div>
             </div>
 
             {skill.parameters && skill.parameters.length > 0 && (
               <div>
-                <h4 className="text-xs font-medium text-gray-400 mb-2">{t("admin.parametersLabel")}</h4>
+                <h4 className="text-xs font-medium text-muted-foreground mb-2">{t("admin.parametersLabel")}</h4>
                 <div className="space-y-1">
                   {skill.parameters.map((p: any) => (
-                    <div key={p.name} className="flex items-center gap-2 text-xs bg-[#111633] p-2 rounded">
+                    <div key={p.name} className="flex items-center gap-2 text-xs bg-card p-2 rounded">
                       <code className="text-cyan-400 font-mono">{p.name}</code>
                       <Badge variant="outline" className="text-[10px]">{p.type}</Badge>
                       {p.required && <Badge variant="outline" className="text-[10px] border-red-600 text-red-400">{t("admin.requiredBadge")}</Badge>}
-                      <span className="text-gray-500">{p.description}</span>
+                      <span className="text-muted-foreground/70">{p.description}</span>
                     </div>
                   ))}
                 </div>
@@ -6982,7 +6982,7 @@ function SkillDetailModal({ skill, assignments, onClose, token, onUpdated }: {
 
             {assignments.length > 0 && (
               <div>
-                <h4 className="text-xs font-medium text-gray-400 mb-2">{t("admin.assignedAgents")}</h4>
+                <h4 className="text-xs font-medium text-muted-foreground mb-2">{t("admin.assignedAgents")}</h4>
                 <div className="flex gap-1 flex-wrap">
                   {assignments.filter(a => a.isEnabled).map(a => {
                     const agent = AGENTS_DATA.find(ag => ag.slug === a.agentSlug);
@@ -6998,10 +6998,10 @@ function SkillDetailModal({ skill, assignments, onClose, token, onUpdated }: {
 
             {skill.keywords && skill.keywords.length > 0 && (
               <div>
-                <h4 className="text-xs font-medium text-gray-400 mb-2">{t("admin.keywords")}</h4>
+                <h4 className="text-xs font-medium text-muted-foreground mb-2">{t("admin.keywords")}</h4>
                 <div className="flex gap-1 flex-wrap">
                   {skill.keywords.map((kw: string) => (
-                    <span key={kw} className="text-[10px] px-1.5 py-0.5 rounded bg-gray-800 text-gray-400">{kw}</span>
+                    <span key={kw} className="text-[10px] px-1.5 py-0.5 rounded bg-gray-800 text-muted-foreground">{kw}</span>
                   ))}
                 </div>
               </div>
@@ -7032,22 +7032,22 @@ function AdminGuidePanel() {
     <div className="space-y-6">
       <Card className="bg-gradient-to-r from-emerald-900/50 to-teal-900/50 border-emerald-500/30">
         <CardHeader>
-          <CardTitle className="text-xl text-white flex items-center gap-2">
+          <CardTitle className="text-xl text-foreground flex items-center gap-2">
             <HelpCircle className="w-5 h-5 text-emerald-400" />
             {t("adminPage.guide.title")}
           </CardTitle>
-          <CardDescription className="text-gray-300">
+          <CardDescription className="text-foreground/70">
             {t("adminPage.guide.description")}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="p-4 bg-[#0A0E27] rounded-lg border border-[#1E2448]">
-              <h3 className="text-white font-semibold flex items-center gap-2 mb-3">
+            <div className="p-4 bg-background rounded-lg border border-border">
+              <h3 className="text-foreground font-semibold flex items-center gap-2 mb-3">
                 <Shield className="w-4 h-4 text-blue-400" />
                 {t("adminPage.guide.generalRules")}
               </h3>
-              <ul className="space-y-2 text-sm text-gray-300">
+              <ul className="space-y-2 text-sm text-foreground/70">
                 <li className="flex items-start gap-2"><span className="text-blue-400 mt-0.5">•</span> {t("adminPage.guide.rule1")}</li>
                 <li className="flex items-start gap-2"><span className="text-blue-400 mt-0.5">•</span> {t("adminPage.guide.rule2")}</li>
                 <li className="flex items-start gap-2"><span className="text-blue-400 mt-0.5">•</span> {t("adminPage.guide.rule3")}</li>
@@ -7057,16 +7057,16 @@ function AdminGuidePanel() {
                 <li className="flex items-start gap-2"><span className="text-blue-400 mt-0.5">•</span> {t("adminPage.guide.rule7")}</li>
               </ul>
             </div>
-            <div className="p-4 bg-[#0A0E27] rounded-lg border border-[#1E2448]">
-              <h3 className="text-white font-semibold flex items-center gap-2 mb-3">
+            <div className="p-4 bg-background rounded-lg border border-border">
+              <h3 className="text-foreground font-semibold flex items-center gap-2 mb-3">
                 <CreditCard className="w-4 h-4 text-violet-400" />
                 {t("adminPage.guide.paymentRules")}
               </h3>
-              <ul className="space-y-2 text-sm text-gray-300">
-                <li className="flex items-start gap-2"><span className="text-violet-400 mt-0.5">•</span> <strong className="text-white">{t("adminPage.packages.standardPrice")}:</strong> {t("adminPage.guide.standardFeatures")}</li>
-                <li className="flex items-start gap-2"><span className="text-violet-400 mt-0.5">•</span> <strong className="text-white">{t("adminPage.packages.professionalPrice")}:</strong> {t("adminPage.guide.professionalFeatures")}</li>
-                <li className="flex items-start gap-2"><span className="text-violet-400 mt-0.5">•</span> <strong className="text-white">{t("adminPage.packages.allInOnePrice")}:</strong> {t("adminPage.guide.allInOneFeatures")}</li>
-                <li className="flex items-start gap-2"><span className="text-violet-400 mt-0.5">•</span> <strong className="text-white">{t("adminPage.packages.accountingPrice")}:</strong> {t("adminPage.guide.accountingFeatures")}</li>
+              <ul className="space-y-2 text-sm text-foreground/70">
+                <li className="flex items-start gap-2"><span className="text-violet-400 mt-0.5">•</span> <strong className="text-foreground">{t("adminPage.packages.standardPrice")}:</strong> {t("adminPage.guide.standardFeatures")}</li>
+                <li className="flex items-start gap-2"><span className="text-violet-400 mt-0.5">•</span> <strong className="text-foreground">{t("adminPage.packages.professionalPrice")}:</strong> {t("adminPage.guide.professionalFeatures")}</li>
+                <li className="flex items-start gap-2"><span className="text-violet-400 mt-0.5">•</span> <strong className="text-foreground">{t("adminPage.packages.allInOnePrice")}:</strong> {t("adminPage.guide.allInOneFeatures")}</li>
+                <li className="flex items-start gap-2"><span className="text-violet-400 mt-0.5">•</span> <strong className="text-foreground">{t("adminPage.packages.accountingPrice")}:</strong> {t("adminPage.guide.accountingFeatures")}</li>
                 <li className="flex items-start gap-2"><span className="text-violet-400 mt-0.5">•</span> {t("adminPage.guide.paymentTestMode")}</li>
                 <li className="flex items-start gap-2"><span className="text-violet-400 mt-0.5">•</span> {t("adminPage.guide.creditSystem")}</li>
                 <li className="flex items-start gap-2"><span className="text-violet-400 mt-0.5">•</span> {t("adminPage.guide.adminManualChange")}</li>
@@ -7075,22 +7075,22 @@ function AdminGuidePanel() {
             </div>
           </div>
 
-          <div className="p-4 bg-[#0A0E27] rounded-lg border border-[#1E2448]">
-            <h3 className="text-white font-semibold flex items-center gap-2 mb-3">
+          <div className="p-4 bg-background rounded-lg border border-border">
+            <h3 className="text-foreground font-semibold flex items-center gap-2 mb-3">
               <Bot className="w-4 h-4 text-amber-400" />
               {t("adminPage.guide.rentalFlow")}
             </h3>
             <div className="flex flex-wrap gap-2">
               {[t("adminPage.guide.step1"), t("adminPage.guide.step2"), t("adminPage.guide.step3"), t("adminPage.guide.step4"), t("adminPage.guide.step5"), t("adminPage.guide.step6"), t("adminPage.guide.step7"), t("adminPage.guide.step8")].map((step, i) => (
-                <Badge key={i} variant="outline" className="border-[#1E2448] text-gray-300 text-xs py-1.5">
+                <Badge key={i} variant="outline" className="border-border text-foreground/70 text-xs py-1.5">
                   {step}
                 </Badge>
               ))}
             </div>
           </div>
 
-          <div className="p-4 bg-[#0A0E27] rounded-lg border border-[#1E2448]">
-            <h3 className="text-white font-semibold flex items-center gap-2 mb-3">
+          <div className="p-4 bg-background rounded-lg border border-border">
+            <h3 className="text-foreground font-semibold flex items-center gap-2 mb-3">
               <Activity className="w-4 h-4 text-green-400" />
               {t("adminPage.guide.adminPermissions")}
             </h3>
@@ -7108,8 +7108,8 @@ function AdminGuidePanel() {
                 <div key={i} className="flex items-start gap-2">
                   <CheckCircle className="w-4 h-4 text-green-400 mt-0.5 shrink-0" />
                   <div>
-                    <p className="text-sm text-white font-medium">{item.title}</p>
-                    <p className="text-xs text-gray-500">{item.desc}</p>
+                    <p className="text-sm text-foreground font-medium">{item.title}</p>
+                    <p className="text-xs text-muted-foreground/70">{item.desc}</p>
                   </div>
                 </div>
               ))}
@@ -7118,30 +7118,30 @@ function AdminGuidePanel() {
         </CardContent>
       </Card>
 
-      <Card className="bg-[#0A0E27] border-[#1E2448]">
+      <Card className="bg-background border-border">
         <CardHeader>
-          <CardTitle className="text-lg text-white flex items-center gap-2">
+          <CardTitle className="text-lg text-foreground flex items-center gap-2">
             <Bot className="w-5 h-5 text-blue-400" />
             {t("adminPage.guide.agentGuide")}
           </CardTitle>
-          <CardDescription className="text-gray-400">
+          <CardDescription className="text-muted-foreground">
             {t("adminPage.guide.agentGuideDesc")}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {AGENT_DETAILS.map((agent) => (
-              <div key={agent.slug} className="p-3 bg-[#111633] rounded-lg border border-[#1E2448]" data-testid={`guide-agent-${agent.slug}`}>
+              <div key={agent.slug} className="p-3 bg-card rounded-lg border border-border" data-testid={`guide-agent-${agent.slug}`}>
                 <div className="flex items-center gap-2 mb-2">
                   <div className={`w-8 h-8 rounded-lg bg-gradient-to-r ${agent.color} flex items-center justify-center text-lg`}>
                     {agent.icon}
                   </div>
                   <div>
-                    <p className="text-white font-medium text-sm">{agent.name} — {agent.role}</p>
-                    <p className="text-gray-500 text-xs">{agent.role}</p>
+                    <p className="text-foreground font-medium text-sm">{agent.name} — {agent.role}</p>
+                    <p className="text-muted-foreground/70 text-xs">{agent.role}</p>
                   </div>
                 </div>
-                <p className="text-gray-400 text-xs">{agent.desc}</p>
+                <p className="text-muted-foreground text-xs">{agent.desc}</p>
               </div>
             ))}
           </div>
@@ -7209,23 +7209,23 @@ export default function AdminPage() {
   const showAgentSelector = activeTab === "rag" || activeTab === "fine-tuning" || activeTab === "training-data";
 
   return (
-    <div className="min-h-screen bg-[#0A0E27] pt-20">
+    <div className="min-h-screen bg-background pt-20">
       <div className="max-w-6xl mx-auto px-3 sm:px-4 py-4 sm:py-8">
         <div className="flex items-center justify-between mb-4 sm:mb-8 gap-3">
           <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-gradient-to-br from-blue-500 to-violet-500 flex items-center justify-center shrink-0">
-              <Lock className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+              <Lock className="w-4 h-4 sm:w-5 sm:h-5 text-foreground" />
             </div>
             <div className="min-w-0">
-              <h1 className="text-lg sm:text-2xl font-bold text-white truncate" data-testid="text-admin-title">{t("adminPage.login.title")}</h1>
-              <p className="text-gray-400 text-xs sm:text-sm hidden sm:block">{t("adminPage.header.subtitle")}</p>
+              <h1 className="text-lg sm:text-2xl font-bold text-foreground truncate" data-testid="text-admin-title">{t("adminPage.login.title")}</h1>
+              <p className="text-muted-foreground text-xs sm:text-sm hidden sm:block">{t("adminPage.header.subtitle")}</p>
             </div>
           </div>
           <Button
             variant="outline"
             size="sm"
             onClick={handleLogout}
-            className="border-[#1E2448] text-gray-400 hover:text-white hover:border-red-500/50 shrink-0 min-h-[44px] min-w-[44px]"
+            className="border-border text-muted-foreground hover:text-foreground hover:border-red-500/50 shrink-0 min-h-[44px] min-w-[44px]"
             data-testid="button-admin-logout"
           >
             <LogOut className="w-4 h-4 sm:mr-1" />
@@ -7237,12 +7237,12 @@ export default function AdminPage() {
           <div className="flex flex-col md:flex-row gap-6 mb-6">
             <div className="w-full md:w-64">
               <Select value={selectedAgent} onValueChange={handleAgentChange}>
-                <SelectTrigger className="bg-[#111633] border-[#1E2448] text-white" data-testid="select-agent">
+                <SelectTrigger className="bg-card border-border text-foreground" data-testid="select-agent">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="bg-[#111633] border-[#1E2448]">
+                <SelectContent className="bg-card border-border">
                   {AGENTS_DATA.map((agent) => (
-                    <SelectItem key={agent.slug} value={agent.slug} className="text-white">
+                    <SelectItem key={agent.slug} value={agent.slug} className="text-foreground">
                       {`${agent.persona} — ${t("adminPage.agents." + agent.roleKey)}`}
                     </SelectItem>
                   ))}
@@ -7252,10 +7252,10 @@ export default function AdminPage() {
 
             {stats && (
               <div className="flex gap-4 items-center">
-                <Badge variant="outline" className="border-[#1E2448] text-gray-300 gap-1">
+                <Badge variant="outline" className="border-border text-foreground/70 gap-1">
                   <Database className="w-3 h-3" /> {stats.documentCount} docs
                 </Badge>
-                <Badge variant="outline" className="border-[#1E2448] text-gray-300 gap-1">
+                <Badge variant="outline" className="border-border text-foreground/70 gap-1">
                   <Cpu className="w-3 h-3" /> {stats.fineTuningJobs} jobs
                 </Badge>
                 {stats.activeModel && (
@@ -7311,7 +7311,7 @@ export default function AdminPage() {
                       className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-2 rounded-lg text-[11px] sm:text-xs font-medium whitespace-nowrap transition-all shrink-0 min-h-[44px] ${
                         activeCategory === cat.id
                           ? `bg-gradient-to-r ${cat.gradient} text-white shadow-lg`
-                          : "bg-[#111633] text-gray-400 hover:text-white hover:bg-[#1a1f4a] border border-[#1E2448]"
+                          : "bg-card text-muted-foreground hover:text-foreground hover:bg-muted/70 border border-border"
                       }`}
                       data-testid={`category-${cat.id}`}
                     >
@@ -7324,18 +7324,18 @@ export default function AdminPage() {
             </div>
 
             <div className="relative">
-            <TabsList className="bg-[#111633] border border-[#1E2448] h-auto gap-0.5 sm:gap-1 p-1 overflow-x-auto max-w-full flex [&>button]:min-h-[44px] [&>button]:text-[11px] [&>button]:sm:text-xs">
+            <TabsList className="bg-card border border-border h-auto gap-0.5 sm:gap-1 p-1 overflow-x-auto max-w-full flex [&>button]:min-h-[44px] [&>button]:text-[11px] [&>button]:sm:text-xs">
               {activeCategory === "dashboard" && (
                 <>
                   <TabsTrigger value="boss-ai" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-amber-500 data-[state=active]:to-orange-600 data-[state=active]:text-white" data-testid="tab-boss-ai">
                     <Crown className="w-3.5 h-3.5 mr-1" />
                     {t("adminPage.tabs.bossAi")}
                   </TabsTrigger>
-                  <TabsTrigger value="overview" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white" data-testid="tab-overview">
+                  <TabsTrigger value="overview" className="data-[state=active]:bg-blue-600 data-[state=active]:text-foreground" data-testid="tab-overview">
                     <BarChart3 className="w-3.5 h-3.5 mr-1" />
                     {t("adminPage.tabs.overview")}
                   </TabsTrigger>
-                  <TabsTrigger value="users" className="data-[state=active]:bg-cyan-600 data-[state=active]:text-white" data-testid="tab-users">
+                  <TabsTrigger value="users" className="data-[state=active]:bg-cyan-600 data-[state=active]:text-foreground" data-testid="tab-users">
                     <Users className="w-3.5 h-3.5 mr-1" />
                     {t("adminPage.tabs.users")}
                   </TabsTrigger>
@@ -7347,15 +7347,15 @@ export default function AdminPage() {
               )}
               {activeCategory === "ai-training" && (
                 <>
-                  <TabsTrigger value="rag" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white" data-testid="tab-rag">
+                  <TabsTrigger value="rag" className="data-[state=active]:bg-blue-600 data-[state=active]:text-foreground" data-testid="tab-rag">
                     <Database className="w-3.5 h-3.5 mr-1" />
                     {t("adminPage.tabs.knowledgeBase")}
                   </TabsTrigger>
-                  <TabsTrigger value="training-data" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white" data-testid="tab-training-data">
+                  <TabsTrigger value="training-data" className="data-[state=active]:bg-purple-600 data-[state=active]:text-foreground" data-testid="tab-training-data">
                     <Database className="w-3.5 h-3.5 mr-1" />
                     {t("adminPage.tabs.trainingData")}
                   </TabsTrigger>
-                  <TabsTrigger value="fine-tuning" className="data-[state=active]:bg-violet-600 data-[state=active]:text-white" data-testid="tab-fine-tuning">
+                  <TabsTrigger value="fine-tuning" className="data-[state=active]:bg-violet-600 data-[state=active]:text-foreground" data-testid="tab-fine-tuning">
                     <Cpu className="w-3.5 h-3.5 mr-1" />
                     {t("adminPage.tabs.fineTuning")}
                   </TabsTrigger>
@@ -7379,7 +7379,7 @@ export default function AdminPage() {
               )}
               {activeCategory === "analytics" && (
                 <>
-                  <TabsTrigger value="messages" className="data-[state=active]:bg-teal-600 data-[state=active]:text-white" data-testid="tab-messages">
+                  <TabsTrigger value="messages" className="data-[state=active]:bg-teal-600 data-[state=active]:text-foreground" data-testid="tab-messages">
                     <MessageSquare className="w-3.5 h-3.5 mr-1" />
                     {t("adminPage.tabs.messages")}
                   </TabsTrigger>
@@ -7391,7 +7391,7 @@ export default function AdminPage() {
                     <Zap className="w-3.5 h-3.5 mr-1" />
                     {t("adminPage.tabs.tokenOpt")}
                   </TabsTrigger>
-                  <TabsTrigger value="costs" className="data-[state=active]:bg-red-600 data-[state=active]:text-white" data-testid="tab-costs">
+                  <TabsTrigger value="costs" className="data-[state=active]:bg-red-600 data-[state=active]:text-foreground" data-testid="tab-costs">
                     <DollarSign className="w-3.5 h-3.5 mr-1" />
                     {t("adminPage.tabs.costs")}
                   </TabsTrigger>

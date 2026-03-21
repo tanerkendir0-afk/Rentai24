@@ -2341,6 +2341,16 @@ export function getToolsForAgent(agentType: string): OpenAI.ChatCompletionTool[]
   return agentToolRegistry[agentType];
 }
 
+function normalizeTurkish(text: string): string {
+  return text
+    .replace(/ö/g, "o").replace(/Ö/g, "o")
+    .replace(/ü/g, "u").replace(/Ü/g, "u")
+    .replace(/ş/g, "s").replace(/Ş/g, "s")
+    .replace(/ç/g, "c").replace(/Ç/g, "c")
+    .replace(/ğ/g, "g").replace(/Ğ/g, "g")
+    .replace(/ı/g, "i").replace(/İ/g, "i");
+}
+
 const TOOL_KEYWORD_MAP: Record<string, string[]> = {
   web_search: ["ara", "bul", "araştır", "search", "find", "research", "look up", "potansiyel", "potential", "müşteri bul", "trend", "piyasa", "market", "analiz", "investigate", "keşfet", "discover", "explore", "nerede", "where", "kimler", "who"],
   check_gmail_status: ["gmail", "email status", "email connection", "mail bağlantı", "e-posta durumu", "connected"],
@@ -2467,7 +2477,7 @@ export async function getRelevantToolsForMessage(
 
   if (combined.length <= 5) return combined;
 
-  const msgLower = message.toLowerCase();
+  const msgLower = normalizeTurkish(message.toLowerCase());
 
   const skillKeywordMap: Record<string, string[]> = {};
   try {
@@ -2479,16 +2489,19 @@ export async function getRelevantToolsForMessage(
     }
   } catch {}
 
+  const ALWAYS_INCLUDE_TOOLS = ["generate_pdf", "send_email", "create_task", "delegate_task"];
+
   const relevant = combined.filter((tool) => {
     const toolName = (tool as OpenAI.ChatCompletionTool & { function: { name: string } }).function.name;
+    if (ALWAYS_INCLUDE_TOOLS.includes(toolName)) return true;
     if (toolName.startsWith("skill_")) {
       const kws = skillKeywordMap[toolName];
       if (!kws || kws.length === 0) return true;
-      return kws.some((kw) => msgLower.includes(kw.toLowerCase()));
+      return kws.some((kw) => msgLower.includes(normalizeTurkish(kw.toLowerCase())));
     }
     const keywords = TOOL_KEYWORD_MAP[toolName];
     if (!keywords) return true;
-    return keywords.some((kw) => msgLower.includes(kw));
+    return keywords.some((kw) => msgLower.includes(normalizeTurkish(kw)));
   });
 
   if (relevant.length === 0) return combined;

@@ -566,6 +566,15 @@ PDF AND EMAIL RULES (ALL AGENTS):
 - Use the send_email tool to send emails. PDF attachments can be added as base64 content in the attachments array.
 - Email body must be in HTML format — do NOT use markdown.
 - CRITICAL RULE — No Hallucination: Never assume the result of a tool call without actually calling it. Do not say "I created the PDF" without calling generate_pdf. Do not say "I sent the email" without calling send_email.`;
+PDF VE EMAIL KURALLARI (TÜM AGENTLAR):
+- generate_pdf tool'u ile gerçek PDF belgeleri oluşturabilirsin. Desteklenen tipler: invoice (fatura), report (rapor), proposal (teklif), receipt (makbuz).
+- send_email tool'u ile email gönderebilirsin. PDF'leri email'e attachment olarak ekleyebilirsin.
+- Email body'si HTML formatında olmalı, markdown KULLANMA.
+- KRITIK KURAL — Halüsinasyon Yasağı:
+  1. ASLA generate_pdf tool'unu ÇAĞIRMADAN PDF oluşturduğunu söyleme. "Oluşturuyorum", "birkaç saniye bekleyin", "ekte PDF" gibi ifadeleri tool çağrısı YAPMADAN KULLANMA.
+  2. ASLA send_email tool'unu ÇAĞIRMADAN email gönderdiğini söyleme.
+  3. Eğer generate_pdf veya send_email tool'ları mevcut tool listende YOKSA, kullanıcıya "Şu anda bu işlemi gerçekleştiremiyorum, lütfen tekrar deneyin" de. Tool yokken işlem yaptığını İDDİA ETME.
+  4. Bir tool çağrısı yapmadan, o tool'un sonucunu ASLA varsayma. Önce tool'u çağır, sonucunu gör, SONRA kullanıcıya bildir.`;
 
 const FINN_PDF_PROMPT = `
 PDF INVOICE CREATION RULES (Finn):

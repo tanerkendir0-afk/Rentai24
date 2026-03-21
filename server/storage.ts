@@ -246,7 +246,7 @@ export interface IStorage {
   createBoostSubscription(data: InsertBoostSubscription): Promise<BoostSubscription>;
   getActiveBoostSubscription(userId: number): Promise<BoostSubscription | undefined>;
   getBoostSubscriptionByStripeId(stripeSubId: string): Promise<BoostSubscription | undefined>;
-  updateBoostSubscription(id: number, updates: Partial<Pick<BoostSubscription, "status" | "stripeBoostSubId" | "expiresAt">>): Promise<BoostSubscription | undefined>;
+  updateBoostSubscription(id: number, updates: Partial<Pick<BoostSubscription, "status" | "stripeBoostSubId" | "expiresAt" | "boostPlan" | "maxParallelTasks">>): Promise<BoostSubscription | undefined>;
   deactivateBoostSubscription(userId: number): Promise<void>;
   updateConversationBoostStatus(conversationId: number, boostStatus: string): Promise<void>;
   getActiveBoostConversations(userId: number, agentType?: string): Promise<ConversationRecord[]>;
@@ -1928,7 +1928,7 @@ export class DatabaseStorage implements IStorage {
     return boost;
   }
 
-  async updateBoostSubscription(id: number, updates: Partial<Pick<BoostSubscription, "status" | "stripeBoostSubId" | "expiresAt">>): Promise<BoostSubscription | undefined> {
+  async updateBoostSubscription(id: number, updates: Partial<Pick<BoostSubscription, "status" | "stripeBoostSubId" | "expiresAt" | "boostPlan" | "maxParallelTasks">>): Promise<BoostSubscription | undefined> {
     const [updated] = await db.update(boostSubscriptions).set(updates).where(eq(boostSubscriptions.id, id)).returning();
     return updated;
   }

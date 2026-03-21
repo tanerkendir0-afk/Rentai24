@@ -1,4 +1,5 @@
 import { getUncachableStripeClient } from './stripeClient';
+import Stripe from 'stripe';
 
 export class StripeService {
   async createCustomer(email: string, userId: number) {
@@ -18,7 +19,7 @@ export class StripeService {
     subscriptionMetadata?: Record<string, string>
   ) {
     const stripe = getUncachableStripeClient();
-    const params: any = {
+    const params: Stripe.Checkout.SessionCreateParams = {
       customer: customerId,
       payment_method_types: ['card'],
       line_items: [{ price: priceId, quantity: 1 }],
@@ -26,10 +27,8 @@ export class StripeService {
       success_url: successUrl,
       cancel_url: cancelUrl,
       metadata,
+      ...(subscriptionMetadata ? { subscription_data: { metadata: subscriptionMetadata } } : {}),
     };
-    if (subscriptionMetadata) {
-      params.subscription_data = { metadata: subscriptionMetadata };
-    }
     return await stripe.checkout.sessions.create(params);
   }
 

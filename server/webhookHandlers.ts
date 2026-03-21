@@ -1,7 +1,5 @@
 import { getStripeSync } from './stripeClient';
 import { storage } from './storage';
-import { db } from './db';
-import { sql } from 'drizzle-orm';
 
 const BOOST_CONFIG: Record<string, { maxParallelTasks: number }> = {
   "boost-3": { maxParallelTasks: 3 },
@@ -129,11 +127,29 @@ export class WebhookHandlers {
     if (WebhookHandlers.isBoostSubscription(subscription)) {
       const boostBySub = await storage.getBoostSubscriptionByStripeId(subscription.id);
       if (boostBySub) {
+        const newPlan = subscription.metadata?.boostPlan;
+        const updates: Partial<{ status: string; boostPlan: string; maxParallelTasks: number; expiresAt: Date }> = {};
+
         if (subscription.status === 'active' || subscription.status === 'trialing') {
-          await storage.updateBoostSubscription(boostBySub.id, { status: 'active' });
+          updates.status = 'active';
         } else if (subscription.status === 'past_due' || subscription.status === 'unpaid' || subscription.status === 'canceled') {
-          await storage.updateBoostSubscription(boostBySub.id, { status: 'inactive' });
+          updates.status = 'inactive';
           console.log(`Webhook: Boost subscription ${subscription.id} is ${subscription.status} for user ${boostBySub.userId}`);
+        }
+
+        if (newPlan && newPlan !== boostBySub.boostPlan && BOOST_CONFIG[newPlan]) {
+          const cfg = BOOST_CONFIG[newPlan];
+          updates.boostPlan = newPlan;
+          updates.maxParallelTasks = cfg.maxParallelTasks === Infinity ? 999999 : cfg.maxParallelTasks;
+          console.log(`Webhook: Boost plan changed ${boostBySub.boostPlan} -> ${newPlan} for user ${boostBySub.userId}`);
+        }
+
+        if (subscription.current_period_end) {
+          updates.expiresAt = new Date(subscription.current_period_end * 1000);
+        }
+
+        if (Object.keys(updates).length > 0) {
+          await storage.updateBoostSubscription(boostBySub.id, updates);
         }
       } else {
         console.log(`Webhook: Boost subscription ${subscription.id} updated but no DB record yet (checkout pending)`);

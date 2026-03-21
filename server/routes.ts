@@ -4168,10 +4168,11 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}${QUICK_REPLY_BUTT
       const safeConfig = Object.fromEntries(
         Object.entries(BOOST_CONFIG).map(([k, v]) => [k, { ...v, maxParallelTasks: v.maxParallelTasks === Infinity ? -1 : v.maxParallelTasks }])
       );
+      const isUnlimited = boost.boostPlan === "boost-pro" || boost.maxParallelTasks >= 999999;
       res.json({
         active: true,
         plan: boost.boostPlan,
-        maxParallelTasks: boost.maxParallelTasks === Infinity ? -1 : boost.maxParallelTasks,
+        maxParallelTasks: isUnlimited ? -1 : boost.maxParallelTasks,
         activeTaskCount: activeConvos.length,
         expiresAt: boost.expiresAt,
         config: safeConfig,

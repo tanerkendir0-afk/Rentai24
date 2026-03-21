@@ -18,6 +18,7 @@
       "bundleIdentifier": "com.rentai24.app",
       "buildNumber": "1",
       "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
         "NSCameraUsageDescription": "RentAI 24 needs camera access to upload photos for AI agent conversations.",
         "NSPhotoLibraryUsageDescription": "RentAI 24 needs photo library access to attach files to conversations.",
         "NSFaceIDUsageDescription": "RentAI 24 uses Face ID to secure your account."

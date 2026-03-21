@@ -71,19 +71,6 @@ interface Rental {
   messagesLimit: number;
 }
 
-interface TeamMember {
-  id: number;
-  userId: number;
-  name: string;
-  email: string;
-  position: string | null;
-  department: string | null;
-  skills: string | null;
-  responsibilities: string | null;
-  phone: string | null;
-  createdAt: string;
-}
-
 interface SocialAccount {
   id: number;
   userId: number;
@@ -653,6 +640,455 @@ function MarketplaceConnectionsCard() {
   );
 }
 
+interface OrgData {
+  organization: {
+    id: number;
+    name: string;
+    logoUrl: string | null;
+    ownerId: number;
+    createdAt: string;
+  } | null;
+  members: Array<{
+    id: number;
+    orgId: number;
+    userId: number;
+    role: string;
+    joinedAt: string;
+    user: { id: number; fullName: string; email: string };
+  }>;
+  invitations: Array<{
+    id: number;
+    email: string;
+    role: string;
+    status: string;
+    expiresAt: string;
+    createdAt: string;
+  }>;
+  role: string;
+}
+
+function OrganizationCard({ userId }: { userId: number }) {
+  const { toast } = useToast();
+  const [showCreate, setShowCreate] = useState(false);
+  const [createName, setCreateName] = useState("");
+  const [showInviteForm, setShowInviteForm] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteRole, setInviteRole] = useState("member");
+  const [editingOrgName, setEditingOrgName] = useState(false);
+  const [orgNameEdit, setOrgNameEdit] = useState("");
+  const [roleDialogMember, setRoleDialogMember] = useState<OrgData["members"][0] | null>(null);
+  const [newRole, setNewRole] = useState("member");
+  const [removingMemberId, setRemovingMemberId] = useState<number | null>(null);
+
+  const { data: orgData, isLoading: orgLoading } = useQuery<OrgData>({
+    queryKey: ["/api/organization"],
+    enabled: true,
+  });
+
+  const createOrgMutation = useMutation({
+    mutationFn: async (name: string) => {
+      const res = await apiRequest("POST", "/api/organization", { name });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/organization"] });
+      setShowCreate(false);
+      setCreateName("");
+      toast({ title: "Organizasyon oluşturuldu" });
+    },
+    onError: (err: any) => {
+      toast({ title: "Hata", description: err.message, variant: "destructive" });
+    },
+  });
+
+  const updateOrgMutation = useMutation({
+    mutationFn: async (name: string) => {
+      const res = await apiRequest("PATCH", "/api/organization", { name });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/organization"] });
+      setEditingOrgName(false);
+      toast({ title: "Organizasyon adı güncellendi" });
+    },
+    onError: (err: any) => {
+      toast({ title: "Hata", description: err.message, variant: "destructive" });
+    },
+  });
+
+  const inviteMutation = useMutation({
+    mutationFn: async (data: { email: string; role: string }) => {
+      const res = await apiRequest("POST", "/api/organization/invite", data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/organization"] });
+      setShowInviteForm(false);
+      setInviteEmail("");
+      setInviteRole("member");
+      toast({ title: "Davet gönderildi", description: "Kullanıcıya e-posta ile davet gönderildi." });
+    },
+    onError: (err: any) => {
+      toast({ title: "Hata", description: err.message, variant: "destructive" });
+    },
+  });
+
+  const cancelInviteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await apiRequest("DELETE", `/api/organization/invitations/${id}`);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/organization"] });
+      toast({ title: "Davet iptal edildi" });
+    },
+  });
+
+  const updateRoleMutation = useMutation({
+    mutationFn: async ({ id, role }: { id: number; role: string }) => {
+      const res = await apiRequest("PATCH", `/api/organization/members/${id}/role`, { role });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/organization"] });
+      setRoleDialogMember(null);
+      toast({ title: "Rol güncellendi" });
+    },
+  });
+
+  const removeMemberMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await apiRequest("DELETE", `/api/organization/members/${id}`);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/organization"] });
+      setRemovingMemberId(null);
+      toast({ title: "Üye çıkarıldı" });
+    },
+  });
+
+  const isOwner = orgData?.organization?.ownerId === userId;
+
+  if (orgLoading) {
+    return (
+      <Card className="p-4 sm:p-6 bg-card border-border/50" data-testid="card-team-members">
+        <div className="flex justify-center py-6">
+          <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+        </div>
+      </Card>
+    );
+  }
+
+  if (!orgData?.organization) {
+    return (
+      <Card className="p-4 sm:p-6 bg-card border-border/50 border-dashed" data-testid="card-team-members">
+        <div className="text-center py-4">
+          <div className="w-14 h-14 rounded-full bg-violet-500/10 flex items-center justify-center mx-auto mb-4">
+            <Building2 className="w-7 h-7 text-violet-400" />
+          </div>
+          <h2 className="text-lg font-semibold text-foreground mb-1">Organizasyon</h2>
+          <p className="text-sm text-muted-foreground mb-5 max-w-sm mx-auto">
+            Bir organizasyon oluşturarak ekip üyelerinizi davet edin ve AI çalışanlarınızı birlikte yönetin.
+          </p>
+          {showCreate ? (
+            <div className="max-w-sm mx-auto space-y-3">
+              <Input
+                value={createName}
+                onChange={(e) => setCreateName(e.target.value)}
+                placeholder="Organizasyon adı"
+                data-testid="input-org-name-create"
+              />
+              <div className="flex gap-2 justify-center">
+                <Button
+                  size="sm"
+                  onClick={() => createName.trim() && createOrgMutation.mutate(createName.trim())}
+                  disabled={createOrgMutation.isPending}
+                  className="bg-gradient-to-r from-violet-500 to-purple-500 text-white border-0"
+                  data-testid="button-create-org-submit"
+                >
+                  {createOrgMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Building2 className="w-4 h-4 mr-1" />Oluştur</>}
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => setShowCreate(false)} data-testid="button-create-org-cancel">
+                  İptal
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <Button
+              onClick={() => setShowCreate(true)}
+              className="bg-gradient-to-r from-violet-500 to-purple-500 text-white border-0"
+              data-testid="button-create-org"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Organizasyon Oluştur
+            </Button>
+          )}
+        </div>
+      </Card>
+    );
+  }
+
+  const org = orgData.organization;
+  const members = orgData.members || [];
+  const invitations = orgData.invitations || [];
+
+  return (
+    <Card className="p-4 sm:p-6 bg-card border-border/50" data-testid="card-team-members">
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2">
+          <Building2 className="w-5 h-5 text-violet-400" />
+          <h2 className="text-lg font-semibold text-foreground">Organizasyon</h2>
+          <Badge variant="secondary" className="ml-1 text-xs" data-testid="badge-team-count">{members.length + 1} üye</Badge>
+        </div>
+        {isOwner && (
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-8 text-xs border-violet-500/30 text-violet-400 hover:bg-violet-500/10"
+            onClick={() => setShowInviteForm(!showInviteForm)}
+            data-testid="button-invite-member"
+          >
+            <Plus className="w-3.5 h-3.5 mr-1" />Üye Davet Et
+          </Button>
+        )}
+      </div>
+
+      <div className="flex items-center gap-3 p-3 rounded-lg bg-violet-500/5 border border-violet-500/20 mb-4">
+        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-violet-500/20 to-purple-500/20 flex items-center justify-center shrink-0">
+          <Building2 className="w-5 h-5 text-violet-400" />
+        </div>
+        <div className="min-w-0 flex-1">
+          {editingOrgName ? (
+            <div className="flex items-center gap-2">
+              <Input
+                value={orgNameEdit}
+                onChange={(e) => setOrgNameEdit(e.target.value)}
+                className="h-7 text-sm"
+                data-testid="input-org-name-edit"
+              />
+              <Button
+                size="sm"
+                className="h-7 text-xs bg-violet-500 text-white border-0"
+                onClick={() => orgNameEdit.trim() && updateOrgMutation.mutate(orgNameEdit.trim())}
+                disabled={updateOrgMutation.isPending}
+                data-testid="button-save-org-name"
+              >
+                {updateOrgMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
+              </Button>
+              <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setEditingOrgName(false)}>
+                İptal
+              </Button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <p className="font-semibold text-foreground text-sm" data-testid="text-org-name">{org.name}</p>
+              {isOwner && (
+                <button
+                  onClick={() => { setOrgNameEdit(org.name); setEditingOrgName(true); }}
+                  className="p-1 rounded hover:bg-violet-500/10 text-muted-foreground hover:text-violet-400 transition-colors"
+                  data-testid="button-edit-org-name"
+                >
+                  <Pencil className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+          )}
+          <p className="text-xs text-muted-foreground">
+            {isOwner ? "Sahibi" : (orgData.role === "admin" ? "Yönetici" : "Üye")}
+          </p>
+        </div>
+      </div>
+
+      {isOwner && showInviteForm && (
+        <div className="mb-4 p-4 rounded-lg bg-muted/30 border border-violet-500/20 space-y-3">
+          <p className="text-sm font-medium text-foreground">Yeni Üye Davet Et</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs text-muted-foreground">E-posta *</Label>
+              <Input
+                value={inviteEmail}
+                onChange={(e) => setInviteEmail(e.target.value)}
+                placeholder="kullanici@sirket.com"
+                className="mt-1 h-8 text-sm"
+                data-testid="input-invite-email"
+              />
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground">Rol</Label>
+              <Select value={inviteRole} onValueChange={setInviteRole}>
+                <SelectTrigger className="mt-1 h-8 text-sm" data-testid="select-invite-role">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="member">Üye</SelectItem>
+                  <SelectItem value="admin">Yönetici</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="flex gap-2 pt-1">
+            <Button
+              size="sm"
+              onClick={() => inviteEmail.trim() && inviteMutation.mutate({ email: inviteEmail.trim(), role: inviteRole })}
+              disabled={inviteMutation.isPending}
+              className="bg-gradient-to-r from-violet-500 to-purple-500 text-white border-0"
+              data-testid="button-send-invite"
+            >
+              {inviteMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" /> : <Plus className="w-3.5 h-3.5 mr-1" />}
+              Davet Gönder
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => setShowInviteForm(false)} data-testid="button-cancel-invite-form">
+              İptal
+            </Button>
+          </div>
+        </div>
+      )}
+
+      <div className="space-y-2 mb-4">
+        <p className="text-xs font-medium text-muted-foreground mb-2">Aktif Üyeler</p>
+        <div className="flex items-center justify-between p-3 rounded-lg bg-muted/20 border border-border/50" data-testid={`card-member-owner`}>
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-8 h-8 rounded-full bg-violet-500/15 flex items-center justify-center shrink-0">
+              <User className="w-4 h-4 text-violet-400" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-foreground">{members.find(m => m.userId === org.ownerId)?.user?.fullName || "Sen"}</p>
+              <p className="text-xs text-muted-foreground">Sahip</p>
+            </div>
+          </div>
+          <Badge className="bg-violet-500/10 text-violet-400 border-violet-500/30 text-xs">Sahip</Badge>
+        </div>
+
+        {members.filter(m => m.userId !== org.ownerId).map((member) => (
+          <div key={member.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/20 border border-border/50 group" data-testid={`card-member-${member.id}`}>
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0">
+                <User className="w-4 h-4 text-blue-400" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-foreground" data-testid={`text-member-name-${member.id}`}>{member.user.fullName}</p>
+                <p className="text-xs text-muted-foreground truncate" data-testid={`text-member-email-${member.id}`}>{member.user.email}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <Badge className={`text-xs ${member.role === "admin" ? "bg-amber-500/10 text-amber-400 border-amber-500/30" : "bg-blue-500/10 text-blue-400 border-blue-500/30"}`} data-testid={`badge-member-role-${member.id}`}>
+                {member.role === "admin" ? "Yönetici" : "Üye"}
+              </Badge>
+              {isOwner && (
+                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button
+                    onClick={() => { setRoleDialogMember({ ...member, id: member.userId }); setNewRole(member.role); }}
+                    className="p-1.5 rounded hover:bg-blue-500/10 text-muted-foreground hover:text-blue-400 transition-colors"
+                    title="Rol Değiştir"
+                    data-testid={`button-change-role-${member.id}`}
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    onClick={() => setRemovingMemberId(member.userId)}
+                    className="p-1.5 rounded hover:bg-red-500/10 text-muted-foreground hover:text-red-400 transition-colors"
+                    title="Üyeyi Çıkar"
+                    data-testid={`button-remove-member-${member.id}`}
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {isOwner && invitations.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-xs font-medium text-muted-foreground mb-2">Bekleyen Davetler</p>
+          {invitations.map((inv) => (
+            <div key={inv.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/10 border border-dashed border-border/50" data-testid={`card-invitation-${inv.id}`}>
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-8 h-8 rounded-full bg-amber-500/10 flex items-center justify-center shrink-0">
+                  <Mail className="w-4 h-4 text-amber-400" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-foreground truncate" data-testid={`text-invite-email-${inv.id}`}>{inv.email}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {inv.role === "admin" ? "Yönetici" : "Üye"} · {new Date(inv.expiresAt) > new Date() ? "Bekliyor" : "Süresi doldu"}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <Badge className="bg-amber-500/10 text-amber-400 border-amber-500/30 text-xs">Bekliyor</Badge>
+                <button
+                  onClick={() => cancelInviteMutation.mutate(inv.id)}
+                  className="p-1.5 rounded hover:bg-red-500/10 text-muted-foreground hover:text-red-400 transition-colors"
+                  title="İptal Et"
+                  data-testid={`button-cancel-invite-${inv.id}`}
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {roleDialogMember && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={() => setRoleDialogMember(null)}>
+          <div className="bg-card border border-border rounded-xl p-6 max-w-sm w-full shadow-2xl" onClick={(e) => e.stopPropagation()} data-testid="dialog-change-role">
+            <h3 className="font-semibold text-foreground mb-4">Rol Değiştir</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              <strong>{roleDialogMember.user.fullName}</strong> için yeni rol seçin:
+            </p>
+            <Select value={newRole} onValueChange={setNewRole}>
+              <SelectTrigger data-testid="select-new-role">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="member">Üye</SelectItem>
+                <SelectItem value="admin">Yönetici</SelectItem>
+              </SelectContent>
+            </Select>
+            <div className="flex gap-2 mt-4">
+              <Button
+                className="flex-1 bg-gradient-to-r from-violet-500 to-purple-500 text-white border-0"
+                onClick={() => updateRoleMutation.mutate({ id: roleDialogMember.id, role: newRole })}
+                disabled={updateRoleMutation.isPending}
+                data-testid="button-confirm-role-change"
+              >
+                {updateRoleMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Güncelle"}
+              </Button>
+              <Button variant="outline" onClick={() => setRoleDialogMember(null)} data-testid="button-cancel-role-change">İptal</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {removingMemberId !== null && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={() => setRemovingMemberId(null)}>
+          <div className="bg-card border border-border rounded-xl p-6 max-w-sm w-full shadow-2xl" onClick={(e) => e.stopPropagation()} data-testid="dialog-remove-member">
+            <h3 className="font-semibold text-foreground mb-2">Üyeyi Çıkar</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              Bu üyeyi organizasyondan çıkarmak istediğinizden emin misiniz?
+            </p>
+            <div className="flex gap-2">
+              <Button
+                variant="destructive"
+                className="flex-1"
+                onClick={() => removeMemberMutation.mutate(removingMemberId)}
+                disabled={removeMemberMutation.isPending}
+                data-testid="button-confirm-remove-member"
+              >
+                {removeMemberMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Çıkar"}
+              </Button>
+              <Button variant="outline" onClick={() => setRemovingMemberId(null)} data-testid="button-cancel-remove-member">İptal</Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </Card>
+  );
+}
+
 export default function Settings() {
   const { user, isLoading: authLoading } = useAuth();
   const [, setLocation] = useLocation();
@@ -680,10 +1116,6 @@ export default function Settings() {
   const [appPasswordSaving, setAppPasswordSaving] = useState(false);
   const [showAppPass, setShowAppPass] = useState(false);
 
-
-  const [showAddMember, setShowAddMember] = useState(false);
-  const [editingMember, setEditingMember] = useState<TeamMember | null>(null);
-  const [memberForm, setMemberForm] = useState({ name: "", email: "", position: "", department: "", skills: "", responsibilities: "", phone: "" });
 
   const [showAddSocial, setShowAddSocial] = useState(false);
   const [socialForm, setSocialForm] = useState({ platform: "", username: "", profileUrl: "", accountType: "personal" as "personal" | "business", apiKey: "", apiSecret: "", accessToken: "", accessTokenSecret: "", pageId: "", businessAccountId: "" });
@@ -741,11 +1173,6 @@ export default function Settings() {
 
   const { data: creditsData } = useQuery<{ credits: number }>({
     queryKey: ["/api/image-credits"],
-    enabled: !!user,
-  });
-
-  const { data: teamMembers, isLoading: teamLoading } = useQuery<TeamMember[]>({
-    queryKey: ["/api/team-members"],
     enabled: !!user,
   });
 
@@ -841,42 +1268,6 @@ export default function Settings() {
       toast({ title: t("settingsPage.toast.error"), description: err.message || t("settingsPage.toast.failedChangePassword"), variant: "destructive" });
     },
   });
-
-  const resetMemberForm = () => {
-    setMemberForm({ name: "", email: "", position: "", department: "", skills: "", responsibilities: "", phone: "" });
-    setEditingMember(null);
-    setShowAddMember(false);
-  };
-
-  const handleSaveMember = async () => {
-    if (!memberForm.name.trim() || !memberForm.email.trim()) {
-      toast({ title: t("settingsPage.toast.error"), description: t("settingsPage.toast.nameEmailRequired"), variant: "destructive" });
-      return;
-    }
-    try {
-      if (editingMember) {
-        await apiRequest("PATCH", `/api/team-members/${editingMember.id}`, memberForm);
-        toast({ title: t("settingsPage.toast.memberUpdated"), description: t("settingsPage.toast.memberUpdatedDesc", { name: memberForm.name }) });
-      } else {
-        await apiRequest("POST", "/api/team-members", memberForm);
-        toast({ title: t("settingsPage.toast.memberAdded"), description: t("settingsPage.toast.memberAddedDesc", { name: memberForm.name }) });
-      }
-      queryClient.invalidateQueries({ queryKey: ["/api/team-members"] });
-      resetMemberForm();
-    } catch (err: any) {
-      toast({ title: t("settingsPage.toast.error"), description: err.message || t("settingsPage.toast.failedSaveMember"), variant: "destructive" });
-    }
-  };
-
-  const handleDeleteMember = async (id: number, name: string) => {
-    try {
-      await apiRequest("DELETE", `/api/team-members/${id}`);
-      queryClient.invalidateQueries({ queryKey: ["/api/team-members"] });
-      toast({ title: t("settingsPage.toast.memberRemoved"), description: t("settingsPage.toast.memberRemovedDesc", { name }) });
-    } catch (err: any) {
-      toast({ title: t("settingsPage.toast.error"), description: err.message || t("settingsPage.toast.failedRemoveMember"), variant: "destructive" });
-    }
-  };
 
   const handleAddSocialAccount = async () => {
     if (!socialForm.platform || !socialForm.username.trim()) {
@@ -1078,20 +1469,6 @@ export default function Settings() {
     facebook: { icon: "📘", color: "text-blue-500", bgColor: "bg-blue-600/10" },
     tiktok: { icon: "🎵", color: "text-rose-400", bgColor: "bg-rose-500/10" },
     youtube: { icon: "▶️", color: "text-red-400", bgColor: "bg-red-500/10" },
-  };
-
-  const startEditMember = (member: TeamMember) => {
-    setEditingMember(member);
-    setMemberForm({
-      name: member.name,
-      email: member.email,
-      position: member.position || "",
-      department: member.department || "",
-      skills: member.skills || "",
-      responsibilities: member.responsibilities || "",
-      phone: member.phone || "",
-    });
-    setShowAddMember(true);
   };
 
   const handleProfileSave = () => {
@@ -1926,189 +2303,7 @@ export default function Settings() {
           )}
         </Card>
 
-        <Card className="p-4 sm:p-6 bg-card border-border/50" data-testid="card-team-members">
-          <div className="flex items-center justify-between mb-5">
-            <div className="flex items-center gap-2">
-              <Users className="w-5 h-5 text-violet-400" />
-              <h2 className="text-lg font-semibold text-foreground">{t("settingsPage.team.title")}</h2>
-              {teamMembers && teamMembers.length > 0 && (
-                <Badge variant="secondary" className="ml-1" data-testid="badge-team-count">{teamMembers.length}</Badge>
-              )}
-            </div>
-            <Button
-              size="sm"
-              variant="outline"
-              className="h-8 text-xs border-violet-500/30 text-violet-400 hover:bg-violet-500/10"
-              onClick={() => { resetMemberForm(); setShowAddMember(true); }}
-              data-testid="button-add-member"
-            >
-              <Plus className="w-3.5 h-3.5 mr-1" />{t("settingsPage.team.addMember")}
-            </Button>
-          </div>
-          <p className="text-xs text-muted-foreground mb-4">
-            {t("settingsPage.team.description")}
-          </p>
-
-          {showAddMember && (
-            <div className="mb-4 p-4 rounded-lg bg-muted/30 border border-violet-500/20 space-y-3">
-              <p className="text-sm font-medium text-foreground">{editingMember ? t("settingsPage.team.editMember") : t("settingsPage.team.addNewMember")}</p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <Label className="text-xs text-muted-foreground">{t("settingsPage.team.name")} *</Label>
-                  <Input
-                    value={memberForm.name}
-                    onChange={(e) => setMemberForm(p => ({ ...p, name: e.target.value }))}
-                    placeholder={t("settingsPage.team.namePlaceholder")}
-                    className="mt-1 h-8 text-sm"
-                    data-testid="input-member-name"
-                  />
-                </div>
-                <div>
-                  <Label className="text-xs text-muted-foreground">{t("settingsPage.team.email")} *</Label>
-                  <Input
-                    value={memberForm.email}
-                    onChange={(e) => setMemberForm(p => ({ ...p, email: e.target.value }))}
-                    placeholder={t("settingsPage.team.emailPlaceholder")}
-                    className="mt-1 h-8 text-sm"
-                    data-testid="input-member-email"
-                  />
-                </div>
-                <div>
-                  <Label className="text-xs text-muted-foreground">{t("settingsPage.team.position")}</Label>
-                  <Input
-                    value={memberForm.position}
-                    onChange={(e) => setMemberForm(p => ({ ...p, position: e.target.value }))}
-                    placeholder={t("settingsPage.team.positionPlaceholder")}
-                    className="mt-1 h-8 text-sm"
-                    data-testid="input-member-position"
-                  />
-                </div>
-                <div>
-                  <Label className="text-xs text-muted-foreground">{t("settingsPage.team.department")}</Label>
-                  <Input
-                    value={memberForm.department}
-                    onChange={(e) => setMemberForm(p => ({ ...p, department: e.target.value }))}
-                    placeholder={t("settingsPage.team.departmentPlaceholder")}
-                    className="mt-1 h-8 text-sm"
-                    data-testid="input-member-department"
-                  />
-                </div>
-                <div>
-                  <Label className="text-xs text-muted-foreground">{t("settingsPage.team.phone")}</Label>
-                  <Input
-                    value={memberForm.phone}
-                    onChange={(e) => setMemberForm(p => ({ ...p, phone: e.target.value }))}
-                    placeholder={t("settingsPage.team.phonePlaceholder")}
-                    className="mt-1 h-8 text-sm"
-                    data-testid="input-member-phone"
-                  />
-                </div>
-                <div>
-                  <Label className="text-xs text-muted-foreground">{t("settingsPage.team.skills")}</Label>
-                  <Input
-                    value={memberForm.skills}
-                    onChange={(e) => setMemberForm(p => ({ ...p, skills: e.target.value }))}
-                    placeholder={t("settingsPage.team.skillsPlaceholder")}
-                    className="mt-1 h-8 text-sm"
-                    data-testid="input-member-skills"
-                  />
-                </div>
-              </div>
-              <div>
-                <Label className="text-xs text-muted-foreground">{t("settingsPage.team.responsibilities")}</Label>
-                <Input
-                  value={memberForm.responsibilities}
-                  onChange={(e) => setMemberForm(p => ({ ...p, responsibilities: e.target.value }))}
-                  placeholder={t("settingsPage.team.responsibilitiesPlaceholder")}
-                  className="mt-1 h-8 text-sm"
-                  data-testid="input-member-responsibilities"
-                />
-              </div>
-              <div className="flex gap-2 pt-1">
-                <Button
-                  size="sm"
-                  onClick={handleSaveMember}
-                  className="bg-gradient-to-r from-violet-500 to-purple-500 text-white border-0"
-                  data-testid="button-save-member"
-                >
-                  <Save className="w-3.5 h-3.5 mr-1" />{editingMember ? t("settingsPage.team.update") : t("settingsPage.team.add")}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={resetMemberForm}
-                  data-testid="button-cancel-member"
-                >
-                  {t("settingsPage.common.cancel")}
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {teamLoading ? (
-            <div className="flex justify-center py-6">
-              <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
-            </div>
-          ) : teamMembers && teamMembers.length > 0 ? (
-            <div className="space-y-2">
-              {teamMembers.map((member) => (
-                <div key={member.id} className="flex items-start justify-between p-3 rounded-lg bg-muted/30 border border-border/50 group" data-testid={`card-member-${member.id}`}>
-                  <div className="flex items-start gap-3 min-w-0">
-                    <div className="w-9 h-9 rounded-full bg-violet-500/10 flex items-center justify-center shrink-0 mt-0.5">
-                      <User className="w-4 h-4 text-violet-400" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-foreground" data-testid={`text-member-name-${member.id}`}>{member.name}</p>
-                      <p className="text-xs text-muted-foreground truncate" data-testid={`text-member-email-${member.id}`}>{member.email}</p>
-                      <div className="flex flex-wrap gap-1.5 mt-1">
-                        {member.position && (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 flex items-center gap-0.5">
-                            <Briefcase className="w-2.5 h-2.5" />{member.position}
-                          </span>
-                        )}
-                        {member.department && (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-violet-500/10 text-violet-400">
-                            {member.department}
-                          </span>
-                        )}
-                        {member.phone && (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 flex items-center gap-0.5">
-                            <Phone className="w-2.5 h-2.5" />{member.phone}
-                          </span>
-                        )}
-                      </div>
-                      {member.skills && (
-                        <p className="text-[10px] text-muted-foreground mt-1 truncate">{t("settingsPage.team.skillsPrefix")}: {member.skills}</p>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                    <button
-                      onClick={() => startEditMember(member)}
-                      className="p-1.5 rounded hover:bg-blue-500/10 text-muted-foreground hover:text-blue-400 transition-colors"
-                      data-testid={`button-edit-member-${member.id}`}
-                    >
-                      <Pencil className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      onClick={() => handleDeleteMember(member.id, member.name)}
-                      className="p-1.5 rounded hover:bg-red-500/10 text-muted-foreground hover:text-red-400 transition-colors"
-                      data-testid={`button-delete-member-${member.id}`}
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-6 text-muted-foreground">
-              <Users className="w-8 h-8 mx-auto mb-2 opacity-30" />
-              <p className="text-sm">{t("settingsPage.team.noMembers")}</p>
-              <p className="text-xs mt-1">{t("settingsPage.team.noMembersDesc")}</p>
-            </div>
-          )}
-        </Card>
+        <OrganizationCard userId={user.id} />
 
         <Card className="p-4 sm:p-6 bg-card border-border/50" data-testid="card-whatsapp-business">
           <div className="flex items-center justify-between mb-5">

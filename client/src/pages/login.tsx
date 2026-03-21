@@ -22,6 +22,8 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  const redirectParam = new URLSearchParams(window.location.search).get("redirect");
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -29,7 +31,7 @@ export default function Login() {
       await login(email, password);
       trackEvent("user_logged_in", "auth", { method: "email" });
       toast({ title: t("login.welcomeBack"), description: t("login.loginSuccess") });
-      setTimeout(() => setLocation("/dashboard"), 100);
+      setTimeout(() => setLocation(redirectParam || "/dashboard"), 100);
     } catch (err: any) {
       toast({ title: t("login.loginFailed"), description: err.message, variant: "destructive" });
     } finally {

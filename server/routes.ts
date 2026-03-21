@@ -8664,5 +8664,145 @@ JSON formatında döndür: {"cronExpression": "...", "scheduleType": "daily|week
     }
   });
 
+  // Simple /api/organization endpoints for settings UI (single-org-per-user model)
+  app.get("/api/organization", requireAuth, async (req, res) => {
+    try {
+      const org = await storage.getOrganizationForUser(req.session.userId!);
+      if (!org) return res.json({ organization: null });
+      const members = await storage.getOrganizationMembers(org.id);
+      const invitations = await storage.getOrganizationInvites(org.id);
+      const isOwner = org.ownerId === req.session.userId;
+      const membership = await storage.getOrganizationMember(org.id, req.session.userId!);
+      const role = isOwner ? "owner" : (membership?.role || "member");
+      res.json({ organization: org, members, invitations: isOwner ? invitations : [], role });
+    } catch (err) {
+      console.error("Get org error:", err);
+      res.status(500).json({ error: "Failed to get organization" });
+    }
+  });
+
+  app.post("/api/organization", requireAuth, async (req, res) => {
+    try {
+      const existing = await storage.getOrganizationForUser(req.session.userId!);
+      if (existing) return res.status(400).json({ error: "Already in an organization" });
+      const { name } = req.body;
+      if (!name?.trim()) return res.status(400).json({ error: "Organization name required" });
+      const slug = name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") + "-" + Date.now().toString(36);
+      const org = await storage.createOrganization({ name: name.trim(), slug, ownerId: req.session.userId!, logoUrl: null });
+      await storage.addOrganizationMember({ organizationId: org.id, userId: req.session.userId!, role: "owner" });
+      res.json({ organization: org });
+    } catch (err) {
+      console.error("Create org error:", err);
+      res.status(500).json({ error: "Failed to create organization" });
+    }
+  });
+
+  app.patch("/api/organization", requireAuth, async (req, res) => {
+    try {
+      const org = await storage.getOrganizationForUser(req.session.userId!);
+      if (!org) return res.status(404).json({ error: "No organization found" });
+      if (org.ownerId !== req.session.userId) return res.status(403).json({ error: "Only owner can update" });
+      const { name } = req.body;
+      if (!name?.trim()) return res.status(400).json({ error: "Name required" });
+      const updated = await storage.updateOrganization(org.id, { name: name.trim() });
+      res.json({ organization: updated });
+    } catch (err) {
+      res.status(500).json({ error: "Failed to update organization" });
+    }
+  });
+
+  app.post("/api/organization/invite", requireAuth, async (req, res) => {
+    try {
+      const org = await storage.getOrganizationForUser(req.session.userId!);
+      if (!org) return res.status(404).json({ error: "No organization found" });
+      if (org.ownerId !== req.session.userId) return res.status(403).json({ error: "Only owner can invite" });
+      const { email, role = "member" } = req.body;
+      if (!email?.trim()) return res.status(400).json({ error: "Email required" });
+      const token = crypto.randomBytes(32).toString("hex");
+      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+      const invitation = await storage.createOrganizationInvite({
+        organizationId: org.id, email: email.trim().toLowerCase(), role: role as OrgRole,
+        token, invitedById: req.session.userId!, status: "pending", expiresAt,
+      });
+      const inviteUrl = `${req.protocol}://${req.get("host")}/invite/${token}`;
+      try {
+        const { sendViaResendDirect } = await import("./emailService");
+        const inviter = await storage.getUserById(req.session.userId!);
+        await sendViaResendDirect({
+          to: email.trim(),
+          subject: `${inviter?.fullName || "Someone"} sizi ${org.name} organizasyonuna davet etti`,
+          html: `<p>Merhaba,</p><p><strong>${inviter?.fullName || "Bir kullanıcı"}</strong> sizi <strong>${org.name}</strong> organizasyonuna <strong>${role}</strong> rolüyle davet etti.</p><p><a href="${inviteUrl}" style="background:#6366f1;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;display:inline-block">Daveti Kabul Et</a></p><p>Bu link 7 gün geçerlidir.</p>`,
+        });
+      } catch (emailErr) {
+        console.error("Invite email failed:", emailErr);
+      }
+      res.json({ invitation, inviteUrl });
+    } catch (err) {
+      console.error("Invite error:", err);
+      res.status(500).json({ error: "Failed to send invitation" });
+    }
+  });
+
+  app.delete("/api/organization/invitations/:id", requireAuth, async (req, res) => {
+    try {
+      const org = await storage.getOrganizationForUser(req.session.userId!);
+      if (!org || org.ownerId !== req.session.userId) return res.status(403).json({ error: "Forbidden" });
+      const cancelled = await storage.cancelOrganizationInvite(parseInt(req.params.id), org.id);
+      res.json({ success: cancelled });
+    } catch (err) {
+      res.status(500).json({ error: "Failed to cancel invitation" });
+    }
+  });
+
+  app.patch("/api/organization/members/:id/role", requireAuth, async (req, res) => {
+    try {
+      const org = await storage.getOrganizationForUser(req.session.userId!);
+      if (!org || org.ownerId !== req.session.userId) return res.status(403).json({ error: "Forbidden" });
+      const { role } = req.body;
+      if (!role) return res.status(400).json({ error: "Role required" });
+      const targetUserId = parseInt(req.params.id);
+      const updated = await storage.updateMemberRole(org.id, targetUserId, role as OrgRole);
+      res.json({ member: updated });
+    } catch (err) {
+      res.status(500).json({ error: "Failed to update role" });
+    }
+  });
+
+  app.delete("/api/organization/members/:id", requireAuth, async (req, res) => {
+    try {
+      const org = await storage.getOrganizationForUser(req.session.userId!);
+      if (!org || org.ownerId !== req.session.userId) return res.status(403).json({ error: "Forbidden" });
+      const targetUserId = parseInt(req.params.id);
+      const removed = await storage.removeOrganizationMember(org.id, targetUserId);
+      res.json({ success: removed });
+    } catch (err) {
+      res.status(500).json({ error: "Failed to remove member" });
+    }
+  });
+
+  app.get("/api/invite/:token", async (req, res) => {
+    try {
+      const invitation = await storage.getOrganizationInviteByToken(req.params.token);
+      if (!invitation) return res.status(404).json({ error: "Invitation not found" });
+      if (invitation.status !== "pending") return res.status(400).json({ error: "Invitation already used or cancelled", status: invitation.status });
+      if (new Date() > invitation.expiresAt) return res.status(400).json({ error: "Invitation expired", status: "expired" });
+      const org = await storage.getOrganizationById(invitation.organizationId);
+      res.json({ invitation, organization: org });
+    } catch (err) {
+      res.status(500).json({ error: "Failed to fetch invitation" });
+    }
+  });
+
+  app.post("/api/invite/:token/accept", requireAuth, async (req, res) => {
+    try {
+      const result = await storage.acceptOrganizationInvite(req.params.token, req.session.userId!);
+      if (!result.success) return res.status(400).json({ error: result.error || "Invitation is no longer valid" });
+      res.json({ success: true, organizationId: result.organizationId });
+    } catch (err) {
+      console.error("Accept invite error:", err);
+      res.status(500).json({ error: "Failed to accept invitation" });
+    }
+  });
+
   return httpServer;
 }

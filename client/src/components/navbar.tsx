@@ -16,12 +16,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Menu, Bot, User, LayoutDashboard, Download, Smartphone, Wifi, Bell, Settings, LogOut, BookOpen, Share, Plus, MoreHorizontal, Monitor, Globe, ExternalLink, Shield, Languages, Zap, Timer } from "lucide-react";
+import { Menu, Bot, User, LayoutDashboard, Download, Smartphone, Wifi, Bell, Settings, LogOut, BookOpen, Share, Plus, MoreHorizontal, Monitor, Globe, ExternalLink, Shield, Languages, Zap, Timer, Building2 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useLanguage } from "@/lib/language";
 import { useTranslation } from "react-i18next";
 import { usePwaInstall } from "@/hooks/use-pwa-install";
 import type { PwaPlatform } from "@/hooks/use-pwa-install";
+import { useQuery } from "@tanstack/react-query";
 
 function useNavLinks() {
   const { t } = useTranslation("common");
@@ -175,6 +176,30 @@ function useGuideDialogTitle() {
   };
 }
 
+function OrgIndicator({ userId }: { userId: number }) {
+  const { data: orgData } = useQuery<{ organization: { id: number; name: string } | null }>({
+    queryKey: ["/api/organization"],
+    enabled: !!userId,
+    staleTime: 60 * 1000,
+  });
+
+  if (!orgData?.organization) return null;
+
+  return (
+    <Link href="/settings#team-members">
+      <Button
+        size="sm"
+        variant="ghost"
+        className="text-muted-foreground hover:text-foreground whitespace-nowrap hidden xl:flex"
+        data-testid="button-org-indicator"
+      >
+        <Building2 className="w-4 h-4 mr-1.5 text-violet-400" />
+        <span className="max-w-[120px] truncate text-xs">{orgData.organization.name}</span>
+      </Button>
+    </Link>
+  );
+}
+
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
@@ -280,6 +305,7 @@ export default function Navbar() {
             )}
             {!isLoading && user ? (
               <div className="hidden lg:flex items-center gap-1">
+                <OrgIndicator userId={user.id} />
                 <Link href="/dashboard">
                   <Button size="sm" className="bg-gradient-to-r from-blue-500 to-violet-500 text-white border-0 whitespace-nowrap" data-testid="button-dashboard">
                     <LayoutDashboard className="w-4 h-4 mr-1" />

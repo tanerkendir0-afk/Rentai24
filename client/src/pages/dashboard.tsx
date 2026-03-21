@@ -55,6 +55,7 @@ import {
   Star,
   Settings,
   Bolt,
+  ChevronRight,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "react-i18next";
@@ -131,6 +132,12 @@ export default function Dashboard() {
   const { data: campaigns } = useQuery<any[]>({
     queryKey: ["/api/campaigns"],
     enabled: !!user,
+  });
+
+  const { data: orgData } = useQuery<{ organization: { id: number; name: string; ownerId: number } | null; members: any[]; role: string }>({
+    queryKey: ["/api/organization"],
+    enabled: !!user,
+    staleTime: 60 * 1000,
   });
 
   const activeCampaigns = campaigns?.filter((c: any) => c.status === "active") || [];
@@ -236,6 +243,15 @@ export default function Dashboard() {
               </h1>
               <p className="text-muted-foreground text-sm mt-1 flex items-center gap-2 flex-wrap">
                 {t("dashboard.manageSubtitle")}
+                {orgData?.organization && (
+                  <Link href="/settings">
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-violet-500/20 text-violet-400 border border-violet-500/30 cursor-pointer hover:bg-violet-500/30 transition-colors" data-testid="badge-org-context">
+                      <Building2 className="w-3 h-3" />
+                      {orgData.organization.name}
+                      <ChevronRight className="w-3 h-3" />
+                    </span>
+                  </Link>
+                )}
                 {hasSubscription ? (
                   <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-500/20 text-green-400 border border-green-500/30" data-testid="badge-subscription-active">
                     {planName ? t("dashboard.planLabel", { plan: planName }) : t("dashboard.activeSubscription")}
@@ -420,6 +436,30 @@ export default function Dashboard() {
             </Card>
           )}
         </div>
+
+        {orgData !== undefined && !orgData?.organization && (
+          <div className="mb-6 sm:mb-8">
+            <Card className="p-4 sm:p-5 bg-card border-border/50 border-dashed" data-testid="card-org-cta">
+              <div className="flex items-center justify-between flex-wrap gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-violet-500/10 to-purple-500/10 flex items-center justify-center">
+                    <Building2 className="w-5 h-5 text-violet-400/60" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-foreground text-sm">Organizasyon Oluştur</h3>
+                    <p className="text-xs text-muted-foreground">Ekibinizle birlikte AI çalışanlarınızı yönetin</p>
+                  </div>
+                </div>
+                <Link href="/settings">
+                  <Button size="sm" variant="outline" className="text-xs border-violet-500/30 text-violet-400 hover:bg-violet-500/10" data-testid="button-create-org-cta">
+                    <Building2 className="w-3 h-3 mr-1" />
+                    Organizasyon Kur
+                  </Button>
+                </Link>
+              </div>
+            </Card>
+          </div>
+        )}
 
         <h2 className="text-lg font-semibold text-foreground mb-4" data-testid="text-workers-section">
           {t("dashboard.yourWorkers")}

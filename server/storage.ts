@@ -258,6 +258,8 @@ export interface IStorage {
   getOrganizationById(id: number): Promise<Organization | undefined>;
   getOrganizationBySlug(slug: string): Promise<Organization | undefined>;
   getOrganizationsByUser(userId: number): Promise<Organization[]>;
+  getOrganizationByOwner(ownerId: number): Promise<Organization | undefined>;
+  getOrganizationForUser(userId: number): Promise<Organization | undefined>;
   updateOrganization(id: number, updates: Partial<Pick<Organization, "name" | "logoUrl">>): Promise<Organization | undefined>;
   deleteOrganization(id: number): Promise<boolean>;
 
@@ -2027,6 +2029,19 @@ export class DatabaseStorage implements IStorage {
     if (members.length === 0) return [];
     const orgIds = members.map(m => m.organizationId);
     return db.select().from(organizations).where(inArray(organizations.id, orgIds));
+  }
+
+  async getOrganizationByOwner(ownerId: number): Promise<Organization | undefined> {
+    const [org] = await db.select().from(organizations).where(eq(organizations.ownerId, ownerId));
+    return org;
+  }
+
+  async getOrganizationForUser(userId: number): Promise<Organization | undefined> {
+    const ownerOrg = await this.getOrganizationByOwner(userId);
+    if (ownerOrg) return ownerOrg;
+    const [membership] = await db.select().from(organizationMembers).where(eq(organizationMembers.userId, userId));
+    if (!membership) return undefined;
+    return this.getOrganizationById(membership.organizationId);
   }
 
   async updateOrganization(id: number, updates: Partial<Pick<Organization, "name" | "logoUrl">>): Promise<Organization | undefined> {

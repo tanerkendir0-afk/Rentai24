@@ -559,12 +559,6 @@ async function summarizeConversationHistory(
 const LANGUAGE_RULE = `
 LANGUAGE RULE: Always respond in the same language the user writes in. If the user writes in English, respond in English. If the user writes in Turkish, respond in Turkish. Never default to a specific language regardless of the language used in this prompt. Turkish accounting/legal terms (KDV, GVK, VUK, SGK, tevkifat, stopaj, etc.) are universal technical terms — keep them in every language.`;
 
-function getUserLanguageDirective(lang: string): string {
-  if (lang === "tr") {
-    return `\n\nUSER LANGUAGE PREFERENCE: The user's preferred language is TURKISH (Türkçe). ALWAYS respond in Turkish regardless of what language the user writes in. Even if the user writes in English, respond in Turkish. This overrides the general language rule above.`;
-  }
-  return "";
-}
 
 const PDF_EMAIL_UNIVERSAL_PROMPT = `
 PDF AND EMAIL RULES (ALL AGENTS):
@@ -2941,34 +2935,25 @@ export async function registerRoutes(
       boostSubForChat = await storage.getActiveBoostSubscription(req.session.userId);
       const boostCfgCheck = boostSubForChat ? BOOST_CONFIG[boostSubForChat.boostPlan] : null;
       isBoostAgentAllowed = !!boostSubForChat && (!boostCfgCheck?.allowedAgents || boostCfgCheck.allowedAgents.includes(agentType));
-      const maxAllowed = boostSubForChat ? (isBoostAgentAllowed ? boostSubForChat.maxParallelTasks : 1) : 1;
 
-      const countResult = await db.execute(sql`
-        SELECT COUNT(*) as cnt FROM conversations
-        WHERE user_id = ${req.session.userId}
-          AND agent_type = ${agentType}
-          AND boost_status = 'running'
-          AND visible_id != ${chatSessionId}
-      `);
-      const runningCount = Number(countResult.rows[0]?.cnt ?? 0);
+      if (boostSubForChat && isBoostAgentAllowed) {
+        const maxAllowed = boostSubForChat.maxParallelTasks;
+        const countResult = await db.execute(sql`
+          SELECT COUNT(*) as cnt FROM conversations
+          WHERE user_id = ${req.session.userId}
+            AND agent_type = ${agentType}
+            AND boost_status = 'running'
+            AND is_boost_task = true
+            AND visible_id != ${chatSessionId}
+        `);
+        const runningCount = Number(countResult.rows[0]?.cnt ?? 0);
 
-      if (runningCount >= maxAllowed) {
-        if (boostSubForChat && isBoostAgentAllowed) {
+        if (runningCount >= maxAllowed) {
           return res.status(429).json({
-            reply: `Paralel görev limitinize (${boostSubForChat.maxParallelTasks}) ulaştınız. Lütfen mevcut görevlerden birinin tamamlanmasını bekleyin veya Boost planınızı yükseltin.`,
+            reply: `Paralel görev limitinize (${maxAllowed}) ulaştınız. Lütfen mevcut sohbetlerden birini silin veya Boost planınızı yükseltin.`,
             boostLimitReached: true,
             activeCount: runningCount,
-            maxCount: boostSubForChat.maxParallelTasks,
-          });
-        } else if (boostSubForChat) {
-          return res.status(429).json({
-            reply: "Bu ajan Boost planınız kapsamında değil. Aynı anda yalnızca 1 aktif sohbet yürütebilirsiniz.",
-            boostRequired: true,
-          });
-        } else {
-          return res.status(429).json({
-            reply: "Bu ajan için zaten aktif bir sohbet var. Paralel görev için Boost planına geçin.",
-            boostRequired: true,
+            maxCount: maxAllowed,
           });
         }
       }
@@ -3030,8 +3015,6 @@ export async function registerRoutes(
     }
 
     let systemPrompt = agentSystemPrompts[agentType] || defaultSystemPrompt;
-
-    systemPrompt += getUserLanguageDirective(userLang);
 
     try {
       const globalInst = await storage.getGlobalInstruction();
@@ -3193,7 +3176,6 @@ EXAMPLES of task breakdowns:
 STYLE: Strategic, decisive, clear. Break tasks into logical chunks and assign them efficiently.
 Respond in the same language the user writes in.
 ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}${QUICK_REPLY_BUTTONS}`;
-        systemPrompt += getUserLanguageDirective(userLang);
         hasActiveRental = true;
       } else if (isManagerDirectQuery) {
         const agentUsageInfo = activeRentals.map(r => {
@@ -3220,7 +3202,6 @@ YOUR TASKS:
 STYLE: Strategic, analytical, constructive. Be a true team manager — give honest assessments and practical advice.
 Respond in the same language the user writes in.
 ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}${QUICK_REPLY_BUTTONS}`;
-        systemPrompt += getUserLanguageDirective(userLang);
         
         hasActiveRental = true;
       } else {
@@ -3505,12 +3486,12 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}${QUICK_REPLY_BUTT
 
       messages.push({ role: "user", content: message });
 
-      if (req.session.userId) {
+      if (req.session.userId && isBoostAgentAllowed) {
         try {
           const updateResult = await db.execute(sql`
             UPDATE conversations SET
               boost_status = 'running',
-              is_boost_task = CASE WHEN ${isBoostAgentAllowed ? sql`true` : sql`false`} THEN true ELSE is_boost_task END
+              is_boost_task = true
             WHERE user_id = ${req.session.userId}
               AND visible_id = ${chatSessionId}
               AND boost_status != 'running'
@@ -3522,7 +3503,7 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}${QUICK_REPLY_BUTT
             if (existsCheck.rows.length === 0) {
               await db.execute(sql`
                 INSERT INTO conversations (user_id, visible_id, agent_type, boost_status, is_boost_task)
-                VALUES (${req.session.userId}, ${chatSessionId}, ${resolvedAgentType}, 'running', ${isBoostAgentAllowed})
+                VALUES (${req.session.userId}, ${chatSessionId}, ${resolvedAgentType}, 'running', true)
               `);
             }
           }

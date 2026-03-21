@@ -74,6 +74,10 @@ function AppContent() {
   const { toast } = useToast();
 
   useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location]);
+
+  useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const gmailConnected = params.get("gmail_connected");
     const gmailError = params.get("gmail_error");

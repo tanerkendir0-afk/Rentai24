@@ -3514,6 +3514,10 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}${QUICK_REPLY_BUTT
 
       messages.push({ role: "user", content: message });
 
+      // BOOST LIFECYCLE (intentional design from Task #124):
+      // idle -> running on first message -> stays running until conversation DELETED (row removal = slot freed)
+      // No auto-completion after AI response — that was the 0/7 counter bug.
+      // Slot count = COUNT of is_boost_task=true AND boost_status='running' rows.
       if (req.session.userId && isBoostAgentAllowed) {
         try {
           const updateResult = await db.execute(sql`

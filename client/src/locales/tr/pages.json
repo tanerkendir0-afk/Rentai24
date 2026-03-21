@@ -1025,6 +1025,12 @@
     "chats": "Sohbetler",
     "new": "Yeni",
     "newChat": "Yeni Sohbet",
+    "today": "Bugün",
+    "yesterday": "Dün",
+    "thisWeek": "Bu hafta",
+    "older": "Daha eski",
+    "copyMessage": "Kopyala",
+    "slowResponseHint": "Yanıt biraz uzun sürebilir, lütfen bekleyin...",
     "tokenUsage": "Token Kullanımı",
     "social": "Sosyal",
     "connectedAccounts": "Bağlı Hesaplar",
@@ -1229,7 +1235,13 @@
   "chatMessage": {
     "imageLoadError": "Görsel yüklenemedi",
     "download": "İndir",
-    "fileType": "{{ext}} dosyası"
+    "fileType": "{{ext}} dosyası",
+    "reportFile": "Rapor.xlsx",
+    "file": "Dosya",
+    "invoicePdf": "Fatura.pdf",
+    "invoiceExcel": "Fatura.xlsx",
+    "reportExcel": "Rapor.xlsx",
+    "downloadFailed": "Dosya indirilemedi. Lütfen tekrar deneyin."
   },
   "publishCard": {
     "publishAssistant": "Yayın Asistanı",

@@ -1025,6 +1025,12 @@
     "chats": "Chats",
     "new": "New",
     "newChat": "New Chat",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "thisWeek": "This week",
+    "older": "Older",
+    "copyMessage": "Copy",
+    "slowResponseHint": "Response may take a moment, please wait...",
     "tokenUsage": "Token Usage",
     "social": "Social",
     "connectedAccounts": "Connected Accounts",
@@ -1229,7 +1235,13 @@
   "chatMessage": {
     "imageLoadError": "Image could not be loaded",
     "download": "Download",
-    "fileType": "{{ext}} file"
+    "fileType": "{{ext}} file",
+    "reportFile": "Report.xlsx",
+    "file": "File",
+    "invoicePdf": "Invoice.pdf",
+    "invoiceExcel": "Invoice.xlsx",
+    "reportExcel": "Report.xlsx",
+    "downloadFailed": "File could not be downloaded. Please try again."
   },
   "publishCard": {
     "publishAssistant": "Publish Assistant",

@@ -52,6 +52,8 @@ import {
   FileText,
   Paperclip,
   Square,
+  Copy,
+  Search,
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
@@ -1031,44 +1033,73 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                   </div>
                   {conversations.length > 0 && (
                     <div className="space-y-0.5 px-0.5">
-                      {conversations.map((convo) => {
-                        const isActive = convo.id === currentConvoId;
-                        return (
-                          <div
-                            key={convo.id}
-                            className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-left transition-all group cursor-pointer ${
-                              isActive
-                                ? "bg-primary/10 text-foreground border border-primary/20 shadow-sm"
-                                : "text-muted-foreground hover:bg-muted/50 hover:text-foreground border border-transparent"
-                            }`}
-                            onClick={() => setActiveConvoId(prev => ({ ...prev, [selectedAgent]: convo.id }))}
-                            data-testid={`sidebar-convo-${convo.id}`}
-                          >
-                            <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${
-                              isActive ? "bg-primary/15" : "bg-muted/50"
-                            }`}>
-                              <MessageCircle className={`w-3.5 h-3.5 ${isActive ? "text-primary" : "text-muted-foreground/50"}`} />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <span className={`text-[13px] truncate block leading-snug font-medium ${isActive ? "text-foreground" : ""}`}>
-                                {convo.title || t("demoPage.newChat")}
-                              </span>
-                              <span className="text-[10px] text-muted-foreground/50 leading-tight">
-                                {new Date(convo.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                              </span>
-                            </div>
-                            {conversations.length > 1 && (
-                              <button
-                                onClick={(e) => { e.stopPropagation(); deleteConversation(convo.id); }}
-                                className="w-6 h-6 rounded-md flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-red-500/20 hover:text-red-400 transition-all shrink-0"
-                                data-testid={`button-sidebar-delete-convo-${convo.id}`}
-                              >
-                                <X className="w-3 h-3" />
-                              </button>
+                      {(() => {
+                        const now = Date.now();
+                        const groups: { label: string; convos: typeof conversations }[] = [];
+                        const today: typeof conversations = [];
+                        const yesterday: typeof conversations = [];
+                        const thisWeek: typeof conversations = [];
+                        const older: typeof conversations = [];
+                        conversations.forEach(c => {
+                          const diff = now - c.createdAt;
+                          if (diff < 86400000) today.push(c);
+                          else if (diff < 172800000) yesterday.push(c);
+                          else if (diff < 604800000) thisWeek.push(c);
+                          else older.push(c);
+                        });
+                        if (today.length) groups.push({ label: t("demoPage.today") || "Today", convos: today });
+                        if (yesterday.length) groups.push({ label: t("demoPage.yesterday") || "Yesterday", convos: yesterday });
+                        if (thisWeek.length) groups.push({ label: t("demoPage.thisWeek") || "This week", convos: thisWeek });
+                        if (older.length) groups.push({ label: t("demoPage.older") || "Older", convos: older });
+
+                        return groups.map((group) => (
+                          <div key={group.label}>
+                            {groups.length > 1 && (
+                              <div className="px-2 pt-2 pb-1">
+                                <span className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground/50">{group.label}</span>
+                              </div>
                             )}
+                            {group.convos.map((convo) => {
+                              const isActive = convo.id === currentConvoId;
+                              return (
+                                <div
+                                  key={convo.id}
+                                  className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-left transition-all group cursor-pointer ${
+                                    isActive
+                                      ? "bg-primary/10 text-foreground border-l-2 border-l-primary border border-primary/20 shadow-sm"
+                                      : "text-muted-foreground hover:bg-muted/70 hover:text-foreground border border-transparent"
+                                  }`}
+                                  onClick={() => setActiveConvoId(prev => ({ ...prev, [selectedAgent]: convo.id }))}
+                                  data-testid={`sidebar-convo-${convo.id}`}
+                                >
+                                  <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${
+                                    isActive ? "bg-primary/15" : "bg-muted/50"
+                                  }`}>
+                                    <MessageCircle className={`w-3.5 h-3.5 ${isActive ? "text-primary" : "text-muted-foreground/50"}`} />
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <span className={`text-[13px] truncate block leading-snug font-medium ${isActive ? "text-foreground" : ""}`}>
+                                      {convo.title || t("demoPage.newChat")}
+                                    </span>
+                                    <span className="text-[10px] text-muted-foreground/50 leading-tight">
+                                      {new Date(convo.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                                    </span>
+                                  </div>
+                                  {conversations.length > 1 && (
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); deleteConversation(convo.id); }}
+                                      className="w-6 h-6 rounded-md flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-red-500/20 hover:text-red-400 transition-all shrink-0"
+                                      data-testid={`button-sidebar-delete-convo-${convo.id}`}
+                                    >
+                                      <X className="w-3 h-3" />
+                                    </button>
+                                  )}
+                                </div>
+                              );
+                            })}
                           </div>
-                        );
-                      })}
+                        ));
+                      })()}
                     </div>
                   )}
                   {conversations.length === 0 && (
@@ -2066,31 +2097,40 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                         </div>
                       )}
 
-                      <div
-                        className={`rounded-2xl px-4 py-2.5 ${
-                          msg.isLimitWarning
-                            ? "bg-red-500/10 border border-red-500/30 text-red-300"
-                            : isUser
-                              ? "bg-blue-500 text-white rounded-tr-md"
-                              : "bg-muted/70 text-foreground rounded-tl-md border border-border/30"
-                        }`}
-                        data-testid={`chat-message-${i}`}
-                      >
-                        {msg.isLimitWarning && (
-                          <div className="flex items-center gap-2 mb-2 text-red-400 font-medium text-xs">
-                            <AlertTriangle className="w-3.5 h-3.5" />
-                            {t("demoPage.tokenLimitReached")}
-                          </div>
-                        )}
-                        {(() => {
-                          const { data: publishData, cleanText } = !isUser ? parsePublishAssistant(msg.content) : { data: null, cleanText: msg.content };
-                          return (
-                            <>
-                              {publishData && <PublishAssistantCard data={publishData} />}
-                              <ChatMessageContent content={cleanText} isUser={isUser} onSendMessage={sendMessage} isLatest={i === messages.length - 1} />
-                            </>
-                          );
-                        })()}
+                      <div className="group/msg relative">
+                        <div
+                          className={`rounded-2xl px-4 py-2.5 ${
+                            msg.isLimitWarning
+                              ? "bg-red-500/10 border border-red-500/30 text-red-300"
+                              : isUser
+                                ? "bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-tr-md shadow-md shadow-blue-500/20"
+                                : "bg-card/80 backdrop-blur-sm text-foreground rounded-tl-md border border-border/40 shadow-sm"
+                          }`}
+                          data-testid={`chat-message-${i}`}
+                        >
+                          {msg.isLimitWarning && (
+                            <div className="flex items-center gap-2 mb-2 text-red-400 font-medium text-xs">
+                              <AlertTriangle className="w-3.5 h-3.5" />
+                              {t("demoPage.tokenLimitReached")}
+                            </div>
+                          )}
+                          {(() => {
+                            const { data: publishData, cleanText } = !isUser ? parsePublishAssistant(msg.content) : { data: null, cleanText: msg.content };
+                            return (
+                              <>
+                                {publishData && <PublishAssistantCard data={publishData} />}
+                                <ChatMessageContent content={cleanText} isUser={isUser} onSendMessage={sendMessage} isLatest={i === messages.length - 1} />
+                              </>
+                            );
+                          })()}
+                        </div>
+                        <button
+                          onClick={() => navigator.clipboard.writeText(msg.content)}
+                          className={`absolute top-1 ${isUser ? "-left-8" : "-right-8"} opacity-0 group-hover/msg:opacity-100 transition-opacity p-1 rounded-md hover:bg-muted/80 text-muted-foreground hover:text-foreground`}
+                          title={t("demoPage.copyMessage") || "Copy"}
+                        >
+                          <Copy className="w-3.5 h-3.5" />
+                        </button>
                       </div>
                     </div>
                   </motion.div>
@@ -2110,15 +2150,15 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                     <span className={`text-[11px] font-medium px-1 ${currentAgent.accent}`}>
                       {currentAgent.persona}
                     </span>
-                    <div className="bg-muted/70 rounded-2xl rounded-tl-md border border-border/30 px-4 py-3">
+                    <div className="bg-card/80 backdrop-blur-sm rounded-2xl rounded-tl-md border border-border/40 shadow-sm px-4 py-3">
                       <div className="flex items-center gap-1.5">
-                        <span className="w-2 h-2 rounded-full bg-muted-foreground/40 animate-bounce" style={{ animationDelay: "0ms" }} />
-                        <span className="w-2 h-2 rounded-full bg-muted-foreground/40 animate-bounce" style={{ animationDelay: "150ms" }} />
-                        <span className="w-2 h-2 rounded-full bg-muted-foreground/40 animate-bounce" style={{ animationDelay: "300ms" }} />
+                        <span className="w-2 h-2 rounded-full bg-muted-foreground/40 animate-pulse" style={{ animationDelay: "0ms" }} />
+                        <span className="w-2 h-2 rounded-full bg-muted-foreground/40 animate-pulse" style={{ animationDelay: "300ms" }} />
+                        <span className="w-2 h-2 rounded-full bg-muted-foreground/40 animate-pulse" style={{ animationDelay: "600ms" }} />
                       </div>
                       {slowResponseHint && (
                         <p className="text-[11px] text-muted-foreground mt-2">
-                          Yanıt biraz uzun sürebilir, lütfen bekleyin...
+                          {t("demoPage.slowResponseHint")}
                         </p>
                       )}
                     </div>
@@ -2135,7 +2175,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
           )}
         </div>
 
-        <div className="border-t border-border/50 bg-card/30 backdrop-blur-sm shrink-0">
+        <div className="border-t border-border/30 bg-card/50 backdrop-blur-xl shrink-0">
           <div className="max-w-3xl mx-auto w-full px-2 sm:px-4 py-2 sm:py-3">
             {uploadedFile && (
               <div className="flex items-center gap-2 mb-2 p-2 rounded-lg bg-blue-500/10 border border-blue-500/20" data-testid="upload-preview">
@@ -2321,7 +2361,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                   placeholder={!user ? t("demoPage.askPlaceholder", { agent: currentAgent.persona }) : t("demoPage.messagePlaceholder", { agent: currentAgent.persona })}
                   disabled={loading}
                   rows={2}
-                  className="w-full min-h-[52px] max-h-[120px] px-3 sm:px-4 pr-12 sm:pr-14 py-2.5 pb-3 rounded-xl bg-muted/50 border border-border/50 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 transition-all disabled:opacity-50 resize-none"
+                  className="w-full min-h-[52px] max-h-[120px] px-3 sm:px-4 pr-12 sm:pr-14 py-2.5 pb-3 rounded-xl bg-background/60 border border-border/40 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 transition-all disabled:opacity-50 resize-none"
                   data-testid="input-chat"
                 />
                 {loading ? (
@@ -2338,7 +2378,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                   <button
                     type="submit"
                     disabled={!input.trim() && !uploadedFile}
-                    className="absolute right-1.5 bottom-1.5 w-8 h-8 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 rounded-lg bg-gradient-to-r from-blue-500 to-violet-500 flex items-center justify-center text-white disabled:opacity-30 transition-opacity"
+                    className="absolute right-1.5 bottom-1.5 w-8 h-8 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 rounded-lg bg-gradient-to-r from-blue-500 to-violet-500 flex items-center justify-center text-white disabled:opacity-30 transition-all shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40"
                     data-testid="button-send-chat"
                   >
                     <Send className="w-4 h-4" />

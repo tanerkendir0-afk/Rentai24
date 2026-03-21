@@ -130,7 +130,7 @@ export default function BoostChatPanel({ panelId, allowedAgents, rentedAgentIds,
         setMessages(prev => [...prev, { role: "assistant", content: data.reply || t("demoPage.somethingWrong"), isLimitWarning: true }]);
       } else {
         const replyText = data.reply || t("demoPage.somethingWrong");
-        const routingPrefix = data.routedToName ? `🔀 *Routed to ${data.routedToName}*\n\n` : "";
+        const routingPrefix = data.routedToName ? `🔀 *${t("boost.routedTo", { name: data.routedToName })}*\n\n` : "";
         setMessages(prev => [...prev, { role: "assistant", content: routingPrefix + replyText, actions: data.actions }]);
       }
       queryClient.invalidateQueries({ queryKey: ["/api/boost/tasks"] });
@@ -308,8 +308,8 @@ export default function BoostChatPanel({ panelId, allowedAgents, rentedAgentIds,
                         );
                       })()}
                     </div>
-                    {!isUser && i === messages.length - 1 && conversationDbId && (
-                      <ChatRating conversationId={conversationDbId} messageIndex={i} />
+                    {!isUser && i === messages.length - 1 && conversationId && (
+                      <ChatRating agentType={selectedAgent} sessionId={conversationId} />
                     )}
                   </div>
                 </motion.div>

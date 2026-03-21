@@ -1057,7 +1057,13 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
       </AnimatePresence>
 
       <div className="flex-1 flex min-w-0">
+       {splitScreenActive && hasBoost && isDesktop ? (
+         <ResizablePanelGroup direction="horizontal" data-testid="boost-split-group">
+           <ResizablePanel defaultSize={Math.floor(100 / (splitPanelCount + 1))} minSize={25}>
+       <div className="flex-1 flex flex-col min-w-0 h-full">
+       ) : (
        <div className="flex-1 flex flex-col min-w-0">
+       )}
         <div className={`min-h-[3.5rem] border-b border-border/50 flex items-center gap-3 px-4 bg-card/30 backdrop-blur-sm shrink-0 relative z-20`}>
           {!sidebarOpen && (
             <Button

@@ -2631,6 +2631,7 @@
     "taskbar": "Boost Görevleri",
     "active": "aktif",
     "taskComplete": "Görev Tamamlandı",
-    "conversation": "Sohbet"
+    "conversation": "Sohbet",
+    "routedTo": "{{name}} adlı ajana yönlendirildi"
   }
 }

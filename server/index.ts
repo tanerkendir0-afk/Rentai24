@@ -470,6 +470,9 @@ app.use((req, res, next) => {
       await pool.query(`ALTER TABLE rex_contacts ADD COLUMN IF NOT EXISTS organization_id INTEGER`)
         .catch((err: unknown) => console.warn("rex_contacts.organization_id:", err instanceof Error ? err.message : String(err)));
 
+      await pool.query(`ALTER TABLE email_campaigns ADD COLUMN IF NOT EXISTS organization_id INTEGER`)
+        .catch((err: unknown) => console.warn("email_campaigns.organization_id:", err instanceof Error ? err.message : String(err)));
+
       console.log('Initializing Stripe schema...');
       await runMigrations({ databaseUrl });
       console.log('Stripe schema ready');

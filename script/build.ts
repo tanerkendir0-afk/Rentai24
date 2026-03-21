@@ -37,11 +37,7 @@ async function buildAll() {
 
   console.log("running database migrations...");
   const { execSync } = await import("child_process");
-  try {
-    execSync("npx tsx script/migrate.ts", { stdio: "inherit" });
-  } catch (e) {
-    console.warn("Migration warning (non-fatal):", e);
-  }
+  execSync("npx tsx script/migrate.ts", { stdio: "inherit" });
 
   console.log("building client...");
   await viteBuild();

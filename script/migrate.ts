@@ -27,36 +27,12 @@ const migrations = [
     expires_at TIMESTAMP NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
   )`,
-  `DO $$ BEGIN
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='organization_id') THEN
-      ALTER TABLE users ADD COLUMN organization_id INTEGER;
-    END IF;
-  END $$`,
-  `DO $$ BEGIN
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='rentals' AND column_name='organization_id') THEN
-      ALTER TABLE rentals ADD COLUMN organization_id INTEGER;
-    END IF;
-  END $$`,
-  `DO $$ BEGIN
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='agent_documents' AND column_name='organization_id') THEN
-      ALTER TABLE agent_documents ADD COLUMN organization_id INTEGER;
-    END IF;
-  END $$`,
-  `DO $$ BEGIN
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='conversations' AND column_name='organization_id') THEN
-      ALTER TABLE conversations ADD COLUMN organization_id INTEGER;
-    END IF;
-  END $$`,
-  `DO $$ BEGIN
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='campaigns' AND column_name='organization_id') THEN
-      ALTER TABLE campaigns ADD COLUMN organization_id INTEGER;
-    END IF;
-  END $$`,
-  `DO $$ BEGIN
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='rex_contacts' AND column_name='organization_id') THEN
-      ALTER TABLE rex_contacts ADD COLUMN organization_id INTEGER;
-    END IF;
-  END $$`,
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS organization_id INTEGER`,
+  `ALTER TABLE rentals ADD COLUMN IF NOT EXISTS organization_id INTEGER`,
+  `ALTER TABLE agent_documents ADD COLUMN IF NOT EXISTS organization_id INTEGER`,
+  `ALTER TABLE conversations ADD COLUMN IF NOT EXISTS organization_id INTEGER`,
+  `ALTER TABLE email_campaigns ADD COLUMN IF NOT EXISTS organization_id INTEGER`,
+  `ALTER TABLE rex_contacts ADD COLUMN IF NOT EXISTS organization_id INTEGER`,
 ];
 
 async function runMigrations() {
@@ -67,6 +43,8 @@ async function runMigrations() {
   }
 
   const client = new pg.Client({ connectionString: databaseUrl });
+  let failures = 0;
+
   try {
     await client.connect();
     console.log("[migrate] Connected to database, running migrations...");
@@ -74,20 +52,27 @@ async function runMigrations() {
     for (let i = 0; i < migrations.length; i++) {
       try {
         await client.query(migrations[i]);
-        console.log(`[migrate] Migration ${i + 1}/${migrations.length} applied`);
+        console.log(`[migrate] ✓ Migration ${i + 1}/${migrations.length} applied`);
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
-        if (msg.includes("already exists")) {
-          console.log(`[migrate] Migration ${i + 1}/${migrations.length} skipped (already exists)`);
+        if (msg.includes("already exists") || msg.includes("does not exist")) {
+          console.log(`[migrate] ⊘ Migration ${i + 1}/${migrations.length} skipped: ${msg}`);
         } else {
-          console.error(`[migrate] Migration ${i + 1}/${migrations.length} failed:`, msg);
+          console.error(`[migrate] ✗ Migration ${i + 1}/${migrations.length} FAILED: ${msg}`);
+          failures++;
         }
       }
     }
 
-    console.log("[migrate] All migrations complete");
+    if (failures > 0) {
+      console.error(`[migrate] ${failures} migration(s) failed!`);
+      process.exit(1);
+    }
+
+    console.log("[migrate] All migrations complete successfully");
   } catch (err) {
-    console.error("[migrate] Connection failed:", err);
+    console.error("[migrate] Database connection failed:", err);
+    process.exit(1);
   } finally {
     await client.end();
   }

@@ -2139,11 +2139,16 @@ export async function registerRoutes(
   app.post("/api/conversations", requireAuth, async (req, res) => {
     const { agentType, visibleId, title } = req.body;
     if (!agentType || !visibleId) return res.status(400).json({ error: msg("agentTypeAndVisibleIdRequired", req.lang!) });
+    const boost = await storage.getActiveBoostSubscription(req.session.userId!);
+    const isBoostActive = !!boost;
+    const boostPlanAgents: string[] | null = boost?.boostPlan === "boost-accounting" ? ["bookkeeping"] : null;
+    const isBoostForAgent = isBoostActive && (!boostPlanAgents || boostPlanAgents.includes(agentType));
     const convoData: Parameters<typeof storage.createConversation>[0] = {
       visibleId,
       userId: req.session.userId!,
       agentType,
       title: title || "New Chat",
+      ...(isBoostForAgent ? { boostStatus: "running", isBoostTask: true } : {}),
     };
     if (req.organizationId) {
       convoData.organizationId = req.organizationId;
@@ -3924,23 +3929,6 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}${QUICK_REPLY_BUTT
         usedTool,
       }).catch(err => console.error("Chat message save error:", err.message));
 
-      if (req.session.userId && chatSessionId) {
-        try {
-          const convoRows = await db.select().from(conversations).where(
-            and(
-              eq(conversations.userId, req.session.userId),
-              eq(conversations.visibleId, chatSessionId),
-              eq(conversations.boostStatus, "running")
-            )
-          );
-          if (convoRows.length > 0) {
-            await storage.updateConversationBoostStatus(convoRows[0].id, "completed");
-          }
-        } catch (bsErr: any) {
-          console.error("Boost status update error:", bsErr.message);
-        }
-      }
-
       const responsePayload: Record<string, any> = { sessionId: chatSessionId };
       if (escalationTriggered && escalationData) {
         responsePayload.reply = escalationData.message || reply;
@@ -3972,21 +3960,6 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}${QUICK_REPLY_BUTT
     } catch (error: any) {
       console.error(`[AGENT ERROR] ${agentType}:`, error?.message || error);
       circuitBreaker.recordFailure(agentType);
-
-      if (req.session.userId && chatSessionId) {
-        try {
-          const errConvoRows = await db.select().from(conversations).where(
-            and(
-              eq(conversations.userId, req.session.userId),
-              eq(conversations.visibleId, chatSessionId),
-              eq(conversations.boostStatus, "running")
-            )
-          );
-          if (errConvoRows.length > 0) {
-            await storage.updateConversationBoostStatus(errConvoRows[0].id, "error");
-          }
-        } catch (_) {}
-      }
 
       const errMsg: string = error?.message || "";
       const isTimeout =

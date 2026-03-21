@@ -70,7 +70,6 @@ import { FeedbackButton } from "@/components/feedback-dialog";
 import { useAnalytics } from "@/lib/analytics";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import BoostChatPanel from "@/components/boost-chat-panel";
-import BoostTaskBar from "@/components/boost-taskbar";
 
 interface AgentAction {
   type: string;
@@ -292,6 +291,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
     try {
       await apiRequest("POST", "/api/conversations", { agentType: selectedAgent, visibleId });
       queryClient.invalidateQueries({ queryKey: ['/api/conversations', selectedAgent] });
+      queryClient.invalidateQueries({ queryKey: ["/api/boost/status"] });
       setActiveConvoId(prev => ({ ...prev, [selectedAgent]: visibleId }));
     } catch {}
   };
@@ -303,6 +303,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
     try {
       await apiRequest("DELETE", `/api/conversations/${convo.dbId}`);
       queryClient.invalidateQueries({ queryKey: ['/api/conversations', selectedAgent] });
+      queryClient.invalidateQueries({ queryKey: ["/api/boost/status"] });
       if (currentConvoId === convoId) {
         const currentIndex = conversations.findIndex(c => c.id === convoId);
         const remaining = conversations.filter(c => c.id !== convoId);
@@ -400,8 +401,8 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
       return res.json();
     },
     enabled: !!user,
-    staleTime: 30000,
-    refetchInterval: 15000,
+    staleTime: 5000,
+    refetchInterval: 5000,
   });
 
   const hasBoost = boostStatus?.active === true;
@@ -2416,17 +2417,6 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
           </>
         )}
 
-        {user && hasBoost && (
-          <BoostTaskBar
-            onTaskClick={(task) => {
-              setSelectedAgent(task.agentType);
-              setActiveConvoId(prev => ({ ...prev, [task.agentType]: task.visibleId }));
-              queryClient.invalidateQueries({ queryKey: ['/api/conversations', task.agentType] });
-              if (splitScreenActive) setSplitScreenActive(false);
-              if (window.innerWidth < 1024) setSidebarOpen(false);
-            }}
-          />
-        )}
       </div>
   );
 }

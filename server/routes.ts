@@ -559,6 +559,13 @@ async function summarizeConversationHistory(
 const LANGUAGE_RULE = `
 LANGUAGE RULE: Always respond in the same language the user writes in. If the user writes in English, respond in English. If the user writes in Turkish, respond in Turkish. Never default to a specific language regardless of the language used in this prompt. Turkish accounting/legal terms (KDV, GVK, VUK, SGK, tevkifat, stopaj, etc.) are universal technical terms — keep them in every language.`;
 
+function getUserLanguageDirective(lang: string): string {
+  if (lang === "tr") {
+    return `\n\nUSER LANGUAGE PREFERENCE: The user's preferred language is TURKISH (Türkçe). ALWAYS respond in Turkish regardless of what language the user writes in. Even if the user writes in English, respond in Turkish. This overrides the general language rule above.`;
+  }
+  return "";
+}
+
 const PDF_EMAIL_UNIVERSAL_PROMPT = `
 PDF AND EMAIL RULES (ALL AGENTS):
 - Use the generate_pdf tool to create real PDF documents. Supported types: invoice, report, proposal, receipt.
@@ -3024,6 +3031,8 @@ export async function registerRoutes(
 
     let systemPrompt = agentSystemPrompts[agentType] || defaultSystemPrompt;
 
+    systemPrompt += getUserLanguageDirective(userLang);
+
     try {
       const globalInst = await storage.getGlobalInstruction();
       const agentInst = await storage.getAgentInstruction(agentType);
@@ -3148,8 +3157,11 @@ ${userEmail ? `- When they say "send to me", "email me", "bana gönder", "bana a
       const activeAgentIds = activeRentals.map(r => r.agentType);
 
       if (activeAgentIds.length === 0) {
+        const noAgentReply = userLang === "tr"
+          ? "Henüz hiçbir AI çalışan kiralamadınız. Ajanlar sayfasını ziyaret ederek ilk ajanınızı kiralayın, isteklerinizi doğru ajana yönlendirmekte yardımcı olayım!"
+          : "You haven't hired any AI workers yet. Visit the Workers page to hire your first agent and I'll help route your requests to the right one!";
         return res.status(403).json({
-          reply: "You haven't hired any AI workers yet. Visit the Workers page to hire your first agent and I'll help route your requests to the right one!",
+          reply: noAgentReply,
         });
       }
 
@@ -3181,6 +3193,7 @@ EXAMPLES of task breakdowns:
 STYLE: Strategic, decisive, clear. Break tasks into logical chunks and assign them efficiently.
 Respond in the same language the user writes in.
 ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}${QUICK_REPLY_BUTTONS}`;
+        systemPrompt += getUserLanguageDirective(userLang);
         hasActiveRental = true;
       } else if (isManagerDirectQuery) {
         const agentUsageInfo = activeRentals.map(r => {
@@ -3207,6 +3220,7 @@ YOUR TASKS:
 STYLE: Strategic, analytical, constructive. Be a true team manager — give honest assessments and practical advice.
 Respond in the same language the user writes in.
 ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}${QUICK_REPLY_BUTTONS}`;
+        systemPrompt += getUserLanguageDirective(userLang);
         
         hasActiveRental = true;
       } else {
@@ -3215,8 +3229,11 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}${QUICK_REPLY_BUTT
       if (classification.suggestedAgent) {
         const suggestedName = agentPersonaMap[classification.suggestedAgent] || classification.suggestedAgent;
         const agentDisplayName = agentNameMap[classification.suggestedAgent] || suggestedName;
+        const suggestReply = userLang === "tr"
+          ? `Henüz **${suggestedName}** ajanını ekibinize eklemediniz. Bu istek için en uygun ajan o olurdu. **${agentDisplayName}** ajanını ekibinize eklemek ister misiniz? [Ajanlar sayfasından](/workers) kiralayabilirsiniz.\n\nBu arada mevcut ajanlarınızla yardımcı olmaya çalışabilirim: ${activeAgentIds.map(id => `**${agentPersonaMap[id] || id}**`).join(", ")}.`
+          : `You haven't hired **${suggestedName}** yet, who would be the best agent for this request. Would you like to add the **${agentDisplayName}** to your team? You can hire them from the [Workers page](/workers).\n\nIn the meantime, I can try to help with your available agents: ${activeAgentIds.map(id => `**${agentPersonaMap[id] || id}**`).join(", ")}.`;
         return res.json({
-          reply: `You haven't hired **${suggestedName}** yet, who would be the best agent for this request. Would you like to add the **${agentDisplayName}** to your team? You can hire them from the [Workers page](/workers).\n\nIn the meantime, I can try to help with your available agents: ${activeAgentIds.map(id => `**${agentPersonaMap[id] || id}**`).join(", ")}.`,
+          reply: suggestReply,
           routedTo: null,
           suggestedHire: classification.suggestedAgent,
         });

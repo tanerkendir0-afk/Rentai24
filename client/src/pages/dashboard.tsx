@@ -362,10 +362,7 @@ export default function Dashboard() {
                     <div className="flex items-center gap-2">
                       <h3 className="font-semibold text-foreground text-sm">{t("dashboard.boost.title")}</h3>
                       <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30 text-xs" data-testid="badge-boost-plan">
-                        {boostStatus.plan === "boost-3" ? "Boost 3" :
-                         boostStatus.plan === "boost-7" ? "Boost 7" :
-                         boostStatus.plan === "boost-accounting" ? "Muhasebe Boost" :
-                         boostStatus.plan === "boost-pro" ? "Pro Boost" : boostStatus.plan}
+                        {t(`pricing.boost.plans.${boostStatus.plan}.name`, { defaultValue: boostStatus.plan })}
                       </Badge>
                       <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-400 border-0 text-xs">
                         {t("dashboard.boost.statusActive")}

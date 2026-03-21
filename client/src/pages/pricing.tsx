@@ -215,7 +215,7 @@ export default function Pricing() {
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+            <div id="boost" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
               {boostPlans.map((bp, i) => {
                 const BpIcon = bp.icon;
                 const features = t(`pricing.boost.plans.${bp.id}.features`, { returnObjects: true }) as string[];
@@ -533,6 +533,7 @@ function BoostCheckoutModal({
   const { toast } = useToast();
   const { t } = useTranslation("pages");
   const [processing, setProcessing] = useState(false);
+  const [useTestCard, setUseTestCard] = useState(true);
   const [cardNumber, setCardNumber] = useState("");
   const [expiry, setExpiry] = useState("");
   const [cvc, setCvc] = useState("");
@@ -550,7 +551,27 @@ function BoostCheckoutModal({
     return digits;
   }
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleRealStripeCheckout() {
+    setProcessing(true);
+    try {
+      const res = await apiRequest("POST", "/api/boost/checkout", { boostPlan });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      }
+    } catch (error: any) {
+      const message = error?.message || t("pricing.boost.checkout.failed");
+      if (message.includes("already")) {
+        toast({ title: t("pricing.boost.checkout.alreadyActive"), description: t("pricing.boost.checkout.alreadyActiveDesc"), variant: "destructive" });
+      } else {
+        toast({ title: t("pricing.boost.checkout.failed"), description: message, variant: "destructive" });
+      }
+    } finally {
+      setProcessing(false);
+    }
+  }
+
+  async function handleTestCardSubmit(e: React.FormEvent) {
     e.preventDefault();
     const cleanCard = cardNumber.replace(/\s/g, "");
     if (cleanCard.length < 13) {
@@ -624,77 +645,123 @@ function BoostCheckoutModal({
             </button>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <Label htmlFor="boostCardNumber" className="text-sm text-muted-foreground">{t("pricing.checkout.cardNumber")}</Label>
-              <div className="relative mt-1">
-                <Input
-                  id="boostCardNumber"
-                  placeholder="4242 4242 4242 4242"
-                  value={cardNumber}
-                  onChange={(e) => setCardNumber(formatCardNumber(e.target.value))}
-                  className="bg-background/50 pr-10"
-                  maxLength={19}
-                  data-testid="input-boost-card-number"
-                />
-                <CreditCard className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              </div>
-            </div>
+          <div className="flex gap-2 mb-4">
+            <Button
+              type="button"
+              size="sm"
+              variant={useTestCard ? "default" : "outline"}
+              className={useTestCard ? "flex-1 bg-amber-500/20 text-amber-400 border-amber-500/30 hover:bg-amber-500/30" : "flex-1"}
+              onClick={() => setUseTestCard(true)}
+              data-testid="button-boost-test-mode"
+            >
+              <CreditCard className="w-3 h-3 mr-1" />
+              {t("pricing.checkout.testCard").replace(":", "")}
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant={!useTestCard ? "default" : "outline"}
+              className={!useTestCard ? "flex-1 bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0" : "flex-1"}
+              onClick={() => setUseTestCard(false)}
+              data-testid="button-boost-live-mode"
+            >
+              <Lock className="w-3 h-3 mr-1" />
+              Stripe
+            </Button>
+          </div>
 
-            <div className="grid grid-cols-2 gap-4">
+          {useTestCard ? (
+            <form onSubmit={handleTestCardSubmit} className="space-y-4">
               <div>
-                <Label htmlFor="boostExpiry" className="text-sm text-muted-foreground">{t("pricing.checkout.expiry")}</Label>
-                <Input
-                  id="boostExpiry"
-                  placeholder="MM/YY"
-                  value={expiry}
-                  onChange={(e) => setExpiry(formatExpiry(e.target.value))}
-                  className="mt-1 bg-background/50"
-                  maxLength={5}
-                  data-testid="input-boost-expiry"
-                />
+                <Label htmlFor="boostCardNumber" className="text-sm text-muted-foreground">{t("pricing.checkout.cardNumber")}</Label>
+                <div className="relative mt-1">
+                  <Input
+                    id="boostCardNumber"
+                    placeholder="4242 4242 4242 4242"
+                    value={cardNumber}
+                    onChange={(e) => setCardNumber(formatCardNumber(e.target.value))}
+                    className="bg-background/50 pr-10"
+                    maxLength={19}
+                    data-testid="input-boost-card-number"
+                  />
+                  <CreditCard className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                </div>
               </div>
-              <div>
-                <Label htmlFor="boostCvc" className="text-sm text-muted-foreground">{t("pricing.checkout.cvc")}</Label>
-                <Input
-                  id="boostCvc"
-                  placeholder="123"
-                  value={cvc}
-                  onChange={(e) => setCvc(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                  className="mt-1 bg-background/50"
-                  maxLength={4}
-                  data-testid="input-boost-cvc"
-                />
-              </div>
-            </div>
 
-            <div className="pt-2">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="boostExpiry" className="text-sm text-muted-foreground">{t("pricing.checkout.expiry")}</Label>
+                  <Input
+                    id="boostExpiry"
+                    placeholder="MM/YY"
+                    value={expiry}
+                    onChange={(e) => setExpiry(formatExpiry(e.target.value))}
+                    className="mt-1 bg-background/50"
+                    maxLength={5}
+                    data-testid="input-boost-expiry"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="boostCvc" className="text-sm text-muted-foreground">{t("pricing.checkout.cvc")}</Label>
+                  <Input
+                    id="boostCvc"
+                    placeholder="123"
+                    value={cvc}
+                    onChange={(e) => setCvc(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                    className="mt-1 bg-background/50"
+                    maxLength={4}
+                    data-testid="input-boost-cvc"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <Button
+                  type="submit"
+                  className="w-full bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0"
+                  size="lg"
+                  disabled={processing}
+                  data-testid="button-boost-pay"
+                >
+                  {processing ? (
+                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  ) : (
+                    <Bolt className="w-4 h-4 mr-2" />
+                  )}
+                  {processing ? t("pricing.boost.checkout.processing") : t("pricing.boost.checkout.pay", { price: price.toLocaleString() })}
+                </Button>
+              </div>
+
+              <div className="pt-2 border-t border-border/30">
+                <p className="text-xs text-muted-foreground mb-2">{t("pricing.checkout.testCard")}: <code className="text-foreground">4242 4242 4242 4242</code></p>
+                <p className="text-xs text-muted-foreground">{t("pricing.checkout.testCardHint")}</p>
+              </div>
+            </form>
+          ) : (
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground text-center">
+                {t("pricing.boost.checkout.planInfo", { name: planName, price: price.toLocaleString() })}
+              </p>
               <Button
-                type="submit"
                 className="w-full bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0"
                 size="lg"
                 disabled={processing}
-                data-testid="button-boost-pay"
+                onClick={handleRealStripeCheckout}
+                data-testid="button-boost-stripe-pay"
               >
                 {processing ? (
                   <Loader2 className="w-4 h-4 animate-spin mr-2" />
                 ) : (
-                  <Bolt className="w-4 h-4 mr-2" />
+                  <Lock className="w-4 h-4 mr-2" />
                 )}
                 {processing ? t("pricing.boost.checkout.processing") : t("pricing.boost.checkout.pay", { price: price.toLocaleString() })}
               </Button>
+              <div className="flex items-center justify-center gap-2">
+                <Lock className="w-3 h-3 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground">{t("pricing.checkout.securePayment")}</span>
+              </div>
             </div>
-
-            <div className="flex items-center justify-center gap-2 pt-1">
-              <Lock className="w-3 h-3 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">{t("pricing.checkout.securePayment")}</span>
-            </div>
-
-            <div className="pt-2 border-t border-border/30">
-              <p className="text-xs text-muted-foreground mb-2">{t("pricing.checkout.testCard")}: <code className="text-foreground">4242 4242 4242 4242</code></p>
-              <p className="text-xs text-muted-foreground">{t("pricing.checkout.testCardHint")}</p>
-            </div>
-          </form>
+          )}
         </Card>
       </motion.div>
     </motion.div>

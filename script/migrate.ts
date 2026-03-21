@@ -34,7 +34,14 @@ const migrations = [
   `ALTER TABLE conversations ADD COLUMN IF NOT EXISTS organization_id INTEGER`,
   `ALTER TABLE email_campaigns ADD COLUMN IF NOT EXISTS organization_id INTEGER`,
   `ALTER TABLE rex_contacts ADD COLUMN IF NOT EXISTS organization_id INTEGER`,
-  `ALTER TABLE organizations ADD COLUMN IF NOT EXISTS slug TEXT NOT NULL UNIQUE DEFAULT ''`,
+  `DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='organizations' AND column_name='slug') THEN
+      ALTER TABLE organizations ADD COLUMN slug TEXT;
+      UPDATE organizations SET slug = 'org-' || id WHERE slug IS NULL;
+      ALTER TABLE organizations ALTER COLUMN slug SET NOT NULL;
+      ALTER TABLE organizations ADD CONSTRAINT organizations_slug_unique UNIQUE (slug);
+    END IF;
+  END $$`,
 ];
 
 async function runMigrations() {

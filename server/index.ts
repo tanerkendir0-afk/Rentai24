@@ -474,8 +474,16 @@ app.use((req, res, next) => {
       await pool.query(`ALTER TABLE email_campaigns ADD COLUMN IF NOT EXISTS organization_id INTEGER`)
         .catch((err: unknown) => console.warn("email_campaigns.organization_id:", err instanceof Error ? err.message : String(err)));
 
-      await pool.query(`ALTER TABLE organizations ADD COLUMN IF NOT EXISTS slug TEXT NOT NULL UNIQUE DEFAULT ''`)
-        .catch((err: unknown) => console.warn("organizations.slug:", err instanceof Error ? err.message : String(err)));
+      await pool.query(`
+        DO $$ BEGIN
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='organizations' AND column_name='slug') THEN
+            ALTER TABLE organizations ADD COLUMN slug TEXT;
+            UPDATE organizations SET slug = 'org-' || id WHERE slug IS NULL;
+            ALTER TABLE organizations ALTER COLUMN slug SET NOT NULL;
+            ALTER TABLE organizations ADD CONSTRAINT organizations_slug_unique UNIQUE (slug);
+          END IF;
+        END $$
+      `).catch((err: unknown) => console.warn("organizations.slug:", err instanceof Error ? err.message : String(err)));
 
       console.log('Initializing Stripe schema...');
       await runMigrations({ databaseUrl });

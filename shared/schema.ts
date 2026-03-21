@@ -341,6 +341,8 @@ export const conversations = pgTable("conversations", {
   agentType: text("agent_type").notNull(),
   title: text("title").notNull().default("New Chat"),
   qualityRating: text("quality_rating"),
+  isBoostTask: boolean("is_boost_task").notNull().default(false),
+  boostStatus: text("boost_status").notNull().default("idle"),
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
 });
 
@@ -1417,3 +1419,22 @@ export const insertScheduledTaskRunSchema = createInsertSchema(scheduledTaskRuns
 
 export type ScheduledTaskRun = typeof scheduledTaskRuns.$inferSelect;
 export type InsertScheduledTaskRun = z.infer<typeof insertScheduledTaskRunSchema>;
+
+export const boostSubscriptions = pgTable("boost_subscriptions", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  boostPlan: text("boost_plan").notNull(),
+  maxParallelTasks: integer("max_parallel_tasks").notNull().default(3),
+  status: text("status").notNull().default("active"),
+  stripeBoostSubId: text("stripe_boost_sub_id"),
+  expiresAt: timestamp("expires_at"),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
+export const insertBoostSubscriptionSchema = createInsertSchema(boostSubscriptions).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type BoostSubscription = typeof boostSubscriptions.$inferSelect;
+export type InsertBoostSubscription = z.infer<typeof insertBoostSubscriptionSchema>;

@@ -3,6 +3,7 @@ import { users, rentals, contactMessages, newsletterSubscribers, leads, agentAct
 import { eq, and, sql, desc, gte, lte } from "drizzle-orm";
 import * as cryptoModule from "crypto";
 import { scheduledTasks, scheduledTaskRuns, type ScheduledTask, type InsertScheduledTask, type ScheduledTaskRun, type InsertScheduledTaskRun } from "@shared/schema";
+import { boostSubscriptions, type BoostSubscription, type InsertBoostSubscription } from "@shared/schema";
 
 export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
@@ -241,6 +242,13 @@ export interface IStorage {
   createScheduledTaskRun(data: InsertScheduledTaskRun): Promise<ScheduledTaskRun>;
   getScheduledTaskRuns(taskId: number, userId: number, limit?: number): Promise<ScheduledTaskRun[]>;
   updateScheduledTaskRun(id: number, updates: { status: string; result?: string; error?: string; durationMs?: number; completedAt: Date }): Promise<void>;
+
+  createBoostSubscription(data: InsertBoostSubscription): Promise<BoostSubscription>;
+  getActiveBoostSubscription(userId: number): Promise<BoostSubscription | undefined>;
+  updateBoostSubscription(id: number, updates: Partial<Pick<BoostSubscription, "status" | "stripeBoostSubId" | "expiresAt">>): Promise<BoostSubscription | undefined>;
+  deactivateBoostSubscription(userId: number): Promise<void>;
+  updateConversationBoostStatus(conversationId: number, boostStatus: string): Promise<void>;
+  getActiveBoostConversations(userId: number, agentType?: string): Promise<ConversationRecord[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1898,6 +1906,53 @@ export class DatabaseStorage implements IStorage {
 
   async updateScheduledTaskRun(id: number, updates: { status: string; result?: string; error?: string; durationMs?: number; completedAt: Date }): Promise<void> {
     await db.update(scheduledTaskRuns).set(updates).where(eq(scheduledTaskRuns.id, id));
+  }
+
+  async createBoostSubscription(data: InsertBoostSubscription): Promise<BoostSubscription> {
+    const [created] = await db.insert(boostSubscriptions).values(data).returning();
+    return created;
+  }
+
+  async getActiveBoostSubscription(userId: number): Promise<BoostSubscription | undefined> {
+    const [boost] = await db.select().from(boostSubscriptions).where(
+      and(eq(boostSubscriptions.userId, userId), eq(boostSubscriptions.status, "active"))
+    );
+    return boost;
+  }
+
+  async updateBoostSubscription(id: number, updates: Partial<Pick<BoostSubscription, "status" | "stripeBoostSubId" | "expiresAt">>): Promise<BoostSubscription | undefined> {
+    const [updated] = await db.update(boostSubscriptions).set(updates).where(eq(boostSubscriptions.id, id)).returning();
+    return updated;
+  }
+
+  async deactivateBoostSubscription(userId: number): Promise<void> {
+    await db.update(boostSubscriptions).set({ status: "inactive" }).where(
+      and(eq(boostSubscriptions.userId, userId), eq(boostSubscriptions.status, "active"))
+    );
+  }
+
+  async updateConversationBoostStatus(conversationId: number, boostStatus: string): Promise<void> {
+    await db.update(conversations).set({ boostStatus }).where(eq(conversations.id, conversationId));
+  }
+
+  async getActiveBoostConversations(userId: number, agentType?: string): Promise<ConversationRecord[]> {
+    if (agentType) {
+      return db.select().from(conversations).where(
+        and(
+          eq(conversations.userId, userId),
+          eq(conversations.agentType, agentType),
+          eq(conversations.isBoostTask, true),
+          eq(conversations.boostStatus, "running")
+        )
+      );
+    }
+    return db.select().from(conversations).where(
+      and(
+        eq(conversations.userId, userId),
+        eq(conversations.isBoostTask, true),
+        eq(conversations.boostStatus, "running")
+      )
+    );
   }
 }
 

@@ -3,6 +3,13 @@ import { storage } from './storage';
 import { db } from './db';
 import { sql } from 'drizzle-orm';
 
+const BOOST_CONFIG: Record<string, { maxParallelTasks: number }> = {
+  "boost-3": { maxParallelTasks: 3 },
+  "boost-7": { maxParallelTasks: 7 },
+  "boost-accounting": { maxParallelTasks: 3 },
+  "boost-pro": { maxParallelTasks: 99 },
+};
+
 const processedEventIds = new Set<string>();
 
 export class WebhookHandlers {
@@ -57,6 +64,11 @@ export class WebhookHandlers {
   static async handleCheckoutCompleted(session: any): Promise<void> {
     if (session.mode === 'payment' && session.metadata?.type === 'image_credits') {
       await WebhookHandlers.handleCreditsPurchase(session);
+      return;
+    }
+
+    if (session.metadata?.type === 'boost') {
+      await WebhookHandlers.handleBoostCheckout(session);
       return;
     }
 
@@ -148,5 +160,45 @@ export class WebhookHandlers {
 
     await storage.addImageCredits(user.id, credits);
     console.log(`Webhook: Added ${credits} image credits to user ${user.id}`);
+  }
+
+  static async handleBoostCheckout(session: any): Promise<void> {
+    const customerId = typeof session.customer === 'string' ? session.customer : session.customer.id;
+    const subscriptionId = typeof session.subscription === 'string' ? session.subscription : session.subscription?.id;
+    const boostPlan = session.metadata?.boostPlan;
+
+    if (!boostPlan || !BOOST_CONFIG[boostPlan]) {
+      console.error('Webhook: Invalid boost plan in metadata:', session.metadata);
+      return;
+    }
+
+    const user = await storage.getUserByStripeCustomerId(customerId);
+    if (!user) {
+      console.error('Webhook: No user found for Stripe customer:', customerId);
+      return;
+    }
+
+    const existing = await storage.getActiveBoostSubscription(user.id);
+    if (existing) {
+      console.log(`Webhook: User ${user.id} already has an active boost subscription, updating`);
+      await storage.updateBoostSubscription(existing.id, {
+        stripeBoostSubId: subscriptionId || existing.stripeBoostSubId,
+      });
+      return;
+    }
+
+    const boostConfig = BOOST_CONFIG[boostPlan];
+    const expiresAt = new Date();
+    expiresAt.setMonth(expiresAt.getMonth() + 1);
+
+    await storage.createBoostSubscription({
+      userId: user.id,
+      boostPlan,
+      maxParallelTasks: boostConfig.maxParallelTasks,
+      status: 'active',
+      stripeBoostSubId: subscriptionId || null,
+      expiresAt,
+    });
+    console.log(`Webhook: Created boost subscription for user ${user.id}, plan ${boostPlan}`);
   }
 }

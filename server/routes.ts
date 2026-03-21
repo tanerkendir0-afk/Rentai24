@@ -85,6 +85,13 @@ const PLAN_CONFIG: Record<string, { maxAgents: number; dailyMessagesPerAgent: nu
   accounting: { maxAgents: 1, dailyMessagesPerAgent: 200, allowedAgents: ["bookkeeping"] },
 };
 
+const BOOST_CONFIG: Record<string, { maxParallelTasks: number; priceUsd: number; allowedAgents?: string[] }> = {
+  "boost-3": { maxParallelTasks: 3, priceUsd: 150 },
+  "boost-7": { maxParallelTasks: 7, priceUsd: 300 },
+  "boost-accounting": { maxParallelTasks: 3, priceUsd: 200, allowedAgents: ["bookkeeping"] },
+  "boost-pro": { maxParallelTasks: 99, priceUsd: 1750 },
+};
+
 const MODEL_PRICING: Record<string, { input: number; output: number }> = {
   "gpt-4o": { input: 2.50, output: 10.00 },
   "gpt-4o-mini": { input: 0.15, output: 0.60 },
@@ -3209,6 +3216,22 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}${QUICK_REPLY_BUTT
         }
         hasActiveRental = true;
         await storage.incrementUsage(rental.id);
+
+        if (clientSessionId) {
+          const boostSub = await storage.getActiveBoostSubscription(req.session.userId);
+          if (boostSub) {
+            const activeBoostConvos = await storage.getActiveBoostConversations(req.session.userId, resolvedAgentType);
+            const isThisConvoBoost = activeBoostConvos.some(c => c.visibleId === clientSessionId);
+            if (!isThisConvoBoost && activeBoostConvos.length >= boostSub.maxParallelTasks) {
+              return res.status(429).json({
+                reply: `Paralel görev limitinize (${boostSub.maxParallelTasks}) ulaştınız. Lütfen mevcut görevlerden birinin tamamlanmasını bekleyin veya Boost planınızı yükseltin.`,
+                boostLimitReached: true,
+                activeCount: activeBoostConvos.length,
+                maxCount: boostSub.maxParallelTasks,
+              });
+            }
+          }
+        }
       } else {
         const userSpending = await storage.getTokenSpending(req.session.userId);
         if (userSpending >= userTokenLimit) {
@@ -3781,6 +3804,23 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}${QUICK_REPLY_BUTT
         usedTool,
       }).catch(err => console.error("Chat message save error:", err.message));
 
+      if (req.session.userId && chatSessionId) {
+        try {
+          const convoRows = await db.select().from(conversations).where(
+            and(
+              eq(conversations.userId, req.session.userId),
+              eq(conversations.visibleId, chatSessionId),
+              eq(conversations.isBoostTask, true)
+            )
+          );
+          if (convoRows.length > 0) {
+            await storage.updateConversationBoostStatus(convoRows[0].id, "completed");
+          }
+        } catch (bsErr: any) {
+          console.error("Boost status update error:", bsErr.message);
+        }
+      }
+
       const responsePayload: Record<string, any> = { sessionId: chatSessionId };
       if (escalationTriggered && escalationData) {
         responsePayload.reply = escalationData.message || reply;
@@ -3812,6 +3852,22 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}${QUICK_REPLY_BUTT
     } catch (error: any) {
       console.error(`[AGENT ERROR] ${agentType}:`, error?.message || error);
       circuitBreaker.recordFailure(agentType);
+
+      if (req.session.userId && clientSessionId) {
+        try {
+          const errConvoRows = await db.select().from(conversations).where(
+            and(
+              eq(conversations.userId, req.session.userId),
+              eq(conversations.visibleId, clientSessionId),
+              eq(conversations.isBoostTask, true)
+            )
+          );
+          if (errConvoRows.length > 0) {
+            await storage.updateConversationBoostStatus(errConvoRows[0].id, "error");
+          }
+        } catch (_) {}
+      }
+
       const errMsg: string = error?.message || "";
       const isTimeout =
         error?.name === "AbortError" ||
@@ -4010,6 +4066,148 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}${QUICK_REPLY_BUTT
     } catch (error: any) {
       console.error("Test checkout error:", error.message);
       res.status(500).json({ error: msg("checkoutFailed", req.lang!) });
+    }
+  });
+
+  app.get("/api/boost/status", requireAuth, async (req, res) => {
+    try {
+      const boost = await storage.getActiveBoostSubscription(req.session.userId!);
+      if (!boost) {
+        return res.json({ active: false, plan: null, maxParallelTasks: 1, activeTaskCount: 0, config: BOOST_CONFIG });
+      }
+      const activeConvos = await storage.getActiveBoostConversations(req.session.userId!);
+      res.json({
+        active: true,
+        plan: boost.boostPlan,
+        maxParallelTasks: boost.maxParallelTasks,
+        activeTaskCount: activeConvos.length,
+        expiresAt: boost.expiresAt,
+        config: BOOST_CONFIG,
+      });
+    } catch (error: any) {
+      console.error("Boost status error:", error.message);
+      res.status(500).json({ error: "Failed to get boost status" });
+    }
+  });
+
+  app.get("/api/boost/tasks", requireAuth, async (req, res) => {
+    try {
+      const { agentType } = req.query;
+      const activeConvos = await storage.getActiveBoostConversations(
+        req.session.userId!,
+        agentType as string | undefined
+      );
+      const allBoostConvos = await db.select().from(conversations).where(
+        and(
+          eq(conversations.userId, req.session.userId!),
+          eq(conversations.isBoostTask, true)
+        )
+      ).orderBy(desc(conversations.createdAt)).limit(50);
+      res.json({
+        active: activeConvos,
+        all: allBoostConvos,
+      });
+    } catch (error: any) {
+      console.error("Boost tasks error:", error.message);
+      res.status(500).json({ error: "Failed to get boost tasks" });
+    }
+  });
+
+  app.post("/api/boost/checkout/test", requireAuth, async (req, res) => {
+    try {
+      const { boostPlan, cardNumber, expiry, cvc } = req.body;
+
+      const allowedPlans = Object.keys(BOOST_CONFIG);
+      if (!boostPlan || !allowedPlans.includes(boostPlan)) {
+        return res.status(400).json({ error: "Invalid boost plan" });
+      }
+
+      const cleanCard = (cardNumber || "").replace(/\s/g, "");
+      const validTestCards = ["4242424242424242", "4000000000000077", "5555555555554444", "378282246310005"];
+      const declinedCards = ["4000000000000002", "4000000000009995", "4000000000000069"];
+
+      if (declinedCards.includes(cleanCard)) {
+        return res.status(402).json({ error: msg("cardDeclined", req.lang!) });
+      }
+      if (!validTestCards.includes(cleanCard)) {
+        return res.status(400).json({ error: msg("invalidTestCard", req.lang!) });
+      }
+      if (!expiry || !cvc) {
+        return res.status(400).json({ error: msg("cardIncomplete", req.lang!) });
+      }
+
+      const user = await storage.getUserById(req.session.userId!);
+      if (!user) {
+        return res.status(401).json({ error: msg("userNotFound", req.lang!) });
+      }
+
+      const existing = await storage.getActiveBoostSubscription(user.id);
+      if (existing) {
+        return res.status(409).json({ error: "You already have an active Boost subscription. Please cancel it first." });
+      }
+
+      const boostConfig = BOOST_CONFIG[boostPlan];
+      const expiresAt = new Date();
+      expiresAt.setMonth(expiresAt.getMonth() + 1);
+
+      await storage.createBoostSubscription({
+        userId: user.id,
+        boostPlan,
+        maxParallelTasks: boostConfig.maxParallelTasks,
+        status: "active",
+        stripeBoostSubId: `test_boost_${Date.now()}`,
+        expiresAt,
+      });
+
+      res.json({ success: true, redirect: "/dashboard?boost=success" });
+    } catch (error: any) {
+      console.error("Boost test checkout error:", error.message);
+      res.status(500).json({ error: "Boost checkout failed" });
+    }
+  });
+
+  app.post("/api/boost/checkout", requireAuth, async (req, res) => {
+    try {
+      const { priceId, boostPlan } = req.body;
+      if (!priceId || !boostPlan) {
+        return res.status(400).json({ error: "priceId and boostPlan are required" });
+      }
+
+      const allowedPlans = Object.keys(BOOST_CONFIG);
+      if (!allowedPlans.includes(boostPlan)) {
+        return res.status(400).json({ error: "Invalid boost plan" });
+      }
+
+      const user = await storage.getUserById(req.session.userId!);
+      if (!user) {
+        return res.status(401).json({ error: msg("userNotFound", req.lang!) });
+      }
+
+      const existing = await storage.getActiveBoostSubscription(user.id);
+      if (existing) {
+        return res.status(409).json({ error: "You already have an active Boost subscription" });
+      }
+
+      let customerId = user.stripeCustomerId;
+      if (!customerId) {
+        const customer = await stripeService.createCustomer(user.email, user.id);
+        customerId = customer.id;
+        await storage.updateUserStripeInfo(user.id, { stripeCustomerId: customerId });
+      }
+
+      const baseUrl = `${req.protocol}://${req.get("host")}`;
+      const session = await stripeService.createCheckoutSession(
+        customerId,
+        priceId,
+        `${baseUrl}/dashboard?boost=success`,
+        `${baseUrl}/pricing?boost=cancelled`,
+        { boostPlan, type: "boost" }
+      );
+
+      res.json({ url: session.url });
+    } catch (error: any) {
+      console.error("Boost Stripe checkout error:", error.message);
+      res.status(500).json({ error: "Boost checkout failed" });
     }
   });
 

@@ -1,5 +1,5 @@
 {
-  "name": "RentAI 24",
+  "name": "RentAI 24 - AI Staffing Agency",
   "short_name": "RentAI 24",
   "description": "The world's first AI staffing agency. Hire pre-trained AI workers for your business.",
   "start_url": "/",
@@ -9,6 +9,7 @@
   "background_color": "#0A0E27",
   "orientation": "any",
   "categories": ["business", "productivity"],
+  "lang": "en",
   "icons": [
     {
       "src": "/icon-192.png",
@@ -21,6 +22,23 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "url": "/dashboard",
+      "description": "Open your dashboard"
+    },
+    {
+      "name": "Chat with AI",
+      "url": "/chat",
+      "description": "Start chatting with AI agents"
+    },
+    {
+      "name": "Analytics",
+      "url": "/analytics",
+      "description": "View agent analytics"
     }
   ]
 }

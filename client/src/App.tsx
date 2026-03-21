@@ -33,6 +33,7 @@ import Automations from "@/pages/automations";
 import ScheduledTasks from "@/pages/scheduled-tasks";
 import TasksDashboard from "@/pages/tasks-dashboard";
 import InviteAccept from "@/pages/invite-accept";
+import AgentAnalytics from "@/pages/agent-analytics";
 import NotFound from "@/pages/not-found";
 
 const ADMIN_ROUTE = `/${import.meta.env.VITE_ADMIN_PATH}`;
@@ -57,6 +58,7 @@ function Router() {
       <Route path="/automations" component={Automations} />
       <Route path="/scheduled-tasks" component={ScheduledTasks} />
       <Route path="/dashboard/tasks" component={TasksDashboard} />
+      <Route path="/analytics" component={AgentAnalytics} />
       <Route path="/invite/:token" component={InviteAccept} />
       <Route path={ADMIN_ROUTE} component={Admin} />
       <Route path="/privacy" component={Privacy} />

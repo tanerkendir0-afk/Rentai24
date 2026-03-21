@@ -337,6 +337,66 @@ app.use((req, res, next) => {
         console.warn("v_indirilecek_kdv_ozet view setup:", err instanceof Error ? err.message : String(err))
       );
 
+      // ── New feature tables ──
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS api_keys (
+          id SERIAL PRIMARY KEY,
+          user_id INTEGER NOT NULL REFERENCES users(id),
+          key_prefix TEXT NOT NULL,
+          key_hash TEXT NOT NULL UNIQUE,
+          label TEXT NOT NULL DEFAULT 'Default',
+          permissions JSONB DEFAULT '["chat"]',
+          is_active BOOLEAN NOT NULL DEFAULT true,
+          last_used_at TIMESTAMP,
+          expires_at TIMESTAMP,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+        )
+      `).catch((err: unknown) => console.warn("api_keys table setup:", err instanceof Error ? err.message : String(err)));
+
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS telegram_configs (
+          id SERIAL PRIMARY KEY,
+          user_id INTEGER NOT NULL REFERENCES users(id) UNIQUE,
+          bot_token TEXT NOT NULL,
+          bot_username TEXT,
+          default_chat_id TEXT,
+          webhook_secret TEXT NOT NULL,
+          is_active BOOLEAN NOT NULL DEFAULT true,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+        )
+      `).catch((err: unknown) => console.warn("telegram_configs table setup:", err instanceof Error ? err.message : String(err)));
+
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS telegram_messages (
+          id SERIAL PRIMARY KEY,
+          user_id INTEGER NOT NULL REFERENCES users(id),
+          chat_id TEXT NOT NULL,
+          sender_name TEXT,
+          sender_id TEXT,
+          direction TEXT NOT NULL CHECK (direction IN ('inbound', 'outbound')),
+          content TEXT NOT NULL,
+          telegram_message_id INTEGER,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+        )
+      `).catch((err: unknown) => console.warn("telegram_messages table setup:", err instanceof Error ? err.message : String(err)));
+
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS scheduled_reports (
+          id SERIAL PRIMARY KEY,
+          user_id INTEGER NOT NULL REFERENCES users(id),
+          agent_type TEXT NOT NULL DEFAULT 'all',
+          report_type TEXT NOT NULL,
+          frequency TEXT NOT NULL CHECK (frequency IN ('daily', 'weekly', 'monthly')),
+          day_of_week INTEGER,
+          day_of_month INTEGER,
+          hour INTEGER NOT NULL DEFAULT 9,
+          is_active BOOLEAN NOT NULL DEFAULT true,
+          recipient_email TEXT,
+          last_run_at TIMESTAMP,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+        )
+      `).catch((err: unknown) => console.warn("scheduled_reports table setup:", err instanceof Error ? err.message : String(err)));
+
       console.log('Initializing Stripe schema...');
       await runMigrations({ databaseUrl });
       console.log('Stripe schema ready');
@@ -381,6 +441,9 @@ app.use((req, res, next) => {
 
   const { startEventMonitor } = await import("./n8n/eventMonitor");
   startEventMonitor();
+
+  const { startReportScheduler } = await import("./services/scheduledReportsService");
+  startReportScheduler();
 
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
     const status = err.status || err.statusCode || 500;

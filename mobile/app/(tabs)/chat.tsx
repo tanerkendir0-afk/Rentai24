@@ -1,6 +1,7 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { View, Modal, KeyboardAvoidingView, Platform } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useLocalSearchParams } from "expo-router";
 import AgentSelector from "@/components/chat/AgentSelector";
 import MessageList from "@/components/chat/MessageList";
 import ChatInput from "@/components/chat/ChatInput";
@@ -12,7 +13,17 @@ import { TouchableOpacity, Text } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
 export default function ChatScreen() {
-  const [selectedAgent, setSelectedAgent] = useState("customer-support");
+  const params = useLocalSearchParams<{ agent?: string }>();
+  const [selectedAgent, setSelectedAgent] = useState(
+    params.agent || "customer-support",
+  );
+
+  // Handle deep link agent parameter
+  useEffect(() => {
+    if (params.agent && params.agent !== selectedAgent) {
+      setSelectedAgent(params.agent);
+    }
+  }, [params.agent]);
   const [showConversations, setShowConversations] = useState(false);
 
   const {

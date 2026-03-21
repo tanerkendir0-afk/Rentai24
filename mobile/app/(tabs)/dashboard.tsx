@@ -1,10 +1,11 @@
-import React from "react";
+import React, { useCallback } from "react";
 import {
   View,
   Text,
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
+  RefreshControl,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useQuery } from "@tanstack/react-query";
@@ -45,14 +46,31 @@ export default function DashboardScreen() {
   const { t } = useTranslation("pages");
   const { t: tAgents } = useTranslation("agents");
 
-  const { data: rentals = [], isLoading } = useQuery<Rental[]>({
+  const { data: rentals = [], isLoading, refetch } = useQuery<Rental[]>({
     queryKey: ["/api/rentals"],
     queryFn: getQueryFn({ on401: "throw" }),
   });
 
+  const [refreshing, setRefreshing] = React.useState(false);
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await refetch();
+    setRefreshing(false);
+  }, [refetch]);
+
   return (
     <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
-      <ScrollView className="flex-1 px-4">
+      <ScrollView
+        className="flex-1 px-4"
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#3b82f6"
+            colors={["#3b82f6"]}
+          />
+        }
+      >
         {/* Header */}
         <View className="py-4">
           <Text className="text-2xl font-bold text-foreground">

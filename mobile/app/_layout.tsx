@@ -11,6 +11,7 @@ import { AuthProvider } from "@/lib/auth";
 import { restoreCache, persistCache } from "@/lib/persistQueryClient";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import NetworkStatusBar from "@/components/ui/NetworkStatusBar";
+import BiometricGate from "@/components/BiometricGate";
 import "@/lib/i18n";
 import "../../global.css";
 
@@ -33,12 +34,13 @@ export default function RootLayout() {
 
   return (
     <ErrorBoundary>
-      <GestureHandlerRootView style={{ flex: 1 }}>
-        <SafeAreaProvider>
-          <QueryClientProvider client={queryClient}>
-            <AuthProvider>
-              <StatusBar style="light" />
-              <NetworkStatusBar />
+      <BiometricGate>
+        <GestureHandlerRootView style={{ flex: 1 }}>
+          <SafeAreaProvider>
+            <QueryClientProvider client={queryClient}>
+              <AuthProvider>
+                <StatusBar style="light" />
+                <NetworkStatusBar />
               <Stack
                 screenOptions={{
                   headerShown: false,
@@ -82,10 +84,11 @@ export default function RootLayout() {
                   }}
                 />
               </Stack>
-            </AuthProvider>
-          </QueryClientProvider>
-        </SafeAreaProvider>
-      </GestureHandlerRootView>
+              </AuthProvider>
+            </QueryClientProvider>
+          </SafeAreaProvider>
+        </GestureHandlerRootView>
+      </BiometricGate>
     </ErrorBoundary>
   );
 }

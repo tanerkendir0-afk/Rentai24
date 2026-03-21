@@ -7,6 +7,7 @@ import {
   Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useHaptics } from "@/hooks/useHaptics";
 
 interface ChatInputProps {
   onSend: (message: string) => void;
@@ -24,9 +25,11 @@ export default function ChatInput({
   onStop,
 }: ChatInputProps) {
   const [text, setText] = useState("");
+  const haptics = useHaptics();
 
   const handleSend = () => {
     if (!text.trim()) return;
+    haptics.light();
     onSend(text.trim());
     setText("");
   };

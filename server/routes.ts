@@ -2148,7 +2148,7 @@ export async function registerRoutes(
       userId: req.session.userId!,
       agentType,
       title: title || "New Chat",
-      ...(isBoostForAgent ? { boostStatus: "running", isBoostTask: true } : {}),
+      ...(isBoostForAgent ? { isBoostTask: true } : {}),
     };
     if (req.organizationId) {
       convoData.organizationId = req.organizationId;

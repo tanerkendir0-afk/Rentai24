@@ -110,7 +110,7 @@ export default function BoostChatPanel({ panelId, allowedAgents, rentedAgentIds,
           const derivedAgent = msgs.find(m => m.agentType)?.agentType;
           if (derivedAgent) setSelectedAgent(derivedAgent);
           const parsed: Message[] = msgs.map(m => ({
-            role: m.role as "user" | "assistant",
+            role: (m.role === "system" ? "system" : m.role === "assistant" ? "assistant" : "user") as Message["role"],
             content: m.content,
           }));
           setMessages(parsed);

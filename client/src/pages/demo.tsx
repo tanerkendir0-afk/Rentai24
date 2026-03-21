@@ -406,7 +406,16 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
   const boostActiveCount = boostStatus?.activeTaskCount ?? 0;
   const boostIsUnlimited = boostMaxSlots === -1;
   const boostAllowedAgents: string[] | null = boostStatus?.plan === "boost-accounting" ? ["bookkeeping"] : null;
-  const isDesktop = typeof window !== "undefined" && window.innerWidth >= 1024;
+  const [isDesktop, setIsDesktop] = useState(() => typeof window !== "undefined" && window.innerWidth >= 1024);
+  useEffect(() => {
+    const onResize = () => {
+      const desktop = window.innerWidth >= 1024;
+      setIsDesktop(desktop);
+      if (!desktop) setSplitScreenActive(false);
+    };
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
 
   const { data: socialAccounts = [] } = useQuery<{ id: number; platform: string; username: string; profileUrl: string | null; status: string }[]>({
     queryKey: ["/api/social-accounts"],

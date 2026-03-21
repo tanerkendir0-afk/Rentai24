@@ -1172,7 +1172,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                   data-testid="button-boost-split"
                 >
                   <Zap className={`w-3.5 h-3.5 ${splitScreenActive ? "animate-pulse" : ""}`} />
-                  <span>{t("boost.splitScreen")}</span>
+                  <span>⚡ {t("boost.boostMode")}</span>
                 </button>
                 {splitScreenActive && isDesktop && (
                   <>

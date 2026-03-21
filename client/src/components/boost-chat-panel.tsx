@@ -129,8 +129,8 @@ export default function BoostChatPanel({ panelId, allowedAgents, rentedAgentIds,
         setMessages(prev => [...prev, { role: "assistant", content: routingPrefix + replyText, actions: data.actions }]);
       }
       queryClient.invalidateQueries({ queryKey: ["/api/boost/tasks"] });
-    } catch (err: any) {
-      if (err?.name === "AbortError") {
+    } catch (err: unknown) {
+      if (err instanceof DOMException && err.name === "AbortError") {
         setMessages(prev => [...prev, { role: "assistant", content: `⏹ ${t("demoPage.responseStopped")}` }]);
       } else {
         setMessages(prev => [...prev, { role: "assistant", content: t("demoPage.somethingWrong") }]);

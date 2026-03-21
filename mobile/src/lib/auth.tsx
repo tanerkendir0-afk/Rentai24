@@ -88,11 +88,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 
   const logout = useCallback(async () => {
+    // Unregister push token before logout
+    try {
+      await fetch(`${ENV.API_BASE_URL}/api/push-tokens`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+    } catch {
+      // ignore
+    }
+
     await fetch(`${ENV.API_BASE_URL}/api/auth/logout`, {
       method: "POST",
       credentials: "include",
     });
-    queryClient.setQueryData(["/api/auth/me"], null);
+
+    // Clear cached data
+    queryClient.clear();
+
+    const { clearCache } = await import("./persistQueryClient");
+    await clearCache();
   }, [queryClient]);
 
   return (

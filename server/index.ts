@@ -105,6 +105,29 @@ const PgStore = connectPgSimple(session);
 
 const isProduction = process.env.NODE_ENV === "production";
 
+// CORS for mobile app (React Native) - must be before session middleware
+const ALLOWED_ORIGINS = [
+  "https://app.rentai24.com",
+  "https://rentai24.com",
+  ...(isProduction ? [] : ["http://localhost:8081", "http://localhost:19006"]),
+];
+
+app.use((req: Request, res: Response, next: NextFunction) => {
+  const origin = req.headers.origin;
+  // Allow requests without origin (same-origin, mobile apps, curl)
+  if (!origin) return next();
+  if (ALLOWED_ORIGINS.includes(origin) || !isProduction) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Access-Control-Allow-Credentials", "true");
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, PATCH, PUT, DELETE, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+    if (req.method === "OPTIONS") {
+      return res.sendStatus(204);
+    }
+  }
+  next();
+});
+
 app.set("trust proxy", 1);
 
 app.use(

@@ -17,5 +17,10 @@ export default function Index() {
     return <Redirect href="/(auth)/login" />;
   }
 
+  // Show onboarding for new users
+  if (!user.onboardingCompleted) {
+    return <Redirect href="/(auth)/onboarding" />;
+  }
+
   return <Redirect href="/(tabs)/chat" />;
 }

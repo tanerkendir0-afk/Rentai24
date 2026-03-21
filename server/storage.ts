@@ -1995,16 +1995,14 @@ export class DatabaseStorage implements IStorage {
         and(
           eq(conversations.userId, userId),
           eq(conversations.agentType, agentType),
-          eq(conversations.isBoostTask, true),
-          eq(conversations.boostStatus, "running")
+          eq(conversations.isBoostTask, true)
         )
       );
     }
     return db.select().from(conversations).where(
       and(
         eq(conversations.userId, userId),
-        eq(conversations.isBoostTask, true),
-        eq(conversations.boostStatus, "running")
+        eq(conversations.isBoostTask, true)
       )
     );
   }

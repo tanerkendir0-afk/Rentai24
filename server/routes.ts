@@ -2977,7 +2977,6 @@ export async function registerRoutes(
           SELECT COUNT(*) as cnt FROM conversations
           WHERE user_id = ${req.session.userId}
             AND agent_type = ${agentType}
-            AND boost_status = 'running'
             AND is_boost_task = true
             AND visible_id != ${chatSessionId}
         `);

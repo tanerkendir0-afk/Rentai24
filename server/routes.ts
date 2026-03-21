@@ -577,7 +577,13 @@ async function summarizeConversationHistory(
 }
 
 const LANGUAGE_RULE = `
-LANGUAGE RULE: Always respond in the same language the user writes in. If the user writes in English, respond in English. If the user writes in Turkish, respond in Turkish. Never default to a specific language regardless of the language used in this prompt. Turkish accounting/legal terms (KDV, GVK, VUK, SGK, tevkifat, stopaj, etc.) are universal technical terms — keep them in every language.`;
+CRITICAL LANGUAGE RULE (HIGHEST PRIORITY): You MUST respond in the SAME language the user writes their message in. Detect the language of each user message and match it exactly.
+- If the user writes in English → respond ENTIRELY in English
+- If the user writes in Turkish → respond ENTIRELY in Turkish
+- If the user writes in German → respond ENTIRELY in German
+- This applies regardless of any other language used in this system prompt, examples, or previous context
+- Do NOT default to Turkish just because examples in this prompt are in Turkish
+- Turkish accounting/legal terms (KDV, GVK, VUK, SGK, tevkifat, stopaj, etc.) are universal technical terms — keep them in every language.`;
 
 
 const PDF_EMAIL_UNIVERSAL_PROMPT = `
@@ -3479,6 +3485,8 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}${QUICK_REPLY_BUTT
           routingReason = "provider_override";
         }
       }
+
+      systemPrompt += `\n\nFINAL REMINDER — LANGUAGE: Detect the language of the user's LATEST message and respond in THAT language. Do NOT default to Turkish. If the user writes in English, your ENTIRE response must be in English.`;
 
       const messages: OpenAI.ChatCompletionMessageParam[] = [
         { role: "system", content: systemPrompt },

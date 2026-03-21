@@ -424,6 +424,7 @@ app.use((req, res, next) => {
         CREATE TABLE IF NOT EXISTS organizations (
           id SERIAL PRIMARY KEY,
           name TEXT NOT NULL,
+          slug TEXT NOT NULL UNIQUE,
           owner_id INTEGER NOT NULL REFERENCES users(id),
           logo_url TEXT,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
@@ -472,6 +473,9 @@ app.use((req, res, next) => {
 
       await pool.query(`ALTER TABLE email_campaigns ADD COLUMN IF NOT EXISTS organization_id INTEGER`)
         .catch((err: unknown) => console.warn("email_campaigns.organization_id:", err instanceof Error ? err.message : String(err)));
+
+      await pool.query(`ALTER TABLE organizations ADD COLUMN IF NOT EXISTS slug TEXT NOT NULL UNIQUE DEFAULT ''`)
+        .catch((err: unknown) => console.warn("organizations.slug:", err instanceof Error ? err.message : String(err)));
 
       console.log('Initializing Stripe schema...');
       await runMigrations({ databaseUrl });

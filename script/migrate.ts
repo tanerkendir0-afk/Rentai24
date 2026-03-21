@@ -4,6 +4,7 @@ const migrations = [
   `CREATE TABLE IF NOT EXISTS organizations (
     id SERIAL PRIMARY KEY,
     name TEXT NOT NULL,
+    slug TEXT NOT NULL UNIQUE,
     owner_id INTEGER NOT NULL REFERENCES users(id),
     logo_url TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
@@ -33,6 +34,7 @@ const migrations = [
   `ALTER TABLE conversations ADD COLUMN IF NOT EXISTS organization_id INTEGER`,
   `ALTER TABLE email_campaigns ADD COLUMN IF NOT EXISTS organization_id INTEGER`,
   `ALTER TABLE rex_contacts ADD COLUMN IF NOT EXISTS organization_id INTEGER`,
+  `ALTER TABLE organizations ADD COLUMN IF NOT EXISTS slug TEXT NOT NULL UNIQUE DEFAULT ''`,
 ];
 
 async function runMigrations() {
@@ -55,8 +57,8 @@ async function runMigrations() {
         console.log(`[migrate] ✓ Migration ${i + 1}/${migrations.length} applied`);
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
-        if (msg.includes("already exists") || msg.includes("does not exist")) {
-          console.log(`[migrate] ⊘ Migration ${i + 1}/${migrations.length} skipped: ${msg}`);
+        if (msg.includes("already exists")) {
+          console.log(`[migrate] ⊘ Migration ${i + 1}/${migrations.length} skipped (already exists)`);
         } else {
           console.error(`[migrate] ✗ Migration ${i + 1}/${migrations.length} FAILED: ${msg}`);
           failures++;

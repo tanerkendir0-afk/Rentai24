@@ -541,6 +541,70 @@
       "invalidExpiryDesc": "Please enter a valid expiry date (MM/YY).",
       "invalidCvc": "Invalid CVC",
       "invalidCvcDesc": "Please enter a valid CVC."
+    },
+    "boost": {
+      "sectionTitle": "Boost Mode",
+      "sectionSubtitle": "Run multiple AI conversations simultaneously. Supercharge your workflow with parallel processing.",
+      "parallelSlots": "{{count}} parallel slots",
+      "unlimitedSlots": "Unlimited parallel slots",
+      "perMonth": "/mo",
+      "buyNow": "Buy Now",
+      "currentPlan": "Current Plan",
+      "plans": {
+        "boost-3": {
+          "name": "Boost 3",
+          "desc": "Run 3 agent conversations at the same time",
+          "features": [
+            "3 simultaneous conversations",
+            "All agent types supported",
+            "Real-time parallel processing",
+            "Priority queue access"
+          ]
+        },
+        "boost-7": {
+          "name": "Boost 7",
+          "desc": "Run 7 agent conversations at the same time",
+          "features": [
+            "7 simultaneous conversations",
+            "All agent types supported",
+            "Real-time parallel processing",
+            "Priority queue access",
+            "Advanced task orchestration"
+          ]
+        },
+        "boost-accounting": {
+          "name": "Muhasebe Boost",
+          "desc": "3 parallel slots dedicated to Finn (bookkeeping)",
+          "features": [
+            "3 simultaneous Finn conversations",
+            "Bookkeeping agent only",
+            "Parallel invoice processing",
+            "Financial report generation"
+          ]
+        },
+        "boost-pro": {
+          "name": "Pro Boost",
+          "desc": "Unlimited parallel conversations for maximum throughput",
+          "features": [
+            "Unlimited simultaneous conversations",
+            "All agent types supported",
+            "Maximum priority processing",
+            "Dedicated infrastructure",
+            "Enterprise-grade SLA"
+          ]
+        }
+      },
+      "checkout": {
+        "title": "Boost Mode Checkout",
+        "planInfo": "{{name}} — ${{price}}/mo",
+        "processing": "Processing...",
+        "pay": "Pay ${{price}}/mo",
+        "success": "Boost Activated!",
+        "successDesc": "Your {{plan}} plan is now active. You can run parallel conversations.",
+        "failed": "Boost Purchase Failed",
+        "alreadyActive": "Already Active",
+        "alreadyActiveDesc": "You already have an active Boost subscription."
+      }
     }
   },
   "workers": {
@@ -682,7 +746,17 @@
       "prioritize": "Prioritize"
     },
     "processing": "Processing",
-    "perMonth": "/mo"
+    "perMonth": "/mo",
+    "boost": {
+      "title": "Boost Mode",
+      "statusActive": "Active",
+      "slotsUsed": "{{used}}/{{max}} slots in use",
+      "slotsUnlimited": "{{used}} slots in use (unlimited)",
+      "upgrade": "Upgrade Boost",
+      "getBoost": "Get Boost",
+      "getBoostDesc": "Run multiple conversations in parallel",
+      "managePlan": "Manage Plan"
+    }
   },
   "guide": {
     "badgeLoggedIn": "Complete Guide",

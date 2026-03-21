@@ -54,6 +54,7 @@ import {
   Tag,
   Star,
   Settings,
+  Bolt,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "react-i18next";
@@ -114,6 +115,16 @@ export default function Dashboard() {
 
   const { data: agentActions } = useQuery<any[]>({
     queryKey: ["/api/agent-actions"],
+    enabled: !!user,
+  });
+
+  const { data: boostStatus } = useQuery<{
+    active: boolean;
+    plan: string | null;
+    maxParallelTasks: number;
+    activeTaskCount: number;
+  }>({
+    queryKey: ["/api/boost/status"],
     enabled: !!user,
   });
 
@@ -185,6 +196,11 @@ export default function Dashboard() {
     if (params.get("checkout") === "success") {
       queryClient.invalidateQueries({ queryKey: ["/api/rentals"] });
       toast({ title: t("dashboard.toast.agentActivated"), description: t("dashboard.toast.newWorkerReady") });
+      window.history.replaceState({}, "", "/dashboard");
+    }
+    if (params.get("boost") === "success") {
+      queryClient.invalidateQueries({ queryKey: ["/api/boost/status"] });
+      toast({ title: t("dashboard.boost.title"), description: t("dashboard.boost.statusActive") });
       window.history.replaceState({}, "", "/dashboard");
     }
   }, [toast]);
@@ -332,6 +348,80 @@ export default function Dashboard() {
               </div>
             </div>
           </Card>
+        </div>
+
+        <div className="mb-6 sm:mb-8">
+          {boostStatus?.active ? (
+            <Card className="p-4 sm:p-5 bg-gradient-to-r from-amber-500/5 to-orange-500/5 border-amber-500/30" data-testid="card-boost-active">
+              <div className="flex items-center justify-between flex-wrap gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-amber-500/20 to-orange-500/20 flex items-center justify-center">
+                    <Bolt className="w-5 h-5 text-amber-400" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-semibold text-foreground text-sm">{t("dashboard.boost.title")}</h3>
+                      <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30 text-xs" data-testid="badge-boost-plan">
+                        {boostStatus.plan === "boost-3" ? "Boost 3" :
+                         boostStatus.plan === "boost-7" ? "Boost 7" :
+                         boostStatus.plan === "boost-accounting" ? "Muhasebe Boost" :
+                         boostStatus.plan === "boost-pro" ? "Pro Boost" : boostStatus.plan}
+                      </Badge>
+                      <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-400 border-0 text-xs">
+                        {t("dashboard.boost.statusActive")}
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5" data-testid="text-boost-slots">
+                      {boostStatus.maxParallelTasks === -1
+                        ? t("dashboard.boost.slotsUnlimited", { used: boostStatus.activeTaskCount })
+                        : t("dashboard.boost.slotsUsed", { used: boostStatus.activeTaskCount, max: boostStatus.maxParallelTasks })}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  {boostStatus.maxParallelTasks !== -1 && (
+                    <div className="flex items-center gap-1.5">
+                      {Array.from({ length: Math.min(boostStatus.maxParallelTasks, 7) }).map((_, i) => (
+                        <div
+                          key={i}
+                          className={`w-2.5 h-2.5 rounded-full ${
+                            i < boostStatus.activeTaskCount
+                              ? "bg-amber-400"
+                              : "bg-muted-foreground/20"
+                          }`}
+                        />
+                      ))}
+                    </div>
+                  )}
+                  <Link href="/pricing">
+                    <Button size="sm" variant="outline" className="text-xs border-amber-500/30 text-amber-400 hover:bg-amber-500/10" data-testid="button-boost-manage">
+                      {t("dashboard.boost.managePlan")}
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            </Card>
+          ) : (
+            <Card className="p-4 sm:p-5 bg-card border-border/50 border-dashed" data-testid="card-boost-cta">
+              <div className="flex items-center justify-between flex-wrap gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-amber-500/10 to-orange-500/10 flex items-center justify-center">
+                    <Bolt className="w-5 h-5 text-amber-400/60" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-foreground text-sm">{t("dashboard.boost.getBoost")}</h3>
+                    <p className="text-xs text-muted-foreground">{t("dashboard.boost.getBoostDesc")}</p>
+                  </div>
+                </div>
+                <Link href="/pricing#boost">
+                  <Button size="sm" className="bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0 text-xs" data-testid="button-boost-get">
+                    <Bolt className="w-3 h-3 mr-1" />
+                    {t("dashboard.boost.getBoost")}
+                  </Button>
+                </Link>
+              </div>
+            </Card>
+          )}
         </div>
 
         <h2 className="text-lg font-semibold text-foreground mb-4" data-testid="text-workers-section">

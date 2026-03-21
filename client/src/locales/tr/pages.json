@@ -541,6 +541,70 @@
       "invalidExpiryDesc": "Lütfen geçerli bir son kullanma tarihi girin (AA/YY).",
       "invalidCvc": "Geçersiz CVC",
       "invalidCvcDesc": "Lütfen geçerli bir CVC girin."
+    },
+    "boost": {
+      "sectionTitle": "Boost Modu",
+      "sectionSubtitle": "Aynı anda birden fazla yapay zeka sohbeti yürütün. Paralel işleme ile iş akışınızı hızlandırın.",
+      "parallelSlots": "{{count}} paralel slot",
+      "unlimitedSlots": "Sınırsız paralel slot",
+      "perMonth": "/ay",
+      "buyNow": "Satın Al",
+      "currentPlan": "Mevcut Plan",
+      "plans": {
+        "boost-3": {
+          "name": "Boost 3",
+          "desc": "Aynı anda 3 ajan sohbeti yürütün",
+          "features": [
+            "3 eşzamanlı sohbet",
+            "Tüm ajan türleri desteklenir",
+            "Gerçek zamanlı paralel işleme",
+            "Öncelikli kuyruk erişimi"
+          ]
+        },
+        "boost-7": {
+          "name": "Boost 7",
+          "desc": "Aynı anda 7 ajan sohbeti yürütün",
+          "features": [
+            "7 eşzamanlı sohbet",
+            "Tüm ajan türleri desteklenir",
+            "Gerçek zamanlı paralel işleme",
+            "Öncelikli kuyruk erişimi",
+            "Gelişmiş görev orkestrasyonu"
+          ]
+        },
+        "boost-accounting": {
+          "name": "Muhasebe Boost",
+          "desc": "Finn (muhasebe) için 3 paralel slot",
+          "features": [
+            "3 eşzamanlı Finn sohbeti",
+            "Sadece muhasebe ajanı",
+            "Paralel fatura işleme",
+            "Mali rapor oluşturma"
+          ]
+        },
+        "boost-pro": {
+          "name": "Pro Boost",
+          "desc": "Maksimum verimlilik için sınırsız paralel sohbet",
+          "features": [
+            "Sınırsız eşzamanlı sohbet",
+            "Tüm ajan türleri desteklenir",
+            "Maksimum öncelikli işleme",
+            "Ayrılmış altyapı",
+            "Kurumsal SLA"
+          ]
+        }
+      },
+      "checkout": {
+        "title": "Boost Modu Ödeme",
+        "planInfo": "{{name}} — ${{price}}/ay",
+        "processing": "İşleniyor...",
+        "pay": "${{price}}/ay Öde",
+        "success": "Boost Aktifleştirildi!",
+        "successDesc": "{{plan}} planınız artık aktif. Paralel sohbetler başlatabilirsiniz.",
+        "failed": "Boost Satın Alma Başarısız",
+        "alreadyActive": "Zaten Aktif",
+        "alreadyActiveDesc": "Zaten aktif bir Boost aboneliğiniz var."
+      }
     }
   },
   "workers": {
@@ -682,7 +746,17 @@
       "prioritize": "Önceliklendir"
     },
     "processing": "İşleniyor",
-    "perMonth": "/ay"
+    "perMonth": "/ay",
+    "boost": {
+      "title": "Boost Modu",
+      "statusActive": "Aktif",
+      "slotsUsed": "{{used}}/{{max}} slot kullanımda",
+      "slotsUnlimited": "{{used}} slot kullanımda (sınırsız)",
+      "upgrade": "Boost Yükselt",
+      "getBoost": "Boost Al",
+      "getBoostDesc": "Paralel sohbetler ile aynı anda çalışın",
+      "managePlan": "Planı Yönet"
+    }
   },
   "guide": {
     "badgeLoggedIn": "Tam Rehber",

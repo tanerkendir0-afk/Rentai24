@@ -69,7 +69,6 @@ export default function BoostTaskBar({ onTaskClick }: BoostTaskBarProps) {
 
   useEffect(() => {
     if (prevTasksRef.current.length > 0 && allTasks.length > 0) {
-      const prevIds = new Set(prevTasksRef.current.map(t => t.id));
       for (const task of allTasks) {
         const prevTask = prevTasksRef.current.find(t => t.id === task.id);
         if (prevTask && prevTask.boostStatus === "running" && task.boostStatus === "completed") {

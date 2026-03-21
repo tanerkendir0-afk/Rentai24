@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getQueryFn } from "./queryClient";
+import { clearCache } from "./persistQueryClient";
 import ENV from "./env";
 
 export interface AuthUser {
@@ -105,8 +106,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Clear cached data
     queryClient.clear();
-
-    const { clearCache } = await import("./persistQueryClient");
     await clearCache();
   }, [queryClient]);
 

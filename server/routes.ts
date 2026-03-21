@@ -2862,6 +2862,46 @@ export async function registerRoutes(
     }
 
     if (req.session.userId) {
+      const boostEnforcementTarget = agentType === "manager" ? agentType : agentType;
+      const runningConvosForBoost = await db.select().from(conversations).where(
+        and(
+          eq(conversations.userId, req.session.userId),
+          eq(conversations.agentType, boostEnforcementTarget),
+          eq(conversations.boostStatus, "running")
+        )
+      );
+      const boostSubEarly = await storage.getActiveBoostSubscription(req.session.userId);
+      const otherRunningEarly = clientSessionId
+        ? runningConvosForBoost.filter(c => c.visibleId !== clientSessionId)
+        : runningConvosForBoost;
+
+      if (boostSubEarly) {
+        const boostCfgEarly = BOOST_CONFIG[boostSubEarly.boostPlan];
+        const isAgentAllowedEarly = !boostCfgEarly?.allowedAgents || boostCfgEarly.allowedAgents.includes(boostEnforcementTarget);
+        const maxAllowedEarly = isAgentAllowedEarly ? boostSubEarly.maxParallelTasks : 1;
+
+        if (otherRunningEarly.length >= maxAllowedEarly) {
+          return res.status(429).json({
+            reply: isAgentAllowedEarly
+              ? `Paralel görev limitinize (${boostSubEarly.maxParallelTasks}) ulaştınız. Lütfen mevcut görevlerden birinin tamamlanmasını bekleyin veya Boost planınızı yükseltin.`
+              : "Bu ajan Boost planınız kapsamında değil. Aynı anda yalnızca 1 aktif sohbet yürütebilirsiniz.",
+            boostLimitReached: isAgentAllowedEarly,
+            boostRequired: !isAgentAllowedEarly,
+            activeCount: runningConvosForBoost.length,
+            maxCount: maxAllowedEarly,
+          });
+        }
+      } else {
+        if (otherRunningEarly.length > 0) {
+          return res.status(429).json({
+            reply: "Bu ajan için zaten aktif bir sohbet var. Paralel görev için Boost planına geçin.",
+            boostRequired: true,
+          });
+        }
+      }
+    }
+
+    if (req.session.userId) {
       let activeEsc = await storage.getActiveEscalationForUser(req.session.userId, agentType);
       if (!activeEsc && agentType === "manager") {
         const allEscalations = await storage.getEscalations({ status: "admin_joined", userId: req.session.userId });
@@ -3217,95 +3257,25 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}${QUICK_REPLY_BUTT
         hasActiveRental = true;
         await storage.incrementUsage(rental.id);
 
-        if (req.session.userId) {
+        if (req.session.userId && clientSessionId) {
           const boostSub = await storage.getActiveBoostSubscription(req.session.userId);
-          const runningConvosForAgent = await db.select().from(conversations).where(
-            and(
-              eq(conversations.userId, req.session.userId),
-              eq(conversations.agentType, resolvedAgentType),
-              eq(conversations.boostStatus, "running")
-            )
-          );
-
-          const otherRunning = clientSessionId
-            ? runningConvosForAgent.filter(c => c.visibleId !== clientSessionId)
-            : runningConvosForAgent;
-
-          if (boostSub) {
-            const boostCfg = BOOST_CONFIG[boostSub.boostPlan];
-            const isAgentAllowed = !boostCfg?.allowedAgents || boostCfg.allowedAgents.includes(resolvedAgentType);
-            const maxAllowed = isAgentAllowed ? boostSub.maxParallelTasks : 1;
-
-            if (otherRunning.length >= maxAllowed) {
-              if (isAgentAllowed) {
-                return res.status(429).json({
-                  reply: `Paralel görev limitinize (${boostSub.maxParallelTasks}) ulaştınız. Lütfen mevcut görevlerden birinin tamamlanmasını bekleyin veya Boost planınızı yükseltin.`,
-                  boostLimitReached: true,
-                  activeCount: runningConvosForAgent.length,
-                  maxCount: boostSub.maxParallelTasks,
-                });
-              } else {
-                return res.status(429).json({
-                  reply: "Bu ajan Boost planınız kapsamında değil. Aynı anda yalnızca 1 aktif sohbet yürütebilirsiniz.",
-                  boostRequired: true,
-                });
-              }
+          try {
+            const [convoRow] = await db.select().from(conversations).where(
+              and(
+                eq(conversations.userId, req.session.userId!),
+                eq(conversations.visibleId, clientSessionId)
+              )
+            );
+            if (convoRow && convoRow.boostStatus !== "running") {
+              const boostCfg = boostSub ? BOOST_CONFIG[boostSub.boostPlan] : null;
+              const isBoostAllowed = boostSub && (!boostCfg?.allowedAgents || boostCfg.allowedAgents.includes(resolvedAgentType));
+              await db.update(conversations).set({
+                boostStatus: "running",
+                ...(isBoostAllowed ? { isBoostTask: true } : {}),
+              }).where(eq(conversations.id, convoRow.id));
             }
-
-            if (clientSessionId && isAgentAllowed) {
-              try {
-                const [convoRow] = await db.select().from(conversations).where(
-                  and(
-                    eq(conversations.userId, req.session.userId!),
-                    eq(conversations.visibleId, clientSessionId)
-                  )
-                );
-                if (convoRow && convoRow.boostStatus !== "running") {
-                  await db.update(conversations).set({
-                    isBoostTask: true,
-                    boostStatus: "running",
-                  }).where(eq(conversations.id, convoRow.id));
-                }
-              } catch (bErr: unknown) {
-                console.error("Boost task registration error:", bErr instanceof Error ? bErr.message : bErr);
-              }
-            } else if (clientSessionId) {
-              try {
-                const [convoRow] = await db.select().from(conversations).where(
-                  and(
-                    eq(conversations.userId, req.session.userId!),
-                    eq(conversations.visibleId, clientSessionId)
-                  )
-                );
-                if (convoRow && convoRow.boostStatus !== "running") {
-                  await db.update(conversations).set({ boostStatus: "running" }).where(eq(conversations.id, convoRow.id));
-                }
-              } catch (bErr: unknown) {
-                console.error("Boost status tracking error:", bErr instanceof Error ? bErr.message : bErr);
-              }
-            }
-          } else {
-            if (otherRunning.length > 0) {
-              return res.status(429).json({
-                reply: "Bu ajan için zaten aktif bir sohbet var. Paralel görev için Boost planına geçin.",
-                boostRequired: true,
-              });
-            }
-            if (clientSessionId) {
-              try {
-                const [convoRow] = await db.select().from(conversations).where(
-                  and(
-                    eq(conversations.userId, req.session.userId!),
-                    eq(conversations.visibleId, clientSessionId)
-                  )
-                );
-                if (convoRow && convoRow.boostStatus !== "running") {
-                  await db.update(conversations).set({ boostStatus: "running" }).where(eq(conversations.id, convoRow.id));
-                }
-              } catch (bErr: unknown) {
-                console.error("Boost status tracking error (non-boost):", bErr instanceof Error ? bErr.message : bErr);
-              }
-            }
+          } catch (bErr: unknown) {
+            console.error("Boost status tracking error:", bErr instanceof Error ? bErr.message : bErr);
           }
         }
       } else {

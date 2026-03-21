@@ -1,9 +1,10 @@
 import { db } from "./db";
 import { users, rentals, contactMessages, newsletterSubscribers, leads, agentActions, emailCampaigns, supportTickets, tokenUsage, agentTasks, chatMessages, conversations, teamMembers, bossNotifications, socialAccounts, shippingProviders, guardrailLogs, systemSettings, scheduledPosts, whatsappConfig, whatsappMessages, agentLimits, escalationRules, escalations, escalationMessages, agentInstructions, globalAgentInstructions, consentLogs, crmDocuments, securityEvents, pageViews, userEvents, feedback, rexContacts, rexDeals, rexActivities, rexSequences, rexStageHistory, rexScoreHistory, rexStageConfig, jobPostings, candidates, applications, LEAD_SOURCE_VALUES, CUSTOMER_SEGMENT_VALUES, DEAL_STAGE_VALUES, ACTIVITY_TYPE_VALUES, SEQUENCE_STATUS_VALUES, type User, type InsertUser, type Rental, type InsertRental, type ContactMessage, type InsertContactMessage, type NewsletterSubscriber, type Lead, type InsertLead, type AgentAction, type InsertAgentAction, type EmailCampaign, type InsertEmailCampaign, type SupportTicket, type InsertSupportTicket, type TokenUsage, type InsertTokenUsage, type AgentTask, type InsertAgentTask, type ChatMessage, type InsertChatMessage, type ConversationRecord, type InsertConversation, type TeamMember, type InsertTeamMember, type BossNotification, type InsertBossNotification, type SocialAccount, type InsertSocialAccount, type ShippingProvider, type InsertShippingProvider, type GuardrailLog, type ScheduledPost, type InsertScheduledPost, type WhatsappConfig, type InsertWhatsappConfig, type WhatsappMessage, type InsertWhatsappMessage, type AgentLimit, type InsertAgentLimit, type EscalationRule, type InsertEscalationRule, type Escalation, type InsertEscalation, type EscalationMessage, type InsertEscalationMessage, type AgentInstruction, type InsertAgentInstruction, type GlobalAgentInstruction, type ConsentLog, type InsertConsentLog, type CrmDocument, type InsertCrmDocument, type PageView, type InsertPageView, type UserEvent, type InsertUserEvent, type Feedback, type InsertFeedback, type JobPosting, type InsertJobPosting, type Candidate, type InsertCandidate, type Application, type InsertApplication, type RexContact, type InsertRexContact, type RexDeal, type InsertRexDeal, type RexActivity, type InsertRexActivity, type RexSequence, type InsertRexSequence, type RexStageHistory, type RexScoreHistory, type RexStageConfig, type LeadSourceValue, type CustomerSegmentValue, type DealStageValue, type ActivityTypeValue, type SequenceStatusValue } from "@shared/schema";
-import { eq, and, sql, desc, gte, lte } from "drizzle-orm";
+import { eq, and, sql, desc, gte, lte, inArray } from "drizzle-orm";
 import * as cryptoModule from "crypto";
 import { scheduledTasks, scheduledTaskRuns, type ScheduledTask, type InsertScheduledTask, type ScheduledTaskRun, type InsertScheduledTaskRun } from "@shared/schema";
 import { boostSubscriptions, type BoostSubscription, type InsertBoostSubscription } from "@shared/schema";
+import { organizations, organizationMembers, organizationInvites, agentDocuments, type Organization, type InsertOrganization, type OrganizationMember, type InsertOrganizationMember, type OrganizationInvite, type InsertOrganizationInvite, type OrgRole, type AgentDocument } from "@shared/schema";
 
 export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
@@ -76,10 +77,12 @@ export interface IStorage {
   getChatSessionsByAgent(agentType: string, filters?: { startDate?: Date; endDate?: Date; minTurns?: number; toolUsageOnly?: boolean; excludeBadRated?: boolean; goodOnly?: boolean }): Promise<{ sessionId: string; messages: ChatMessage[] }[]>;
 
   getConversationsByUser(userId: number, agentType: string): Promise<ConversationRecord[]>;
+  getConversationsByOrg(organizationId: number, agentType: string): Promise<ConversationRecord[]>;
   createConversation(convo: InsertConversation): Promise<ConversationRecord>;
   updateConversationTitle(id: number, userId: number, title: string): Promise<ConversationRecord | undefined>;
   deleteConversation(id: number, userId: number): Promise<boolean>;
   getConversationMessages(userId: number, visibleId: string): Promise<ChatMessage[]>;
+  getConversationByVisibleId(visibleId: string): Promise<ConversationRecord | undefined>;
 
   getTeamMembers(userId: number): Promise<TeamMember[]>;
   createTeamMember(member: InsertTeamMember): Promise<TeamMember>;
@@ -250,6 +253,35 @@ export interface IStorage {
   deactivateBoostSubscription(userId: number): Promise<void>;
   updateConversationBoostStatus(conversationId: number, boostStatus: string): Promise<void>;
   getActiveBoostConversations(userId: number, agentType?: string): Promise<ConversationRecord[]>;
+
+  createOrganization(data: InsertOrganization): Promise<Organization>;
+  getOrganizationById(id: number): Promise<Organization | undefined>;
+  getOrganizationBySlug(slug: string): Promise<Organization | undefined>;
+  getOrganizationsByUser(userId: number): Promise<Organization[]>;
+  updateOrganization(id: number, updates: Partial<Pick<Organization, "name" | "logoUrl">>): Promise<Organization | undefined>;
+  deleteOrganization(id: number): Promise<boolean>;
+
+  addOrganizationMember(data: InsertOrganizationMember): Promise<OrganizationMember>;
+  getOrganizationMembers(organizationId: number): Promise<(OrganizationMember & { user: { id: number; email: string; fullName: string; username: string } })[]>;
+  getOrganizationMember(organizationId: number, userId: number): Promise<OrganizationMember | undefined>;
+  updateMemberRole(organizationId: number, userId: number, role: OrgRole): Promise<OrganizationMember | undefined>;
+  removeOrganizationMember(organizationId: number, userId: number): Promise<boolean>;
+  getUserOrganizationRole(userId: number, organizationId: number): Promise<OrgRole | null>;
+
+  createOrganizationInvite(data: InsertOrganizationInvite): Promise<OrganizationInvite>;
+  getOrganizationInviteByToken(token: string): Promise<OrganizationInvite | undefined>;
+  getOrganizationInvites(organizationId: number): Promise<OrganizationInvite[]>;
+  cancelOrganizationInvite(id: number, organizationId: number): Promise<boolean>;
+  acceptOrganizationInvite(token: string, userId: number): Promise<{ success: boolean; organizationId?: number; error?: string }>;
+  getPendingInvitesByEmail(email: string): Promise<OrganizationInvite[]>;
+
+  getOrgRentals(organizationId: number): Promise<Rental[]>;
+  getOrgActiveRental(organizationId: number, agentType: string): Promise<Rental | undefined>;
+  transferOrganizationOwnership(organizationId: number, newOwnerId: number): Promise<void>;
+
+  getOrgRexContacts(organizationId: number): Promise<RexContact[]>;
+  getOrgCrmDocuments(organizationId: number): Promise<CrmDocument[]>;
+  getOrgAgentDocuments(organizationId: number): Promise<AgentDocument[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -768,6 +800,12 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(conversations.createdAt));
   }
 
+  async getConversationsByOrg(organizationId: number, agentType: string): Promise<ConversationRecord[]> {
+    return db.select().from(conversations)
+      .where(and(eq(conversations.organizationId, organizationId), eq(conversations.agentType, agentType)))
+      .orderBy(desc(conversations.createdAt));
+  }
+
   async createConversation(convo: InsertConversation): Promise<ConversationRecord> {
     const [created] = await db.insert(conversations).values(convo).returning();
     return created;
@@ -792,6 +830,11 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(chatMessages)
       .where(and(eq(chatMessages.sessionId, visibleId), eq(chatMessages.userId, userId)))
       .orderBy(chatMessages.createdAt);
+  }
+
+  async getConversationByVisibleId(visibleId: string): Promise<ConversationRecord | undefined> {
+    const [convo] = await db.select().from(conversations).where(eq(conversations.visibleId, visibleId));
+    return convo;
   }
 
   async getTeamMembers(userId: number): Promise<TeamMember[]> {
@@ -1959,6 +2002,179 @@ export class DatabaseStorage implements IStorage {
         eq(conversations.boostStatus, "running")
       )
     );
+  }
+
+  async createOrganization(data: InsertOrganization): Promise<Organization> {
+    const [created] = await db.insert(organizations).values(data).returning();
+    return created;
+  }
+
+  async getOrganizationById(id: number): Promise<Organization | undefined> {
+    const [org] = await db.select().from(organizations).where(eq(organizations.id, id));
+    return org;
+  }
+
+  async getOrganizationBySlug(slug: string): Promise<Organization | undefined> {
+    const [org] = await db.select().from(organizations).where(eq(organizations.slug, slug));
+    return org;
+  }
+
+  async getOrganizationsByUser(userId: number): Promise<Organization[]> {
+    const members = await db
+      .select({ organizationId: organizationMembers.organizationId })
+      .from(organizationMembers)
+      .where(eq(organizationMembers.userId, userId));
+    if (members.length === 0) return [];
+    const orgIds = members.map(m => m.organizationId);
+    return db.select().from(organizations).where(inArray(organizations.id, orgIds));
+  }
+
+  async updateOrganization(id: number, updates: Partial<Pick<Organization, "name" | "logoUrl">>): Promise<Organization | undefined> {
+    const [updated] = await db.update(organizations)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(organizations.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteOrganization(id: number): Promise<boolean> {
+    const result = await db.delete(organizations).where(eq(organizations.id, id)).returning();
+    return result.length > 0;
+  }
+
+  async addOrganizationMember(data: InsertOrganizationMember): Promise<OrganizationMember> {
+    const [created] = await db.insert(organizationMembers).values(data).returning();
+    return created;
+  }
+
+  async getOrganizationMembers(organizationId: number): Promise<(OrganizationMember & { user: { id: number; email: string; fullName: string; username: string } })[]> {
+    const results = await db
+      .select({
+        id: organizationMembers.id,
+        organizationId: organizationMembers.organizationId,
+        userId: organizationMembers.userId,
+        role: organizationMembers.role,
+        joinedAt: organizationMembers.joinedAt,
+        user: {
+          id: users.id,
+          email: users.email,
+          fullName: users.fullName,
+          username: users.username,
+        },
+      })
+      .from(organizationMembers)
+      .innerJoin(users, eq(organizationMembers.userId, users.id))
+      .where(eq(organizationMembers.organizationId, organizationId));
+    return results;
+  }
+
+  async getOrganizationMember(organizationId: number, userId: number): Promise<OrganizationMember | undefined> {
+    const [member] = await db.select().from(organizationMembers).where(
+      and(eq(organizationMembers.organizationId, organizationId), eq(organizationMembers.userId, userId))
+    );
+    return member;
+  }
+
+  async updateMemberRole(organizationId: number, userId: number, role: OrgRole): Promise<OrganizationMember | undefined> {
+    const [updated] = await db.update(organizationMembers)
+      .set({ role })
+      .where(and(eq(organizationMembers.organizationId, organizationId), eq(organizationMembers.userId, userId)))
+      .returning();
+    return updated;
+  }
+
+  async removeOrganizationMember(organizationId: number, userId: number): Promise<boolean> {
+    const result = await db.delete(organizationMembers).where(
+      and(eq(organizationMembers.organizationId, organizationId), eq(organizationMembers.userId, userId))
+    ).returning();
+    return result.length > 0;
+  }
+
+  async getUserOrganizationRole(userId: number, organizationId: number): Promise<OrgRole | null> {
+    const [member] = await db.select({ role: organizationMembers.role })
+      .from(organizationMembers)
+      .where(and(eq(organizationMembers.userId, userId), eq(organizationMembers.organizationId, organizationId)));
+    return member ? member.role as OrgRole : null;
+  }
+
+  async createOrganizationInvite(data: InsertOrganizationInvite): Promise<OrganizationInvite> {
+    const [created] = await db.insert(organizationInvites).values(data).returning();
+    return created;
+  }
+
+  async getOrganizationInviteByToken(token: string): Promise<OrganizationInvite | undefined> {
+    const [invite] = await db.select().from(organizationInvites).where(eq(organizationInvites.token, token));
+    return invite;
+  }
+
+  async getOrganizationInvites(organizationId: number): Promise<OrganizationInvite[]> {
+    return db.select().from(organizationInvites)
+      .where(and(eq(organizationInvites.organizationId, organizationId), eq(organizationInvites.status, "pending")))
+      .orderBy(desc(organizationInvites.createdAt));
+  }
+
+  async cancelOrganizationInvite(id: number, organizationId: number): Promise<boolean> {
+    const result = await db.update(organizationInvites)
+      .set({ status: "cancelled" })
+      .where(and(eq(organizationInvites.id, id), eq(organizationInvites.organizationId, organizationId)))
+      .returning();
+    return result.length > 0;
+  }
+
+  async acceptOrganizationInvite(token: string, userId: number): Promise<{ success: boolean; organizationId?: number; error?: string }> {
+    const [invite] = await db.select().from(organizationInvites).where(eq(organizationInvites.token, token));
+    if (!invite) return { success: false, error: "Invite not found" };
+    if (invite.status !== "pending") return { success: false, error: "Invite already used or cancelled" };
+    if (new Date() > invite.expiresAt) return { success: false, error: "Invite has expired" };
+
+    const existingMember = await this.getOrganizationMember(invite.organizationId, userId);
+    if (existingMember) return { success: false, error: "Already a member of this organization" };
+
+    await db.transaction(async (tx) => {
+      await tx.insert(organizationMembers).values({
+        organizationId: invite.organizationId,
+        userId,
+        role: invite.role as OrgRole,
+      });
+      await tx.update(organizationInvites).set({ status: "accepted" }).where(eq(organizationInvites.id, invite.id));
+    });
+
+    return { success: true, organizationId: invite.organizationId };
+  }
+
+  async getPendingInvitesByEmail(email: string): Promise<OrganizationInvite[]> {
+    return db.select().from(organizationInvites).where(
+      and(eq(organizationInvites.email, email), eq(organizationInvites.status, "pending"))
+    );
+  }
+
+  async getOrgRentals(organizationId: number): Promise<Rental[]> {
+    return db.select().from(rentals).where(eq(rentals.organizationId, organizationId));
+  }
+
+  async getOrgActiveRental(organizationId: number, agentType: string): Promise<Rental | undefined> {
+    const [rental] = await db.select().from(rentals).where(
+      and(eq(rentals.organizationId, organizationId), eq(rentals.agentType, agentType), eq(rentals.status, "active"))
+    );
+    return rental;
+  }
+
+  async transferOrganizationOwnership(organizationId: number, newOwnerId: number): Promise<void> {
+    await db.update(organizations)
+      .set({ ownerId: newOwnerId, updatedAt: new Date() })
+      .where(eq(organizations.id, organizationId));
+  }
+
+  async getOrgRexContacts(organizationId: number): Promise<RexContact[]> {
+    return db.select().from(rexContacts).where(eq(rexContacts.organizationId, organizationId));
+  }
+
+  async getOrgCrmDocuments(organizationId: number): Promise<CrmDocument[]> {
+    return db.select().from(crmDocuments).where(eq(crmDocuments.organizationId, organizationId));
+  }
+
+  async getOrgAgentDocuments(organizationId: number): Promise<AgentDocument[]> {
+    return db.select().from(agentDocuments).where(eq(agentDocuments.organizationId, organizationId));
   }
 }
 

@@ -48,12 +48,14 @@ export const users = pgTable("users", {
   onboardingCompleted: boolean("onboarding_completed").notNull().default(false),
   branding: jsonb("branding").default({}),
   tokenSpendingLimit: decimal("token_spending_limit", { precision: 10, scale: 2 }).notNull().default("5.00"),
+  organizationId: integer("organization_id"),
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
 });
 
 export const rentals = pgTable("rentals", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id),
+  organizationId: integer("organization_id"),
   agentType: text("agent_type").notNull(),
   plan: text("plan").notNull().default("standard"),
   status: text("status").notNull().default("active"),
@@ -68,6 +70,8 @@ export const rentals = pgTable("rentals", {
 export const agentDocuments = pgTable("agent_documents", {
   id: serial("id").primaryKey(),
   agentType: text("agent_type").notNull(),
+  userId: integer("user_id").references(() => users.id),
+  organizationId: integer("organization_id"),
   filename: text("filename").notNull(),
   contentType: text("content_type").notNull(),
   chunkCount: integer("chunk_count").notNull().default(0),
@@ -338,6 +342,7 @@ export const conversations = pgTable("conversations", {
   id: serial("id").primaryKey(),
   visibleId: text("visible_id").notNull(),
   userId: integer("user_id").notNull().references(() => users.id),
+  organizationId: integer("organization_id"),
   agentType: text("agent_type").notNull(),
   title: text("title").notNull().default("New Chat"),
   qualityRating: text("quality_rating"),
@@ -747,6 +752,7 @@ export type InsertConsentLog = z.infer<typeof insertConsentLogSchema>;
 export const crmDocuments = pgTable("crm_documents", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id),
+  organizationId: integer("organization_id"),
   fileName: text("file_name").notNull(),
   originalName: text("original_name").notNull(),
   fileType: text("file_type").notNull(),
@@ -892,6 +898,7 @@ export const sequenceStatusEnum = pgEnum("sequence_status", SEQUENCE_STATUS_VALU
 export const rexContacts = pgTable("rex_contacts", {
   id: varchar("id", { length: 36 }).primaryKey().default(sql`gen_random_uuid()`),
   userId: integer("user_id").notNull().references(() => users.id),
+  organizationId: integer("organization_id"),
   companyName: varchar("company_name", { length: 255 }).notNull(),
   companySize: varchar("company_size", { length: 50 }),
   industry: varchar("industry", { length: 100 }),
@@ -1441,3 +1448,61 @@ export const insertBoostSubscriptionSchema = createInsertSchema(boostSubscriptio
 
 export type BoostSubscription = typeof boostSubscriptions.$inferSelect;
 export type InsertBoostSubscription = z.infer<typeof insertBoostSubscriptionSchema>;
+
+export const orgRoleEnum = ["owner", "admin", "member", "viewer"] as const;
+export type OrgRole = typeof orgRoleEnum[number];
+
+export const organizations = pgTable("organizations", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  slug: text("slug").notNull().unique(),
+  ownerId: integer("owner_id").notNull().references(() => users.id),
+  logoUrl: text("logo_url"),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+  updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
+export const insertOrganizationSchema = createInsertSchema(organizations).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type Organization = typeof organizations.$inferSelect;
+export type InsertOrganization = z.infer<typeof insertOrganizationSchema>;
+
+export const organizationMembers = pgTable("organization_members", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  role: text("role", { enum: orgRoleEnum }).notNull().default("member"),
+  joinedAt: timestamp("joined_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
+export const insertOrganizationMemberSchema = createInsertSchema(organizationMembers).omit({
+  id: true,
+  joinedAt: true,
+});
+
+export type OrganizationMember = typeof organizationMembers.$inferSelect;
+export type InsertOrganizationMember = z.infer<typeof insertOrganizationMemberSchema>;
+
+export const organizationInvites = pgTable("organization_invites", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  email: text("email").notNull(),
+  role: text("role", { enum: orgRoleEnum }).notNull().default("member"),
+  token: text("token").notNull().unique(),
+  invitedById: integer("invited_by_id").notNull().references(() => users.id),
+  status: text("status", { enum: ["pending", "accepted", "cancelled"] }).notNull().default("pending"),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
+export const insertOrganizationInviteSchema = createInsertSchema(organizationInvites).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type OrganizationInvite = typeof organizationInvites.$inferSelect;
+export type InsertOrganizationInvite = z.infer<typeof insertOrganizationInviteSchema>;

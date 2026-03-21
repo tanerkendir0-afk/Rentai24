@@ -23,7 +23,8 @@ export async function processAndStoreDocument(
   originalName: string,
   agentType: string,
   contentType: string,
-  fileSize: number
+  fileSize: number,
+  organizationId?: number
 ): Promise<AgentDocument> {
   try {
     const text = await parseDocument(filePath, originalName);
@@ -37,6 +38,7 @@ export async function processAndStoreDocument(
         contentType,
         chunkCount: chunks.length,
         fileSize,
+        ...(organizationId ? { organizationId } : {}),
       })
       .returning();
 

@@ -5,10 +5,10 @@ import Anthropic from "@anthropic-ai/sdk";
 import bcrypt from "bcrypt";
 import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
-import { chatMessageSchema, contactFormSchema, registerSchema, loginSchema, newsletterSchema, bossConversations, collaborationSessions, rentals, conversations, chatMessages, invoices, invoiceItems, insertRexContactSchema, insertRexDealSchema, insertRexActivitySchema, insertRexSequenceSchema, DEAL_STAGE_VALUES, CUSTOMER_SEGMENT_VALUES, LEAD_SOURCE_VALUES, ACTIVITY_TYPE_VALUES, SEQUENCE_STATUS_VALUES, automationWorkflows, automationExecutions, systemSettings, type DealStageValue, type CustomerSegmentValue, type LeadSourceValue, type ActivityTypeValue, type SequenceStatusValue, type User, type AgentTask, type WorkflowNode, type TriggerConfig } from "@shared/schema";
+import { chatMessageSchema, contactFormSchema, registerSchema, loginSchema, newsletterSchema, bossConversations, collaborationSessions, rentals, conversations, chatMessages, invoices, invoiceItems, insertRexContactSchema, insertRexDealSchema, insertRexActivitySchema, insertRexSequenceSchema, DEAL_STAGE_VALUES, CUSTOMER_SEGMENT_VALUES, LEAD_SOURCE_VALUES, ACTIVITY_TYPE_VALUES, SEQUENCE_STATUS_VALUES, automationWorkflows, automationExecutions, systemSettings, orgRoleEnum, type OrgRole, type DealStageValue, type CustomerSegmentValue, type LeadSourceValue, type ActivityTypeValue, type SequenceStatusValue, type User, type AgentTask, type WorkflowNode, type TriggerConfig } from "@shared/schema";
 import { z } from "zod";
 import { storage } from "./storage";
-import { requireAuth } from "./auth";
+import { requireAuth, requireOrgRole } from "./auth";
 import { stripeService } from "./stripeService";
 import { getPublishableKey } from "./stripeClient";
 import { BOOST_CONFIG } from "./boostConfig";
@@ -2127,12 +2127,16 @@ export async function registerRoutes(
   app.post("/api/conversations", requireAuth, async (req, res) => {
     const { agentType, visibleId, title } = req.body;
     if (!agentType || !visibleId) return res.status(400).json({ error: msg("agentTypeAndVisibleIdRequired", req.lang!) });
-    const convo = await storage.createConversation({
+    const convoData: Parameters<typeof storage.createConversation>[0] = {
       visibleId,
       userId: req.session.userId!,
       agentType,
       title: title || "New Chat",
-    });
+    };
+    if (req.organizationId) {
+      convoData.organizationId = req.organizationId;
+    }
+    const convo = await storage.createConversation(convoData);
     res.json(convo);
   });
 
@@ -2154,8 +2158,23 @@ export async function registerRoutes(
 
   app.get("/api/conversations/:visibleId/messages", requireAuth, async (req, res) => {
     const { visibleId } = req.params;
-    const messages = await storage.getConversationMessages(req.session.userId!, visibleId as string);
-    res.json(messages);
+    const userId = req.session.userId!;
+    const convo = await storage.getConversationByVisibleId(visibleId as string);
+    if (!convo) return res.json([]);
+    if (convo.userId === userId) {
+      const messages = await storage.getConversationMessages(userId, visibleId as string);
+      return res.json(messages);
+    }
+    if (convo.organizationId) {
+      const role = await storage.getUserOrganizationRole(userId, convo.organizationId);
+      if (role) {
+        const messages = await db.select().from(chatMessages)
+          .where(and(eq(chatMessages.sessionId, visibleId as string), eq(chatMessages.userId, convo.userId)))
+          .orderBy(chatMessages.createdAt);
+        return res.json(messages);
+      }
+    }
+    return res.status(403).json({ error: "Access denied" });
   });
 
   app.get("/api/team-members", requireAuth, async (req, res) => {
@@ -3260,13 +3279,20 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}${QUICK_REPLY_BUTT
       const userRentals = await storage.getRentalsByUser(req.session.userId);
       const activeRentals = userRentals.filter(r => r.status === "active");
 
-      if (activeRentals.length > 0) {
-        const rental = activeRentals.find(r => r.agentType === agentType);
-        if (!rental) {
-          return res.status(403).json({
-            reply: "Bu ajana erişiminiz yok. Lütfen Workers sayfasından kiralayın.",
-          });
+      let rental = activeRentals.find(r => r.agentType === agentType);
+
+      if (!rental) {
+        const userOrgs = await storage.getOrganizationsByUser(req.session.userId);
+        for (const org of userOrgs) {
+          const orgRental = await storage.getOrgActiveRental(org.id, agentType);
+          if (orgRental) {
+            rental = orgRental;
+            break;
+          }
         }
+      }
+
+      if (rental) {
         const now2 = new Date();
         const resetAt2 = rental.dailyResetAt ? new Date(rental.dailyResetAt) : new Date(0);
         const dailyUsed2 = now2.toDateString() !== resetAt2.toDateString() ? 0 : (rental.dailyMessagesUsed || 0);
@@ -3286,7 +3312,10 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}${QUICK_REPLY_BUTT
         }
         hasActiveRental = true;
         await storage.incrementUsage(rental.id);
-
+      } else if (activeRentals.length > 0) {
+        return res.status(403).json({
+          reply: "Bu ajana erişiminiz yok. Lütfen Workers sayfasından kiralayın.",
+        });
       } else {
         const userSpending = await storage.getTokenSpending(req.session.userId);
         if (userSpending >= userTokenLimit) {
@@ -4594,7 +4623,8 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}${QUICK_REPLY_BUTT
           decodedOriginalName,
           req.params.agentType as string,
           req.file.mimetype,
-          req.file.size
+          req.file.size,
+          req.organizationId
         );
         res.json(doc);
       } catch (error: any) {
@@ -5359,7 +5389,18 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}${QUICK_REPLY_BUTT
 
   app.post("/api/rex/contacts", requireAuth, async (req, res) => {
     try {
-      const data = insertRexContactSchema.parse({ ...req.body, userId: req.session.userId! });
+      const { organizationId: requestedOrgId, ...restBody } = req.body;
+      let orgId: number | undefined = undefined;
+      if (requestedOrgId) {
+        const userRole = await storage.getUserOrganizationRole(req.session.userId!, Number(requestedOrgId));
+        if (!userRole || (userRole !== "admin" && userRole !== "owner" && userRole !== "member")) {
+          return res.status(403).json({ error: "Not a member of that organization" });
+        }
+        orgId = Number(requestedOrgId);
+      } else if (req.organizationId) {
+        orgId = req.organizationId;
+      }
+      const data = insertRexContactSchema.parse({ ...restBody, userId: req.session.userId!, organizationId: orgId });
       const contact = await storage.createRexContact(data);
       res.status(201).json(contact);
     } catch (error: any) {
@@ -7130,6 +7171,7 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
       }
       const doc = await storage.createCrmDocument({
         userId: req.session.userId!,
+        ...(req.organizationId ? { organizationId: req.organizationId } : {}),
         fileName: String(fileName),
         originalName: String(originalName),
         fileType: String(effectiveType),
@@ -8252,6 +8294,373 @@ JSON formatında döndür: {"cronExpression": "...", "scheduleType": "daily|week
     } catch (error) {
       console.error("Parse natural language error:", error);
       res.status(500).json({ error: "Failed to parse natural language" });
+    }
+  });
+
+  // ============================================================
+  // ORGANIZATION ROUTES
+  // ============================================================
+
+  app.get("/api/organizations", requireAuth, async (req, res) => {
+    try {
+      const orgs = await storage.getOrganizationsByUser(req.session.userId!);
+      const orgsWithRole = await Promise.all(orgs.map(async (org) => {
+        const role = await storage.getUserOrganizationRole(req.session.userId!, org.id);
+        return { ...org, role };
+      }));
+      res.json(orgsWithRole);
+    } catch (error) {
+      console.error("Get organizations error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.post("/api/organizations", requireAuth, async (req, res) => {
+    try {
+      const { name } = req.body;
+      if (!name || typeof name !== "string" || name.trim().length < 2) {
+        return res.status(400).json({ error: "Organization name must be at least 2 characters" });
+      }
+      const slug = name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") + "-" + Date.now().toString(36);
+      const existing = await storage.getOrganizationBySlug(slug);
+      if (existing) {
+        return res.status(400).json({ error: "Organization with this name already exists" });
+      }
+      const org = await storage.createOrganization({
+        name: name.trim(),
+        slug,
+        ownerId: req.session.userId!,
+      });
+      await storage.addOrganizationMember({
+        organizationId: org.id,
+        userId: req.session.userId!,
+        role: "owner",
+      });
+      res.status(201).json(org);
+    } catch (error) {
+      console.error("Create organization error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.get("/api/organizations/:orgId", requireAuth, requireOrgRole("viewer", "member", "admin", "owner"), async (req, res) => {
+    try {
+      const org = await storage.getOrganizationById(req.organizationId!);
+      if (!org) return res.status(404).json({ error: "Organization not found" });
+      res.json({ ...org, role: req.orgRole });
+    } catch (error) {
+      console.error("Get organization error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.put("/api/organizations/:orgId", requireAuth, requireOrgRole("admin", "owner"), async (req, res) => {
+    try {
+      const { name, logoUrl } = req.body;
+      const updates: Record<string, string> = {};
+      if (name && typeof name === "string") updates.name = name.trim();
+      if (typeof logoUrl === "string") updates.logoUrl = logoUrl;
+      const updated = await storage.updateOrganization(req.organizationId!, updates);
+      if (!updated) return res.status(404).json({ error: "Organization not found" });
+      res.json(updated);
+    } catch (error) {
+      console.error("Update organization error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.delete("/api/organizations/:orgId", requireAuth, requireOrgRole("owner"), async (req, res) => {
+    try {
+      const org = await storage.getOrganizationById(req.organizationId!);
+      if (!org) return res.status(404).json({ error: "Organization not found" });
+      if (org.ownerId !== req.session.userId!) {
+        return res.status(403).json({ error: "Only the owner can delete the organization" });
+      }
+      await storage.deleteOrganization(req.organizationId!);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Delete organization error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.get("/api/organizations/:orgId/members", requireAuth, requireOrgRole("viewer", "member", "admin", "owner"), async (req, res) => {
+    try {
+      const members = await storage.getOrganizationMembers(req.organizationId!);
+      res.json(members);
+    } catch (error) {
+      console.error("Get members error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.put("/api/organizations/:orgId/members/:userId/role", requireAuth, requireOrgRole("admin", "owner"), async (req, res) => {
+    try {
+      const targetUserId = parseInt(req.params.userId);
+      const { role } = req.body;
+      const validRoles: OrgRole[] = [...orgRoleEnum];
+      if (!validRoles.includes(role as OrgRole)) {
+        return res.status(400).json({ error: "Invalid role" });
+      }
+      const typedRole = role as OrgRole;
+      const org = await storage.getOrganizationById(req.organizationId!);
+      if (!org) return res.status(404).json({ error: "Organization not found" });
+      if (typedRole === "owner" && req.orgRole !== "owner") {
+        return res.status(403).json({ error: "Only owner can transfer ownership" });
+      }
+      const targetMember = await storage.getOrganizationMember(req.organizationId!, targetUserId);
+      if (!targetMember) return res.status(404).json({ error: "Member not found" });
+      if (targetMember.role === "owner" && req.session.userId !== org.ownerId) {
+        return res.status(403).json({ error: "Cannot change owner's role" });
+      }
+      const updated = await storage.updateMemberRole(req.organizationId!, targetUserId, typedRole);
+      if (typedRole === "owner") {
+        await storage.updateMemberRole(req.organizationId!, req.session.userId!, "admin");
+        await storage.transferOrganizationOwnership(req.organizationId!, targetUserId);
+      }
+      res.json(updated);
+    } catch (error) {
+      console.error("Update member role error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.delete("/api/organizations/:orgId/members/:userId", requireAuth, requireOrgRole("admin", "owner"), async (req, res) => {
+    try {
+      const targetUserId = parseInt(req.params.userId);
+      const org = await storage.getOrganizationById(req.organizationId!);
+      if (!org) return res.status(404).json({ error: "Organization not found" });
+      if (org.ownerId === targetUserId) {
+        return res.status(400).json({ error: "Cannot remove the organization owner" });
+      }
+      const removed = await storage.removeOrganizationMember(req.organizationId!, targetUserId);
+      if (!removed) return res.status(404).json({ error: "Member not found" });
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Remove member error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.post("/api/organizations/:orgId/leave", requireAuth, requireOrgRole("viewer", "member", "admin", "owner"), async (req, res) => {
+    try {
+      const org = await storage.getOrganizationById(req.organizationId!);
+      if (!org) return res.status(404).json({ error: "Organization not found" });
+      if (org.ownerId === req.session.userId!) {
+        return res.status(400).json({ error: "Owner cannot leave. Transfer ownership first or delete the organization." });
+      }
+      await storage.removeOrganizationMember(req.organizationId!, req.session.userId!);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Leave organization error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Invites
+  app.get("/api/organizations/:orgId/invites", requireAuth, requireOrgRole("admin", "owner"), async (req, res) => {
+    try {
+      const invites = await storage.getOrganizationInvites(req.organizationId!);
+      res.json(invites);
+    } catch (error) {
+      console.error("Get invites error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.post("/api/organizations/:orgId/invites", requireAuth, requireOrgRole("admin", "owner"), async (req, res) => {
+    try {
+      const { email, role = "member" } = req.body;
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        return res.status(400).json({ error: "Valid email required" });
+      }
+      const invitableRoles: OrgRole[] = ["admin", "member", "viewer"];
+      if (!invitableRoles.includes(role as OrgRole)) {
+        return res.status(400).json({ error: "Invalid role. Must be admin, member, or viewer." });
+      }
+      const typedInviteRole = role as OrgRole;
+      const org = await storage.getOrganizationById(req.organizationId!);
+      if (!org) return res.status(404).json({ error: "Organization not found" });
+
+      const existingUser = await storage.getUserByEmail(email);
+      if (existingUser) {
+        const existingMember = await storage.getOrganizationMember(req.organizationId!, existingUser.id);
+        if (existingMember) {
+          return res.status(400).json({ error: "User is already a member of this organization" });
+        }
+      }
+
+      const token = crypto.randomBytes(32).toString("hex");
+      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+      const invite = await storage.createOrganizationInvite({
+        organizationId: req.organizationId!,
+        email,
+        role: typedInviteRole,
+        token,
+        invitedById: req.session.userId!,
+        status: "pending",
+        expiresAt,
+      });
+
+      const inviteUrl = `${req.protocol}://${req.get("host")}/accept-invite?token=${token}`;
+      try {
+        const { sendViaResendDirect } = await import("./emailService");
+        await sendViaResendDirect({
+          to: email,
+          subject: `${org.name} organizasyonuna davet edildiniz`,
+          body: `Merhaba,\n\n${org.name} organizasyonuna ${role} olarak davet edildiniz.\n\nDaveti kabul etmek için aşağıdaki linke tıklayın:\n${inviteUrl}\n\nBu link 7 gün içinde geçerliliğini yitirir.\n\nSaygılarımızla,\nRentAI 24`,
+        });
+      } catch (emailErr) {
+        console.error("Failed to send invite email:", emailErr);
+      }
+
+      res.status(201).json(invite);
+    } catch (error) {
+      console.error("Create invite error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.delete("/api/organizations/:orgId/invites/:inviteId", requireAuth, requireOrgRole("admin", "owner"), async (req, res) => {
+    try {
+      const inviteId = parseInt(req.params.inviteId);
+      const cancelled = await storage.cancelOrganizationInvite(inviteId, req.organizationId!);
+      if (!cancelled) return res.status(404).json({ error: "Invite not found" });
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Cancel invite error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.get("/api/invites/pending", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUserById(req.session.userId!);
+      if (!user) return res.status(404).json({ error: "User not found" });
+      const invites = await storage.getPendingInvitesByEmail(user.email);
+      const invitesWithOrg = await Promise.all(invites.map(async (inv) => {
+        const org = await storage.getOrganizationById(inv.organizationId);
+        return { ...inv, organization: org };
+      }));
+      res.json(invitesWithOrg);
+    } catch (error) {
+      console.error("Get pending invites error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.get("/api/invites/:token", async (req, res) => {
+    try {
+      const invite = await storage.getOrganizationInviteByToken(req.params.token);
+      if (!invite) return res.status(404).json({ error: "Invite not found" });
+      if (invite.status !== "pending") return res.status(400).json({ error: "Invite already used or cancelled" });
+      if (new Date() > invite.expiresAt) return res.status(400).json({ error: "Invite has expired" });
+      const org = await storage.getOrganizationById(invite.organizationId);
+      res.json({ invite, organization: org });
+    } catch (error) {
+      console.error("Get invite error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.post("/api/invites/:token/accept", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUserById(req.session.userId!);
+      if (!user) return res.status(404).json({ error: "User not found" });
+      const invite = await storage.getOrganizationInviteByToken(req.params.token);
+      if (!invite) return res.status(404).json({ error: "Invite not found" });
+      if (invite.email.toLowerCase() !== user.email.toLowerCase()) {
+        return res.status(403).json({ error: "This invite was sent to a different email address" });
+      }
+      const result = await storage.acceptOrganizationInvite(req.params.token, req.session.userId!);
+      if (!result.success) return res.status(400).json({ error: result.error });
+      res.json({ success: true, organizationId: result.organizationId });
+    } catch (error) {
+      console.error("Accept invite error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Org-level rentals
+  app.get("/api/organizations/:orgId/rentals", requireAuth, requireOrgRole("viewer", "member", "admin", "owner"), async (req, res) => {
+    try {
+      const rentalsData = await storage.getOrgRentals(req.organizationId!);
+      res.json(rentalsData);
+    } catch (error) {
+      console.error("Get org rentals error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Org-level conversations (visible to all org members based on role)
+  app.get("/api/organizations/:orgId/conversations", requireAuth, requireOrgRole("viewer", "member", "admin", "owner"), async (req, res) => {
+    try {
+      const agentType = req.query.agentType as string || "";
+      if (!agentType) return res.status(400).json({ error: "agentType query parameter required" });
+      const convos = await storage.getConversationsByOrg(req.organizationId!, agentType);
+      res.json(convos);
+    } catch (error) {
+      console.error("Get org conversations error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Org-level rex_contacts (CRM data)
+  app.get("/api/organizations/:orgId/rex-contacts", requireAuth, requireOrgRole("viewer", "member", "admin", "owner"), async (req, res) => {
+    try {
+      const contacts = await storage.getOrgRexContacts(req.organizationId!);
+      res.json(contacts);
+    } catch (error) {
+      console.error("Get org rex contacts error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Org-level CRM documents
+  app.get("/api/organizations/:orgId/crm-documents", requireAuth, requireOrgRole("viewer", "member", "admin", "owner"), async (req, res) => {
+    try {
+      const docs = await storage.getOrgCrmDocuments(req.organizationId!);
+      res.json(docs);
+    } catch (error) {
+      console.error("Get org CRM documents error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Org-level agent documents
+  app.get("/api/organizations/:orgId/agent-documents", requireAuth, requireOrgRole("viewer", "member", "admin", "owner"), async (req, res) => {
+    try {
+      const docs = await storage.getOrgAgentDocuments(req.organizationId!);
+      res.json(docs);
+    } catch (error) {
+      console.error("Get org agent documents error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Org-level rental creation (rentals created at org level are accessible to all org members)
+  app.post("/api/organizations/:orgId/rentals", requireAuth, requireOrgRole("admin", "owner"), async (req, res) => {
+    try {
+      const { agentType, plan, messagesLimit } = req.body;
+      if (!agentType || typeof agentType !== "string") {
+        return res.status(400).json({ error: "agentType is required" });
+      }
+      const existingOrgRental = await storage.getOrgActiveRental(req.organizationId!, agentType);
+      if (existingOrgRental) {
+        return res.status(400).json({ error: "An active rental for this agent already exists for this organization" });
+      }
+      const rental = await storage.createRental({
+        userId: req.session.userId!,
+        organizationId: req.organizationId!,
+        agentType,
+        plan: plan || "standard",
+        messagesLimit: messagesLimit || 75,
+        status: "active",
+      });
+      res.status(201).json(rental);
+    } catch (error) {
+      console.error("Create org rental error:", error);
+      res.status(500).json({ error: "Internal server error" });
     }
   });
 

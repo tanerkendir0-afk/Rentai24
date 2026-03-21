@@ -1,12 +1,6 @@
 import { getStripeSync } from './stripeClient';
 import { storage } from './storage';
-
-const BOOST_CONFIG: Record<string, { maxParallelTasks: number }> = {
-  "boost-3": { maxParallelTasks: 3 },
-  "boost-7": { maxParallelTasks: 7 },
-  "boost-accounting": { maxParallelTasks: 3 },
-  "boost-pro": { maxParallelTasks: Infinity },
-};
+import { BOOST_CONFIG } from './boostConfig';
 
 const processedEventIds = new Set<string>();
 
@@ -140,7 +134,7 @@ export class WebhookHandlers {
         if (newPlan && newPlan !== boostBySub.boostPlan && BOOST_CONFIG[newPlan]) {
           const cfg = BOOST_CONFIG[newPlan];
           updates.boostPlan = newPlan;
-          updates.maxParallelTasks = cfg.maxParallelTasks === Infinity ? 999999 : cfg.maxParallelTasks;
+          updates.maxParallelTasks = cfg.maxParallelTasks;
           console.log(`Webhook: Boost plan changed ${boostBySub.boostPlan} -> ${newPlan} for user ${boostBySub.userId}`);
         }
 
@@ -234,7 +228,7 @@ export class WebhookHandlers {
     }
 
     const boostConfig = BOOST_CONFIG[boostPlan];
-    const maxTasks = boostConfig.maxParallelTasks === Infinity ? 999999 : boostConfig.maxParallelTasks;
+    const maxTasks = boostConfig.maxParallelTasks;
     const expiresAt = new Date();
     expiresAt.setMonth(expiresAt.getMonth() + 1);
 

@@ -11,6 +11,7 @@ import { storage } from "./storage";
 import { requireAuth } from "./auth";
 import { stripeService } from "./stripeService";
 import { getPublishableKey } from "./stripeClient";
+import { BOOST_CONFIG } from "./boostConfig";
 import { uploadDocument, uploadTrainingFile } from "./upload";
 import { processAndStoreDocument, processAndStoreUrl, retrieveRelevantChunks, getDocumentsByAgent, deleteDocument, getDocumentCount } from "./ragService";
 import { createFineTuningJob, syncJobStatus, getJobsByAgent, toggleActiveModel, deactivateModel, getActiveModel } from "./fineTuningService";
@@ -85,12 +86,6 @@ const PLAN_CONFIG: Record<string, { maxAgents: number; dailyMessagesPerAgent: nu
   accounting: { maxAgents: 1, dailyMessagesPerAgent: 200, allowedAgents: ["bookkeeping"] },
 };
 
-const BOOST_CONFIG: Record<string, { maxParallelTasks: number; priceUsd: number; allowedAgents?: string[] }> = {
-  "boost-3": { maxParallelTasks: 3, priceUsd: 150 },
-  "boost-7": { maxParallelTasks: 7, priceUsd: 300 },
-  "boost-accounting": { maxParallelTasks: 3, priceUsd: 200, allowedAgents: ["bookkeeping"] },
-  "boost-pro": { maxParallelTasks: Infinity, priceUsd: 1750 },
-};
 
 const MODEL_PRICING: Record<string, { input: number; output: number }> = {
   "gpt-4o": { input: 2.50, output: 10.00 },
@@ -3414,7 +3409,7 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}${QUICK_REPLY_BUTT
 
       if (req.session.userId) {
         try {
-          await db.execute(sql`
+          const updateResult = await db.execute(sql`
             UPDATE conversations SET
               boost_status = 'running',
               is_boost_task = CASE WHEN ${isBoostAgentAllowed ? sql`true` : sql`false`} THEN true ELSE is_boost_task END
@@ -3422,6 +3417,17 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}${QUICK_REPLY_BUTT
               AND visible_id = ${chatSessionId}
               AND boost_status != 'running'
           `);
+          if (Number(updateResult.rowCount) === 0) {
+            const existsCheck = await db.execute(sql`
+              SELECT id FROM conversations WHERE user_id = ${req.session.userId} AND visible_id = ${chatSessionId} LIMIT 1
+            `);
+            if (existsCheck.rows.length === 0) {
+              await db.execute(sql`
+                INSERT INTO conversations (user_id, visible_id, agent_type, boost_status, is_boost_task)
+                VALUES (${req.session.userId}, ${chatSessionId}, ${resolvedAgentType}, 'running', ${isBoostAgentAllowed})
+              `);
+            }
+          }
         } catch (bErr: unknown) {
           console.error("Boost running mark error:", bErr instanceof Error ? bErr.message : bErr);
         }
@@ -4112,13 +4118,13 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}${QUICK_REPLY_BUTT
       const boost = await storage.getActiveBoostSubscription(req.session.userId!);
       if (!boost) {
         const safeConfig = Object.fromEntries(
-          Object.entries(BOOST_CONFIG).map(([k, v]) => [k, { ...v, maxParallelTasks: v.maxParallelTasks === Infinity ? -1 : v.maxParallelTasks }])
+          Object.entries(BOOST_CONFIG).map(([k, v]) => [k, { ...v, maxParallelTasks: v.maxParallelTasks >= 999999 ? -1 : v.maxParallelTasks }])
         );
         return res.json({ active: false, plan: null, maxParallelTasks: 1, activeTaskCount: 0, config: safeConfig });
       }
       const activeConvos = await storage.getActiveBoostConversations(req.session.userId!);
       const safeConfig = Object.fromEntries(
-        Object.entries(BOOST_CONFIG).map(([k, v]) => [k, { ...v, maxParallelTasks: v.maxParallelTasks === Infinity ? -1 : v.maxParallelTasks }])
+        Object.entries(BOOST_CONFIG).map(([k, v]) => [k, { ...v, maxParallelTasks: v.maxParallelTasks >= 999999 ? -1 : v.maxParallelTasks }])
       );
       const isUnlimited = boost.boostPlan === "boost-pro" || boost.maxParallelTasks >= 999999;
       res.json({
@@ -4192,7 +4198,7 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}${QUICK_REPLY_BUTT
       }
 
       const boostConfig = BOOST_CONFIG[boostPlan];
-      const maxTasks = boostConfig.maxParallelTasks === Infinity ? 999999 : boostConfig.maxParallelTasks;
+      const maxTasks = boostConfig.maxParallelTasks;
       const expiresAt = new Date();
       expiresAt.setMonth(expiresAt.getMonth() + 1);
 
@@ -4253,7 +4259,8 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}${QUICK_REPLY_BUTT
         await storage.updateUserStripeInfo(user.id, { stripeCustomerId: customerId });
       }
 
-      const baseUrl = `${req.protocol}://${req.get("host")}`;
+      const domain = process.env.REPLIT_DOMAINS?.split(',')[0];
+      const baseUrl = domain ? `https://${domain}` : `${req.protocol}://${req.get("host")}`;
       const session = await stripeService.createCheckoutSession(
         customerId,
         priceId,

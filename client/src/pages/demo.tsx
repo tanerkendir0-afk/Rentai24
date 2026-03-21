@@ -2348,6 +2348,9 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
         <BoostTaskBar
           onTaskClick={(task) => {
             setSelectedAgent(task.agentType);
+            setActiveConvoId(prev => ({ ...prev, [task.agentType]: task.visibleId }));
+            queryClient.invalidateQueries({ queryKey: ['/api/conversations', task.agentType] });
+            if (splitScreenActive) setSplitScreenActive(false);
             if (window.innerWidth < 1024) setSidebarOpen(false);
           }}
         />

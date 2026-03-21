@@ -1,10 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
-import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
-  Bot,
   Send,
   Headphones,
   TrendingUp,
@@ -12,7 +9,6 @@ import {
   Calculator,
   CalendarCheck,
   Users,
-  Loader2,
   User,
   BarChart3,
   Package,
@@ -20,7 +16,6 @@ import {
   X,
   AlertTriangle,
   Sparkles,
-  ChevronRight,
   ChevronDown,
   BrainCircuit,
   Square,
@@ -30,8 +25,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/lib/auth";
 import { useTranslation } from "react-i18next";
 import ChatMessageContent from "@/components/chat-message";
-import { parsePublishAssistant } from "@/components/publish-assistant-card";
-import PublishAssistantCard from "@/components/publish-assistant-card";
+import PublishAssistantCard, { parsePublishAssistant } from "@/components/publish-assistant-card";
 import ChatRating from "@/components/chat-rating";
 
 const agentOptions = [

@@ -1,6 +1,7 @@
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
+import type { LucideIcon } from "lucide-react";
 import {
   Headphones,
   TrendingUp,
@@ -17,12 +18,11 @@ import {
   ChevronUp,
   ChevronDown,
   Zap,
-  X,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useToast } from "@/hooks/use-toast";
 
-const agentIconMap: Record<string, { icon: any; color: string; persona: string }> = {
+const agentIconMap: Record<string, { icon: LucideIcon; color: string; persona: string }> = {
   "customer-support": { icon: Headphones, color: "from-pink-500 to-rose-500", persona: "Ava" },
   "sales-sdr": { icon: TrendingUp, color: "from-blue-500 to-cyan-500", persona: "Rex" },
   "social-media": { icon: Share2, color: "from-violet-500 to-purple-500", persona: "Maya" },

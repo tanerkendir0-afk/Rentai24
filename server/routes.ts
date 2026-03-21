@@ -9110,6 +9110,71 @@ JSON formatında döndür: {"cronExpression": "...", "scheduleType": "daily|week
     }
   });
 
+  // ─── Push Token Endpoints (Mobile App) ──────────────────────────────
+
+  app.post("/api/push-tokens", requireAuth, async (req, res) => {
+    try {
+      const { token, platform } = req.body;
+      if (!token || !platform) {
+        return res.status(400).json({ error: "Token and platform are required" });
+      }
+      if (!["ios", "android", "web"].includes(platform)) {
+        return res.status(400).json({ error: "Invalid platform. Must be ios, android, or web" });
+      }
+      const pushToken = await storage.createPushToken({
+        userId: req.session.userId!,
+        token,
+        platform,
+        isActive: true,
+      });
+      res.json({ success: true, pushToken });
+    } catch (err: any) {
+      console.error("[PushTokens] Create error:", err);
+      res.status(500).json({ error: "Failed to register push token" });
+    }
+  });
+
+  app.get("/api/push-tokens", requireAuth, async (req, res) => {
+    try {
+      const tokens = await storage.getPushTokensByUserId(req.session.userId!);
+      res.json(tokens);
+    } catch (err: any) {
+      console.error("[PushTokens] Get error:", err);
+      res.status(500).json({ error: "Failed to fetch push tokens" });
+    }
+  });
+
+  app.delete("/api/push-tokens", requireAuth, async (req, res) => {
+    try {
+      const { token } = req.body;
+      if (token) {
+        await storage.deletePushToken(req.session.userId!, token);
+      } else {
+        await storage.deletePushTokensByUserId(req.session.userId!);
+      }
+      res.json({ success: true });
+    } catch (err: any) {
+      console.error("[PushTokens] Delete error:", err);
+      res.status(500).json({ error: "Failed to delete push token" });
+    }
+  });
+
+  app.post("/api/push/send", requireAuth, async (req, res) => {
+    try {
+      const { userId, title, body, data } = req.body;
+      if (!title || !body) {
+        return res.status(400).json({ error: "Title and body are required" });
+      }
+      const targetUserId = userId || req.session.userId!;
+      const { sendPushToUser } = await import("./pushNotificationService");
+      await sendPushToUser(targetUserId, title, body, data);
+      res.json({ success: true });
+    } catch (err: any) {
+      console.error("[Push] Send error:", err);
+      res.status(500).json({ error: "Failed to send push notification" });
+    }
+  });
+
   // ─── WebSocket initialization ──────────────────────────────────────
   try {
     const { initWebSocket } = await import("./websocketService");

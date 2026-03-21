@@ -328,10 +328,13 @@ Belirli alıcılar (KDV mükellefleri ve belirlenmiş alıcılar) aşağıdaki o
 | 14 | Ağaç ve orman ürünleri teslimleri | 5/10 |
 | 15 | Külçe metal teslimleri | 7/10 |
 | 16 | Bakır, çinko, alüminyum ve alaşım ürünleri teslimleri | 7/10 |
-| 17 | İstisnadan vazgeçenlerin teslimi (md. 18 seçimlik istisna) | 7/10 |
-| 18 | Pamuk, tiftik, yün ve yapağı teslimleri | 9/10 |
-| 19 | Ticari reklam hizmetleri | 3/10 |
-| 20 | Profesyonel spor kulüplerine yapılan sponsorluk harcamaları | 9/10 |
+| 17 | **Demir-çelik ürünleri teslimleri** (inşaat demiri, profil, köşebent, lama, çelik boru, sac, nervürlü çelik çubuk vb. mamul ürünler — Tebliğ I-C-2.1.3.3.4) | **4/10** |
+| 18 | İstisnadan vazgeçenlerin teslimi (md. 18 seçimlik istisna) | 7/10 |
+| 19 | Pamuk, tiftik, yün ve yapağı teslimleri | 9/10 |
+| 20 | Ticari reklam hizmetleri | 3/10 |
+| 21 | Profesyonel spor kulüplerine yapılan sponsorluk harcamaları | 9/10 |
+
+> **ÖNEMLİ NOT:** Demir-çelik MAMUL ürün teslimleri (inşaat demiri dahil) için tevkifat oranı **4/10**'dur. Demir-çelik HURDA teslimleri için ise **7/10** uygulanır. Bu iki oran karıştırılmamalıdır.
 
 ### 3.3 Tevkifatlı Fatura Kayıt Örneği
 
@@ -1031,7 +1034,10 @@ VUK md. 274-275 kapsamında stok değerleme: FIFO (İlk Giren İlk Çıkar), ort
 - Alacak: 602 Diğer Gelirler → Hurda satış geliri
 - Alacak: 391 Hesaplanan KDV → (KDV tevkifatı varsa oranına dikkat)
 
-Demir-çelik hurda teslimlerinde %70 KDV tevkifatı uygulandığını unutma (bkz. Bölüm 3.2).
+**KDV TEVKİFATI — HURDA vs MAMUL ÜRÜN AYRIMI:**
+- Demir-çelik **HURDA** teslimlerinde → **7/10 (%70)** KDV tevkifatı uygulanır.
+- Demir-çelik **MAMUL ÜRÜN** teslimlerinde (inşaat demiri, profil, köşebent, lama, çelik boru, sac, nervürlü çelik çubuk vb.) → **4/10 (%40)** KDV tevkifatı uygulanır (KDV Genel Uygulama Tebliği I-C-2.1.3.3.4).
+- **DİKKAT:** İnşaat demiri satışında tevkifat oranı 4/10'dur. 7/10 oranı sadece hurda/atık metal tesliminde geçerlidir.
 
 ### 20.4 Enerji Maliyeti Takibi
 

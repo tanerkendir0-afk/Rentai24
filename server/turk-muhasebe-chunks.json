@@ -142,12 +142,12 @@
     },
     {
       "id": "kdv-tevkifat-kismi",
-      "text": "Kısmi KDV Tevkifatı Oranları: Yapım işleri + mühendislik/mimarlık 4/10, Etüt/danışmanlık/denetim 9/10, Makine bakım-onarım 7/10, Yemek servis/organizasyon 5/10, İşgücü temin/özel güvenlik 9/10, Yapı denetim 9/10, Fason tekstil/konfeksiyon 8/10, Temizlik/çevre/bahçe bakım 9/10, Servis taşımacılığı 5/10, Baskı/basım 5/10, Hurda/atık (metal, plastik, kâğıt, cam) 7/10, Ağaç/orman ürünleri 5/10, Külçe metal 7/10, Bakır/çinko/alüminyum ürünleri 7/10, Pamuk/tiftik/yün 9/10, Ticari reklam 3/10. Tevkifat belirli alıcılar (KDV mükellefi veya belirlenmiş alıcılar) için geçerlidir.",
+      "text": "Kısmi KDV Tevkifatı Oranları (KDV Genel Uygulama Tebliği I-C-2.1.3): Yapım işleri + mühendislik/mimarlık 4/10, Etüt/danışmanlık/denetim 9/10, Makine bakım-onarım 7/10, Yemek servis/organizasyon 5/10, İşgücü temin/özel güvenlik 9/10, Yapı denetim 9/10, Fason tekstil/konfeksiyon 8/10, Temizlik/çevre/bahçe bakım 9/10, Servis taşımacılığı 5/10, Baskı/basım 5/10, Hurda/atık (metal, plastik, kâğıt, cam) 7/10, Ağaç/orman ürünleri 5/10, Külçe metal 7/10, Bakır/çinko/alüminyum ürünleri 7/10, Demir-çelik ürünleri teslimi (inşaat demiri, profil, köşebent, lama, çelik boru, sac, nervürlü çelik çubuk vb. mamul ürünler) 4/10 (Tebliğ I-C-2.1.3.3.4), Pamuk/tiftik/yün 9/10, Ticari reklam 3/10. ÖNEMLİ: Demir-çelik ürünleri tesliminde (inşaat demiri dahil) tevkifat oranı 4/10'dur, 7/10 değildir. 7/10 oranı sadece hurda/atık metal için geçerlidir. Tevkifat belirli alıcılar (KDV mükellefi veya belirlenmiş alıcılar) için geçerlidir.",
       "metadata": {
         "category": "kdv",
         "subcategory": "tevkifat_kismi",
         "section": "3.2",
-        "keywords": ["kısmi tevkifat", "yapım", "danışmanlık", "işgücü", "temizlik", "hurda", "metal", "tekstil", "fason", "reklam", "4/10", "9/10", "7/10", "5/10"],
+        "keywords": ["kısmi tevkifat", "yapım", "danışmanlık", "işgücü", "temizlik", "hurda", "metal", "tekstil", "fason", "reklam", "4/10", "9/10", "7/10", "5/10", "demir", "çelik", "inşaat demiri", "profil", "köşebent", "sac", "boru", "demir-çelik"],
         "year": "evergreen"
       }
     },
@@ -159,6 +159,17 @@
         "subcategory": "tevkifat_kayit",
         "section": "3.3",
         "keywords": ["tevkifat", "muhasebe kaydı", "fatura", "danışmanlık", "KDV-2", "sorumlu sıfatıyla"],
+        "year": "evergreen"
+      }
+    },
+    {
+      "id": "kdv-tevkifat-demir-celik-ornegi",
+      "text": "Demir-Çelik Ürünleri Tevkifatlı Satış Kayıt Örneği (KDV Genel Uygulama Tebliği I-C-2.1.3.3.4): Bir demir-çelik firması 500.000 ₺ + %20 KDV = 600.000 ₺ tutarında inşaat demiri (nervürlü çelik çubuk) satıyor. Tevkifat oranı: 4/10. Toplam KDV: 100.000 ₺, Tevkif edilen KDV: 40.000 ₺ (4/10), Satıcıya ödenen KDV: 60.000 ₺ (6/10). SATICI kaydı: Borç 120 Alıcılar 560.000 ₺ (500.000 + 60.000), Alacak 600 Yurtiçi Satışlar 500.000 ₺, Alacak 391 Hesaplanan KDV 60.000 ₺. Ayrıca tevkif edilen 40.000 ₺ için: Borç 136 Diğer Çeşitli Alacaklar 40.000 ₺, Alacak 391 Hesaplanan KDV 40.000 ₺. ALICI kaydı: Borç 150/153 Stoklar 500.000 ₺, Borç 191 İndirilecek KDV 100.000 ₺, Alacak 320 Satıcılar 560.000 ₺, Alacak 360 Ödenecek Vergi ve Fonlar 40.000 ₺ (KDV-2 beyanı). ÖNEMLİ: İnşaat demiri, profil, köşebent, lama, sac, çelik boru gibi demir-çelik MAMUL ürünlerinde tevkifat oranı 4/10'dur. HURDA demir-çelik teslimlerinde ise 7/10 uygulanır. Bu ayrıma dikkat edilmelidir.",
+      "metadata": {
+        "category": "kdv",
+        "subcategory": "tevkifat_demir_celik",
+        "section": "3.3.1",
+        "keywords": ["demir-çelik", "inşaat demiri", "tevkifat", "4/10", "profil", "köşebent", "sac", "boru", "nervürlü", "mamul", "hurda", "7/10", "demir", "çelik"],
         "year": "evergreen"
       }
     },
@@ -439,12 +450,12 @@
     },
     {
       "id": "sektorel-demir-celik",
-      "text": "Sektörel Muhasebe — Demir-Çelik/İmalat: Stok değerleme (VUK md. 274-275): FIFO, ağırlıklı ortalama, hareketli ortalama (imalatta en yaygın). Fire: Normal fire üretim maliyetine dahil (çelik haddecilikte %2-5 arası), mamul maliyetini artırır. Anormal fire doğrudan gider: Borç 689, Alacak 150. Hurda/ikincil ürün geliri: Borç 100/120, Alacak 602 Diğer Gelirler + 391 KDV. Demir-çelik hurda tesliminde %70 KDV tevkifatı. Enerji maliyeti: Fırın/galvaniz/hadde için 730 GÜG'de izlenir, üretim hacmine göre dağıtılır. Maliyet akışı: 710 Direkt Madde (kütük/billet) → 720 Direkt İşçilik → 730 GÜG (enerji, amortisman, bakım) → 151 Yarı Mamuller → 152 Mamuller.",
+      "text": "Sektörel Muhasebe — Demir-Çelik/İmalat: Stok değerleme (VUK md. 274-275): FIFO, ağırlıklı ortalama, hareketli ortalama (imalatta en yaygın). Fire: Normal fire üretim maliyetine dahil (çelik haddecilikte %2-5 arası), mamul maliyetini artırır. Anormal fire doğrudan gider: Borç 689, Alacak 150. Hurda/ikincil ürün geliri: Borç 100/120, Alacak 602 Diğer Gelirler + 391 KDV. KDV TEVKİFATI AYRIMI: (1) Demir-çelik HURDA tesliminde %70 (7/10) KDV tevkifatı uygulanır. (2) Demir-çelik MAMUL ÜRÜN tesliminde (inşaat demiri, profil, köşebent, lama, çelik boru, sac, nervürlü çelik çubuk vb.) %40 (4/10) KDV tevkifatı uygulanır (KDV Genel Uygulama Tebliği I-C-2.1.3.3.4). DİKKAT: İnşaat demiri satışında tevkifat oranı 4/10'dur, 7/10 veya 5/10 değildir. 7/10 oranı sadece hurda/atık metal için geçerlidir. Enerji maliyeti: Fırın/galvaniz/hadde için 730 GÜG'de izlenir, üretim hacmine göre dağıtılır. Maliyet akışı: 710 Direkt Madde (kütük/billet) → 720 Direkt İşçilik → 730 GÜG (enerji, amortisman, bakım) → 151 Yarı Mamuller → 152 Mamuller.",
       "metadata": {
         "category": "sektorel",
         "subcategory": "demir_celik",
         "section": "20",
-        "keywords": ["demir", "çelik", "imalat", "fire", "hurda", "hadde", "galvaniz", "kütük", "billet", "enerji", "FIFO", "ortalama maliyet"],
+        "keywords": ["demir", "çelik", "imalat", "fire", "hurda", "hadde", "galvaniz", "kütük", "billet", "enerji", "FIFO", "ortalama maliyet", "inşaat demiri", "tevkifat", "4/10", "7/10", "profil", "köşebent", "sac"],
         "year": "evergreen"
       }
     },

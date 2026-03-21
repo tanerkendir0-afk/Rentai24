@@ -156,7 +156,7 @@ function loadChunks(): Chunk[] {
 }
 
 const categoryKeywords: Record<string, string[]> = {
-  kdv: ["kdv", "katma değer", "tevkifat", "istisna", "muaf", "indirilecek", "hesaplanan"],
+  kdv: ["kdv", "katma değer", "tevkifat", "istisna", "muaf", "indirilecek", "hesaplanan", "inşaat demiri", "demir-çelik", "demir çelik"],
   sgk: ["sgk", "sigorta", "prim", "işsizlik", "tavan", "taban", "asgari ücret"],
   bordro: ["bordro", "maaş", "brüt", "net", "ücret hesaplama"],
   gelir_vergisi: ["gelir vergisi", "vergi dilimi", "tarife", "stopaj", "kümülatif"],
@@ -170,7 +170,7 @@ const categoryKeywords: Record<string, string[]> = {
   fatura: ["fatura", "e-fatura", "e-arşiv", "iade faturası"],
   tazminat: ["kıdem", "ihbar", "tazminat"],
   insaat: ["inşaat", "hakediş", "yıllara yaygın"],
-  sektorel: ["fire", "hurda", "hadde", "galvaniz", "çelik", "imalat"],
+  sektorel: ["fire", "hurda", "hadde", "galvaniz", "çelik", "imalat", "demir", "profil", "köşebent", "sac", "boru", "nervürlü"],
   hesap_plani: ["hesap planı", "hesap kodu", "tdhp", "tekdüzen"],
   beyanname: ["beyanname", "takvim", "ba-bs"],
   stopaj: ["stopaj", "tevkifat oranı", "serbest meslek", "kira stopaj"],

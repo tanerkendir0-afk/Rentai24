@@ -89,7 +89,7 @@ const BOOST_CONFIG: Record<string, { maxParallelTasks: number; priceUsd: number;
   "boost-3": { maxParallelTasks: 3, priceUsd: 150 },
   "boost-7": { maxParallelTasks: 7, priceUsd: 300 },
   "boost-accounting": { maxParallelTasks: 3, priceUsd: 200, allowedAgents: ["bookkeeping"] },
-  "boost-pro": { maxParallelTasks: 99, priceUsd: 1750 },
+  "boost-pro": { maxParallelTasks: Infinity, priceUsd: 1750 },
 };
 
 const MODEL_PRICING: Record<string, { input: number; output: number }> = {
@@ -3217,19 +3217,75 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}${QUICK_REPLY_BUTT
         hasActiveRental = true;
         await storage.incrementUsage(rental.id);
 
-        if (clientSessionId) {
+        if (clientSessionId && req.session.userId) {
           const boostSub = await storage.getActiveBoostSubscription(req.session.userId);
+          const activeBoostConvos = await storage.getActiveBoostConversations(req.session.userId, resolvedAgentType);
+
           if (boostSub) {
-            const activeBoostConvos = await storage.getActiveBoostConversations(req.session.userId, resolvedAgentType);
-            const isThisConvoBoost = activeBoostConvos.some(c => c.visibleId === clientSessionId);
-            if (!isThisConvoBoost && activeBoostConvos.length >= boostSub.maxParallelTasks) {
-              return res.status(429).json({
-                reply: `Paralel görev limitinize (${boostSub.maxParallelTasks}) ulaştınız. Lütfen mevcut görevlerden birinin tamamlanmasını bekleyin veya Boost planınızı yükseltin.`,
-                boostLimitReached: true,
-                activeCount: activeBoostConvos.length,
-                maxCount: boostSub.maxParallelTasks,
-              });
+            const boostCfg = BOOST_CONFIG[boostSub.boostPlan];
+            if (boostCfg?.allowedAgents && !boostCfg.allowedAgents.includes(resolvedAgentType)) {
+              // pass — boost restrictions don't block, just don't count toward boost
+            } else {
+              const isThisConvoBoost = activeBoostConvos.some(c => c.visibleId === clientSessionId);
+              if (!isThisConvoBoost && activeBoostConvos.length >= boostSub.maxParallelTasks) {
+                return res.status(429).json({
+                  reply: `Paralel görev limitinize (${boostSub.maxParallelTasks}) ulaştınız. Lütfen mevcut görevlerden birinin tamamlanmasını bekleyin veya Boost planınızı yükseltin.`,
+                  boostLimitReached: true,
+                  activeCount: activeBoostConvos.length,
+                  maxCount: boostSub.maxParallelTasks,
+                });
+              }
+
+              if (!isThisConvoBoost) {
+                try {
+                  const [convoRow] = await db.select().from(conversations).where(
+                    and(
+                      eq(conversations.userId, req.session.userId),
+                      eq(conversations.visibleId, clientSessionId)
+                    )
+                  );
+                  if (convoRow) {
+                    await db.update(conversations).set({
+                      isBoostTask: true,
+                      boostStatus: "running",
+                    }).where(eq(conversations.id, convoRow.id));
+                  }
+                } catch (_) {}
+              } else {
+                const thisConvo = activeBoostConvos.find(c => c.visibleId === clientSessionId);
+                if (thisConvo && thisConvo.boostStatus !== "running") {
+                  await storage.updateConversationBoostStatus(thisConvo.id, "running");
+                }
+              }
             }
+          } else {
+            if (activeBoostConvos.length === 0) {
+              const runningConvos = await db.select().from(conversations).where(
+                and(
+                  eq(conversations.userId, req.session.userId),
+                  eq(conversations.agentType, resolvedAgentType),
+                  eq(conversations.boostStatus, "running")
+                )
+              );
+              const otherRunning = runningConvos.filter(c => c.visibleId !== clientSessionId);
+              if (otherRunning.length > 0) {
+                return res.status(429).json({
+                  reply: "Bu ajan için zaten aktif bir sohbet var. Paralel görev için Boost planına geçin.",
+                  boostRequired: true,
+                });
+              }
+            }
+            try {
+              const [convoRow] = await db.select().from(conversations).where(
+                and(
+                  eq(conversations.userId, req.session.userId),
+                  eq(conversations.visibleId, clientSessionId)
+                )
+              );
+              if (convoRow && convoRow.boostStatus !== "running") {
+                await db.update(conversations).set({ boostStatus: "running" }).where(eq(conversations.id, convoRow.id));
+              }
+            } catch (_) {}
           }
         }
       } else {
@@ -4073,16 +4129,22 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}${QUICK_REPLY_BUTT
     try {
       const boost = await storage.getActiveBoostSubscription(req.session.userId!);
       if (!boost) {
-        return res.json({ active: false, plan: null, maxParallelTasks: 1, activeTaskCount: 0, config: BOOST_CONFIG });
+        const safeConfig = Object.fromEntries(
+          Object.entries(BOOST_CONFIG).map(([k, v]) => [k, { ...v, maxParallelTasks: v.maxParallelTasks === Infinity ? -1 : v.maxParallelTasks }])
+        );
+        return res.json({ active: false, plan: null, maxParallelTasks: 1, activeTaskCount: 0, config: safeConfig });
       }
       const activeConvos = await storage.getActiveBoostConversations(req.session.userId!);
+      const safeConfig = Object.fromEntries(
+        Object.entries(BOOST_CONFIG).map(([k, v]) => [k, { ...v, maxParallelTasks: v.maxParallelTasks === Infinity ? -1 : v.maxParallelTasks }])
+      );
       res.json({
         active: true,
         plan: boost.boostPlan,
-        maxParallelTasks: boost.maxParallelTasks,
+        maxParallelTasks: boost.maxParallelTasks === Infinity ? -1 : boost.maxParallelTasks,
         activeTaskCount: activeConvos.length,
         expiresAt: boost.expiresAt,
-        config: BOOST_CONFIG,
+        config: safeConfig,
       });
     } catch (error: any) {
       console.error("Boost status error:", error.message);
@@ -4147,13 +4209,14 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}${QUICK_REPLY_BUTT
       }
 
       const boostConfig = BOOST_CONFIG[boostPlan];
+      const maxTasks = boostConfig.maxParallelTasks === Infinity ? 999999 : boostConfig.maxParallelTasks;
       const expiresAt = new Date();
       expiresAt.setMonth(expiresAt.getMonth() + 1);
 
       await storage.createBoostSubscription({
         userId: user.id,
         boostPlan,
-        maxParallelTasks: boostConfig.maxParallelTasks,
+        maxParallelTasks: maxTasks,
         status: "active",
         stripeBoostSubId: `test_boost_${Date.now()}`,
         expiresAt,
@@ -4166,16 +4229,28 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}${QUICK_REPLY_BUTT
     }
   });
 
+  const BOOST_STRIPE_PRICES: Record<string, string> = {
+    "boost-3": process.env.STRIPE_BOOST3_PRICE_ID || "",
+    "boost-7": process.env.STRIPE_BOOST7_PRICE_ID || "",
+    "boost-accounting": process.env.STRIPE_BOOST_ACCOUNTING_PRICE_ID || "",
+    "boost-pro": process.env.STRIPE_BOOST_PRO_PRICE_ID || "",
+  };
+
   app.post("/api/boost/checkout", requireAuth, async (req, res) => {
     try {
-      const { priceId, boostPlan } = req.body;
-      if (!priceId || !boostPlan) {
-        return res.status(400).json({ error: "priceId and boostPlan are required" });
+      const { boostPlan } = req.body;
+      if (!boostPlan) {
+        return res.status(400).json({ error: "boostPlan is required" });
       }
 
       const allowedPlans = Object.keys(BOOST_CONFIG);
       if (!allowedPlans.includes(boostPlan)) {
         return res.status(400).json({ error: "Invalid boost plan" });
+      }
+
+      const priceId = BOOST_STRIPE_PRICES[boostPlan];
+      if (!priceId) {
+        return res.status(500).json({ error: "Stripe price not configured for this plan" });
       }
 
       const user = await storage.getUserById(req.session.userId!);

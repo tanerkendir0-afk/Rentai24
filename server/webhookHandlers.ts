@@ -124,6 +124,17 @@ export class WebhookHandlers {
     const user = await storage.getUserByStripeCustomerId(customerId);
     if (!user) return;
 
+    const boost = await storage.getActiveBoostSubscription(user.id);
+    if (boost && boost.stripeBoostSubId === subscription.id) {
+      if (subscription.status === 'active' || subscription.status === 'trialing') {
+        await storage.updateBoostSubscription(boost.id, { status: 'active' });
+      } else if (subscription.status === 'past_due' || subscription.status === 'unpaid' || subscription.status === 'canceled') {
+        await storage.updateBoostSubscription(boost.id, { status: 'inactive' });
+        console.log(`Webhook: Boost subscription ${subscription.id} is ${subscription.status} for user ${user.id}`);
+      }
+      return;
+    }
+
     await storage.updateUserStripeInfo(user.id, { stripeSubscriptionId: subscription.id });
 
     if (subscription.status === 'active' || subscription.status === 'trialing') {
@@ -137,6 +148,13 @@ export class WebhookHandlers {
     const customerId = typeof subscription.customer === 'string' ? subscription.customer : subscription.customer.id;
     const user = await storage.getUserByStripeCustomerId(customerId);
     if (!user) return;
+
+    const boost = await storage.getActiveBoostSubscription(user.id);
+    if (boost && boost.stripeBoostSubId === subscription.id) {
+      await storage.deactivateBoostSubscription(user.id);
+      console.log(`Webhook: Deactivated boost subscription for user ${user.id} (subscription cancelled)`);
+      return;
+    }
 
     await storage.updateUserStripeInfo(user.id, { stripeSubscriptionId: null });
     await storage.deactivateUserRentals(user.id);
@@ -188,13 +206,14 @@ export class WebhookHandlers {
     }
 
     const boostConfig = BOOST_CONFIG[boostPlan];
+    const maxTasks = boostConfig.maxParallelTasks === Infinity ? 999999 : boostConfig.maxParallelTasks;
     const expiresAt = new Date();
     expiresAt.setMonth(expiresAt.getMonth() + 1);
 
     await storage.createBoostSubscription({
       userId: user.id,
       boostPlan,
-      maxParallelTasks: boostConfig.maxParallelTasks,
+      maxParallelTasks: maxTasks,
       status: 'active',
       stripeBoostSubId: subscriptionId || null,
       expiresAt,

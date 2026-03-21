@@ -78,7 +78,6 @@ export default function BoostChatPanel({ panelId, allowedAgents, rentedAgentIds,
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
-  const [conversationDbId, setConversationDbId] = useState<number | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -90,10 +89,6 @@ export default function BoostChatPanel({ panelId, allowedAgents, rentedAgentIds,
       const visId = generateVisibleId();
       setConversationId(visId);
       apiRequest("POST", "/api/conversations", { agentType: selectedAgent, visibleId: visId })
-        .then(async (res) => {
-          const data = await res.json();
-          if (data.id) setConversationDbId(data.id);
-        })
         .catch(() => {});
     }
   }, [user]);
@@ -183,14 +178,10 @@ export default function BoostChatPanel({ panelId, allowedAgents, rentedAgentIds,
                       setShowAgentPicker(false);
                       setMessages([]);
                       setConversationId(null);
-                      setConversationDbId(null);
                       const visId = generateVisibleId();
                       setConversationId(visId);
                       apiRequest("POST", "/api/conversations", { agentType: a.id, visibleId: visId })
-                        .then(async (res) => {
-                          const data = await res.json();
-                          if (data.id) setConversationDbId(data.id);
-                        }).catch(() => {});
+                        .catch(() => {});
                     }}
                     className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-left text-xs transition-all ${
                       selectedAgent === a.id ? "bg-primary/10 text-foreground" : "text-muted-foreground hover:bg-muted/50"

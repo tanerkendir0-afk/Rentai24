@@ -1294,7 +1294,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
         onReducePanels={() => setSplitPanelCount(p => Math.max(p - 1, 2))}
       >
        <div className="flex-1 flex flex-col min-w-0 h-full">
-        <div className={`min-h-[3.5rem] border-b border-border/50 flex items-center gap-3 px-4 bg-card/30 backdrop-blur-sm shrink-0 relative z-20`}>
+        <div className={`min-h-[3.5rem] border-b border-border/50 flex items-center gap-2 sm:gap-3 px-2 sm:px-4 bg-card/30 backdrop-blur-sm shrink-0 relative z-20 overflow-hidden`}>
           {!sidebarOpen && (
             <Button
               variant="ghost"
@@ -1307,23 +1307,23 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
             </Button>
           )}
 
-          <div className={`w-9 h-9 rounded-full bg-gradient-to-br ${currentAgent.color} flex items-center justify-center shadow-md`}>
-            <CurrentIcon className="w-4.5 h-4.5 text-white" />
+          <div className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gradient-to-br ${currentAgent.color} flex items-center justify-center shadow-md shrink-0`}>
+            <CurrentIcon className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-white" />
           </div>
-          <div className="flex-1 min-w-0">
+          <div className="flex-1 min-w-0 mr-1">
             <h3 className="font-semibold text-foreground text-sm truncate" data-testid="text-chat-agent-name">
               {currentAgent.persona}
             </h3>
             <div className="flex items-center gap-1.5">
-              <span className="relative flex h-2 w-2">
+              <span className="relative flex h-2 w-2 shrink-0">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
               </span>
-              <span className="text-[11px] text-emerald-400">{t("demoPage.roles." + currentAgent.roleKey)}</span>
+              <span className="text-[11px] text-emerald-400 truncate">{t("demoPage.roles." + currentAgent.roleKey)}</span>
             </div>
           </div>
 
-          <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap">
+          <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
             {user && hasBoost && (
               <div className="flex items-center gap-1" data-testid="boost-header-controls">
                 <button
@@ -1343,7 +1343,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                   data-testid="button-boost-split"
                 >
                   <Zap className={`w-3.5 h-3.5 ${splitScreenActive ? "animate-pulse" : ""}`} />
-                  <span>⚡ {t("boost.boostMode")}</span>
+                  <span className="hidden lg:inline">⚡ {t("boost.boostMode")}</span>
                 </button>
                 {splitScreenActive && isDesktop && (
                   <>
@@ -1656,7 +1656,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                 data-testid="button-toggle-tasks"
               >
                 <ListTodo className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">{t("demoPage.tasks")}</span>
+                <span className="hidden xl:inline">{t("demoPage.tasks")}</span>
               </Button>
             )}
             {user && isEcommerceAgent && (

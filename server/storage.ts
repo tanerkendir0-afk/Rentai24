@@ -253,7 +253,7 @@ export interface IStorage {
   updateBoostSubscription(id: number, updates: Partial<Pick<BoostSubscription, "status" | "stripeBoostSubId" | "expiresAt" | "boostPlan" | "maxParallelTasks">>): Promise<BoostSubscription | undefined>;
   deactivateBoostSubscription(userId: number): Promise<void>;
   updateConversationBoostStatus(conversationId: number, boostStatus: string): Promise<void>;
-  getActiveBoostConversations(userId: number, agentType?: string): Promise<ConversationRecord[]>;
+  getAllBoostConversations(userId: number, agentType?: string): Promise<ConversationRecord[]>;
 
   createOrganization(data: InsertOrganization): Promise<Organization>;
   getOrganizationById(id: number): Promise<Organization | undefined>;
@@ -1989,7 +1989,7 @@ export class DatabaseStorage implements IStorage {
     await db.update(conversations).set({ boostStatus }).where(eq(conversations.id, conversationId));
   }
 
-  async getActiveBoostConversations(userId: number, agentType?: string): Promise<ConversationRecord[]> {
+  async getAllBoostConversations(userId: number, agentType?: string): Promise<ConversationRecord[]> {
     if (agentType) {
       return db.select().from(conversations).where(
         and(

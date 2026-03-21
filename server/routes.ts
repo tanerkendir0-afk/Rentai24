@@ -4208,7 +4208,7 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}${QUICK_REPLY_BUTT
         );
         return res.json({ active: false, plan: null, maxParallelTasks: 1, activeTaskCount: 0, config: safeConfig });
       }
-      const activeConvos = await storage.getActiveBoostConversations(req.session.userId!);
+      const activeConvos = await storage.getAllBoostConversations(req.session.userId!);
       const safeConfig = Object.fromEntries(
         Object.entries(BOOST_CONFIG).map(([k, v]) => [k, { ...v, maxParallelTasks: v.maxParallelTasks >= 999999 ? -1 : v.maxParallelTasks }])
       );
@@ -4230,7 +4230,7 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}${QUICK_REPLY_BUTT
   app.get("/api/boost/tasks", requireAuth, async (req, res) => {
     try {
       const { agentType } = req.query;
-      const filteredConvos = await storage.getActiveBoostConversations(
+      const filteredConvos = await storage.getAllBoostConversations(
         req.session.userId!,
         agentType as string | undefined
       );

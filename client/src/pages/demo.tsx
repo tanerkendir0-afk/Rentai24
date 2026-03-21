@@ -118,48 +118,41 @@ interface RentalData {
   status: string;
 }
 
-function SplitScreenWrapper({ active, splitPanelCount, allowedAgents, rentedAgentIds, onCloseSplit, onReducePanels, children }: {
-  active: boolean;
-  splitPanelCount: number;
+interface BoostPanelInfo {
+  visibleId: string;
+  agentType: string;
+}
+
+function SplitScreenWrapper({ selectedPanels, allowedAgents, rentedAgentIds, onRemovePanel, children }: {
+  selectedPanels: BoostPanelInfo[];
   allowedAgents: string[] | null;
   rentedAgentIds: Set<string>;
-  onCloseSplit: () => void;
-  onReducePanels: () => void;
+  onRemovePanel: (visibleId: string) => void;
   children: ReactNode;
 }) {
-  if (!active) {
+  if (selectedPanels.length === 0) {
     return <div className="flex-1 flex min-w-0">{children}</div>;
   }
 
-  const extraPanelCount = splitPanelCount - 1;
-  const boostPanels = Array.from({ length: extraPanelCount }).map((_, idx) => (
-    <BoostChatPanel
-      key={`boost-panel-${idx}`}
-      panelId={`split-${idx}`}
-      allowedAgents={allowedAgents}
-      rentedAgentIds={rentedAgentIds}
-      onClose={() => {
-        if (extraPanelCount <= 1) {
-          onCloseSplit();
-        } else {
-          onReducePanels();
-        }
-      }}
-      isOnly={extraPanelCount <= 1}
-    />
-  ));
-
-  const panelSize = Math.floor(100 / splitPanelCount);
+  const totalPanels = selectedPanels.length + 1;
+  const panelSize = Math.floor(100 / totalPanels);
 
   return (
     <ResizablePanelGroup direction="horizontal" className="flex-1 min-w-0" data-testid="boost-split-group">
       <ResizablePanel defaultSize={panelSize} minSize={20}>
         {children}
       </ResizablePanel>
-      {boostPanels.map((panel, idx) => [
+      {selectedPanels.map((panel, idx) => [
         <ResizableHandle key={`handle-${idx}`} withHandle className="bg-amber-500/10 hover:bg-amber-500/20" />,
-        <ResizablePanel key={`panel-${idx}`} defaultSize={panelSize} minSize={20}>
-          {panel}
+        <ResizablePanel key={`panel-${panel.visibleId}`} defaultSize={panelSize} minSize={20}>
+          <BoostChatPanel
+            panelId={`split-${panel.visibleId}`}
+            conversationVisibleId={panel.visibleId}
+            conversationAgentType={panel.agentType}
+            allowedAgents={allowedAgents}
+            rentedAgentIds={rentedAgentIds}
+            onClose={() => onRemovePanel(panel.visibleId)}
+          />
         </ResizablePanel>,
       ])}
     </ResizablePanelGroup>
@@ -512,8 +505,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
   const [helpDescription, setHelpDescription] = useState("");
   const [helpSending, setHelpSending] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
-  const [splitScreenActive, setSplitScreenActive] = useState(false);
-  const [splitPanelCount, setSplitPanelCount] = useState(2);
+  const [selectedBoostPanels, setSelectedBoostPanels] = useState<BoostPanelInfo[]>([]);
   const dragCounterRef = useRef(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -560,12 +552,29 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
   const boostActiveCount = boostStatus?.activeTaskCount ?? 0;
   const boostIsUnlimited = boostMaxSlots === -1;
   const boostAllowedAgents: string[] | null = boostStatus?.plan === "boost-accounting" ? ["bookkeeping"] : null;
+
+  const { data: boostTasksForReconcile } = useQuery<{ all: { visibleId: string }[] }>({
+    queryKey: ["/api/boost/tasks"],
+    queryFn: async () => { const res = await fetch("/api/boost/tasks"); return res.json(); },
+    refetchInterval: 5000,
+    enabled: hasBoost && selectedBoostPanels.length > 0,
+  });
+
+  useEffect(() => {
+    if (!boostTasksForReconcile?.all || selectedBoostPanels.length === 0) return;
+    const liveIds = new Set(boostTasksForReconcile.all.map(t => t.visibleId));
+    setSelectedBoostPanels(prev => {
+      const pruned = prev.filter(p => liveIds.has(p.visibleId));
+      return pruned.length === prev.length ? prev : pruned;
+    });
+  }, [boostTasksForReconcile]);
+
   const [isDesktop, setIsDesktop] = useState(() => typeof window !== "undefined" && window.innerWidth >= 1024);
   useEffect(() => {
     const onResize = () => {
       const desktop = window.innerWidth >= 1024;
       setIsDesktop(desktop);
-      if (!desktop) setSplitScreenActive(false);
+      if (!desktop) setSelectedBoostPanels([]);
     };
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
@@ -1120,50 +1129,6 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                 );
               })}
 
-              {user && hasBoost && (
-                <div className="mt-2 mx-1.5 p-2.5 rounded-lg bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/20" data-testid="sidebar-boost-status">
-                  <div className="flex items-center justify-between mb-1.5">
-                    <div className="flex items-center gap-1.5">
-                      <Zap className="w-3.5 h-3.5 text-amber-400" />
-                      <span className="text-[11px] font-semibold text-amber-400">{t("boost.boostMode")}</span>
-                    </div>
-                    <Badge className="h-4 px-1.5 text-[10px] bg-amber-500/20 text-amber-400 border-amber-500/30">
-                      {boostIsUnlimited ? "∞" : `${boostActiveCount}/${boostMaxSlots}`}
-                    </Badge>
-                  </div>
-                  {!boostIsUnlimited && boostMaxSlots > 0 && (
-                    <div className="flex gap-1 mb-1.5">
-                      {Array.from({ length: boostMaxSlots }).map((_, i) => (
-                        <div
-                          key={i}
-                          className={`h-1.5 flex-1 rounded-full transition-all ${
-                            i < boostActiveCount ? "bg-amber-400" : "bg-amber-500/20"
-                          }`}
-                        />
-                      ))}
-                    </div>
-                  )}
-                  <button
-                    onClick={() => {
-                      const canAdd = boostIsUnlimited || boostActiveCount < boostMaxSlots;
-                      if (canAdd) {
-                        startNewConversation();
-                      } else {
-                        toast({
-                          title: t("boost.slotsFull"),
-                          description: t("boost.slotsFullDesc"),
-                          variant: "destructive",
-                        });
-                      }
-                    }}
-                    className="w-full flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-md text-[10px] font-medium text-amber-400 hover:bg-amber-500/10 transition-colors border border-dashed border-amber-500/30"
-                    data-testid="sidebar-boost-new-convo"
-                  >
-                    <Plus className="w-3 h-3" />
-                    {t("boost.newParallelChat")}
-                  </button>
-                </div>
-              )}
 
               {user && (
                 <div className="mt-3 pt-3 border-t border-border/30">
@@ -1286,12 +1251,10 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
       </AnimatePresence>
 
       <SplitScreenWrapper
-        active={splitScreenActive && hasBoost && isDesktop}
-        splitPanelCount={splitPanelCount}
+        selectedPanels={hasBoost && isDesktop ? selectedBoostPanels : []}
         allowedAgents={boostAllowedAgents}
         rentedAgentIds={rentedAgentIds}
-        onCloseSplit={() => setSplitScreenActive(false)}
-        onReducePanels={() => setSplitPanelCount(p => Math.max(p - 1, 2))}
+        onRemovePanel={(visibleId) => setSelectedBoostPanels(prev => prev.filter(p => p.visibleId !== visibleId))}
       >
        <div className="flex-1 flex flex-col min-w-0 h-full">
         <div className={`min-h-[3.5rem] border-b border-border/50 flex items-center gap-2 sm:gap-3 px-2 sm:px-4 bg-card/30 backdrop-blur-sm shrink-0 relative z-20 overflow-hidden`}>
@@ -1326,54 +1289,17 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
           <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
             {user && hasBoost && (
               <div className="flex items-center gap-1" data-testid="boost-header-controls">
-                <button
-                  onClick={() => {
-                    if (!splitScreenActive && isDesktop) {
-                      setSplitScreenActive(true);
-                      setSplitPanelCount(2);
-                    } else {
-                      setSplitScreenActive(false);
-                    }
-                  }}
-                  className={`h-8 px-2.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
-                    splitScreenActive
-                      ? "bg-amber-500/20 text-amber-400 border border-amber-500/40 shadow-[0_0_12px_rgba(245,158,11,0.15)]"
-                      : "bg-amber-500/10 text-amber-400/80 border border-amber-500/20 hover:bg-amber-500/20 hover:text-amber-400"
-                  } hidden lg:flex`}
-                  data-testid="button-boost-split"
-                >
-                  <Zap className={`w-3.5 h-3.5 ${splitScreenActive ? "animate-pulse" : ""}`} />
-                  <span className="hidden lg:inline">⚡ {t("boost.boostMode")}</span>
-                </button>
-                {splitScreenActive && isDesktop && (
-                  <>
-                    {splitPanelCount < (boostIsUnlimited ? 3 : Math.min(boostMaxSlots, 3)) && (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-7 w-7 p-0 text-amber-400 hover:text-amber-300 hover:bg-amber-500/10"
-                        onClick={() => setSplitPanelCount(p => Math.min(p + 1, boostIsUnlimited ? 3 : Math.min(boostMaxSlots, 3)))}
-                        data-testid="button-boost-add-panel"
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                      </Button>
-                    )}
-                    {splitPanelCount > 2 && (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-7 w-7 p-0 text-amber-400 hover:text-amber-300 hover:bg-amber-500/10"
-                        onClick={() => setSplitPanelCount(p => Math.max(p - 1, 2))}
-                        data-testid="button-boost-remove-panel"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </Button>
-                    )}
-                  </>
-                )}
-                <Badge className="h-5 px-1.5 text-[10px] bg-amber-500/10 text-amber-400 border-amber-500/30 hidden sm:flex">
-                  {boostIsUnlimited ? "∞" : `${boostActiveCount}/${boostMaxSlots}`}
-                </Badge>
+                <div className={`h-8 px-2.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 ${
+                  selectedBoostPanels.length > 0
+                    ? "bg-amber-500/20 text-amber-400 border border-amber-500/40"
+                    : "bg-amber-500/10 text-amber-400/80 border border-amber-500/20"
+                } hidden sm:flex`}>
+                  <Zap className={`w-3.5 h-3.5 ${selectedBoostPanels.length > 0 ? "animate-pulse" : ""}`} />
+                  <span>⚡ {t("boost.boostMode")}</span>
+                  <Badge className="h-4 px-1.5 text-[10px] bg-amber-500/20 text-amber-400 border-amber-500/30">
+                    {boostIsUnlimited ? "∞" : `${boostActiveCount}/${boostMaxSlots}`}
+                  </Badge>
+                </div>
               </div>
             )}
             {user && !hasBoost && (
@@ -2558,21 +2484,46 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
 
         {hasBoost && user && (
           <BoostTaskBar
-            onTaskClick={(task) => {
-              const agentOpt = agentOptions.find(a => a.id === task.agentType);
-              if (agentOpt) {
-                setSelectedAgent(task.agentType);
+            selectedPanelIds={selectedBoostPanels.map(p => p.visibleId)}
+            maxPanels={Math.min(boostIsUnlimited ? 3 : boostMaxSlots, 3)}
+            onTogglePanel={(visibleId, agentType) => {
+              if (!isDesktop) {
+                setSelectedAgent(agentType);
+                setActiveConvoId(prev => ({ ...prev, [agentType]: visibleId }));
+                return;
               }
-              setActiveConvoId(prev => ({ ...prev, [task.agentType]: task.visibleId }));
+              setSelectedBoostPanels(prev => {
+                const exists = prev.find(p => p.visibleId === visibleId);
+                if (exists) {
+                  return prev.filter(p => p.visibleId !== visibleId);
+                }
+                const maxP = Math.min(boostIsUnlimited ? 3 : boostMaxSlots, 3);
+                if (prev.length >= maxP) return prev;
+                return [...prev, { visibleId, agentType }];
+              });
             }}
             onTaskDelete={async (task) => {
               try {
+                setSelectedBoostPanels(prev => prev.filter(p => p.visibleId !== task.visibleId));
                 await apiRequest("DELETE", `/api/conversations/${task.id}`);
                 queryClient.invalidateQueries({ queryKey: ["/api/boost/tasks"] });
                 queryClient.invalidateQueries({ queryKey: ["/api/boost/status"] });
                 queryClient.invalidateQueries({ queryKey: ['/api/conversations', task.agentType] });
               } catch {}
             }}
+            onNewChat={() => {
+              const canAdd = boostIsUnlimited || boostActiveCount < boostMaxSlots;
+              if (canAdd) {
+                startNewConversation();
+              } else {
+                toast({
+                  title: t("boost.slotsFull"),
+                  description: t("boost.slotsFullDesc"),
+                  variant: "destructive",
+                });
+              }
+            }}
+            canAddChat={boostIsUnlimited || boostActiveCount < boostMaxSlots}
           />
         )}
 

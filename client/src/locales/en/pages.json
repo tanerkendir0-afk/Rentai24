@@ -2679,6 +2679,7 @@
     "slotsFull": "Slots Full",
     "slotsFullDesc": "All your parallel conversation slots are in use. Upgrade your plan for more.",
     "taskbar": "Boost Tasks",
+    "maxPanels": "Maximum split panels reached",
     "active": "active",
     "taskComplete": "Task Completed",
     "conversation": "Conversation",

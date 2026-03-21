@@ -19,6 +19,8 @@ import {
   ChevronDown,
   Zap,
   X,
+  Monitor,
+  Plus,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useToast } from "@/hooks/use-toast";
@@ -36,7 +38,7 @@ const agentIconMap: Record<string, { icon: LucideIcon; color: string; persona: s
   "manager": { icon: BrainCircuit, color: "from-amber-500 to-orange-500", persona: "Manager" },
 };
 
-interface BoostTask {
+export interface BoostTask {
   id: number;
   visibleId: string;
   agentType: string;
@@ -46,14 +48,18 @@ interface BoostTask {
 }
 
 interface BoostTaskBarProps {
-  onTaskClick?: (task: BoostTask) => void;
   onTaskDelete?: (task: BoostTask) => void;
+  selectedPanelIds?: string[];
+  onTogglePanel?: (visibleId: string, agentType: string) => void;
+  maxPanels?: number;
+  onNewChat?: () => void;
+  canAddChat?: boolean;
 }
 
-export default function BoostTaskBar({ onTaskClick, onTaskDelete }: BoostTaskBarProps) {
+export default function BoostTaskBar({ onTaskDelete, selectedPanelIds = [], onTogglePanel, maxPanels = 3, onNewChat, canAddChat = true }: BoostTaskBarProps) {
   const { t } = useTranslation("pages");
   const { toast } = useToast();
-  const [collapsed, setCollapsed] = useState(true);
+  const [collapsed, setCollapsed] = useState(false);
   const prevTasksRef = useRef<BoostTask[]>([]);
 
   const { data: boostTasks } = useQuery<{ active: BoostTask[]; all: BoostTask[] }>({
@@ -85,9 +91,10 @@ export default function BoostTaskBar({ onTaskClick, onTaskDelete }: BoostTaskBar
     prevTasksRef.current = allTasks;
   }, [allTasks]);
 
-  if (displayTasks.length === 0) return null;
+  if (displayTasks.length === 0 && !canAddChat) return null;
 
-  const runningCount = activeTasks.length;
+  const totalCount = allTasks.length;
+  const selectedCount = selectedPanelIds.length;
 
   return (
     <div
@@ -98,44 +105,67 @@ export default function BoostTaskBar({ onTaskClick, onTaskDelete }: BoostTaskBar
         <div className="bg-card/95 backdrop-blur-md border border-border/50 border-b-0 rounded-t-xl shadow-lg">
           <button
             onClick={() => setCollapsed(!collapsed)}
-            className="w-full flex items-center justify-between px-3 py-1 hover:bg-muted/30 transition-colors rounded-t-xl"
+            className="w-full flex items-center justify-between px-3 py-1.5 hover:bg-muted/30 transition-colors rounded-t-xl"
             data-testid="boost-taskbar-toggle"
           >
             <div className="flex items-center gap-2">
-              <Zap className="w-3 h-3 text-amber-400" />
+              <Zap className="w-3.5 h-3.5 text-amber-400" />
               <span className="text-[11px] font-semibold text-foreground">
                 {t("boost.taskbar")}
               </span>
-              {runningCount > 0 && (
+              {totalCount > 0 && (
                 <Badge className="h-3.5 px-1 text-[9px] bg-amber-500/20 text-amber-400 border-amber-500/30">
-                  {runningCount}
+                  {totalCount}
                 </Badge>
+              )}
+              {selectedCount > 0 && (
+                <div className="flex items-center gap-1">
+                  <Monitor className="w-3 h-3 text-blue-400" />
+                  <span className="text-[9px] text-blue-400 font-medium">{selectedCount}/{maxPanels}</span>
+                </div>
               )}
             </div>
             {collapsed ? <ChevronUp className="w-3 h-3 text-muted-foreground" /> : <ChevronDown className="w-3 h-3 text-muted-foreground" />}
           </button>
 
           {!collapsed && (
-            <div className="px-1.5 pb-1.5 flex gap-1 overflow-x-auto scrollbar-thin" data-testid="boost-taskbar-cards">
+            <div className="px-1.5 pb-1.5 flex gap-1 overflow-x-auto scrollbar-thin items-center" data-testid="boost-taskbar-cards">
               {displayTasks.map((task) => {
                 const agentInfo = agentIconMap[task.agentType] || agentIconMap["customer-support"];
                 const AgentIcon = agentInfo.icon;
                 const isRunning = task.boostStatus === "running";
                 const isCompleted = task.boostStatus === "completed";
                 const isError = task.boostStatus === "error";
+                const isSelected = selectedPanelIds.includes(task.visibleId);
+                const canSelect = selectedCount < maxPanels || isSelected;
 
                 return (
                   <div
                     key={task.id}
-                    className="relative flex items-center gap-1.5 px-2 py-1 rounded-lg border border-border/50 bg-muted/20 hover:bg-muted/40 transition-all shrink-0 min-w-[120px] max-w-[170px] text-left group cursor-pointer"
-                    onClick={() => onTaskClick?.(task)}
+                    className={`relative flex items-center gap-1.5 px-2 py-1.5 rounded-lg border transition-all shrink-0 min-w-[130px] max-w-[180px] text-left group cursor-pointer ${
+                      isSelected
+                        ? "border-amber-400/60 bg-amber-500/10 shadow-[0_0_8px_rgba(245,158,11,0.15)]"
+                        : "border-border/50 bg-muted/20 hover:bg-muted/40"
+                    }`}
+                    onClick={() => {
+                      if (onTogglePanel && canSelect) {
+                        onTogglePanel(task.visibleId, task.agentType);
+                      } else if (!canSelect) {
+                        toast({ title: t("boost.maxPanels") || "Maximum panels reached", variant: "destructive" });
+                      }
+                    }}
                     data-testid={`boost-task-card-${task.id}`}
                   >
-                    <div className={`w-5 h-5 rounded-full bg-gradient-to-br ${agentInfo.color} flex items-center justify-center shrink-0`}>
-                      <AgentIcon className="w-2.5 h-2.5 text-white" />
+                    {isSelected && (
+                      <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-amber-500 flex items-center justify-center z-10">
+                        <Monitor className="w-2.5 h-2.5 text-white" />
+                      </div>
+                    )}
+                    <div className={`w-6 h-6 rounded-full bg-gradient-to-br ${agentInfo.color} flex items-center justify-center shrink-0`}>
+                      <AgentIcon className="w-3 h-3 text-white" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-[9px] font-medium text-foreground truncate">
+                      <p className="text-[10px] font-medium text-foreground truncate">
                         {task.title || agentInfo.persona}
                       </p>
                       <p className="text-[8px] text-muted-foreground truncate">
@@ -160,15 +190,25 @@ export default function BoostTaskBar({ onTaskClick, onTaskDelete }: BoostTaskBar
                       )}
                       <button
                         onClick={(e) => { e.stopPropagation(); onTaskDelete?.(task); }}
-                        className="w-3.5 h-3.5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-red-500/30 hover:text-red-400 text-muted-foreground/50 transition-all"
+                        className="w-4 h-4 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-red-500/30 hover:text-red-400 text-muted-foreground/50 transition-all"
                         data-testid={`boost-task-delete-${task.id}`}
                       >
-                        <X className="w-2 h-2" />
+                        <X className="w-2.5 h-2.5" />
                       </button>
                     </div>
                   </div>
                 );
               })}
+              {canAddChat && onNewChat && (
+                <button
+                  onClick={onNewChat}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-dashed border-amber-500/30 bg-amber-500/5 hover:bg-amber-500/10 transition-all shrink-0 text-amber-400 text-[10px] font-medium"
+                  data-testid="boost-taskbar-new-chat"
+                >
+                  <Plus className="w-3 h-3" />
+                  <span className="whitespace-nowrap">{t("boost.newParallelChat")}</span>
+                </button>
+              )}
             </div>
           )}
         </div>

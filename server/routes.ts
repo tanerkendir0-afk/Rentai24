@@ -566,21 +566,12 @@ PDF AND EMAIL RULES (ALL AGENTS):
 - Use the send_email tool to send emails. PDF attachments can be added as base64 content in the attachments array.
 - Email body must be in HTML format — do NOT use markdown.
 - CRITICAL RULE — No Hallucination: Never assume the result of a tool call without actually calling it. Do not say "I created the PDF" without calling generate_pdf. Do not say "I sent the email" without calling send_email.`;
-PDF VE EMAIL KURALLARI (TÜM AGENTLAR):
-- generate_pdf tool'u ile gerçek PDF belgeleri oluşturabilirsin. Desteklenen tipler: invoice (fatura), report (rapor), proposal (teklif), receipt (makbuz).
-- send_email tool'u ile email gönderebilirsin. PDF'leri email'e attachment olarak ekleyebilirsin.
-- Email body'si HTML formatında olmalı, markdown KULLANMA.
-- KRITIK KURAL — Halüsinasyon Yasağı:
-  1. ASLA generate_pdf tool'unu ÇAĞIRMADAN PDF oluşturduğunu söyleme. "Oluşturuyorum", "birkaç saniye bekleyin", "ekte PDF" gibi ifadeleri tool çağrısı YAPMADAN KULLANMA.
-  2. ASLA send_email tool'unu ÇAĞIRMADAN email gönderdiğini söyleme.
-  3. Eğer generate_pdf veya send_email tool'ları mevcut tool listende YOKSA, kullanıcıya "Şu anda bu işlemi gerçekleştiremiyorum, lütfen tekrar deneyin" de. Tool yokken işlem yaptığını İDDİA ETME.
-  4. Bir tool çağrısı yapmadan, o tool'un sonucunu ASLA varsayma. Önce tool'u çağır, sonucunu gör, SONRA kullanıcıya bildir.`;
 
 const FINN_PDF_PROMPT = `
 PDF INVOICE CREATION RULES (Finn):
 - Invoice creation flow: 1) Collect info 2) Ask for missing info 3) Generate PDF with generate_pdf (document_type: "invoice") 4) If PDF success → send via send_email 5) If PDF fails → inform the user
 - Turkish currency format: 14.650.000,00 ₺ (thousands separator: dot, decimal: comma)
-- Tevkifat (withholding): For iron/steel products, KDV tevkifat is typically 9/10. Tevkifat = KDV Amount × Tevkifat Rate. Grand Total = Subtotal + KDV - Tevkifat
+- Tevkifat (withholding): For iron/steel PRODUCTS (inşaat demiri, profil, sac vb.) KDV tevkifat is 5/10 (code 627). For scrap metal (hurda) it is 7/10 (code 620). Tevkifat = KDV Amount × Tevkifat Rate. Grand Total = Subtotal + KDV - Tevkifat
 - Do NOT write invoice details in markdown format in the email body. Email body should contain a brief summary; full details go in the PDF.`;
 
 const REX_PDF_PROMPT = `

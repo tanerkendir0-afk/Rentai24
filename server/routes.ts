@@ -7607,7 +7607,7 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
     }
   });
 
-  const validTriggerTypes = ["agent_tool_complete", "webhook", "schedule", "manual", "threshold", "email_received"];
+  const validTriggerTypes = ["agent_tool_complete", "webhook", "schedule", "manual", "threshold", "email_received", "event_monitor"];
   const validNodeTypes = ["trigger", "action", "condition", "delay"];
   const validActionTypes = ["send_email", "create_task", "notify_owner", "notify_boss", "update_lead", "webhook_call", "log_action", "calculate", "http_request", "set_variable", "format_data", "whatsapp_message", "multi_email", "db_query", "integration", "run_skill"];
 
@@ -7835,6 +7835,123 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
     } catch (error) {
       console.error("List executions error:", error);
       res.status(500).json({ error: "Failed to list executions" });
+    }
+  });
+
+  app.post("/api/automations/nl-to-workflow", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const { description } = req.body;
+      if (!description || typeof description !== "string" || description.trim().length < 5) {
+        return res.status(400).json({ error: "Description is required (min 5 chars)" });
+      }
+      if (description.length > 2000) {
+        return res.status(400).json({ error: "Description too long (max 2000 chars)" });
+      }
+
+      const OpenAI = (await import("openai")).default;
+      const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+      const systemPrompt = `You are an automation rule builder. Convert the user's natural language description into a structured workflow JSON.
+
+Available trigger types: agent_tool_complete, webhook, schedule, manual, threshold, email_received, event_monitor
+Available action types: send_email, create_task, notify_owner, update_lead, webhook_call, log_action, set_variable
+Available condition operators: equals, not_equals, contains, greater_than, less_than, exists, not_exists
+
+For "X gündür yanıt yok / no response for X days / lead inactivity" → use event_monitor trigger with triggerConfig: { eventType: "lead_inactivity", daysThreshold: X }
+For "ödenmemiş fatura / unpaid invoice / overdue invoice for X days" → use event_monitor trigger with triggerConfig: { eventType: "overdue_invoice", daysThreshold: X }
+For "tamamlanmamış görev / uncompleted task for X days" → use event_monitor trigger with triggerConfig: { eventType: "uncompleted_tasks", daysThreshold: X }
+For "when email received" → use email_received trigger
+For "when task completed by agent" → use agent_tool_complete trigger
+For "daily/weekly/monthly schedule" → use schedule trigger
+
+Return ONLY valid JSON with this structure:
+{
+  "name": "workflow name in Turkish",
+  "description": "workflow description in Turkish",
+  "triggerType": "one of the trigger types",
+  "triggerConfig": { relevant config fields },
+  "nodes": [
+    { "id": "trigger-1", "type": "trigger", "label": "label in Turkish", "config": {}, "nextNodeId": "next-node-id-or-null" },
+    ...more nodes
+  ],
+  "conditionLogic": "and" or "or"
+}
+
+Node types: trigger, action, condition
+For condition nodes include: conditionTrueNodeId, conditionFalseNodeId, conditions array (with field, operator, value)
+For action nodes include: actionType field
+Position nodes with x:250 and increasing y values (50, 180, 310, etc.)`;
+
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: `Create a workflow for: ${description.trim()}` },
+        ],
+        response_format: { type: "json_object" },
+        max_tokens: 1500,
+        temperature: 0.3,
+      });
+
+      const rawContent = completion.choices[0]?.message?.content;
+      if (!rawContent) {
+        return res.status(500).json({ error: "AI response empty" });
+      }
+
+      let workflow: any;
+      try {
+        workflow = JSON.parse(rawContent);
+      } catch {
+        return res.status(500).json({ error: "AI returned invalid JSON" });
+      }
+
+      if (!workflow.name || !workflow.triggerType || !Array.isArray(workflow.nodes)) {
+        return res.status(500).json({ error: "AI returned incomplete workflow" });
+      }
+
+      const validTriggerTypesLocal = ["agent_tool_complete", "webhook", "schedule", "manual", "threshold", "email_received", "event_monitor"];
+      if (!validTriggerTypesLocal.includes(workflow.triggerType)) {
+        workflow.triggerType = "manual";
+      }
+
+      res.json({
+        success: true,
+        workflow: {
+          name: String(workflow.name).substring(0, 200),
+          description: String(workflow.description || "").substring(0, 1000),
+          triggerType: workflow.triggerType,
+          triggerConfig: workflow.triggerConfig || {},
+          nodes: workflow.nodes.slice(0, 20),
+        },
+      });
+    } catch (error: any) {
+      console.error("NL to workflow error:", error);
+      res.status(500).json({ error: error.message || "Failed to convert description to workflow" });
+    }
+  });
+
+  app.get("/api/automations/event-monitor/status", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const { getEventMonitorStatus } = await import("./n8n/eventMonitor");
+      const status = await getEventMonitorStatus(userId);
+      res.json(status);
+    } catch (error) {
+      console.error("Event monitor status error:", error);
+      res.status(500).json({ error: "Failed to get monitor status" });
+    }
+  });
+
+  app.post("/api/automations/event-monitor/check", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const { runEventChecks } = await import("./n8n/eventMonitor");
+      const results = await runEventChecks(userId);
+      res.json({ success: true, results });
+    } catch (error: any) {
+      console.error("Event monitor check error:", error);
+      res.status(500).json({ error: error.message || "Failed to run event checks" });
     }
   });
 

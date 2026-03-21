@@ -379,6 +379,9 @@ app.use((req, res, next) => {
   const { startSchedulerService } = await import("./n8n/schedulerService");
   startSchedulerService();
 
+  const { startEventMonitor } = await import("./n8n/eventMonitor");
+  startEventMonitor();
+
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
 

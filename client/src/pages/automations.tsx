@@ -75,12 +75,13 @@ const categoryLabels: Record<string, string> = {
 const triggerTypeLabels: Record<string, string> = {
   agent_tool_complete: "Ajan Aksiyonu", webhook: "Webhook",
   schedule: "Zamanlı", manual: "Manuel", threshold: "Eşik Değer",
-  email_received: "E-posta Alındı",
+  email_received: "E-posta Alındı", event_monitor: "Olay İzleyici",
 };
 
 const triggerTypeIcons: Record<string, any> = {
   agent_tool_complete: Bot, webhook: Webhook, schedule: Timer,
   manual: Play, threshold: AlertTriangle, email_received: Mail,
+  event_monitor: Activity,
 };
 
 const actionTypeLabels: Record<string, string> = {
@@ -1080,6 +1081,767 @@ function IntegrationConfigPanel({ config, onChange }: { config: Record<string, a
   return null;
 }
 
+function EventMonitorPanel({ workflowId: _workflowId }: { workflowId: number }) {
+  const { toast } = useToast();
+
+  const { data: status, isLoading } = useQuery<any>({
+    queryKey: ["/api/automations/event-monitor/status"],
+    refetchInterval: 30000,
+  });
+
+  const checkMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/automations/event-monitor/check", {});
+      return res.json();
+    },
+    onSuccess: (data) => {
+      if (data.success) {
+        const total = (data.results || []).reduce((acc: number, r: any) => acc + (r.triggeredWorkflows || 0), 0);
+        toast({
+          title: "Olay kontrolü tamamlandı",
+          description: `${total} workflow tetiklendi`,
+        });
+      }
+    },
+    onError: () => toast({ title: "Kontrol başarısız", variant: "destructive" }),
+  });
+
+  if (isLoading) return null;
+
+  const monitors = status?.activeMonitors || [];
+
+  return (
+    <Card className="bg-gray-900/50 border-gray-800 mb-6" data-testid="event-monitor-panel">
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-white text-lg flex items-center gap-2">
+            <Activity className="w-5 h-5 text-blue-400" />
+            Olay İzleyici
+          </CardTitle>
+          <Button
+            size="sm"
+            variant="outline"
+            className="border-gray-700 text-gray-300 text-xs"
+            onClick={() => checkMutation.mutate()}
+            disabled={checkMutation.isPending}
+            data-testid="button-run-event-check"
+          >
+            {checkMutation.isPending ? (
+              <Loader2 className="w-3 h-3 animate-spin mr-1" />
+            ) : (
+              <Play className="w-3 h-3 mr-1" />
+            )}
+            Şimdi Kontrol Et
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <p className="text-xs text-gray-500 mb-3">
+          Bu workflow, belirli koşullar karşılandığında otomatik olarak tetiklenir. Manuel kontrol yapabilir veya otomatik çalışmasını bekleyebilirsiniz.
+        </p>
+        {monitors.length === 0 ? (
+          <div className="text-center py-3">
+            <p className="text-xs text-gray-500">Aktif olay izleyicisi bulunamadı.</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {monitors.map((monitor: any, i: number) => (
+              <div key={i} className="flex items-start gap-3 p-3 bg-blue-500/5 border border-blue-500/10 rounded-lg">
+                <div className="w-2 h-2 bg-blue-400 rounded-full mt-1.5 flex-shrink-0" />
+                <div>
+                  <p className="text-sm text-white">{monitor.label}</p>
+                  <p className="text-xs text-gray-400">{monitor.description}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {checkMutation.data?.results && (
+          <div className="mt-3 space-y-2">
+            <p className="text-xs font-medium text-gray-400">Son Kontrol Sonuçları:</p>
+            {checkMutation.data.results.map((r: any, i: number) => (
+              <div key={i} className={`p-2 rounded text-xs ${r.triggeredWorkflows > 0 ? "bg-green-500/10 text-green-400" : "bg-gray-800/50 text-gray-500"}`}>
+                <span className="font-medium">{r.description}</span>
+                {r.triggeredWorkflows > 0 && ` — ${r.triggeredWorkflows} tetiklendi`}
+                {r.errors?.length > 0 && <span className="text-red-400 ml-2">{r.errors[0]}</span>}
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function NaturalLanguageRuleBuilder({ onWorkflowCreated, onClose }: {
+  onWorkflowCreated: (workflow: any) => void;
+  onClose: () => void;
+}) {
+  const { toast } = useToast();
+  const [description, setDescription] = useState("");
+  const [generatedWorkflow, setGeneratedWorkflow] = useState<any>(null);
+  const [step, setStep] = useState<"input" | "preview">("input");
+
+  const nlMutation = useMutation({
+    mutationFn: async (desc: string) => {
+      const res = await apiRequest("POST", "/api/automations/nl-to-workflow", { description: desc });
+      return res.json();
+    },
+    onSuccess: (data) => {
+      if (data.success && data.workflow) {
+        setGeneratedWorkflow(data.workflow);
+        setStep("preview");
+      } else {
+        toast({ title: "Kural oluşturulamadı", description: data.error, variant: "destructive" });
+      }
+    },
+    onError: () => toast({ title: "Hata oluştu", variant: "destructive" }),
+  });
+
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/automations", {
+        name: generatedWorkflow.name,
+        description: generatedWorkflow.description,
+        triggerType: generatedWorkflow.triggerType,
+        triggerConfig: generatedWorkflow.triggerConfig || {},
+        nodes: generatedWorkflow.nodes,
+      });
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/automations"] });
+      onWorkflowCreated(data);
+      toast({ title: "Kural oluşturuldu", description: "Otomasyonu aktifleştirmeyi unutmayın!" });
+    },
+    onError: () => toast({ title: "Kaydetme başarısız", variant: "destructive" }),
+  });
+
+  const EXAMPLES = [
+    "Müşteri 3 gündür yanıt vermediyse Rex hatırlatma e-postası atsın",
+    "Fatura 7 gündür ödenmemişse Finn uyarı bildirimi göndersin",
+    "Yeni lead eklendiğinde takip görevi oluştur ve bildirim gönder",
+    "Her Pazartesi sabahı haftalık özet rapor hazırlansın",
+    "E-posta geldiğinde müşteri destek görevi oluştur",
+  ];
+
+  return (
+    <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" data-testid="nl-rule-builder-modal">
+      <div className="bg-gray-900 border border-gray-700 rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div className="p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-purple-500/20 rounded-lg">
+                <Sparkles className="w-5 h-5 text-purple-400" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-white">AI Kural Oluşturucu</h2>
+                <p className="text-gray-400 text-xs">Doğal dilde kuralınızı tarif edin</p>
+              </div>
+            </div>
+            <Button variant="ghost" size="sm" onClick={onClose} data-testid="button-close-nl-builder">
+              <X className="w-4 h-4 text-gray-400" />
+            </Button>
+          </div>
+
+          {step === "input" && (
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm text-gray-300 block mb-2">Kuralınızı Türkçe veya İngilizce olarak tarif edin</label>
+                <Textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Örnek: Müşteri 3 gündür yanıt vermediyse Rex hatırlatma e-postası atsın..."
+                  className="bg-gray-800 border-gray-700 text-white min-h-[100px]"
+                  data-testid="input-nl-description"
+                />
+              </div>
+
+              <div>
+                <p className="text-xs text-gray-500 mb-2">Örnekler (tıklayarak seçin):</p>
+                <div className="space-y-1">
+                  {EXAMPLES.map((ex, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setDescription(ex)}
+                      className="w-full text-left text-xs text-gray-400 hover:text-white hover:bg-gray-800 px-3 py-2 rounded border border-gray-800 hover:border-gray-700 transition-colors"
+                      data-testid={`button-nl-example-${i}`}
+                    >
+                      💡 {ex}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <Button
+                  className="bg-purple-600 hover:bg-purple-700 flex-1"
+                  onClick={() => nlMutation.mutate(description)}
+                  disabled={description.trim().length < 5 || nlMutation.isPending}
+                  data-testid="button-generate-workflow"
+                >
+                  {nlMutation.isPending ? (
+                    <><Loader2 className="w-4 h-4 animate-spin mr-2" />Oluşturuluyor...</>
+                  ) : (
+                    <><Sparkles className="w-4 h-4 mr-2" />Kural Oluştur</>
+                  )}
+                </Button>
+                <Button variant="outline" className="border-gray-700 text-gray-300" onClick={onClose}>
+                  İptal
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {step === "preview" && generatedWorkflow && (
+            <div className="space-y-4">
+              <div className="bg-purple-500/10 border border-purple-500/20 rounded-lg p-4">
+                <p className="text-xs text-purple-400 font-medium mb-2">AI tarafından oluşturuldu</p>
+                <h3 className="text-white font-semibold">{generatedWorkflow.name}</h3>
+                {generatedWorkflow.description && (
+                  <p className="text-gray-400 text-sm mt-1">{generatedWorkflow.description}</p>
+                )}
+                <div className="flex gap-2 mt-2">
+                  <Badge variant="outline" className="text-xs border-purple-500/30 text-purple-400">
+                    {triggerTypeLabels[generatedWorkflow.triggerType] || generatedWorkflow.triggerType}
+                  </Badge>
+                  <Badge variant="outline" className="text-xs border-gray-700 text-gray-400">
+                    {generatedWorkflow.nodes?.length || 0} adım
+                  </Badge>
+                </div>
+              </div>
+
+              <div>
+                <p className="text-xs text-gray-400 font-medium mb-2">Adımlar:</p>
+                <div className="space-y-2">
+                  {(generatedWorkflow.nodes || []).map((node: any, i: number) => (
+                    <div key={i} className="flex items-center gap-3 px-3 py-2 bg-gray-800/50 rounded-lg">
+                      <div className={`w-6 h-6 rounded flex items-center justify-center text-[10px] font-bold ${
+                        node.type === "trigger" ? "bg-yellow-500/20 text-yellow-400" :
+                        node.type === "condition" ? "bg-purple-500/20 text-purple-400" :
+                        "bg-blue-500/20 text-blue-400"
+                      }`}>
+                        {i + 1}
+                      </div>
+                      <div>
+                        <p className="text-sm text-white">{node.label}</p>
+                        <p className="text-[10px] text-gray-500">
+                          {node.type === "trigger" ? "Tetikleyici" :
+                           node.type === "condition" ? "Koşul" :
+                           actionTypeLabels[node.actionType] || "Aksiyon"}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <Button
+                  className="bg-green-600 hover:bg-green-700 flex-1"
+                  onClick={() => saveMutation.mutate()}
+                  disabled={saveMutation.isPending}
+                  data-testid="button-save-nl-workflow"
+                >
+                  {saveMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
+                  Kaydet ve Kullan
+                </Button>
+                <Button
+                  variant="outline"
+                  className="border-gray-700 text-gray-300"
+                  onClick={() => { setStep("input"); setGeneratedWorkflow(null); }}
+                  data-testid="button-nl-back"
+                >
+                  Geri
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function RuleWizard({ onComplete, onClose }: {
+  onComplete: (workflow: any) => void;
+  onClose: () => void;
+}) {
+  const { toast } = useToast();
+  const [step, setStep] = useState(1);
+  const [triggerType, setTriggerType] = useState("event_monitor");
+  const [triggerConfig, setTriggerConfig] = useState<Record<string, any>>({ eventType: "lead_inactivity", daysThreshold: 3 });
+  const [conditions, setConditions] = useState<Array<{ field: string; operator: string; value: string }>>([]);
+  const [conditionLogic, setConditionLogic] = useState<"and" | "or">("and");
+  const [actionType, setActionType] = useState("notify_owner");
+  const [actionConfig, setActionConfig] = useState<Record<string, any>>({});
+  const [workflowName, setWorkflowName] = useState("");
+
+  const TRIGGER_OPTIONS = [
+    { value: "event_monitor", label: "Olay İzleyici", description: "Belirli gün sayısı eşiği aşıldığında", icon: "⏱️" },
+    { value: "email_received", label: "E-posta Alındı", description: "Belirli filtrelerle e-posta geldiğinde", icon: "📧" },
+    { value: "schedule", label: "Zamanlanmış", description: "Belirli bir zaman planına göre", icon: "⏰" },
+    { value: "agent_tool_complete", label: "Ajan Aksiyonu", description: "Bir ajan bir işlem tamamladığında", icon: "🤖" },
+    { value: "threshold", label: "Eşik Değer", description: "Sayısal bir değer eşiği aştığında", icon: "📊" },
+  ];
+
+  const ACTION_OPTIONS = [
+    { value: "notify_owner", label: "Bildirim Gönder", description: "Hesap sahibine bildirim gönder", icon: "🔔" },
+    { value: "send_email", label: "E-posta Gönder", description: "Belirtilen adrese e-posta at", icon: "📧" },
+    { value: "create_task", label: "Görev Oluştur", description: "Ajana yeni bir görev ata", icon: "📋" },
+    { value: "update_lead", label: "Lead Güncelle", description: "Leadin durumunu veya notlarını güncelle", icon: "🎯" },
+    { value: "log_action", label: "Kayıt Tut", description: "Olay günlüğüne kayıt ekle", icon: "📝" },
+    { value: "webhook_call", label: "Webhook Çağrısı", description: "Harici bir API'ya istek gönder", icon: "🔗" },
+  ];
+
+  const EVENT_TYPE_LABELS: Record<string, string> = {
+    lead_inactivity: "Lead Yanıtsızlık",
+    overdue_invoice: "Ödenmemiş Fatura",
+    uncompleted_tasks: "Tamamlanmamış Görev",
+  };
+
+  const buildWorkflow = () => {
+    const triggerNode: any = {
+      id: "trigger-1",
+      type: "trigger",
+      label: TRIGGER_OPTIONS.find(t => t.value === triggerType)?.label || "Tetikleyici",
+      config: {},
+      position: { x: 250, y: 50 },
+    };
+
+    const nodes: any[] = [triggerNode];
+    let lastNodeId = "trigger-1";
+
+    if (conditions.length > 0) {
+      const condNode: any = {
+        id: "condition-1",
+        type: "condition",
+        label: "Koşul Kontrolü",
+        config: {
+          field: conditions[0]?.field || "",
+          operator: conditions[0]?.operator || "equals",
+          value: conditions[0]?.value || "",
+        },
+        conditions: conditions,
+        conditionLogic,
+        conditionTrueNodeId: "action-1",
+        conditionFalseNodeId: null,
+        nextNodeId: null,
+        position: { x: 250, y: 180 },
+      };
+      nodes.push(condNode);
+      triggerNode.nextNodeId = "condition-1";
+      lastNodeId = "condition-1";
+    } else {
+      triggerNode.nextNodeId = "action-1";
+    }
+
+    const defaultActionConfig: Record<string, any> = { ...actionConfig };
+    if (actionType === "notify_owner" && !defaultActionConfig.summary) {
+      defaultActionConfig.summary = "Otomasyon kuralı tetiklendi";
+      defaultActionConfig.notificationType = "automation_rule";
+    } else if (actionType === "create_task" && !defaultActionConfig.title) {
+      defaultActionConfig.title = "Otomasyon görevi";
+      defaultActionConfig.agentType = "data-analyst";
+      defaultActionConfig.priority = "medium";
+    } else if (actionType === "log_action" && !defaultActionConfig.description) {
+      defaultActionConfig.description = "Otomasyon kuralı tetiklendi";
+      defaultActionConfig.agentType = "automation";
+    }
+
+    const actionNode: any = {
+      id: "action-1",
+      type: "action",
+      actionType,
+      label: ACTION_OPTIONS.find(a => a.value === actionType)?.label || "Aksiyon",
+      config: defaultActionConfig,
+      nextNodeId: null,
+      position: { x: 250, y: conditions.length > 0 ? 310 : 180 },
+    };
+    nodes.push(actionNode);
+
+    const name = workflowName || `${TRIGGER_OPTIONS.find(t => t.value === triggerType)?.label || "Kural"} → ${ACTION_OPTIONS.find(a => a.value === actionType)?.label || "Aksiyon"}`;
+
+    return {
+      name,
+      description: `${triggerType === "event_monitor" ? `${triggerConfig.daysThreshold || 3} gün eşiği ile oluşturulan kural` : "Kural sihirbazı ile oluşturuldu"}`,
+      triggerType,
+      triggerConfig,
+      nodes,
+    };
+  };
+
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      const workflow = buildWorkflow();
+      const res = await apiRequest("POST", "/api/automations", workflow);
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/automations"] });
+      onComplete(data);
+      toast({ title: "Kural oluşturuldu", description: "Otomasyonu aktifleştirmeyi unutmayın!" });
+    },
+    onError: () => toast({ title: "Kaydetme başarısız", variant: "destructive" }),
+  });
+
+  const stepTitles = ["Tetikleyici Seç", "Koşul Ekle (İsteğe Bağlı)", "Aksiyon Belirle", "Özet & Kaydet"];
+
+  return (
+    <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" data-testid="rule-wizard-modal">
+      <div className="bg-gray-900 border border-gray-700 rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div className="p-6">
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-lg font-bold text-white">Kural Sihirbazı</h2>
+            <Button variant="ghost" size="sm" onClick={onClose} data-testid="button-close-wizard">
+              <X className="w-4 h-4 text-gray-400" />
+            </Button>
+          </div>
+
+          <div className="flex items-center gap-1 mb-6">
+            {stepTitles.map((title, i) => (
+              <div key={i} className="flex items-center gap-1 flex-1">
+                <div className={`flex items-center gap-1.5 ${i + 1 <= step ? "text-blue-400" : "text-gray-600"}`}>
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                    i + 1 < step ? "bg-green-500 text-white" :
+                    i + 1 === step ? "bg-blue-500 text-white" :
+                    "bg-gray-700 text-gray-500"
+                  }`}>
+                    {i + 1 < step ? "✓" : i + 1}
+                  </div>
+                  <span className="text-[10px] hidden md:block">{title}</span>
+                </div>
+                {i < stepTitles.length - 1 && <div className={`flex-1 h-px ${i + 1 < step ? "bg-green-500" : "bg-gray-700"}`} />}
+              </div>
+            ))}
+          </div>
+
+          {step === 1 && (
+            <div className="space-y-3">
+              <p className="text-sm text-gray-400">Bu kural ne zaman tetiklensin?</p>
+              <div className="grid grid-cols-1 gap-2">
+                {TRIGGER_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.value}
+                    onClick={() => {
+                      setTriggerType(opt.value);
+                      if (opt.value === "event_monitor") {
+                        setTriggerConfig({ eventType: "lead_inactivity", daysThreshold: 3 });
+                      } else if (opt.value === "schedule") {
+                        setTriggerConfig({ scheduleType: "daily", scheduleHour: 9, scheduleMinute: 0 });
+                      } else {
+                        setTriggerConfig({});
+                      }
+                    }}
+                    className={`flex items-center gap-3 p-3 rounded-lg border transition-all text-left ${
+                      triggerType === opt.value
+                        ? "border-blue-500 bg-blue-500/10 text-white"
+                        : "border-gray-700 hover:border-gray-600 text-gray-400 hover:text-white"
+                    }`}
+                    data-testid={`button-trigger-option-${opt.value}`}
+                  >
+                    <span className="text-xl">{opt.icon}</span>
+                    <div>
+                      <p className="text-sm font-medium">{opt.label}</p>
+                      <p className="text-xs text-gray-500">{opt.description}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+
+              {triggerType === "event_monitor" && (
+                <div className="mt-3 space-y-2 bg-gray-800/50 rounded-lg p-3">
+                  <p className="text-xs text-gray-400 font-medium">Olay Ayarları</p>
+                  <Select
+                    value={triggerConfig.eventType || "lead_inactivity"}
+                    onValueChange={(v) => setTriggerConfig({ ...triggerConfig, eventType: v })}
+                  >
+                    <SelectTrigger className="bg-gray-800 border-gray-700 text-white text-xs h-8" data-testid="select-wizard-event-type">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="lead_inactivity">Lead Yanıtsızlık</SelectItem>
+                      <SelectItem value="overdue_invoice">Ödenmemiş Fatura</SelectItem>
+                      <SelectItem value="uncompleted_tasks">Tamamlanmamış Görev</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <div className="flex items-center gap-2">
+                    <label className="text-xs text-gray-500 whitespace-nowrap">Gün eşiği:</label>
+                    <Input
+                      type="number"
+                      min="1"
+                      value={triggerConfig.daysThreshold || 3}
+                      onChange={(e) => setTriggerConfig({ ...triggerConfig, daysThreshold: parseInt(e.target.value) || 3 })}
+                      className="bg-gray-800 border-gray-700 text-white text-xs h-8 flex-1"
+                      data-testid="input-wizard-days"
+                    />
+                    <span className="text-xs text-gray-500">gün</span>
+                  </div>
+                </div>
+              )}
+
+              {triggerType === "email_received" && (
+                <div className="mt-3 space-y-2 bg-gray-800/50 rounded-lg p-3">
+                  <p className="text-xs text-gray-400 font-medium">E-posta Filtresi (İsteğe Bağlı)</p>
+                  <Input
+                    value={triggerConfig.senderFilter || ""}
+                    onChange={(e) => setTriggerConfig({ ...triggerConfig, senderFilter: e.target.value })}
+                    placeholder="Gönderen filtresi: @example.com"
+                    className="bg-gray-800 border-gray-700 text-white text-xs h-8"
+                  />
+                  <Input
+                    value={triggerConfig.subjectFilter || ""}
+                    onChange={(e) => setTriggerConfig({ ...triggerConfig, subjectFilter: e.target.value })}
+                    placeholder="Konu filtresi: Fatura, Sipariş..."
+                    className="bg-gray-800 border-gray-700 text-white text-xs h-8"
+                  />
+                </div>
+              )}
+            </div>
+          )}
+
+          {step === 2 && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-gray-400">Koşullar ekleyin (isteğe bağlı)</p>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-500">Mantık:</span>
+                  <Select value={conditionLogic} onValueChange={(v) => setConditionLogic(v as "and" | "or")}>
+                    <SelectTrigger className="bg-gray-800 border-gray-700 text-white text-xs h-7 w-20" data-testid="select-wizard-logic">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="and">VE</SelectItem>
+                      <SelectItem value="or">VEYA</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {conditions.map((cond, idx) => (
+                <div key={idx} className="bg-gray-800/50 rounded-lg p-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-400">Kural {idx + 1}</span>
+                    <button
+                      onClick={() => setConditions(conditions.filter((_, i) => i !== idx))}
+                      className="text-xs text-red-400 hover:text-red-300"
+                      data-testid={`button-wizard-remove-cond-${idx}`}
+                    >
+                      Kaldır
+                    </button>
+                  </div>
+                  <Input
+                    value={cond.field}
+                    onChange={(e) => {
+                      const next = [...conditions];
+                      next[idx] = { ...next[idx], field: e.target.value };
+                      setConditions(next);
+                    }}
+                    placeholder="Alan adı (örn: status, amount)"
+                    className="bg-gray-800 border-gray-700 text-white text-xs h-7"
+                    data-testid={`input-wizard-field-${idx}`}
+                  />
+                  <Select
+                    value={cond.operator}
+                    onValueChange={(v) => {
+                      const next = [...conditions];
+                      next[idx] = { ...next[idx], operator: v };
+                      setConditions(next);
+                    }}
+                  >
+                    <SelectTrigger className="bg-gray-800 border-gray-700 text-white text-xs h-7" data-testid={`select-wizard-op-${idx}`}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(conditionOperatorLabels).map(([k, v]) => (
+                        <SelectItem key={k} value={k}>{v}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Input
+                    value={cond.value}
+                    onChange={(e) => {
+                      const next = [...conditions];
+                      next[idx] = { ...next[idx], value: e.target.value };
+                      setConditions(next);
+                    }}
+                    placeholder="Değer"
+                    className="bg-gray-800 border-gray-700 text-white text-xs h-7"
+                    data-testid={`input-wizard-value-${idx}`}
+                  />
+                </div>
+              ))}
+
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full border-dashed border-gray-700 text-gray-400 hover:text-white text-xs"
+                onClick={() => setConditions([...conditions, { field: "", operator: "equals", value: "" }])}
+                data-testid="button-wizard-add-condition"
+              >
+                <Plus className="w-3 h-3 mr-1" /> Koşul Ekle
+              </Button>
+
+              {conditions.length === 0 && (
+                <div className="text-center py-4">
+                  <p className="text-xs text-gray-500">Koşul eklemeden devam edebilirsiniz.</p>
+                  <p className="text-xs text-gray-600">Tüm olaylar için aksiyonu tetikleyecek.</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {step === 3 && (
+            <div className="space-y-3">
+              <p className="text-sm text-gray-400">Bu kural tetiklendiğinde ne yapılsın?</p>
+              <div className="grid grid-cols-1 gap-2">
+                {ACTION_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.value}
+                    onClick={() => setActionType(opt.value)}
+                    className={`flex items-center gap-3 p-3 rounded-lg border transition-all text-left ${
+                      actionType === opt.value
+                        ? "border-green-500 bg-green-500/10 text-white"
+                        : "border-gray-700 hover:border-gray-600 text-gray-400 hover:text-white"
+                    }`}
+                    data-testid={`button-action-option-${opt.value}`}
+                  >
+                    <span className="text-xl">{opt.icon}</span>
+                    <div>
+                      <p className="text-sm font-medium">{opt.label}</p>
+                      <p className="text-xs text-gray-500">{opt.description}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+
+              {actionType === "send_email" && (
+                <div className="mt-3 space-y-2 bg-gray-800/50 rounded-lg p-3">
+                  <Input
+                    value={actionConfig.to || ""}
+                    onChange={(e) => setActionConfig({ ...actionConfig, to: e.target.value })}
+                    placeholder="Alıcı e-posta adresi"
+                    className="bg-gray-800 border-gray-700 text-white text-xs h-8"
+                  />
+                  <Input
+                    value={actionConfig.subject || ""}
+                    onChange={(e) => setActionConfig({ ...actionConfig, subject: e.target.value })}
+                    placeholder="E-posta konusu"
+                    className="bg-gray-800 border-gray-700 text-white text-xs h-8"
+                  />
+                </div>
+              )}
+              {actionType === "notify_owner" && (
+                <div className="mt-3 bg-gray-800/50 rounded-lg p-3">
+                  <Input
+                    value={actionConfig.summary || ""}
+                    onChange={(e) => setActionConfig({ ...actionConfig, summary: e.target.value })}
+                    placeholder="Bildirim özeti (varsayılan: otomatik)"
+                    className="bg-gray-800 border-gray-700 text-white text-xs h-8"
+                  />
+                </div>
+              )}
+              {actionType === "create_task" && (
+                <div className="mt-3 space-y-2 bg-gray-800/50 rounded-lg p-3">
+                  <Input
+                    value={actionConfig.title || ""}
+                    onChange={(e) => setActionConfig({ ...actionConfig, title: e.target.value })}
+                    placeholder="Görev başlığı"
+                    className="bg-gray-800 border-gray-700 text-white text-xs h-8"
+                  />
+                  <Select
+                    value={actionConfig.agentType || "data-analyst"}
+                    onValueChange={(v) => setActionConfig({ ...actionConfig, agentType: v })}
+                  >
+                    <SelectTrigger className="bg-gray-800 border-gray-700 text-white text-xs h-8">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {AGENT_TYPE_OPTIONS.map(opt => (
+                        <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
+          )}
+
+          {step === 4 && (
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm text-gray-300 block mb-1">Kural Adı</label>
+                <Input
+                  value={workflowName}
+                  onChange={(e) => setWorkflowName(e.target.value)}
+                  placeholder={`${TRIGGER_OPTIONS.find(t => t.value === triggerType)?.label || "Kural"} → ${ACTION_OPTIONS.find(a => a.value === actionType)?.label || "Aksiyon"}`}
+                  className="bg-gray-800 border-gray-700 text-white"
+                  data-testid="input-wizard-workflow-name"
+                />
+              </div>
+              <div className="bg-gray-800/50 rounded-lg p-4 space-y-3">
+                <h4 className="text-sm font-medium text-white">Özet</h4>
+                <div className="space-y-2">
+                  <div className="flex gap-2 items-start">
+                    <span className="text-gray-500 text-xs w-20 flex-shrink-0">Tetikleyici:</span>
+                    <span className="text-white text-xs">
+                      {TRIGGER_OPTIONS.find(t => t.value === triggerType)?.label}
+                      {triggerType === "event_monitor" && ` — ${EVENT_TYPE_LABELS[triggerConfig.eventType] || ""} (${triggerConfig.daysThreshold || 3} gün)`}
+                    </span>
+                  </div>
+                  <div className="flex gap-2 items-start">
+                    <span className="text-gray-500 text-xs w-20 flex-shrink-0">Koşullar:</span>
+                    <span className="text-white text-xs">
+                      {conditions.length === 0 ? "Yok (her zaman)" : `${conditions.length} koşul (${conditionLogic.toUpperCase()})`}
+                    </span>
+                  </div>
+                  <div className="flex gap-2 items-start">
+                    <span className="text-gray-500 text-xs w-20 flex-shrink-0">Aksiyon:</span>
+                    <span className="text-white text-xs">{ACTION_OPTIONS.find(a => a.value === actionType)?.label}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="flex gap-3 pt-4 border-t border-gray-800 mt-4">
+            {step > 1 && (
+              <Button variant="outline" className="border-gray-700 text-gray-300" onClick={() => setStep(step - 1)}>
+                Geri
+              </Button>
+            )}
+            {step < 4 ? (
+              <Button
+                className="bg-blue-600 hover:bg-blue-700 flex-1"
+                onClick={() => setStep(step + 1)}
+                data-testid={`button-wizard-next-${step}`}
+              >
+                {step === 2 && conditions.length === 0 ? "Koşulsuz Devam" : "İleri"}
+              </Button>
+            ) : (
+              <Button
+                className="bg-green-600 hover:bg-green-700 flex-1"
+                onClick={() => saveMutation.mutate()}
+                disabled={saveMutation.isPending}
+                data-testid="button-wizard-save"
+              >
+                {saveMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
+                Oluştur
+              </Button>
+            )}
+            {step === 1 && (
+              <Button variant="outline" className="border-gray-700 text-gray-300" onClick={onClose}>
+                İptal
+              </Button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const dayLabels = ["Pzr", "Pzt", "Sal", "Çar", "Per", "Cum", "Cmt"];
 
 function TriggerConfigEditor({ triggerType, triggerConfig, onChange }: {
@@ -1345,6 +2107,46 @@ function TriggerConfigEditor({ triggerType, triggerConfig, onChange }: {
               </div>
             </>
           )}
+
+          {triggerType === "event_monitor" && (
+            <>
+              <div>
+                <label className="text-xs text-gray-400 block mb-1">Olay Türü</label>
+                <Select
+                  value={triggerConfig.eventType || "lead_inactivity"}
+                  onValueChange={(val) => onChange(triggerType, { ...triggerConfig, eventType: val })}
+                >
+                  <SelectTrigger className="bg-gray-800 border-gray-700 text-white text-xs h-8" data-testid="select-event-type">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="lead_inactivity">Lead Yanıtsızlık (X gün)</SelectItem>
+                    <SelectItem value="overdue_invoice">Ödenmemiş Fatura (X gün)</SelectItem>
+                    <SelectItem value="uncompleted_tasks">Tamamlanmamış Görev (X gün)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="text-xs text-gray-400 block mb-1">Gün Eşiği</label>
+                <Input
+                  type="number"
+                  min="1"
+                  max="365"
+                  value={triggerConfig.daysThreshold || 3}
+                  onChange={(e) => onChange(triggerType, { ...triggerConfig, daysThreshold: parseInt(e.target.value) || 3 })}
+                  className="bg-gray-800 border-gray-700 text-white text-xs h-8"
+                  placeholder="3"
+                  data-testid="input-days-threshold"
+                />
+                <p className="text-[10px] text-gray-500 mt-1">
+                  {triggerConfig.eventType === "lead_inactivity" && "Lead bu kadar gündür güncellenmemişse tetikle"}
+                  {triggerConfig.eventType === "overdue_invoice" && "Muhasebe görevi bu kadar gündür açıksa tetikle"}
+                  {triggerConfig.eventType === "uncompleted_tasks" && "Görev bu kadar gündür tamamlanmamışsa tetikle"}
+                  {!triggerConfig.eventType && "Olay gerçekleşmemişse tetikle"}
+                </p>
+              </div>
+            </>
+          )}
         </div>
       </CardContent>
     </Card>
@@ -1529,6 +2331,8 @@ export default function Automations() {
   const [selectedWorkflowId, setSelectedWorkflowId] = useState<number | null>(null);
   const [newName, setNewName] = useState("");
   const [newDescription, setNewDescription] = useState("");
+  const [showNLBuilder, setShowNLBuilder] = useState(false);
+  const [showWizard, setShowWizard] = useState(false);
 
   const { data: workflows = [], isLoading } = useQuery<AutomationWorkflow[]>({
     queryKey: ["/api/automations"],
@@ -1643,6 +2447,24 @@ export default function Automations() {
           </CardContent>
         </Card>
       </div>
+    );
+  }
+
+  if (showNLBuilder) {
+    return (
+      <NaturalLanguageRuleBuilder
+        onWorkflowCreated={() => { setShowNLBuilder(false); setView("list"); }}
+        onClose={() => setShowNLBuilder(false)}
+      />
+    );
+  }
+
+  if (showWizard) {
+    return (
+      <RuleWizard
+        onComplete={() => { setShowWizard(false); setView("list"); }}
+        onClose={() => setShowWizard(false)}
+      />
     );
   }
 
@@ -1880,6 +2702,10 @@ export default function Automations() {
             </CardContent>
           </Card>
 
+          {selectedWorkflow.triggerType === "event_monitor" && (
+            <EventMonitorPanel workflowId={selectedWorkflow.id} />
+          )}
+
           <Card className="bg-gray-900/50 border-gray-800">
             <CardHeader>
               <CardTitle className="text-white text-lg">Çalışma Geçmişi</CardTitle>
@@ -1912,7 +2738,7 @@ export default function Automations() {
             </h1>
             <p className="text-gray-400 text-sm mt-1">Ajan aksiyonlarını otomatik workflow'lara bağlayın</p>
           </div>
-          <div className="flex gap-3">
+          <div className="flex gap-2 flex-wrap justify-end">
             <Button
               variant="outline"
               className="border-gray-700 text-gray-300 hover:text-white"
@@ -1921,6 +2747,24 @@ export default function Automations() {
             >
               <LayoutTemplate className="w-4 h-4 mr-2" />
               Şablonlar
+            </Button>
+            <Button
+              variant="outline"
+              className="border-purple-700 text-purple-300 hover:text-white hover:bg-purple-500/10"
+              onClick={() => setShowNLBuilder(true)}
+              data-testid="button-nl-builder"
+            >
+              <Sparkles className="w-4 h-4 mr-2" />
+              AI ile Oluştur
+            </Button>
+            <Button
+              variant="outline"
+              className="border-blue-700 text-blue-300 hover:text-white hover:bg-blue-500/10"
+              onClick={() => setShowWizard(true)}
+              data-testid="button-open-wizard"
+            >
+              <ChevronRight className="w-4 h-4 mr-2" />
+              Sihirbaz
             </Button>
             <Button
               className="bg-blue-600 hover:bg-blue-700"

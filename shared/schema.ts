@@ -1183,6 +1183,7 @@ export const WORKFLOW_TRIGGER_TYPES = [
   "manual",
   "threshold",
   "email_received",
+  "event_monitor",
 ] as const;
 
 export const WORKFLOW_NODE_TYPES = [
@@ -1366,6 +1367,8 @@ export interface TriggerConfig {
   senderFilter?: string;
   subjectFilter?: string;
   targetEmail?: string;
+  eventType?: "lead_inactivity" | "overdue_invoice" | "uncompleted_tasks";
+  daysThreshold?: number;
 }
 
 export const scheduledTasks = pgTable("scheduled_tasks", {

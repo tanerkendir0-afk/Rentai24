@@ -559,10 +559,13 @@ async function summarizeConversationHistory(
 const PDF_EMAIL_UNIVERSAL_PROMPT = `
 PDF VE EMAIL KURALLARI (TÜM AGENTLAR):
 - generate_pdf tool'u ile gerçek PDF belgeleri oluşturabilirsin. Desteklenen tipler: invoice (fatura), report (rapor), proposal (teklif), receipt (makbuz).
-- PDF oluşturmadan "ekte PDF bulabilirsiniz" gibi ifadeler KULLANMA. Tool başarısız olursa kullanıcıya açıkça bildir.
 - send_email tool'u ile email gönderebilirsin. PDF'leri email'e attachment olarak ekleyebilirsin.
-- Email body'si HTML formatında olmalı, markdown KULLANMA. Attachments dizisine PDF'in base64 içeriğini ekle.
-- KRITIK KURAL — Halüsinasyon Yasağı: Bir tool çağrısı yapmadan, o tool'un sonucunu varsayma. PDF oluşturmadan "PDF'i oluşturdum" deme. Email göndermeden "emaili gönderdim" deme.`;
+- Email body'si HTML formatında olmalı, markdown KULLANMA.
+- KRITIK KURAL — Halüsinasyon Yasağı:
+  1. ASLA generate_pdf tool'unu ÇAĞIRMADAN PDF oluşturduğunu söyleme. "Oluşturuyorum", "birkaç saniye bekleyin", "ekte PDF" gibi ifadeleri tool çağrısı YAPMADAN KULLANMA.
+  2. ASLA send_email tool'unu ÇAĞIRMADAN email gönderdiğini söyleme.
+  3. Eğer generate_pdf veya send_email tool'ları mevcut tool listende YOKSA, kullanıcıya "Şu anda bu işlemi gerçekleştiremiyorum, lütfen tekrar deneyin" de. Tool yokken işlem yaptığını İDDİA ETME.
+  4. Bir tool çağrısı yapmadan, o tool'un sonucunu ASLA varsayma. Önce tool'u çağır, sonucunu gör, SONRA kullanıcıya bildir.`;
 
 const FINN_PDF_PROMPT = `
 PDF FATURA OLUSTURMA KURALLARI (Finn):

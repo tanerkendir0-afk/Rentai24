@@ -29,7 +29,7 @@ This skill provides the Finn (Bookkeeping) agent with comprehensive Turkish acco
 ## Coverage Areas
 
 - **Tekdüzen Hesap Planı** (Uniform Chart of Accounts): Classes 1-7
-- **KDV**: Rates (%1, %10, %20), exemptions, full/partial withholding (tevkifat)
+- **KDV**: Rates (%1, %10, %20), exemptions, full/partial withholding (tevkifat). Steel products (demir-çelik mamul) 5/10, scrap metal 7/10, tevkifat alt sınırı 9.900 ₺ (2025)
 - **Stopaj**: Freelance %20, rent %20, royalty %17, construction %5
 - **SGK**: Worker %15, employer %23.75 (2026), minimum wage 33,030 ₺
 - **Gelir Vergisi**: 2025 and 2026 brackets (wage and non-wage separate)

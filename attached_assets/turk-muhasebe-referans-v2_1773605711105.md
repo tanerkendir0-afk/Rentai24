@@ -310,31 +310,38 @@ Alıcı, KDV'nin tamamını keserek vergi dairesine yatırır. Satıcı faturada
 
 Belirli alıcılar (KDV mükellefleri ve belirlenmiş alıcılar) aşağıdaki oranları uygular:
 
-| # | İşlem / Hizmet Türü | Tevkifat Oranı |
-|---|---------------------|---------------|
-| 1 | Yapım işleri ile birlikte ifa edilen mühendislik-mimarlık vb. hizmetler | 4/10 |
-| 2 | Etüt, plan-proje, danışmanlık, denetim ve benzeri hizmetler | 9/10 |
-| 3 | Makine, teçhizat, demirbaş, taşıt bakım-onarım hizmetleri | 7/10 |
-| 4 | Yemek servis ve organizasyon hizmetleri | 5/10 |
-| 5 | İşgücü temin hizmetleri (özel güvenlik, personel tedarik) | 9/10 |
-| 6 | Yapı denetim hizmetleri | 9/10 |
-| 7 | Fason tekstil ve konfeksiyon işleri | 8/10 |
-| 8 | Fason çanta ve ayakkabı dikim işleri | 8/10 |
-| 9 | Temizlik, çevre ve bahçe bakım hizmetleri | 9/10 |
-| 10 | Servis taşımacılığı hizmeti | 5/10 |
-| 11 | Baskı ve basım hizmetleri | 5/10 |
-| 12 | Hurda ve atık teslimleri (metal, plastik, kâğıt, cam) | 7/10 |
-| 13 | Metal, plastik, lastik, kauçuk, kâğıt, cam hurda/atık | 7/10 |
-| 14 | Ağaç ve orman ürünleri teslimleri | 5/10 |
-| 15 | Külçe metal teslimleri | 7/10 |
-| 16 | Bakır, çinko, alüminyum ve alaşım ürünleri teslimleri | 7/10 |
-| 17 | **Demir-çelik ürünleri teslimleri** (inşaat demiri, profil, köşebent, lama, çelik boru, sac, nervürlü çelik çubuk vb. mamul ürünler — Tebliğ I-C-2.1.3.3.4) | **4/10** |
-| 18 | İstisnadan vazgeçenlerin teslimi (md. 18 seçimlik istisna) | 7/10 |
-| 19 | Pamuk, tiftik, yün ve yapağı teslimleri | 9/10 |
-| 20 | Ticari reklam hizmetleri | 3/10 |
-| 21 | Profesyonel spor kulüplerine yapılan sponsorluk harcamaları | 9/10 |
+| # | İşlem / Hizmet Türü | Tevkifat Oranı | Kod |
+|---|---------------------|---------------|-----|
+| 1 | Yapım işleri ile birlikte ifa edilen mühendislik-mimarlık vb. hizmetler | 4/10 | 601 |
+| 2 | Etüt, plan-proje, danışmanlık, denetim ve benzeri hizmetler | 9/10 | 602 |
+| 3 | Makine, teçhizat, demirbaş, taşıt bakım-onarım hizmetleri | 7/10 | 603 |
+| 4 | Ticari reklam hizmetleri | 3/10 | 604 |
+| 5 | Temizlik, çevre ve bahçe bakım hizmetleri | 9/10 | 605 |
+| 6 | İşgücü temin hizmetleri (özel güvenlik, personel tedarik) | 9/10 | 606 |
+| 7 | Yapı denetim hizmetleri | 9/10 | — |
+| 8 | Servis/personel taşımacılığı hizmeti | 5/10 | 607 |
+| 9 | Yük taşımacılığı (karayolu, kargo hariç) | 2/10 | 607 |
+| 10 | Baskı ve basım hizmetleri | **7/10** | 608 |
+| 11 | Fason tekstil, konfeksiyon, çanta ve ayakkabı işleri | **7/10** | 609 |
+| 12 | Turistik mağazalara müşteri götürme hizmeti | 9/10 | 610 |
+| 13 | Hurda ve atık teslimleri (metal, plastik, lastik, kauçuk, kâğıt, cam) | 7/10 | 620 |
+| 14 | Metal hurda/atıktan elde edilen hammadde (granül, toz vb.) | 9/10 | 621 |
+| 15 | Külçe metal teslimleri | 7/10 | 618 |
+| 16 | Bakır, çinko, alüminyum, kurşun ve alaşım ürünleri teslimleri | 7/10 | 619 |
+| 17 | **Demir-çelik ürünleri teslimleri** (inşaat demiri, profil, kangal demir, filmaşin, tel, halat, hasır, boru, lama, levha, sac vb. — Tebliğ I-C-2.1.3.3.8) | **5/10** | 627 |
+| 18 | İstisnadan vazgeçenlerin teslimi (md. 18 seçimlik istisna) | 7/10 | — |
+| 19 | Pamuk, tiftik, yün, yapağı, ham post ve deri teslimleri | 9/10 | 622 |
+| 20 | Ağaç ve orman ürünleri teslimleri | 5/10 | — |
+| 21 | Yemek servis ve organizasyon hizmetleri | 5/10 | — |
+| 22 | Profesyonel spor kulüplerine yapılan sponsorluk harcamaları | 9/10 | — |
 
-> **ÖNEMLİ NOT:** Demir-çelik MAMUL ürün teslimleri (inşaat demiri dahil) için tevkifat oranı **4/10**'dur. Demir-çelik HURDA teslimleri için ise **7/10** uygulanır. Bu iki oran karıştırılmamalıdır.
+> **ÖNEMLİ NOTLAR:**
+> 1. Demir-çelik MAMUL ürün teslimleri (inşaat demiri dahil) için tevkifat oranı **5/10**'dur (1 Kasım 2022'den itibaren 4/10'dan yükseltildi).
+> 2. Demir-çelik HURDA teslimleri için **7/10** uygulanır. Bu iki oran karıştırılmamalıdır.
+> 3. Kapı, kilit, çivi, vida, somun, menteşe, bilya, rulman, zincir gibi mamul eşyalar demir-çelik tevkifatı kapsamında **DEĞİLDİR**.
+> 4. İthalatçıların ve münhasıran cevherden üretim yapanların ilk teslimleri tevkifattan **istisnadır**.
+> 5. Fason tekstil/konfeksiyon oranı **7/10**'dur (eski 8/10 değil). Baskı/basım oranı **7/10**'dur (eski 5/10 değil).
+> 6. **2025 tevkifat alt sınırı:** KDV dahil **9.900 ₺** (2024'te 6.900 ₺ idi). Altındaki işlemlere tevkifat uygulanmaz.
 
 ### 3.3 Tevkifatlı Fatura Kayıt Örneği
 
@@ -1034,10 +1041,14 @@ VUK md. 274-275 kapsamında stok değerleme: FIFO (İlk Giren İlk Çıkar), ort
 - Alacak: 602 Diğer Gelirler → Hurda satış geliri
 - Alacak: 391 Hesaplanan KDV → (KDV tevkifatı varsa oranına dikkat)
 
-**KDV TEVKİFATI — HURDA vs MAMUL ÜRÜN AYRIMI:**
-- Demir-çelik **HURDA** teslimlerinde → **7/10 (%70)** KDV tevkifatı uygulanır.
-- Demir-çelik **MAMUL ÜRÜN** teslimlerinde (inşaat demiri, profil, köşebent, lama, çelik boru, sac, nervürlü çelik çubuk vb.) → **4/10 (%40)** KDV tevkifatı uygulanır (KDV Genel Uygulama Tebliği I-C-2.1.3.3.4).
-- **DİKKAT:** İnşaat demiri satışında tevkifat oranı 4/10'dur. 7/10 oranı sadece hurda/atık metal tesliminde geçerlidir.
+**KDV TEVKİFATI — HURDA vs MAMUL ÜRÜN AYRIMI (2025 güncel):**
+- Demir-çelik **HURDA** teslimlerinde → **7/10 (%70)** KDV tevkifatı uygulanır (kod 620).
+- Demir-çelik **MAMUL ÜRÜN** teslimlerinde (inşaat demiri, profil, kangal demir, filmaşin, tel, halat, hasır, boru, lama, levha, sac vb.) → **5/10 (%50)** KDV tevkifatı uygulanır (kod 627, KDV Genel Uygulama Tebliği I-C-2.1.3.3.8). Bu oran 1 Kasım 2022'de 4/10'dan 5/10'a yükseltilmiştir.
+- Metal hurda/atıktan elde edilen hammadde (granül, toz vb.) → **9/10** KDV tevkifatı (kod 621).
+- **DİKKAT:** İnşaat demiri satışında tevkifat oranı **5/10**'dur (%50). 7/10 oranı sadece hurda/atık metal tesliminde geçerlidir.
+- Kapı, kilit, çivi, vida, somun, menteşe gibi mamul eşyalar tevkifat kapsamında DEĞİLDİR.
+- İthalatçıların ve cevherden üretim yapanların ilk teslimleri tevkifattan istisnadır.
+- **2025 tevkifat alt sınırı:** KDV dahil 9.900 ₺.
 
 ### 20.4 Enerji Maliyeti Takibi
 

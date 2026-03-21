@@ -2976,17 +2976,16 @@ export async function registerRoutes(
         const countResult = await db.execute(sql`
           SELECT COUNT(*) as cnt FROM conversations
           WHERE user_id = ${req.session.userId}
-            AND agent_type = ${agentType}
             AND is_boost_task = true
             AND visible_id != ${chatSessionId}
         `);
-        const runningCount = Number(countResult.rows[0]?.cnt ?? 0);
+        const usedSlotCount = Number(countResult.rows[0]?.cnt ?? 0);
 
-        if (runningCount >= maxAllowed) {
+        if (usedSlotCount >= maxAllowed) {
           return res.status(429).json({
             reply: `Paralel görev limitinize (${maxAllowed}) ulaştınız. Lütfen mevcut sohbetlerden birini silin veya Boost planınızı yükseltin.`,
             boostLimitReached: true,
-            activeCount: runningCount,
+            activeCount: usedSlotCount,
             maxCount: maxAllowed,
           });
         }

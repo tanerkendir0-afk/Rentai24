@@ -254,6 +254,12 @@ export default function Dashboard() {
                   {t("dashboard.rentWorker")}
                 </Button>
               </Link>
+              <Link href="/dashboard/tasks">
+                <Button variant="outline" size="sm" data-testid="button-tasks-dashboard">
+                  <ClipboardList className="w-4 h-4 mr-1" />
+                  Görev Takibi
+                </Button>
+              </Link>
               <Link href="/settings">
                 <Button variant="outline" size="sm" data-testid="button-settings">
                   <Settings className="w-4 h-4 mr-1" />

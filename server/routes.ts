@@ -2082,6 +2082,41 @@ export async function registerRoutes(
     res.json({ success: true });
   });
 
+  app.get("/api/agent-tasks/stats", requireAuth, async (req, res) => {
+    const tasks = await storage.getAgentTasksByUser(req.session.userId!);
+    const now = new Date();
+    const stats = {
+      total: tasks.length,
+      todo: tasks.filter(t => t.status === "todo").length,
+      inProgress: tasks.filter(t => t.status === "in-progress").length,
+      done: tasks.filter(t => t.status === "done").length,
+      overdue: tasks.filter(t => t.dueDate && new Date(t.dueDate) < now && t.status !== "done").length,
+      byAgent: tasks.reduce<Record<string, number>>((acc, t) => {
+        acc[t.agentType] = (acc[t.agentType] || 0) + 1;
+        return acc;
+      }, {}),
+      delegations: tasks.filter(t => t.sourceAgentType || t.targetAgentType).length,
+    };
+    res.json(stats);
+  });
+
+  app.patch("/api/agent-tasks/bulk", requireAuth, async (req, res) => {
+    const { ids, status } = req.body;
+    if (!Array.isArray(ids) || !status) {
+      return res.status(400).json({ error: "ids array and status required" });
+    }
+    const validStatuses = ["todo", "in-progress", "done"];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ error: "Invalid status" });
+    }
+    const results = [];
+    for (const id of ids) {
+      const task = await storage.updateAgentTask(Number(id), req.session.userId!, { status });
+      if (task) results.push(task);
+    }
+    res.json({ updated: results.length, tasks: results });
+  });
+
   app.get("/api/conversations", requireAuth, async (req, res) => {
     const agentType = req.query.agentType as string;
     if (!agentType) return res.status(400).json({ error: msg("agentTypeRequired", req.lang!) });

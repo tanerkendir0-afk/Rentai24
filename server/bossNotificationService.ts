@@ -39,6 +39,7 @@ export async function notifyOwner(params: {
   teamMemberName: string;
   summary: string;
   details?: Record<string, any>;
+  skipEmail?: boolean;
 }): Promise<void> {
   const ownerResponse = await generateOwnerResponse(params);
 
@@ -55,24 +56,26 @@ export async function notifyOwner(params: {
   const created = await storage.createOwnerNotification(notification);
 
   let emailSent = false;
-  try {
-    const user = await storage.getUserById(params.userId);
-    if (user?.email) {
-      const { sendEmail } = await import("./emailService");
+  if (!params.skipEmail) {
+    try {
+      const user = await storage.getUserById(params.userId);
+      if (user?.email) {
+        const { sendEmail } = await import("./emailService");
 
-      const emailBody = `RentAI 24 Bildirim\n\nTür: ${params.type}\nAjan: ${params.teamMemberName}\n\nÖzet:\n${params.summary}\n\nBildirim Değerlendirmesi:\n${ownerResponse}\n\n${params.details ? `Detaylar:\n${JSON.stringify(params.details, null, 2)}` : ""}\n\n---\nBu bildirim RentAI 24 tarafından oluşturulmuştur.`;
+        const emailBody = `RentAI 24 Bildirim\n\nTür: ${params.type}\nAjan: ${params.teamMemberName}\n\nÖzet:\n${params.summary}\n\nBildirim Değerlendirmesi:\n${ownerResponse}\n\n${params.details ? `Detaylar:\n${JSON.stringify(params.details, null, 2)}` : ""}\n\n---\nBu bildirim RentAI 24 tarafından oluşturulmuştur.`;
 
-      await sendEmail({
-        to: user.email,
-        subject: `[RentAI 24 Bildirim] ${params.type}: ${params.teamMemberName} - ${params.summary.substring(0, 50)}`,
-        body: emailBody,
-        userId: params.userId,
-        agentType: "notification",
-      });
-      emailSent = true;
+        await sendEmail({
+          to: user.email,
+          subject: `[RentAI 24 Bildirim] ${params.type}: ${params.teamMemberName} - ${params.summary.substring(0, 50)}`,
+          body: emailBody,
+          userId: params.userId,
+          agentType: "notification",
+        });
+        emailSent = true;
+      }
+    } catch (emailError) {
+      console.error("[Notification] Email notification failed (notification still saved):", emailError);
     }
-  } catch (emailError) {
-    console.error("[Notification] Email notification failed (notification still saved):", emailError);
   }
 
   if (emailSent && created.id) {

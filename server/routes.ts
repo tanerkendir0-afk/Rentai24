@@ -7651,5 +7651,193 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
     }
   });
 
+  app.get("/api/scheduled-tasks", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const tasks = await storage.getScheduledTasks(userId);
+
+      const tasksWithStatus = await Promise.all(tasks.map(async (task) => {
+        const runs = await storage.getScheduledTaskRuns(task.id, userId, 1);
+        const lastRunStatus = runs[0]?.status ?? null;
+        return { ...task, lastRunStatus };
+      }));
+
+      res.json(tasksWithStatus);
+    } catch (error) {
+      console.error("Get scheduled tasks error:", error);
+      res.status(500).json({ error: "Failed to get scheduled tasks" });
+    }
+  });
+
+  app.post("/api/scheduled-tasks", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const { name, description, agentType, taskPrompt, cronExpression, scheduleType, isActive, notifyEmail, notifyInApp } = req.body;
+      if (!name || !agentType || !taskPrompt || !cronExpression) {
+        return res.status(400).json({ error: "name, agentType, taskPrompt, and cronExpression are required" });
+      }
+      const { validateCronExpression, computeNextRunAt } = await import("./n8n/schedulerService");
+      if (!validateCronExpression(String(cronExpression))) {
+        return res.status(400).json({ error: "Geçersiz cron ifadesi. Format: dakika saat gün_ay ay gün_hafta (örn: 0 9 * * 1)" });
+      }
+      const nextRunAt = computeNextRunAt(String(cronExpression));
+      const task = await storage.createScheduledTask({
+        userId,
+        name: String(name),
+        description: description ? String(description) : null,
+        agentType: String(agentType),
+        taskPrompt: String(taskPrompt),
+        cronExpression: String(cronExpression),
+        scheduleType: scheduleType ? String(scheduleType) : "custom",
+        isActive: isActive !== false,
+        notifyEmail: !!notifyEmail,
+        notifyInApp: notifyInApp !== false,
+        nextRunAt: nextRunAt || undefined,
+      });
+      res.status(201).json(task);
+    } catch (error) {
+      console.error("Create scheduled task error:", error);
+      res.status(500).json({ error: "Failed to create scheduled task" });
+    }
+  });
+
+  app.patch("/api/scheduled-tasks/:id", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const taskId = parseInt(req.params.id);
+      if (isNaN(taskId)) return res.status(400).json({ error: "Invalid task ID" });
+
+      const { name, description, agentType, taskPrompt, cronExpression, scheduleType, isActive, notifyEmail, notifyInApp } = req.body;
+      const updates: Record<string, any> = {};
+      if (name !== undefined) updates.name = String(name);
+      if (description !== undefined) updates.description = description ? String(description) : null;
+      if (agentType !== undefined) updates.agentType = String(agentType);
+      if (taskPrompt !== undefined) updates.taskPrompt = String(taskPrompt);
+      if (cronExpression !== undefined) {
+        const { validateCronExpression, computeNextRunAt } = await import("./n8n/schedulerService");
+        if (!validateCronExpression(String(cronExpression))) {
+          return res.status(400).json({ error: "Geçersiz cron ifadesi. Format: dakika saat gün_ay ay gün_hafta (örn: 0 9 * * 1)" });
+        }
+        updates.cronExpression = String(cronExpression);
+        const nextRunAt = computeNextRunAt(String(cronExpression));
+        if (nextRunAt) updates.nextRunAt = nextRunAt;
+      }
+      if (scheduleType !== undefined) updates.scheduleType = String(scheduleType);
+      if (isActive !== undefined) updates.isActive = !!isActive;
+      if (notifyEmail !== undefined) updates.notifyEmail = !!notifyEmail;
+      if (notifyInApp !== undefined) updates.notifyInApp = !!notifyInApp;
+
+      const task = await storage.updateScheduledTask(taskId, userId, updates);
+      if (!task) return res.status(404).json({ error: "Task not found" });
+      res.json(task);
+    } catch (error) {
+      console.error("Update scheduled task error:", error);
+      res.status(500).json({ error: "Failed to update scheduled task" });
+    }
+  });
+
+  app.delete("/api/scheduled-tasks/:id", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const taskId = parseInt(req.params.id);
+      if (isNaN(taskId)) return res.status(400).json({ error: "Invalid task ID" });
+
+      const deleted = await storage.deleteScheduledTask(taskId, userId);
+      if (!deleted) return res.status(404).json({ error: "Task not found" });
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Delete scheduled task error:", error);
+      res.status(500).json({ error: "Failed to delete scheduled task" });
+    }
+  });
+
+  app.get("/api/scheduled-tasks/:id/runs", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const taskId = parseInt(req.params.id);
+      if (isNaN(taskId)) return res.status(400).json({ error: "Invalid task ID" });
+
+      const task = await storage.getScheduledTaskById(taskId, userId);
+      if (!task) return res.status(404).json({ error: "Task not found" });
+
+      const runs = await storage.getScheduledTaskRuns(taskId, userId, 50);
+      res.json(runs);
+    } catch (error) {
+      console.error("Get task runs error:", error);
+      res.status(500).json({ error: "Failed to get task runs" });
+    }
+  });
+
+  app.post("/api/scheduled-tasks/:id/run-now", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const taskId = parseInt(req.params.id);
+      if (isNaN(taskId)) return res.status(400).json({ error: "Invalid task ID" });
+
+      const task = await storage.getScheduledTaskById(taskId, userId);
+      if (!task) return res.status(404).json({ error: "Task not found" });
+
+      res.json({ message: "Task started" });
+
+      (async () => {
+        try {
+          const { executeAndRecordScheduledTask } = await import("./n8n/scheduledTaskExecutor");
+          await executeAndRecordScheduledTask(task);
+        } catch (err: any) {
+          console.error(`[RunNow] Task ${task.id} failed:`, err.message);
+        }
+      })();
+    } catch (error) {
+      console.error("Run task now error:", error);
+      res.status(500).json({ error: "Failed to start task" });
+    }
+  });
+
+  app.post("/api/scheduled-tasks/parse-natural-language", requireAuth, async (req, res) => {
+    try {
+      const { text } = req.body;
+      if (!text) return res.status(400).json({ error: "text is required" });
+
+      const OpenAI = (await import("openai")).default;
+      const aiClient = new OpenAI({
+        apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
+        baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+      });
+
+      const response = await aiClient.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [
+          {
+            role: "system",
+            content: `Sen bir cron ifadesi dönüştürücüsün. Kullanıcının verdiği doğal dil zamanlama tanımını cron ifadesine çevir.
+Cron formatı: "dakika saat gün_ay ay gün_hafta" (5 alan)
+Gün_hafta: 0=Pazar, 1=Pazartesi, 2=Salı, 3=Çarşamba, 4=Perşembe, 5=Cuma, 6=Cumartesi
+
+Örnekler:
+- "her sabah 9'da" → "0 9 * * *" (scheduleType: daily)
+- "her pazartesi saat 9'da" → "0 9 * * 1" (scheduleType: weekly)
+- "her gün saat 18'de" → "0 18 * * *" (scheduleType: daily)
+- "her ayın 1'inde" → "0 9 1 * *" (scheduleType: monthly)
+- "her cuma 17'de" → "0 17 * * 5" (scheduleType: weekly)
+- "her hafta pazartesi ve cuma 10'da" → "0 10 * * 1,5" (scheduleType: weekly)
+- "haftada bir salı günleri" → "0 9 * * 2" (scheduleType: weekly)
+- "aylık raporlama" → "0 9 1 * *" (scheduleType: monthly)
+
+JSON formatında döndür: {"cronExpression": "...", "scheduleType": "daily|weekly|monthly|custom", "humanReadable": "Türkçe açıklama"}`,
+          },
+          { role: "user", content: text },
+        ],
+        max_tokens: 200,
+        response_format: { type: "json_object" },
+      });
+
+      const parsed = JSON.parse(response.choices[0]?.message?.content || "{}");
+      res.json(parsed);
+    } catch (error) {
+      console.error("Parse natural language error:", error);
+      res.status(500).json({ error: "Failed to parse natural language" });
+    }
+  });
+
   return httpServer;
 }

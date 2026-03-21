@@ -1365,3 +1365,55 @@ export interface TriggerConfig {
   subjectFilter?: string;
   targetEmail?: string;
 }
+
+export const scheduledTasks = pgTable("scheduled_tasks", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  name: text("name").notNull(),
+  description: text("description"),
+  agentType: text("agent_type").notNull(),
+  taskPrompt: text("task_prompt").notNull(),
+  cronExpression: text("cron_expression").notNull(),
+  scheduleType: text("schedule_type").notNull().default("custom"),
+  isActive: boolean("is_active").notNull().default(true),
+  notifyEmail: boolean("notify_email").notNull().default(false),
+  notifyInApp: boolean("notify_in_app").notNull().default(true),
+  lastRunAt: timestamp("last_run_at"),
+  nextRunAt: timestamp("next_run_at"),
+  runCount: integer("run_count").notNull().default(0),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+  updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
+export const insertScheduledTaskSchema = createInsertSchema(scheduledTasks).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  lastRunAt: true,
+  nextRunAt: true,
+  runCount: true,
+});
+
+export type ScheduledTask = typeof scheduledTasks.$inferSelect;
+export type InsertScheduledTask = z.infer<typeof insertScheduledTaskSchema>;
+
+export const scheduledTaskRuns = pgTable("scheduled_task_runs", {
+  id: serial("id").primaryKey(),
+  taskId: integer("task_id").notNull().references(() => scheduledTasks.id, { onDelete: "cascade" }),
+  userId: integer("user_id").notNull().references(() => users.id),
+  status: text("status").notNull().default("running"),
+  result: text("result"),
+  error: text("error"),
+  durationMs: integer("duration_ms"),
+  startedAt: timestamp("started_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+  completedAt: timestamp("completed_at"),
+});
+
+export const insertScheduledTaskRunSchema = createInsertSchema(scheduledTaskRuns).omit({
+  id: true,
+  startedAt: true,
+  completedAt: true,
+});
+
+export type ScheduledTaskRun = typeof scheduledTaskRuns.$inferSelect;
+export type InsertScheduledTaskRun = z.infer<typeof insertScheduledTaskRunSchema>;

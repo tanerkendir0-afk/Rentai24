@@ -2,6 +2,7 @@ import { db } from "./db";
 import { users, rentals, contactMessages, newsletterSubscribers, leads, agentActions, emailCampaigns, supportTickets, tokenUsage, agentTasks, chatMessages, conversations, teamMembers, bossNotifications, socialAccounts, shippingProviders, guardrailLogs, systemSettings, scheduledPosts, whatsappConfig, whatsappMessages, agentLimits, escalationRules, escalations, escalationMessages, agentInstructions, globalAgentInstructions, consentLogs, crmDocuments, securityEvents, pageViews, userEvents, feedback, rexContacts, rexDeals, rexActivities, rexSequences, rexStageHistory, rexScoreHistory, rexStageConfig, jobPostings, candidates, applications, LEAD_SOURCE_VALUES, CUSTOMER_SEGMENT_VALUES, DEAL_STAGE_VALUES, ACTIVITY_TYPE_VALUES, SEQUENCE_STATUS_VALUES, type User, type InsertUser, type Rental, type InsertRental, type ContactMessage, type InsertContactMessage, type NewsletterSubscriber, type Lead, type InsertLead, type AgentAction, type InsertAgentAction, type EmailCampaign, type InsertEmailCampaign, type SupportTicket, type InsertSupportTicket, type TokenUsage, type InsertTokenUsage, type AgentTask, type InsertAgentTask, type ChatMessage, type InsertChatMessage, type ConversationRecord, type InsertConversation, type TeamMember, type InsertTeamMember, type BossNotification, type InsertBossNotification, type SocialAccount, type InsertSocialAccount, type ShippingProvider, type InsertShippingProvider, type GuardrailLog, type ScheduledPost, type InsertScheduledPost, type WhatsappConfig, type InsertWhatsappConfig, type WhatsappMessage, type InsertWhatsappMessage, type AgentLimit, type InsertAgentLimit, type EscalationRule, type InsertEscalationRule, type Escalation, type InsertEscalation, type EscalationMessage, type InsertEscalationMessage, type AgentInstruction, type InsertAgentInstruction, type GlobalAgentInstruction, type ConsentLog, type InsertConsentLog, type CrmDocument, type InsertCrmDocument, type PageView, type InsertPageView, type UserEvent, type InsertUserEvent, type Feedback, type InsertFeedback, type JobPosting, type InsertJobPosting, type Candidate, type InsertCandidate, type Application, type InsertApplication, type RexContact, type InsertRexContact, type RexDeal, type InsertRexDeal, type RexActivity, type InsertRexActivity, type RexSequence, type InsertRexSequence, type RexStageHistory, type RexScoreHistory, type RexStageConfig, type LeadSourceValue, type CustomerSegmentValue, type DealStageValue, type ActivityTypeValue, type SequenceStatusValue } from "@shared/schema";
 import { eq, and, sql, desc, gte, lte } from "drizzle-orm";
 import * as cryptoModule from "crypto";
+import { scheduledTasks, scheduledTaskRuns, type ScheduledTask, type InsertScheduledTask, type ScheduledTaskRun, type InsertScheduledTaskRun } from "@shared/schema";
 
 export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
@@ -228,6 +229,18 @@ export interface IStorage {
   deleteJobPosting(id: number, userId: number): Promise<boolean>;
   deleteCandidate(id: number, userId: number): Promise<boolean>;
   deleteApplication(id: number, userId: number): Promise<boolean>;
+
+  createScheduledTask(data: InsertScheduledTask): Promise<ScheduledTask>;
+  getScheduledTasks(userId: number): Promise<ScheduledTask[]>;
+  getScheduledTaskById(id: number, userId: number): Promise<ScheduledTask | undefined>;
+  updateScheduledTask(id: number, userId: number, updates: Partial<InsertScheduledTask>): Promise<ScheduledTask | undefined>;
+  deleteScheduledTask(id: number, userId: number): Promise<boolean>;
+  getActiveScheduledTasks(): Promise<ScheduledTask[]>;
+  updateScheduledTaskRunInfo(id: number, updates: { lastRunAt: Date; nextRunAt?: Date; runCount?: number }): Promise<void>;
+
+  createScheduledTaskRun(data: InsertScheduledTaskRun): Promise<ScheduledTaskRun>;
+  getScheduledTaskRuns(taskId: number, userId: number, limit?: number): Promise<ScheduledTaskRun[]>;
+  updateScheduledTaskRun(id: number, updates: { status: string; result?: string; error?: string; durationMs?: number; completedAt: Date }): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1835,6 +1848,56 @@ export class DatabaseStorage implements IStorage {
   async deleteApplication(id: number, userId: number): Promise<boolean> {
     const result = await db.delete(applications).where(and(eq(applications.id, id), eq(applications.userId, userId))).returning();
     return result.length > 0;
+  }
+
+  async createScheduledTask(data: InsertScheduledTask): Promise<ScheduledTask> {
+    const [task] = await db.insert(scheduledTasks).values(data).returning();
+    return task;
+  }
+
+  async getScheduledTasks(userId: number): Promise<ScheduledTask[]> {
+    return db.select().from(scheduledTasks).where(eq(scheduledTasks.userId, userId)).orderBy(desc(scheduledTasks.createdAt));
+  }
+
+  async getScheduledTaskById(id: number, userId: number): Promise<ScheduledTask | undefined> {
+    const [task] = await db.select().from(scheduledTasks).where(and(eq(scheduledTasks.id, id), eq(scheduledTasks.userId, userId)));
+    return task;
+  }
+
+  async updateScheduledTask(id: number, userId: number, updates: Partial<InsertScheduledTask>): Promise<ScheduledTask | undefined> {
+    const [task] = await db.update(scheduledTasks).set({ ...updates, updatedAt: new Date() }).where(and(eq(scheduledTasks.id, id), eq(scheduledTasks.userId, userId))).returning();
+    return task;
+  }
+
+  async deleteScheduledTask(id: number, userId: number): Promise<boolean> {
+    const result = await db.delete(scheduledTasks).where(and(eq(scheduledTasks.id, id), eq(scheduledTasks.userId, userId))).returning();
+    return result.length > 0;
+  }
+
+  async getActiveScheduledTasks(): Promise<ScheduledTask[]> {
+    return db.select().from(scheduledTasks).where(eq(scheduledTasks.isActive, true));
+  }
+
+  async updateScheduledTaskRunInfo(id: number, updates: { lastRunAt: Date; nextRunAt?: Date; runCount?: number }): Promise<void> {
+    await db.update(scheduledTasks).set({
+      lastRunAt: updates.lastRunAt,
+      ...(updates.nextRunAt && { nextRunAt: updates.nextRunAt }),
+      ...(updates.runCount !== undefined && { runCount: updates.runCount }),
+      updatedAt: new Date(),
+    }).where(eq(scheduledTasks.id, id));
+  }
+
+  async createScheduledTaskRun(data: InsertScheduledTaskRun): Promise<ScheduledTaskRun> {
+    const [run] = await db.insert(scheduledTaskRuns).values(data).returning();
+    return run;
+  }
+
+  async getScheduledTaskRuns(taskId: number, userId: number, limit = 50): Promise<ScheduledTaskRun[]> {
+    return db.select().from(scheduledTaskRuns).where(and(eq(scheduledTaskRuns.taskId, taskId), eq(scheduledTaskRuns.userId, userId))).orderBy(desc(scheduledTaskRuns.startedAt)).limit(limit);
+  }
+
+  async updateScheduledTaskRun(id: number, updates: { status: string; result?: string; error?: string; durationMs?: number; completedAt: Date }): Promise<void> {
+    await db.update(scheduledTaskRuns).set(updates).where(eq(scheduledTaskRuns.id, id));
   }
 }
 

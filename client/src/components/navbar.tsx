@@ -16,7 +16,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Menu, Bot, User, LayoutDashboard, Download, Smartphone, Wifi, Bell, Settings, LogOut, BookOpen, Share, Plus, MoreHorizontal, Monitor, Globe, ExternalLink, Shield, Languages, Zap } from "lucide-react";
+import { Menu, Bot, User, LayoutDashboard, Download, Smartphone, Wifi, Bell, Settings, LogOut, BookOpen, Share, Plus, MoreHorizontal, Monitor, Globe, ExternalLink, Shield, Languages, Zap, Timer } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useLanguage } from "@/lib/language";
 import { useTranslation } from "react-i18next";
@@ -306,6 +306,12 @@ export default function Navbar() {
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
+                      <Link href="/scheduled-tasks" className="flex items-center gap-2 cursor-pointer" data-testid="dropdown-item-scheduled-tasks">
+                        <Timer className="w-4 h-4" />
+                        Zamanlanmış Görevler
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
                       <Link href="/settings" className="flex items-center gap-2 cursor-pointer" data-testid="dropdown-item-settings">
                         <Settings className="w-4 h-4" />
                         {t("nav.settings")}
@@ -434,6 +440,17 @@ export default function Navbar() {
                           >
                             <Zap className="w-4 h-4 mr-1" />
                             {t("nav.automations")}
+                          </Button>
+                        </Link>
+                        <Link href="/scheduled-tasks">
+                          <Button
+                            variant="outline"
+                            className="w-full min-h-[44px]"
+                            onClick={() => setOpen(false)}
+                            data-testid="button-mobile-scheduled-tasks"
+                          >
+                            <Timer className="w-4 h-4 mr-1" />
+                            Zamanlanmış Görevler
                           </Button>
                         </Link>
                         <Link href="/settings">

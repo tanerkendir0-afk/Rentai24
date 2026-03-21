@@ -5,23 +5,34 @@ import type { TriggerConfig } from "@shared/schema";
 
 let schedulerInterval: ReturnType<typeof setInterval> | null = null;
 
-function matchesCronField(field: string, value: number): boolean {
+function normalizeDow(val: number): number {
+  return val === 7 ? 0 : val;
+}
+
+function matchesCronField(field: string, value: number, isDow = false): boolean {
+  if (isDow) value = normalizeDow(value);
   if (field === "*") return true;
   if (field.startsWith("*/")) {
     const step = parseInt(field.substring(2));
     return !isNaN(step) && step > 0 && value % step === 0;
   }
   if (field.includes(",")) {
-    return field.split(",").some((v) => parseInt(v.trim()) === value);
+    return field.split(",").some((v) => {
+      const n = parseInt(v.trim());
+      return isDow ? normalizeDow(n) === value : n === value;
+    });
   }
   if (field.includes("-")) {
     const [start, end] = field.split("-").map(Number);
-    return !isNaN(start) && !isNaN(end) && value >= start && value <= end;
+    const s = isDow ? normalizeDow(start) : start;
+    const e = isDow ? normalizeDow(end) : end;
+    return !isNaN(s) && !isNaN(e) && value >= s && value <= e;
   }
-  return parseInt(field) === value;
+  const n = parseInt(field);
+  return isDow ? normalizeDow(n) === value : n === value;
 }
 
-function cronMatchesNow(cronExpression: string): boolean {
+export function cronMatchesNow(cronExpression: string): boolean {
   const parts = cronExpression.trim().split(/\s+/);
   if (parts.length < 5) return false;
 
@@ -33,8 +44,87 @@ function cronMatchesNow(cronExpression: string): boolean {
     matchesCronField(hour, now.getHours()) &&
     matchesCronField(dayOfMonth, now.getDate()) &&
     matchesCronField(month, now.getMonth() + 1) &&
-    matchesCronField(dayOfWeek, now.getDay())
+    matchesCronField(dayOfWeek, now.getDay(), true)
   );
+}
+
+export function validateCronExpression(cronExpression: string): boolean {
+  const parts = cronExpression.trim().split(/\s+/);
+  if (parts.length !== 5) return false;
+
+  const ranges = [
+    { min: 0, max: 59 },
+    { min: 0, max: 23 },
+    { min: 1, max: 31 },
+    { min: 1, max: 12 },
+    { min: 0, max: 7 },
+  ];
+
+  for (let i = 0; i < 5; i++) {
+    const field = parts[i];
+    const { min, max } = ranges[i];
+
+    if (field === "*") continue;
+    if (/^\*\/\d+$/.test(field)) {
+      const step = parseInt(field.substring(2));
+      if (isNaN(step) || step < 1) return false;
+      continue;
+    }
+    if (/^\d+$/.test(field)) {
+      const val = parseInt(field);
+      if (val < min || val > max) return false;
+      continue;
+    }
+    if (/^\d+-\d+$/.test(field)) {
+      const [start, end] = field.split("-").map(Number);
+      if (start < min || end > max || start > end) return false;
+      continue;
+    }
+    if (/^\d+(,\d+)+$/.test(field)) {
+      const vals = field.split(",").map(Number);
+      if (vals.some(v => v < min || v > max)) return false;
+      continue;
+    }
+    return false;
+  }
+  return true;
+}
+
+export function computeNextRunAt(cronExpression: string): Date | null {
+  if (!validateCronExpression(cronExpression)) return null;
+
+  const parts = cronExpression.trim().split(/\s+/);
+  const [minuteField, hourField] = parts;
+
+  const now = new Date();
+  const candidate = new Date(now);
+  candidate.setSeconds(0, 0);
+  candidate.setMinutes(candidate.getMinutes() + 1);
+
+  const maxIterations = 60 * 24 * 366;
+  for (let i = 0; i < maxIterations; i++) {
+    const cMin = candidate.getMinutes();
+    const cHour = candidate.getHours();
+    const cDay = candidate.getDate();
+    const cMonth = candidate.getMonth() + 1;
+    const cDow = candidate.getDay();
+
+    const [, , dayOfMonthField, monthField, dayOfWeekField] = parts;
+
+    if (
+      matchesCronField(minuteField, cMin) &&
+      matchesCronField(hourField, cHour) &&
+      matchesCronField(dayOfMonthField, cDay) &&
+      matchesCronField(monthField, cMonth) &&
+      matchesCronField(dayOfWeekField, cDow, true)
+    ) {
+      return candidate;
+    }
+
+    candidate.setMinutes(candidate.getMinutes() + 1);
+  }
+
+  return null;
 }
 
 function shouldRunNow(cronExpression: string, lastRunAt: Date | null): boolean {
@@ -102,11 +192,46 @@ export async function checkScheduledWorkflows(): Promise<void> {
   }
 }
 
+export async function checkScheduledTasks(): Promise<void> {
+  try {
+    const { storage } = await import("../storage");
+    const tasks = await storage.getActiveScheduledTasks();
+
+    for (const task of tasks) {
+      if (!shouldRunNow(task.cronExpression, task.lastRunAt)) continue;
+
+      console.log(`[SchedulerService] Running scheduled task ${task.id} (${task.name}) for user ${task.userId}`);
+
+      try {
+        const { executeAndRecordScheduledTask } = await import("./scheduledTaskExecutor");
+        const runResult = await executeAndRecordScheduledTask(task);
+
+        if (runResult.status === "completed") {
+          console.log(`[SchedulerService] Task ${task.id} completed in ${Math.round(runResult.durationMs / 1000)}s`);
+        } else {
+          console.error(`[SchedulerService] Task ${task.id} failed: ${runResult.error}`);
+        }
+      } catch (err: any) {
+        console.error(`[SchedulerService] Task ${task.id} unexpected error:`, err.message);
+      }
+    }
+  } catch (err) {
+    console.error("[SchedulerService] Error checking scheduled tasks:", err);
+  }
+}
+
+export async function runSchedulerChecks(): Promise<void> {
+  await Promise.all([
+    checkScheduledWorkflows(),
+    checkScheduledTasks(),
+  ]);
+}
+
 export function startSchedulerService(): void {
   if (schedulerInterval) return;
-  console.log("[SchedulerService] Started — checking scheduled workflows every minute");
-  schedulerInterval = setInterval(checkScheduledWorkflows, 60 * 1000);
-  checkScheduledWorkflows();
+  console.log("[SchedulerService] Started — checking scheduled workflows and tasks every minute");
+  schedulerInterval = setInterval(runSchedulerChecks, 60 * 1000);
+  runSchedulerChecks();
 }
 
 export function stopSchedulerService(): void {

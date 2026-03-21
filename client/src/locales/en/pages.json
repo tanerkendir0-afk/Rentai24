@@ -2623,7 +2623,7 @@
   },
   "boost": {
     "splitScreen": "Split Screen",
-    "getBoost": "Boost Al",
+    "getBoost": "Get Boost",
     "boostMode": "Boost Mode",
     "newParallelChat": "New Parallel Chat",
     "slotsFull": "Slots Full",

@@ -4306,6 +4306,7 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}${QUICK_REPLY_BUTT
         priceId,
         `${baseUrl}/dashboard?boost=success`,
         `${baseUrl}/pricing?boost=cancelled`,
+        { boostPlan, type: "boost" },
         { boostPlan, type: "boost" }
       );
 

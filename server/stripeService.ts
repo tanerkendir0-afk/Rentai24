@@ -14,10 +14,11 @@ export class StripeService {
     priceId: string,
     successUrl: string,
     cancelUrl: string,
-    metadata?: Record<string, string>
+    metadata?: Record<string, string>,
+    subscriptionMetadata?: Record<string, string>
   ) {
     const stripe = getUncachableStripeClient();
-    return await stripe.checkout.sessions.create({
+    const params: any = {
       customer: customerId,
       payment_method_types: ['card'],
       line_items: [{ price: priceId, quantity: 1 }],
@@ -25,7 +26,11 @@ export class StripeService {
       success_url: successUrl,
       cancel_url: cancelUrl,
       metadata,
-    });
+    };
+    if (subscriptionMetadata) {
+      params.subscription_data = { metadata: subscriptionMetadata };
+    }
+    return await stripe.checkout.sessions.create(params);
   }
 
   async createOneTimeCheckout(

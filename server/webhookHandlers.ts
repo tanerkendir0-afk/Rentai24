@@ -119,16 +119,24 @@ export class WebhookHandlers {
     }
   }
 
+  private static isBoostSubscription(subscription: any): boolean {
+    return subscription.metadata?.type === 'boost' || false;
+  }
+
   static async handleSubscriptionUpdated(subscription: any): Promise<void> {
     const customerId = typeof subscription.customer === 'string' ? subscription.customer : subscription.customer.id;
 
-    const boostBySub = await storage.getBoostSubscriptionByStripeId(subscription.id);
-    if (boostBySub) {
-      if (subscription.status === 'active' || subscription.status === 'trialing') {
-        await storage.updateBoostSubscription(boostBySub.id, { status: 'active' });
-      } else if (subscription.status === 'past_due' || subscription.status === 'unpaid' || subscription.status === 'canceled') {
-        await storage.updateBoostSubscription(boostBySub.id, { status: 'inactive' });
-        console.log(`Webhook: Boost subscription ${subscription.id} is ${subscription.status} for user ${boostBySub.userId}`);
+    if (WebhookHandlers.isBoostSubscription(subscription)) {
+      const boostBySub = await storage.getBoostSubscriptionByStripeId(subscription.id);
+      if (boostBySub) {
+        if (subscription.status === 'active' || subscription.status === 'trialing') {
+          await storage.updateBoostSubscription(boostBySub.id, { status: 'active' });
+        } else if (subscription.status === 'past_due' || subscription.status === 'unpaid' || subscription.status === 'canceled') {
+          await storage.updateBoostSubscription(boostBySub.id, { status: 'inactive' });
+          console.log(`Webhook: Boost subscription ${subscription.id} is ${subscription.status} for user ${boostBySub.userId}`);
+        }
+      } else {
+        console.log(`Webhook: Boost subscription ${subscription.id} updated but no DB record yet (checkout pending)`);
       }
       return;
     }
@@ -148,10 +156,12 @@ export class WebhookHandlers {
   static async handleSubscriptionDeleted(subscription: any): Promise<void> {
     const customerId = typeof subscription.customer === 'string' ? subscription.customer : subscription.customer.id;
 
-    const boostBySub = await storage.getBoostSubscriptionByStripeId(subscription.id);
-    if (boostBySub) {
-      await storage.updateBoostSubscription(boostBySub.id, { status: 'inactive' });
-      console.log(`Webhook: Deactivated boost subscription ${subscription.id} for user ${boostBySub.userId}`);
+    if (WebhookHandlers.isBoostSubscription(subscription)) {
+      const boostBySub = await storage.getBoostSubscriptionByStripeId(subscription.id);
+      if (boostBySub) {
+        await storage.updateBoostSubscription(boostBySub.id, { status: 'inactive' });
+        console.log(`Webhook: Deactivated boost subscription ${subscription.id} for user ${boostBySub.userId}`);
+      }
       return;
     }
 

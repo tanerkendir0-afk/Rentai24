@@ -13,3 +13,4 @@ CREATE TABLE IF NOT EXISTS "boost_subscriptions" (
 -- Add boost tracking columns to conversations
 ALTER TABLE "conversations" ADD COLUMN IF NOT EXISTS "is_boost_task" boolean NOT NULL DEFAULT false;
 ALTER TABLE "conversations" ADD COLUMN IF NOT EXISTS "boost_status" text NOT NULL DEFAULT 'idle';
+ALTER TABLE "conversations" ADD CONSTRAINT "boost_status_check" CHECK ("boost_status" IN ('idle', 'running', 'completed', 'error'));

@@ -2687,7 +2687,8 @@
     "taskComplete": "Görev Tamamlandı",
     "conversation": "Sohbet",
     "routedTo": "{{name}} adlı ajana yönlendirildi",
-    "bringToFront": "Öne Getir"
+    "bringToFront": "Öne Getir",
+    "openConversation": "Sohbeti Aç"
   },
   "admin": {
     "toastError": "Hata",

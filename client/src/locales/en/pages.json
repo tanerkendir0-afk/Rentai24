@@ -2687,7 +2687,8 @@
     "taskComplete": "Task Completed",
     "conversation": "Conversation",
     "routedTo": "Routed to {{name}}",
-    "bringToFront": "Bring to Front"
+    "bringToFront": "Bring to Front",
+    "openConversation": "Open Conversation"
   },
   "admin": {
     "toastError": "Error",

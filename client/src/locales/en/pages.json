@@ -755,7 +755,9 @@
       "upgrade": "Upgrade Boost",
       "getBoost": "Get Boost",
       "getBoostDesc": "Run multiple conversations in parallel",
-      "managePlan": "Manage Plan"
+      "managePlan": "Manage Plan",
+      "activeConversations": "Active Conversations",
+      "openConversation": "Open"
     },
     "taskTracking": "Task Tracking",
     "createOrg": "Create Organization",
@@ -2684,7 +2686,8 @@
     "active": "active",
     "taskComplete": "Task Completed",
     "conversation": "Conversation",
-    "routedTo": "Routed to {{name}}"
+    "routedTo": "Routed to {{name}}",
+    "bringToFront": "Bring to Front"
   },
   "admin": {
     "toastError": "Error",

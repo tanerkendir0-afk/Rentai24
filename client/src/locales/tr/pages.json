@@ -755,7 +755,9 @@
       "upgrade": "Boost Yükselt",
       "getBoost": "Boost Al",
       "getBoostDesc": "Paralel sohbetler ile aynı anda çalışın",
-      "managePlan": "Planı Yönet"
+      "managePlan": "Planı Yönet",
+      "activeConversations": "Aktif Sohbetler",
+      "openConversation": "Aç"
     },
     "taskTracking": "Görev Takibi",
     "createOrg": "Organizasyon Oluştur",
@@ -2684,7 +2686,8 @@
     "active": "aktif",
     "taskComplete": "Görev Tamamlandı",
     "conversation": "Sohbet",
-    "routedTo": "{{name}} adlı ajana yönlendirildi"
+    "routedTo": "{{name}} adlı ajana yönlendirildi",
+    "bringToFront": "Öne Getir"
   },
   "admin": {
     "toastError": "Hata",

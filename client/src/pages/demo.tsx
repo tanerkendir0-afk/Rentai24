@@ -614,12 +614,16 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
     if (user && hasRentals && !initialAgentSet) {
       const params = new URLSearchParams(window.location.search);
       const agentParam = params.get("agent");
+      const convoParam = params.get("convo");
       if (agentParam === "manager") {
         setSelectedAgent("manager");
       } else if (agentParam && rentedAgentIds.has(agentParam)) {
         setSelectedAgent(agentParam);
       } else {
         setSelectedAgent("manager");
+      }
+      if (convoParam && agentParam) {
+        setActiveConvoId(prev => ({ ...prev, [agentParam]: convoParam }));
       }
       setInitialAgentSet(true);
     }
@@ -2486,6 +2490,10 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
           <BoostTaskBar
             selectedPanelIds={selectedBoostPanels.map(p => p.visibleId)}
             maxPanels={Math.min(boostIsUnlimited ? 3 : boostMaxSlots, 3)}
+            onBringToFront={(visibleId, agentType) => {
+              setSelectedAgent(agentType);
+              setActiveConvoId(prev => ({ ...prev, [agentType]: visibleId }));
+            }}
             onTogglePanel={(visibleId, agentType) => {
               if (!isDesktop) {
                 setSelectedAgent(agentType);

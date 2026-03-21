@@ -21,6 +21,7 @@ import {
   X,
   Monitor,
   Plus,
+  Maximize2,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useToast } from "@/hooks/use-toast";
@@ -51,12 +52,13 @@ interface BoostTaskBarProps {
   onTaskDelete?: (task: BoostTask) => void;
   selectedPanelIds?: string[];
   onTogglePanel?: (visibleId: string, agentType: string) => void;
+  onBringToFront?: (visibleId: string, agentType: string) => void;
   maxPanels?: number;
   onNewChat?: () => void;
   canAddChat?: boolean;
 }
 
-export default function BoostTaskBar({ onTaskDelete, selectedPanelIds = [], onTogglePanel, maxPanels = 3, onNewChat, canAddChat = true }: BoostTaskBarProps) {
+export default function BoostTaskBar({ onTaskDelete, selectedPanelIds = [], onTogglePanel, onBringToFront, maxPanels = 3, onNewChat, canAddChat = true }: BoostTaskBarProps) {
   const { t } = useTranslation("pages");
   const { toast } = useToast();
   const [collapsed, setCollapsed] = useState(false);
@@ -187,6 +189,16 @@ export default function BoostTaskBar({ onTaskDelete, selectedPanelIds = [], onTo
                       )}
                       {!isRunning && !isCompleted && !isError && (
                         <span className="w-2 h-2 rounded-full bg-muted-foreground/30 inline-block" />
+                      )}
+                      {onBringToFront && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); onBringToFront(task.visibleId, task.agentType); }}
+                          className="w-4 h-4 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-blue-500/30 hover:text-blue-400 text-muted-foreground/50 transition-all"
+                          title={t("boost.bringToFront", "Bring to Front")}
+                          data-testid={`boost-task-front-${task.id}`}
+                        >
+                          <Maximize2 className="w-2.5 h-2.5" />
+                        </button>
                       )}
                       <button
                         onClick={(e) => { e.stopPropagation(); onTaskDelete?.(task); }}

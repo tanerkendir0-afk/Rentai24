@@ -129,6 +129,13 @@ export default function Dashboard() {
     enabled: !!user,
   });
 
+  const { data: boostTasks } = useQuery<{ all: { id: number; visibleId: string; agentType: string; title: string; boostStatus: string }[] }>({
+    queryKey: ["/api/boost/tasks"],
+    queryFn: async () => { const res = await fetch("/api/boost/tasks"); return res.json(); },
+    enabled: !!user && boostStatus?.active === true,
+    refetchInterval: 10000,
+  });
+
   const { data: campaigns } = useQuery<any[]>({
     queryKey: ["/api/campaigns"],
     enabled: !!user,
@@ -413,6 +420,38 @@ export default function Dashboard() {
                   </Link>
                 </div>
               </div>
+              {boostTasks?.all && boostTasks.all.length > 0 && (
+                <div className="mt-3 pt-3 border-t border-amber-500/15 space-y-1" data-testid="boost-conversations-list">
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/70 mb-1.5">
+                    {t("dashboard.boost.activeConversations")}
+                  </p>
+                  {boostTasks.all.slice(0, 5).map((task) => {
+                    const Icon = agentIcons[task.agentType] || MessageSquare;
+                    const persona = agentPersonas[task.agentType] || task.agentType;
+                    return (
+                      <Link key={task.id} href={`/chat?agent=${task.agentType}&convo=${task.visibleId}`}>
+                        <div
+                          className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-amber-500/10 transition-colors cursor-pointer group"
+                          data-testid={`boost-convo-${task.id}`}
+                        >
+                          <div className="w-5 h-5 rounded-full bg-gradient-to-br from-amber-500/20 to-orange-500/20 flex items-center justify-center shrink-0">
+                            <Icon className="w-3 h-3 text-amber-400" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-medium text-foreground truncate">
+                              {task.title || persona}
+                            </p>
+                          </div>
+                          <span className="text-[10px] text-muted-foreground/60 group-hover:text-amber-400 transition-colors">
+                            {t("dashboard.boost.openConversation")}
+                          </span>
+                          <ChevronRight className="w-3 h-3 text-muted-foreground/40 group-hover:text-amber-400 transition-colors" />
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
             </Card>
           ) : (
             <Card className="p-4 sm:p-5 bg-card border-border/50 border-dashed" data-testid="card-boost-cta">

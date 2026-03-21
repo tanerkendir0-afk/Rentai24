@@ -86,6 +86,19 @@ export async function notifyOwner(params: {
     }
   }
 
+  // Send push notification to mobile app
+  try {
+    const { sendPushToUser } = await import("./pushNotificationService");
+    await sendPushToUser(
+      params.userId,
+      `${params.teamMemberName} - ${params.type}`,
+      ownerResponse,
+      { type: params.type, notificationId: created.id },
+    );
+  } catch (pushError) {
+    console.error("[Notification] Push notification failed (non-fatal):", pushError);
+  }
+
   console.log(`[Notification] Notification created for user ${params.userId}: ${params.type} - ${params.teamMemberName}${emailSent ? " (email sent)" : ""}`);
 }
 

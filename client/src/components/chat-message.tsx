@@ -148,7 +148,7 @@ function DocumentCard({ filename, sizeInfo, isUser }: { filename: string; sizeIn
   );
 }
 
-const createComponents = (isUser: boolean, showToast?: (msg: string) => void): Components => ({
+const createComponents = (isUser: boolean, showToast?: (msg: string) => void, t?: (key: string) => string): Components => ({
   p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
   strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
   em: ({ children }) => <em className="italic">{children}</em>,
@@ -202,7 +202,7 @@ const createComponents = (isUser: boolean, showToast?: (msg: string) => void): C
       const isPdf = href.endsWith("/pdf");
       const FileIcon = isExcel ? FileSpreadsheet : isPdf ? FileText : File;
       const fileExt = isExcel ? "XLSX" : isPdf ? "PDF" : "FILE";
-      const displayName = childText || (isExcel ? "Rapor.xlsx" : "Dosya");
+      const displayName = childText || (isExcel ? (t?.("chatMessage.reportFile") || "Report.xlsx") : (t?.("chatMessage.file") || "File"));
 
       return (
         <button
@@ -218,11 +218,11 @@ const createComponents = (isUser: boolean, showToast?: (msg: string) => void): C
                 const match = disposition.match(/filename="?([^";\n]+)"?/);
                 if (match) filename = match[1];
               } else if (href.endsWith("/pdf")) {
-                filename = "Fatura.pdf";
+                filename = t?.("chatMessage.invoicePdf") || "Invoice.pdf";
               } else if (href.endsWith("/excel")) {
-                filename = "Fatura.xlsx";
+                filename = t?.("chatMessage.invoiceExcel") || "Invoice.xlsx";
               } else {
-                filename = "Rapor.xlsx";
+                filename = t?.("chatMessage.reportExcel") || "Report.xlsx";
               }
               const url = URL.createObjectURL(blob);
               const a = document.createElement("a");
@@ -233,7 +233,7 @@ const createComponents = (isUser: boolean, showToast?: (msg: string) => void): C
               document.body.removeChild(a);
               URL.revokeObjectURL(url);
             } catch {
-              showToast?.("Dosya indirilemedi. Lütfen tekrar deneyin.");
+              showToast?.(t?.("chatMessage.downloadFailed") || "File could not be downloaded. Please try again.");
             }
           }}
           className={`my-2 flex items-center gap-3 px-4 py-3 rounded-xl border cursor-pointer transition-all hover:scale-[1.01] active:scale-[0.99] ${
@@ -327,6 +327,7 @@ function parseChartBlocks(text: string): Array<{ type: "text"; content: string }
 }
 
 export default function ChatMessageContent({ content, isUser, onSendMessage, isLatest }: ChatMessageContentProps) {
+  const { t } = useTranslation("pages");
   const { toast } = useToast();
   const [clickedBtn, setClickedBtn] = useState<string | null>(null);
 
@@ -389,7 +390,7 @@ export default function ChatMessageContent({ content, isUser, onSendMessage, isL
         <ReactMarkdown
           remarkPlugins={[remarkGfm, remarkMath]}
           rehypePlugins={[rehypeKatex]}
-          components={createComponents(isUser, showToast)}
+          components={createComponents(isUser, showToast, t)}
         >
           {textWithoutButtons}
         </ReactMarkdown>
@@ -420,7 +421,7 @@ export default function ChatMessageContent({ content, isUser, onSendMessage, isL
             key={i}
             remarkPlugins={[remarkGfm, remarkMath]}
             rehypePlugins={[rehypeKatex]}
-            components={createComponents(isUser, showToast)}
+            components={createComponents(isUser, showToast, t)}
           >
             {trimmed}
           </ReactMarkdown>

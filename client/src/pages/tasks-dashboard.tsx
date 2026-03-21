@@ -3,6 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/lib/auth";
 import { Link } from "wouter";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -56,44 +57,46 @@ const PRIORITY_BG: Record<string, string> = {
   urgent: "bg-red-500/10 text-red-400 border-red-500/20",
 };
 
-const STATUS_CONFIG: Record<string, {
+function getStatusConfig(t: (key: string) => string): Record<string, {
   icon: typeof Circle;
   label: string;
   color: string;
   bgColor: string;
   borderColor: string;
   headerBg: string;
-}> = {
-  todo: {
-    icon: Circle,
-    label: "Yapılacak",
-    color: "text-muted-foreground",
-    bgColor: "bg-muted/30",
-    borderColor: "border-border/50",
-    headerBg: "bg-muted/50",
-  },
-  "in-progress": {
-    icon: Clock,
-    label: "Devam Eden",
-    color: "text-blue-400",
-    bgColor: "bg-blue-500/5",
-    borderColor: "border-blue-500/20",
-    headerBg: "bg-blue-500/10",
-  },
-  done: {
-    icon: Check,
-    label: "Tamamlanan",
-    color: "text-emerald-400",
-    bgColor: "bg-emerald-500/5",
-    borderColor: "border-emerald-500/20",
-    headerBg: "bg-emerald-500/10",
-  },
-};
+}> {
+  return {
+    todo: {
+      icon: Circle,
+      label: t("tasksDashboard.statusTodo"),
+      color: "text-muted-foreground",
+      bgColor: "bg-muted/30",
+      borderColor: "border-border/50",
+      headerBg: "bg-muted/50",
+    },
+    "in-progress": {
+      icon: Clock,
+      label: t("tasksDashboard.statusInProgress"),
+      color: "text-blue-400",
+      bgColor: "bg-blue-500/5",
+      borderColor: "border-blue-500/20",
+      headerBg: "bg-blue-500/10",
+    },
+    done: {
+      icon: Check,
+      label: t("tasksDashboard.statusDone"),
+      color: "text-emerald-400",
+      bgColor: "bg-emerald-500/5",
+      borderColor: "border-emerald-500/20",
+      headerBg: "bg-emerald-500/10",
+    },
+  };
+}
 
-function formatDate(date: string | Date | null | undefined): string | null {
+function formatDate(date: string | Date | null | undefined, locale: string): string | null {
   if (!date) return null;
   const d = new Date(date);
-  const month = d.toLocaleDateString("tr-TR", { month: "short" });
+  const month = d.toLocaleDateString(locale, { month: "short" });
   const day = d.getDate();
   const hours = d.getHours();
   const minutes = d.getMinutes();
@@ -104,18 +107,18 @@ function formatDate(date: string | Date | null | undefined): string | null {
   return `${day} ${month}`;
 }
 
-function formatRelative(date: string | null | undefined): string {
+function formatRelative(date: string | null | undefined, t: (key: string, opts?: Record<string, unknown>) => string): string {
   if (!date) return "—";
   const d = new Date(date);
   const now = new Date();
   const diff = now.getTime() - d.getTime();
   const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "Az önce";
-  if (mins < 60) return `${mins} dk önce`;
+  if (mins < 1) return t("tasksDashboard.justNow");
+  if (mins < 60) return t("tasksDashboard.minutesAgo", { count: mins });
   const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours} sa önce`;
+  if (hours < 24) return t("tasksDashboard.hoursAgo", { count: hours });
   const days = Math.floor(hours / 24);
-  return `${days} gün önce`;
+  return t("tasksDashboard.daysAgo", { count: days });
 }
 
 function KanbanCard({
@@ -127,9 +130,12 @@ function KanbanCard({
   onDelete: (id: number) => void;
   onStatusChange: (id: number, status: string) => void;
 }) {
+  const { t, i18n } = useTranslation("pages");
+  const STATUS_CONFIG = getStatusConfig(t);
+  const locale = i18n.language === "tr" ? "tr-TR" : "en-US";
   const isOverdue =
     task.dueDate && new Date(task.dueDate) < new Date() && task.status !== "done";
-  const dueDateStr = formatDate(task.dueDate);
+  const dueDateStr = formatDate(task.dueDate, locale);
 
   const nextStatus =
     task.status === "todo"
@@ -150,7 +156,7 @@ function KanbanCard({
           onClick={() => onStatusChange(task.id, nextStatus)}
           className={`mt-0.5 shrink-0 ${STATUS_CONFIG[task.status]?.color || "text-muted-foreground"} hover:scale-110 transition-transform`}
           data-testid={`button-toggle-status-${task.id}`}
-          title={`${nextStatus} olarak işaretle`}
+          title={t("tasksDashboard.markAs", { status: nextStatus })}
         >
           <StatusIcon className="w-4 h-4" />
         </button>
@@ -163,7 +169,7 @@ function KanbanCard({
         </p>
         <button
           onClick={() => onDelete(task.id)}
-          className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-red-400 transition-all shrink-0"
+          className="opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto text-muted-foreground hover:text-red-400 transition-all shrink-0"
           data-testid={`button-delete-task-${task.id}`}
         >
           <Trash2 className="w-3.5 h-3.5" />
@@ -189,12 +195,12 @@ function KanbanCard({
         >
           <Flag className="w-2.5 h-2.5 mr-0.5" />
           {task.priority === "low"
-            ? "Düşük"
+            ? t("tasksDashboard.priorityLow")
             : task.priority === "medium"
-            ? "Orta"
+            ? t("tasksDashboard.priorityMedium")
             : task.priority === "high"
-            ? "Yüksek"
-            : "Acil"}
+            ? t("tasksDashboard.priorityHigh")
+            : t("tasksDashboard.priorityUrgent")}
         </Badge>
         <Badge
           variant="secondary"
@@ -237,16 +243,16 @@ function KanbanCard({
             data-testid={`delegation-status-${task.id}`}
           >
             {task.delegationStatus === "completed"
-              ? "Tamamlandı"
+              ? t("tasksDashboard.delegationCompleted")
               : task.delegationStatus === "pending"
-              ? "Bekliyor"
+              ? t("tasksDashboard.delegationPending")
               : task.delegationStatus}
           </Badge>
         )}
       </div>
 
       <p className="text-[10px] text-muted-foreground/50 pl-6 mt-1.5">
-        {formatRelative(task.createdAt?.toString())}
+        {formatRelative(task.createdAt?.toString(), t)}
       </p>
     </Card>
   );
@@ -263,6 +269,8 @@ function KanbanColumn({
   onDelete: (id: number) => void;
   onStatusChange: (id: number, status: string) => void;
 }) {
+  const { t } = useTranslation("pages");
+  const STATUS_CONFIG = getStatusConfig(t);
   const config = STATUS_CONFIG[status];
   const Icon = config.icon;
 
@@ -286,7 +294,7 @@ function KanbanColumn({
         {tasks.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-8 text-center">
             <ClipboardList className="w-8 h-8 text-muted-foreground/20 mb-2" />
-            <p className="text-xs text-muted-foreground/50">Görev yok</p>
+            <p className="text-xs text-muted-foreground/50">{t("tasksDashboard.noTasks")}</p>
           </div>
         ) : (
           tasks.map((task) => (
@@ -316,6 +324,7 @@ interface AutomationWorkflow {
 export default function TasksDashboard() {
   const { user, isLoading: authLoading } = useAuth();
   const { toast } = useToast();
+  const { t } = useTranslation("pages");
   const [searchQuery, setSearchQuery] = useState("");
   const [agentFilter, setAgentFilter] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
@@ -340,7 +349,7 @@ export default function TasksDashboard() {
       queryClient.invalidateQueries({ queryKey: ["/api/agent-tasks"] });
     },
     onError: () => {
-      toast({ title: "Hata", description: "Görev güncellenemedi", variant: "destructive" });
+      toast({ title: t("tasksDashboard.error"), description: t("tasksDashboard.taskUpdateFailed"), variant: "destructive" });
     },
   });
 
@@ -350,10 +359,10 @@ export default function TasksDashboard() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/agent-tasks"] });
-      toast({ title: "Silindi", description: "Görev silindi" });
+      toast({ title: t("tasksDashboard.deleted"), description: t("tasksDashboard.taskDeleted") });
     },
     onError: () => {
-      toast({ title: "Hata", description: "Görev silinemedi", variant: "destructive" });
+      toast({ title: t("tasksDashboard.error"), description: t("tasksDashboard.taskDeleteFailed"), variant: "destructive" });
     },
   });
 
@@ -407,17 +416,17 @@ export default function TasksDashboard() {
               <Link href="/dashboard">
                 <Button variant="ghost" size="sm" className="text-muted-foreground" data-testid="button-back-dashboard">
                   <ArrowLeft className="w-4 h-4 mr-1" />
-                  Dashboard
+                  {t("tasksDashboard.dashboard")}
                 </Button>
               </Link>
               <div className="h-4 w-px bg-border/50" />
               <div>
                 <h1 className="text-xl sm:text-2xl font-bold text-foreground flex items-center gap-2" data-testid="text-page-title">
                   <ClipboardList className="w-6 h-6 text-blue-400" />
-                  Görev Kontrol Merkezi
+                  {t("tasksDashboard.pageTitle")}
                 </h1>
                 <p className="text-muted-foreground text-sm mt-0.5">
-                  Tüm ajan görevleri, delegasyonlar ve otomasyon durumları
+                  {t("tasksDashboard.pageSubtitle")}
                 </p>
               </div>
             </div>
@@ -429,21 +438,21 @@ export default function TasksDashboard() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
           <Card className="p-4 bg-card border-border/50" data-testid="stat-total">
             <p className="text-2xl font-bold text-foreground">{statsTotal}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">Toplam Görev</p>
+            <p className="text-xs text-muted-foreground mt-0.5">{t("tasksDashboard.totalTasks")}</p>
           </Card>
           <Card className="p-4 bg-card border-border/50" data-testid="stat-in-progress">
             <p className="text-2xl font-bold text-blue-400">{statsInProgress}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">Devam Eden</p>
+            <p className="text-xs text-muted-foreground mt-0.5">{t("tasksDashboard.statusInProgress")}</p>
           </Card>
           <Card className="p-4 bg-card border-border/50" data-testid="stat-done">
             <p className="text-2xl font-bold text-emerald-400">{statsDone}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">Tamamlanan</p>
+            <p className="text-xs text-muted-foreground mt-0.5">{t("tasksDashboard.statusDone")}</p>
           </Card>
           <Card className="p-4 bg-card border-border/50" data-testid="stat-overdue">
             <p className={`text-2xl font-bold ${statsOverdue > 0 ? "text-red-400" : "text-muted-foreground"}`}>
               {statsOverdue}
             </p>
-            <p className="text-xs text-muted-foreground mt-0.5">Gecikmiş</p>
+            <p className="text-xs text-muted-foreground mt-0.5">{t("tasksDashboard.overdue")}</p>
           </Card>
         </div>
 
@@ -451,7 +460,7 @@ export default function TasksDashboard() {
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
-              placeholder="Görev, proje veya açıklama ara..."
+              placeholder={t("tasksDashboard.searchPlaceholder")}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-9 h-9 text-sm"
@@ -461,10 +470,10 @@ export default function TasksDashboard() {
           <Select value={agentFilter} onValueChange={setAgentFilter}>
             <SelectTrigger className="h-9 w-full sm:w-44" data-testid="select-agent-filter">
               <Bot className="w-4 h-4 mr-1.5 text-muted-foreground" />
-              <SelectValue placeholder="Ajan filtrele" />
+              <SelectValue placeholder={t("tasksDashboard.filterAgent")} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Tüm Ajanlar</SelectItem>
+              <SelectItem value="all">{t("tasksDashboard.allAgents")}</SelectItem>
               {agentsUsed.map((agentType) => (
                 <SelectItem key={agentType} value={agentType}>
                   {AGENT_DISPLAY_NAMES[agentType] || agentType}
@@ -475,14 +484,14 @@ export default function TasksDashboard() {
           <Select value={priorityFilter} onValueChange={setPriorityFilter}>
             <SelectTrigger className="h-9 w-full sm:w-40" data-testid="select-priority-filter">
               <Flag className="w-4 h-4 mr-1.5 text-muted-foreground" />
-              <SelectValue placeholder="Öncelik" />
+              <SelectValue placeholder={t("tasksDashboard.priority")} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Tüm Öncelikler</SelectItem>
-              <SelectItem value="urgent">Acil</SelectItem>
-              <SelectItem value="high">Yüksek</SelectItem>
-              <SelectItem value="medium">Orta</SelectItem>
-              <SelectItem value="low">Düşük</SelectItem>
+              <SelectItem value="all">{t("tasksDashboard.allPriorities")}</SelectItem>
+              <SelectItem value="urgent">{t("tasksDashboard.priorityUrgent")}</SelectItem>
+              <SelectItem value="high">{t("tasksDashboard.priorityHigh")}</SelectItem>
+              <SelectItem value="medium">{t("tasksDashboard.priorityMedium")}</SelectItem>
+              <SelectItem value="low">{t("tasksDashboard.priorityLow")}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -490,9 +499,9 @@ export default function TasksDashboard() {
         <div className="flex gap-1 mb-5 border-b border-border/50">
           {(
             [
-              { key: "kanban", label: "Kanban Board", icon: ClipboardList },
-              { key: "delegation", label: "Delegasyon Akışı", icon: ArrowRightLeft },
-              { key: "scheduled", label: "Zamanlanmış Görevler", icon: Zap },
+              { key: "kanban", label: t("tasksDashboard.tabKanban"), icon: ClipboardList },
+              { key: "delegation", label: t("tasksDashboard.tabDelegation"), icon: ArrowRightLeft },
+              { key: "scheduled", label: t("tasksDashboard.tabScheduled"), icon: Zap },
             ] as const
           ).map(({ key, label, icon: Icon }) => (
             <button
@@ -555,6 +564,10 @@ export default function TasksDashboard() {
 }
 
 function DelegationView({ tasks, isLoading }: { tasks: AgentTask[]; isLoading: boolean }) {
+  const { t, i18n } = useTranslation("pages");
+  const STATUS_CONFIG = getStatusConfig(t);
+  const locale = i18n.language === "tr" ? "tr-TR" : "en-US";
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -567,9 +580,9 @@ function DelegationView({ tasks, isLoading }: { tasks: AgentTask[]; isLoading: b
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center">
         <ArrowRightLeft className="w-12 h-12 text-muted-foreground/20 mb-3" />
-        <h3 className="text-sm font-semibold text-foreground mb-1">Delegasyon Yok</h3>
+        <h3 className="text-sm font-semibold text-foreground mb-1">{t("tasksDashboard.noDelegation")}</h3>
         <p className="text-xs text-muted-foreground max-w-sm">
-          Ajanlar arasında devredilen görevler burada görünecek.
+          {t("tasksDashboard.noDelegationDesc")}
         </p>
       </div>
     );
@@ -595,7 +608,7 @@ function DelegationView({ tasks, isLoading }: { tasks: AgentTask[]; isLoading: b
                 {AGENT_DISPLAY_NAMES[sourceAgent] || sourceAgent}
               </p>
               <p className="text-xs text-muted-foreground">
-                {chainTasks.length} devredilen görev
+                {t("tasksDashboard.delegatedTaskCount", { count: chainTasks.length })}
               </p>
             </div>
           </div>
@@ -624,7 +637,7 @@ function DelegationView({ tasks, isLoading }: { tasks: AgentTask[]; isLoading: b
                           <span className="text-violet-400 font-medium">
                             {AGENT_DISPLAY_NAMES[task.targetAgentType] || task.targetAgentType}
                           </span>
-                          <span className="text-muted-foreground">tarafından alındı</span>
+                          <span className="text-muted-foreground">{t("tasksDashboard.pickedUpBy")}</span>
                         </span>
                       )}
                       {task.sourceAgentType && (
@@ -633,7 +646,7 @@ function DelegationView({ tasks, isLoading }: { tasks: AgentTask[]; isLoading: b
                           <span className="text-violet-400 font-medium">
                             {AGENT_DISPLAY_NAMES[task.sourceAgentType] || task.sourceAgentType}
                           </span>
-                          <span className="text-muted-foreground">tarafından devredildi</span>
+                          <span className="text-muted-foreground">{t("tasksDashboard.delegatedBy")}</span>
                         </span>
                       )}
                       {task.delegationStatus && (
@@ -648,16 +661,16 @@ function DelegationView({ tasks, isLoading }: { tasks: AgentTask[]; isLoading: b
                           }`}
                         >
                           {task.delegationStatus === "completed"
-                            ? "Tamamlandı"
+                            ? t("tasksDashboard.delegationCompleted")
                             : task.delegationStatus === "pending"
-                            ? "Bekliyor"
+                            ? t("tasksDashboard.delegationPending")
                             : task.delegationStatus}
                         </Badge>
                       )}
                       {task.dueDate && (
                         <span className={`text-xs flex items-center gap-0.5 ${isOverdue ? "text-red-400" : "text-muted-foreground"}`}>
                           <Calendar className="w-3 h-3" />
-                          {formatDate(task.dueDate)}
+                          {formatDate(task.dueDate, locale)}
                         </span>
                       )}
                     </div>
@@ -684,6 +697,8 @@ function DelegationView({ tasks, isLoading }: { tasks: AgentTask[]; isLoading: b
 }
 
 function ScheduledTasksView({ automations }: { automations: AutomationWorkflow[] }) {
+  const { t } = useTranslation("pages");
+
   if (automations.length > 0 && automations[0] === undefined) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -696,14 +711,14 @@ function ScheduledTasksView({ automations }: { automations: AutomationWorkflow[]
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center">
         <Zap className="w-12 h-12 text-muted-foreground/20 mb-3" />
-        <h3 className="text-sm font-semibold text-foreground mb-1">Otomasyon Yok</h3>
+        <h3 className="text-sm font-semibold text-foreground mb-1">{t("tasksDashboard.noAutomation")}</h3>
         <p className="text-xs text-muted-foreground max-w-sm mb-4">
-          Zamanlanmış görevler ve otomasyon geçmişi burada görünecek.
+          {t("tasksDashboard.noAutomationDesc")}
         </p>
         <Link href="/automations">
           <Button variant="outline" size="sm" data-testid="button-create-automation">
             <Zap className="w-4 h-4 mr-1.5" />
-            Otomasyon Oluştur
+            {t("tasksDashboard.createAutomation")}
           </Button>
         </Link>
       </div>
@@ -711,12 +726,12 @@ function ScheduledTasksView({ automations }: { automations: AutomationWorkflow[]
   }
 
   const triggerLabels: Record<string, string> = {
-    agent_tool_complete: "Ajan Aksiyonu",
-    webhook: "Webhook",
-    schedule: "Zamanlı",
-    manual: "Manuel",
-    threshold: "Eşik Değer",
-    email_received: "E-posta Alındı",
+    agent_tool_complete: t("tasksDashboard.triggerAgentAction"),
+    webhook: t("tasksDashboard.triggerWebhook"),
+    schedule: t("tasksDashboard.triggerSchedule"),
+    manual: t("tasksDashboard.triggerManual"),
+    threshold: t("tasksDashboard.triggerThreshold"),
+    email_received: t("tasksDashboard.triggerEmailReceived"),
   };
 
   return (
@@ -724,19 +739,19 @@ function ScheduledTasksView({ automations }: { automations: AutomationWorkflow[]
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
         <Card className="p-4 bg-card border-border/50">
           <p className="text-2xl font-bold text-foreground">{automations.length}</p>
-          <p className="text-xs text-muted-foreground mt-0.5">Toplam Otomasyon</p>
+          <p className="text-xs text-muted-foreground mt-0.5">{t("tasksDashboard.totalAutomations")}</p>
         </Card>
         <Card className="p-4 bg-card border-border/50">
           <p className="text-2xl font-bold text-emerald-400">
             {automations.filter((a) => a.isActive).length}
           </p>
-          <p className="text-xs text-muted-foreground mt-0.5">Aktif</p>
+          <p className="text-xs text-muted-foreground mt-0.5">{t("tasksDashboard.active")}</p>
         </Card>
         <Card className="p-4 bg-card border-border/50">
           <p className="text-2xl font-bold text-violet-400">
             {automations.reduce((sum, a) => sum + (a.runCount || 0), 0)}
           </p>
-          <p className="text-xs text-muted-foreground mt-0.5">Toplam Çalışma</p>
+          <p className="text-xs text-muted-foreground mt-0.5">{t("tasksDashboard.totalRuns")}</p>
         </Card>
       </div>
 
@@ -775,7 +790,7 @@ function ScheduledTasksView({ automations }: { automations: AutomationWorkflow[]
                     }`}
                     data-testid={`automation-status-${automation.id}`}
                   >
-                    {automation.isActive ? "Aktif" : "Pasif"}
+                    {automation.isActive ? t("tasksDashboard.active") : t("tasksDashboard.inactive")}
                   </Badge>
                   <Badge
                     variant="secondary"
@@ -787,11 +802,11 @@ function ScheduledTasksView({ automations }: { automations: AutomationWorkflow[]
                 <div className="flex flex-wrap items-center gap-3 mt-1.5 text-xs text-muted-foreground">
                   <span className="flex items-center gap-1">
                     <Clock className="w-3 h-3" />
-                    Son çalışma: {automation.lastRunAt ? formatRelative(automation.lastRunAt) : "Hiç çalışmadı"}
+                    {t("tasksDashboard.lastRun")}: {automation.lastRunAt ? formatRelative(automation.lastRunAt, t) : t("tasksDashboard.neverRan")}
                   </span>
                   <span className="flex items-center gap-1">
                     <Activity className="w-3 h-3" />
-                    {automation.runCount || 0} kez çalıştı
+                    {t("tasksDashboard.ranTimes", { count: automation.runCount || 0 })}
                   </span>
                 </div>
               </div>

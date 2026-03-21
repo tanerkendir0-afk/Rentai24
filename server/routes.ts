@@ -8804,5 +8804,384 @@ JSON formatında döndür: {"cronExpression": "...", "scheduleType": "daily|week
     }
   });
 
+  // ─── Analytics & Monitoring Endpoints ──────────────────────────────
+
+  app.get("/api/analytics/conversations", requireAuth, async (req, res) => {
+    try {
+      const { getConversationAnalytics } = await import("./services/monitoringService");
+      const days = parseInt(req.query.days as string) || 30;
+      const data = await getConversationAnalytics(req.session.userId, days);
+      res.json(data);
+    } catch (err) {
+      res.status(500).json({ error: "Failed to load analytics" });
+    }
+  });
+
+  app.get("/api/analytics/agents", requireAuth, async (req, res) => {
+    try {
+      const { getAgentPerformance } = await import("./services/monitoringService");
+      res.json(getAgentPerformance());
+    } catch (err) {
+      res.status(500).json({ error: "Failed to load agent performance" });
+    }
+  });
+
+  app.get("/api/analytics/health", requireAuth, async (req, res) => {
+    try {
+      const { getSystemHealth } = await import("./services/monitoringService");
+      const { getConnectedClients } = await import("./websocketService");
+      const health = getSystemHealth();
+      res.json({ ...health, connectedClients: getConnectedClients() });
+    } catch (err) {
+      res.status(500).json({ error: "Failed to load health data" });
+    }
+  });
+
+  // ─── Conversation Export Endpoints ─────────────────────────────────
+
+  app.get("/api/conversations/export", requireAuth, async (req, res) => {
+    try {
+      const { exportAllConversationsAsCSV, exportConversationAsPDF } = await import("./services/conversationExportService");
+      const format = req.query.format as string || "csv";
+      const days = parseInt(req.query.days as string) || 30;
+      const agentType = req.query.agent as string | undefined;
+      const conversationId = req.query.conversationId ? parseInt(req.query.conversationId as string) : undefined;
+
+      if (format === "pdf" && conversationId) {
+        const pdfBuffer = await exportConversationAsPDF(conversationId, req.session.userId!);
+        res.setHeader("Content-Type", "application/pdf");
+        res.setHeader("Content-Disposition", "attachment; filename=conversation.pdf");
+        return res.send(pdfBuffer);
+      }
+
+      const csv = await exportAllConversationsAsCSV(req.session.userId!, agentType, days);
+      res.setHeader("Content-Type", "text/csv");
+      res.setHeader("Content-Disposition", "attachment; filename=conversations.csv");
+      res.send(csv);
+    } catch (err) {
+      res.status(500).json({ error: "Export failed" });
+    }
+  });
+
+  // ─── Scheduled Reports Endpoints ───────────────────────────────────
+
+  app.get("/api/reports/scheduled", requireAuth, async (req, res) => {
+    try {
+      const { getScheduledReports } = await import("./services/scheduledReportsService");
+      const reports = await getScheduledReports(req.session.userId!);
+      res.json(reports);
+    } catch (err) {
+      res.json([]);
+    }
+  });
+
+  app.post("/api/reports/scheduled", requireAuth, async (req, res) => {
+    try {
+      const { createScheduledReport } = await import("./services/scheduledReportsService");
+      const { reportType, frequency, agentType, dayOfWeek, dayOfMonth, hour, recipientEmail } = req.body;
+      if (!reportType || !frequency) return res.status(400).json({ error: "reportType and frequency are required" });
+      const result = await createScheduledReport(req.session.userId!, reportType, frequency, {
+        agentType, dayOfWeek, dayOfMonth, hour, recipientEmail,
+      });
+      res.json(result);
+    } catch (err) {
+      res.status(500).json({ error: "Failed to create scheduled report" });
+    }
+  });
+
+  app.delete("/api/reports/scheduled/:id", requireAuth, async (req, res) => {
+    try {
+      const { deleteScheduledReport } = await import("./services/scheduledReportsService");
+      const success = await deleteScheduledReport(req.session.userId!, parseInt(req.params.id));
+      res.json({ success });
+    } catch (err) {
+      res.status(500).json({ error: "Failed to delete report" });
+    }
+  });
+
+  app.post("/api/reports/generate", requireAuth, async (req, res) => {
+    try {
+      const { generateReport } = await import("./services/scheduledReportsService");
+      const { reportType, agentType } = req.body;
+      const report = await generateReport(reportType || "general_analytics", req.session.userId!, agentType);
+      res.json(report);
+    } catch (err) {
+      res.status(500).json({ error: "Failed to generate report" });
+    }
+  });
+
+  app.get("/api/reports/types", requireAuth, async (_req, res) => {
+    try {
+      const { getAvailableReportTypes } = await import("./services/scheduledReportsService");
+      res.json(getAvailableReportTypes());
+    } catch (err) {
+      res.json({});
+    }
+  });
+
+  // ─── API Key Management Endpoints ──────────────────────────────────
+
+  app.get("/api/api-keys", requireAuth, async (req, res) => {
+    try {
+      const { listApiKeys } = await import("./security/apiKeyRotation");
+      const keys = await listApiKeys(req.session.userId!);
+      res.json(keys);
+    } catch (err) {
+      res.json([]);
+    }
+  });
+
+  app.post("/api/api-keys", requireAuth, async (req, res) => {
+    try {
+      const { createApiKey } = await import("./security/apiKeyRotation");
+      const { label, permissions, expiresInDays } = req.body;
+      const result = await createApiKey(req.session.userId!, label || "Default", permissions, expiresInDays);
+      res.json(result);
+    } catch (err) {
+      res.status(500).json({ error: "Failed to create API key" });
+    }
+  });
+
+  app.post("/api/api-keys/:prefix/rotate", requireAuth, async (req, res) => {
+    try {
+      const { rotateApiKey } = await import("./security/apiKeyRotation");
+      const result = await rotateApiKey(req.session.userId!, req.params.prefix);
+      res.json(result);
+    } catch (err) {
+      res.status(500).json({ error: "Failed to rotate API key" });
+    }
+  });
+
+  app.delete("/api/api-keys/:prefix", requireAuth, async (req, res) => {
+    try {
+      const { revokeApiKey } = await import("./security/apiKeyRotation");
+      const success = await revokeApiKey(req.session.userId!, req.params.prefix);
+      res.json({ success });
+    } catch (err) {
+      res.status(500).json({ error: "Failed to revoke API key" });
+    }
+  });
+
+  // ─── Telegram Integration Endpoints ────────────────────────────────
+
+  app.get("/api/telegram/status", requireAuth, async (req, res) => {
+    try {
+      const { getTelegramStatus } = await import("./telegramService");
+      const status = await getTelegramStatus(req.session.userId!);
+      res.json(status);
+    } catch (err) {
+      res.json({ connected: false, botUsername: null });
+    }
+  });
+
+  app.post("/api/telegram/connect", requireAuth, async (req, res) => {
+    try {
+      const { botToken } = req.body;
+      if (!botToken) return res.status(400).json({ error: "Bot token is required" });
+
+      const verifyRes = await fetch(`https://api.telegram.org/bot${botToken}/getMe`);
+      const verifyData = await verifyRes.json() as any;
+      if (!verifyData.ok) return res.status(400).json({ error: "Invalid bot token" });
+
+      const webhookSecret = crypto.randomBytes(32).toString("hex");
+      const baseUrl = `https://${process.env.REPLIT_DOMAINS?.split(",")[0] || "localhost"}`;
+      const webhookUrl = `${baseUrl}/api/telegram/webhook/${req.session.userId}`;
+
+      const { setTelegramWebhook } = await import("./telegramService");
+      await setTelegramWebhook(botToken, webhookUrl, webhookSecret);
+
+      await db.execute(sql`
+        INSERT INTO telegram_configs (user_id, bot_token, bot_username, webhook_secret, is_active)
+        VALUES (${req.session.userId}, ${botToken}, ${verifyData.result.username}, ${webhookSecret}, true)
+        ON CONFLICT (user_id) DO UPDATE SET
+          bot_token = ${botToken}, bot_username = ${verifyData.result.username},
+          webhook_secret = ${webhookSecret}, is_active = true
+      `);
+
+      res.json({ success: true, botUsername: verifyData.result.username });
+    } catch (err) {
+      res.status(500).json({ error: "Failed to connect Telegram bot" });
+    }
+  });
+
+  app.post("/api/telegram/disconnect", requireAuth, async (req, res) => {
+    try {
+      const { getTelegramConfig, removeTelegramWebhook } = await import("./telegramService");
+      const config = await getTelegramConfig(req.session.userId!);
+      if (config) {
+        await removeTelegramWebhook(config.botToken);
+        await db.execute(sql`
+          UPDATE telegram_configs SET is_active = false WHERE user_id = ${req.session.userId}
+        `);
+      }
+      res.json({ success: true });
+    } catch (err) {
+      res.status(500).json({ error: "Failed to disconnect" });
+    }
+  });
+
+  app.post("/api/telegram/webhook/:userId", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const { getTelegramConfig, processIncomingTelegramUpdate } = await import("./telegramService");
+      const config = await getTelegramConfig(userId);
+      if (!config) return res.sendStatus(404);
+
+      const secretToken = req.headers["x-telegram-bot-api-secret-token"] as string;
+      if (secretToken !== config.webhookSecret) return res.sendStatus(403);
+
+      await processIncomingTelegramUpdate(req.body, userId, config.botToken);
+      res.sendStatus(200);
+    } catch (err) {
+      console.error("[Telegram Webhook] Error:", err);
+      res.sendStatus(200);
+    }
+  });
+
+  // ─── Queue Status Endpoint ─────────────────────────────────────────
+
+  app.get("/api/queue/status", requireAuth, async (_req, res) => {
+    try {
+      const { getAllQueuesStatus } = await import("./services/queueService");
+      res.json(getAllQueuesStatus());
+    } catch (err) {
+      res.json({});
+    }
+  });
+
+  // ─── Cache Stats Endpoint ──────────────────────────────────────────
+
+  app.get("/api/cache/stats", requireAuth, async (_req, res) => {
+    try {
+      const { agentResponseCache, faqCache, analyticsCache } = await import("./services/cacheService");
+      res.json({
+        agentResponse: agentResponseCache.getStats(),
+        faq: faqCache.getStats(),
+        analytics: analyticsCache.getStats(),
+      });
+    } catch (err) {
+      res.json({});
+    }
+  });
+
+  // ─── Onboarding Complete Endpoint ──────────────────────────────────
+
+  app.post("/api/onboarding/complete", requireAuth, async (req, res) => {
+    try {
+      const { selectedAgents, industry, companySize } = req.body;
+      await db.execute(sql`
+        UPDATE users SET
+          onboarding_completed = true,
+          industry = ${industry || null},
+          company_size = ${companySize || null},
+          intended_agents = ${selectedAgents ? JSON.stringify(selectedAgents) : null}::jsonb
+        WHERE id = ${req.session.userId}
+      `);
+      res.json({ success: true });
+    } catch (err) {
+      res.status(500).json({ error: "Failed to save onboarding" });
+    }
+  });
+
+  // ─── Rate Limit Status (Admin) ────────────────────────────────────
+
+  app.get(`/api/${ADMIN_PATH}/rate-limits`, requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser(req.session.userId!);
+      if (!user || user.role !== "admin") return res.status(403).json({ error: "Forbidden" });
+      const { getAgentRateLimitStatus } = await import("./security/perAgentRateLimit");
+      res.json(getAgentRateLimitStatus());
+    } catch (err) {
+      res.json({});
+    }
+  });
+
+  // ─── Monitoring Errors (Admin) ─────────────────────────────────────
+
+  app.get(`/api/${ADMIN_PATH}/errors`, requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser(req.session.userId!);
+      if (!user || user.role !== "admin") return res.status(403).json({ error: "Forbidden" });
+      const { getRecentErrors } = await import("./services/monitoringService");
+      const limit = parseInt(req.query.limit as string) || 50;
+      res.json(getRecentErrors(limit));
+    } catch (err) {
+      res.json([]);
+    }
+  });
+
+  // ─── Push Token Endpoints (Mobile App) ──────────────────────────────
+
+  app.post("/api/push-tokens", requireAuth, async (req, res) => {
+    try {
+      const { token, platform } = req.body;
+      if (!token || !platform) {
+        return res.status(400).json({ error: "Token and platform are required" });
+      }
+      if (!["ios", "android", "web"].includes(platform)) {
+        return res.status(400).json({ error: "Invalid platform. Must be ios, android, or web" });
+      }
+      const pushToken = await storage.createPushToken({
+        userId: req.session.userId!,
+        token,
+        platform,
+        isActive: true,
+      });
+      res.json({ success: true, pushToken });
+    } catch (err: any) {
+      console.error("[PushTokens] Create error:", err);
+      res.status(500).json({ error: "Failed to register push token" });
+    }
+  });
+
+  app.get("/api/push-tokens", requireAuth, async (req, res) => {
+    try {
+      const tokens = await storage.getPushTokensByUserId(req.session.userId!);
+      res.json(tokens);
+    } catch (err: any) {
+      console.error("[PushTokens] Get error:", err);
+      res.status(500).json({ error: "Failed to fetch push tokens" });
+    }
+  });
+
+  app.delete("/api/push-tokens", requireAuth, async (req, res) => {
+    try {
+      const { token } = req.body;
+      if (token) {
+        await storage.deletePushToken(req.session.userId!, token);
+      } else {
+        await storage.deletePushTokensByUserId(req.session.userId!);
+      }
+      res.json({ success: true });
+    } catch (err: any) {
+      console.error("[PushTokens] Delete error:", err);
+      res.status(500).json({ error: "Failed to delete push token" });
+    }
+  });
+
+  app.post("/api/push/send", requireAuth, async (req, res) => {
+    try {
+      const { userId, title, body, data } = req.body;
+      if (!title || !body) {
+        return res.status(400).json({ error: "Title and body are required" });
+      }
+      const targetUserId = userId || req.session.userId!;
+      const { sendPushToUser } = await import("./pushNotificationService");
+      await sendPushToUser(targetUserId, title, body, data);
+      res.json({ success: true });
+    } catch (err: any) {
+      console.error("[Push] Send error:", err);
+      res.status(500).json({ error: "Failed to send push notification" });
+    }
+  });
+
+  // ─── WebSocket initialization ──────────────────────────────────────
+  try {
+    const { initWebSocket } = await import("./websocketService");
+    initWebSocket(httpServer, null);
+  } catch (err) {
+    console.warn("[WebSocket] Init error (non-fatal):", (err as Error).message);
+  }
+
   return httpServer;
 }

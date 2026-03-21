@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Loader2, Building2, CheckCircle, XCircle, LogIn } from "lucide-react";
 import { Link } from "wouter";
+import { useTranslation } from "react-i18next";
 
 export default function InviteAccept() {
   const { token } = useParams<{ token: string }>();
@@ -17,6 +18,7 @@ export default function InviteAccept() {
   const [accepting, setAccepting] = useState(false);
   const [accepted, setAccepted] = useState(false);
   const [acceptError, setAcceptError] = useState<string | null>(null);
+  const { t } = useTranslation("pages");
 
   useEffect(() => {
     if (!token) return;
@@ -24,12 +26,12 @@ export default function InviteAccept() {
       .then(async (res) => {
         const data = await res.json();
         if (!res.ok) {
-          setFetchError(data.error || "Davet bulunamadı");
+          setFetchError(data.error || t("invite.notFound"));
         } else {
           setInviteData(data);
         }
       })
-      .catch(() => setFetchError("Davet bilgileri alınamadı"));
+      .catch(() => setFetchError(t("invite.fetchError")));
   }, [token]);
 
   const handleAccept = async () => {
@@ -45,10 +47,10 @@ export default function InviteAccept() {
         setAccepted(true);
         queryClient.invalidateQueries({ queryKey: ["/api/organization"] });
       } else {
-        setAcceptError(data.error || "Davet kabul edilemedi");
+        setAcceptError(data.error || t("invite.acceptError"));
       }
     } catch {
-      setAcceptError("Bir hata oluştu, lütfen tekrar deneyin");
+      setAcceptError(t("invite.genericError"));
     } finally {
       setAccepting(false);
     }
@@ -70,10 +72,10 @@ export default function InviteAccept() {
             <div className="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center mx-auto mb-4">
               <XCircle className="w-8 h-8 text-red-400" />
             </div>
-            <h1 className="text-xl font-bold text-foreground mb-2">Geçersiz Davet</h1>
+            <h1 className="text-xl font-bold text-foreground mb-2">{t("invite.invalidInvite")}</h1>
             <p className="text-sm text-muted-foreground mb-6">{fetchError}</p>
             <Link href="/dashboard">
-              <Button variant="outline">Dashboard'a Dön</Button>
+              <Button variant="outline">{t("invite.backToDashboard")}</Button>
             </Link>
           </div>
         ) : accepted ? (
@@ -81,16 +83,16 @@ export default function InviteAccept() {
             <div className="w-16 h-16 rounded-full bg-emerald-500/10 flex items-center justify-center mx-auto mb-4">
               <CheckCircle className="w-8 h-8 text-emerald-400" />
             </div>
-            <h1 className="text-xl font-bold text-foreground mb-2">Hoş Geldiniz!</h1>
+            <h1 className="text-xl font-bold text-foreground mb-2">{t("invite.welcome")}</h1>
             <p className="text-sm text-muted-foreground mb-2">
-              <strong>{inviteData?.organization?.name}</strong> organizasyonuna başarıyla katıldınız.
+              {t("invite.joinedSuccess", { orgName: inviteData?.organization?.name })}
             </p>
             <p className="text-xs text-muted-foreground mb-6">
-              Artık organizasyon üyeleriyle iş birliği yapabilirsiniz.
+              {t("invite.canCollaborate")}
             </p>
             <Link href="/dashboard">
               <Button className="bg-gradient-to-r from-blue-500 to-violet-500 text-white border-0">
-                Dashboard'a Git
+                {t("invite.goToDashboard")}
               </Button>
             </Link>
           </div>
@@ -103,15 +105,15 @@ export default function InviteAccept() {
             <div className="w-16 h-16 rounded-full bg-violet-500/10 flex items-center justify-center mx-auto mb-4">
               <Building2 className="w-8 h-8 text-violet-400" />
             </div>
-            <h1 className="text-xl font-bold text-foreground mb-2">Organizasyon Daveti</h1>
+            <h1 className="text-xl font-bold text-foreground mb-2">{t("invite.orgInvite")}</h1>
             <p className="text-sm text-muted-foreground mb-1">
-              <strong>{inviteData.organization?.name}</strong> organizasyonuna katılmak için davet aldınız.
+              {t("invite.invitedToOrg", { orgName: inviteData.organization?.name })}
             </p>
             <p className="text-xs text-muted-foreground mb-2">
-              Rol: <span className="font-medium capitalize">{inviteData.invitation?.role === "admin" ? "Yönetici" : "Üye"}</span>
+              {t("invite.roleLabel")}: <span className="font-medium capitalize">{inviteData.invitation?.role === "admin" ? t("invite.roleAdmin") : t("invite.roleMember")}</span>
             </p>
             <p className="text-xs text-muted-foreground mb-6">
-              Davet e-postası: <span className="font-medium">{inviteData.invitation?.email}</span>
+              {t("invite.inviteEmail")}: <span className="font-medium">{inviteData.invitation?.email}</span>
             </p>
 
             {acceptError && (
@@ -120,23 +122,23 @@ export default function InviteAccept() {
 
             {!user ? (
               <div className="space-y-3">
-                <p className="text-sm text-muted-foreground">Daveti kabul etmek için önce giriş yapmanız gerekiyor.</p>
+                <p className="text-sm text-muted-foreground">{t("invite.loginRequired")}</p>
                 <Link href={`/login?redirect=/invite/${token}`}>
                   <Button className="w-full bg-gradient-to-r from-blue-500 to-violet-500 text-white border-0" data-testid="button-login-to-accept">
                     <LogIn className="w-4 h-4 mr-2" />
-                    Giriş Yap ve Kabul Et
+                    {t("invite.loginAndAccept")}
                   </Button>
                 </Link>
                 <Link href={`/register?redirect=/invite/${token}`}>
                   <Button variant="outline" className="w-full" data-testid="button-register-to-accept">
-                    Hesap Oluştur ve Kabul Et
+                    {t("invite.registerAndAccept")}
                   </Button>
                 </Link>
               </div>
             ) : (
               <div className="space-y-3">
                 <p className="text-xs text-muted-foreground">
-                  <strong>{user.fullName}</strong> olarak giriş yapıldı
+                  {t("invite.loggedInAs", { name: user.fullName })}
                 </p>
                 <Button
                   className="w-full bg-gradient-to-r from-violet-500 to-purple-500 text-white border-0"
@@ -145,14 +147,14 @@ export default function InviteAccept() {
                   data-testid="button-accept-invite"
                 >
                   {accepting ? (
-                    <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Katılınıyor...</>
+                    <><Loader2 className="w-4 h-4 mr-2 animate-spin" />{t("invite.joining")}</>
                   ) : (
-                    <><CheckCircle className="w-4 h-4 mr-2" />Daveti Kabul Et</>
+                    <><CheckCircle className="w-4 h-4 mr-2" />{t("invite.acceptInvite")}</>
                   )}
                 </Button>
                 <Link href="/dashboard">
                   <Button variant="ghost" className="w-full" data-testid="button-decline-invite">
-                    Reddet
+                    {t("invite.decline")}
                   </Button>
                 </Link>
               </div>

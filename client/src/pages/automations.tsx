@@ -19,6 +19,7 @@ import {
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from "react-i18next";
 import { Link } from "wouter";
 
 interface AutomationWorkflow {
@@ -66,17 +67,17 @@ const categoryIcons: Record<string, any> = {
   hr: Users, marketing: Globe,
 };
 
-const categoryLabels: Record<string, string> = {
-  finance: "Finans", sales: "Satış", ecommerce: "E-Ticaret",
-  management: "Yönetim", communication: "İletişim", support: "Destek",
-  hr: "İnsan Kaynakları", marketing: "Pazarlama",
-};
+const getCategoryLabels = (t: any): Record<string, string> => ({
+  finance: t("automations.catFinance"), sales: t("automations.catSales"), ecommerce: t("automations.catEcommerce"),
+  management: t("automations.catManagement"), communication: t("automations.catCommunication"), support: t("automations.catSupport"),
+  hr: t("automations.catHR"), marketing: t("automations.catMarketing"),
+});
 
-const triggerTypeLabels: Record<string, string> = {
-  agent_tool_complete: "Ajan Aksiyonu", webhook: "Webhook",
-  schedule: "Zamanlı", manual: "Manuel", threshold: "Eşik Değer",
-  email_received: "E-posta Alındı", event_monitor: "Olay İzleyici",
-};
+const getTriggerTypeLabels = (t: any): Record<string, string> => ({
+  agent_tool_complete: t("automations.triggerAgentAction"), webhook: t("automations.triggerWebhook"),
+  schedule: t("automations.triggerScheduled"), manual: t("automations.triggerManual"), threshold: t("automations.triggerThreshold"),
+  email_received: t("automations.triggerEmailReceived"), event_monitor: t("automations.triggerEventMonitor"),
+});
 
 const triggerTypeIcons: Record<string, any> = {
   agent_tool_complete: Bot, webhook: Webhook, schedule: Timer,
@@ -84,17 +85,17 @@ const triggerTypeIcons: Record<string, any> = {
   event_monitor: Activity,
 };
 
-const actionTypeLabels: Record<string, string> = {
-  send_email: "E-posta Gönder", create_task: "Görev Oluştur",
-  notify_owner: "Hesap Sahibi Bildirimi", notify_boss: "Hesap Sahibi Bildirimi", update_lead: "Lead Güncelle",
-  webhook_call: "Webhook Çağrısı", log_action: "Kayıt Tut",
-  calculate: "Hesapla", http_request: "HTTP İsteği",
-  set_variable: "Değişken Ata", format_data: "Veri Dönüştür",
-  whatsapp_message: "WhatsApp Mesajı", multi_email: "Toplu E-posta",
-  db_query: "Veritabanı Sorgusu",
-  integration: "Harici Entegrasyon",
-  run_skill: "Beceri Çalıştır",
-};
+const getActionTypeLabels = (t: any): Record<string, string> => ({
+  send_email: t("automations.actionSendEmail"), create_task: t("automations.actionCreateTask"),
+  notify_owner: t("automations.actionNotifyOwner"), notify_boss: t("automations.actionNotifyBoss"), update_lead: t("automations.actionUpdateLead"),
+  webhook_call: t("automations.actionWebhookCall"), log_action: t("automations.actionLogAction"),
+  calculate: t("automations.actionCalculate"), http_request: t("automations.actionHttpRequest"),
+  set_variable: t("automations.actionSetVariable"), format_data: t("automations.actionFormatData"),
+  whatsapp_message: t("automations.actionWhatsapp"), multi_email: t("automations.actionMultiEmail"),
+  db_query: t("automations.actionDbQuery"),
+  integration: t("automations.actionIntegration"),
+  run_skill: t("automations.actionRunSkill"),
+});
 
 const actionTypeIcons: Record<string, any> = {
   send_email: Mail, create_task: FileText, notify_owner: Bell, notify_boss: Bell,
@@ -106,13 +107,80 @@ const actionTypeIcons: Record<string, any> = {
   run_skill: Sparkles,
 };
 
-const conditionOperatorLabels: Record<string, string> = {
-  equals: "Eşittir", not_equals: "Eşit Değil", contains: "İçerir",
-  not_contains: "İçermez", greater_than: "Büyüktür", less_than: "Küçüktür",
-  greater_than_or_equal: "Büyük Eşit", less_than_or_equal: "Küçük Eşit",
-  exists: "Var", not_exists: "Yok", regex: "Regex",
-  between: "Arasında", contains_any_of: "Herhangi Birini İçerir",
-  starts_with: "İle Başlar", ends_with: "İle Biter",
+const getConditionOperatorLabels = (t: any): Record<string, string> => ({
+  equals: t("automations.opEquals"), not_equals: t("automations.opNotEquals"), contains: t("automations.opContains"),
+  not_contains: t("automations.opNotContains"), greater_than: t("automations.opGreaterThan"), less_than: t("automations.opLessThan"),
+  greater_than_or_equal: t("automations.opGte"), less_than_or_equal: t("automations.opLte"),
+  exists: t("automations.opExists"), not_exists: t("automations.opNotExists"), regex: t("automations.opRegex"),
+  between: t("automations.opBetween"), contains_any_of: t("automations.opContainsAny"),
+  starts_with: t("automations.opStartsWith"), ends_with: t("automations.opEndsWith"),
+});
+
+const COMMON_OPERATORS = ["equals", "not_equals", "contains", "greater_than", "less_than", "exists"];
+
+interface TriggerField {
+  label: string;
+  value: string;
+  valueType: "text" | "number" | "select";
+  presetValues?: { label: string; value: string }[];
+}
+
+const TRIGGER_FIELDS: Record<string, TriggerField[]> = {
+  event_monitor: [
+    { label: "Durum", value: "status", valueType: "select", presetValues: [
+      { label: "Tamamlandı", value: "completed" },
+      { label: "Beklemede", value: "pending" },
+      { label: "İptal", value: "cancelled" },
+      { label: "Devam Ediyor", value: "in_progress" },
+    ]},
+    { label: "Gün Sayısı", value: "daysThreshold", valueType: "number" },
+    { label: "Ajan Türü", value: "agentType", valueType: "select", presetValues: [
+      { label: "Satış Ajanı", value: "sales" },
+      { label: "Destek Ajanı", value: "support" },
+      { label: "Analiz Ajanı", value: "analysis" },
+    ]},
+    { label: "Özel Alan", value: "__custom__", valueType: "text" },
+  ],
+  email_received: [
+    { label: "Gönderen", value: "from", valueType: "text" },
+    { label: "Konu", value: "subject", valueType: "text" },
+    { label: "İçerik", value: "body", valueType: "text" },
+    { label: "Alıcı", value: "to", valueType: "text" },
+    { label: "Özel Alan", value: "__custom__", valueType: "text" },
+  ],
+  schedule: [
+    { label: "Saat", value: "hour", valueType: "number" },
+    { label: "Gün", value: "dayOfWeek", valueType: "select", presetValues: [
+      { label: "Pazartesi", value: "monday" },
+      { label: "Salı", value: "tuesday" },
+      { label: "Çarşamba", value: "wednesday" },
+      { label: "Perşembe", value: "thursday" },
+      { label: "Cuma", value: "friday" },
+      { label: "Cumartesi", value: "saturday" },
+      { label: "Pazar", value: "sunday" },
+    ]},
+    { label: "Özel Alan", value: "__custom__", valueType: "text" },
+  ],
+  agent_tool_complete: [
+    { label: "Ajan Türü", value: "agentType", valueType: "select", presetValues: [
+      { label: "Satış Ajanı", value: "sales" },
+      { label: "Destek Ajanı", value: "support" },
+      { label: "Analiz Ajanı", value: "analysis" },
+    ]},
+    { label: "Görev Durumu", value: "taskStatus", valueType: "select", presetValues: [
+      { label: "Tamamlandı", value: "completed" },
+      { label: "Başarısız", value: "failed" },
+      { label: "İptal", value: "cancelled" },
+    ]},
+    { label: "Sonuç", value: "result", valueType: "text" },
+    { label: "Özel Alan", value: "__custom__", valueType: "text" },
+  ],
+  threshold: [
+    { label: "Tutar", value: "amount", valueType: "number" },
+    { label: "Sayı", value: "count", valueType: "number" },
+    { label: "Yüzde", value: "percentage", valueType: "number" },
+    { label: "Özel Alan", value: "__custom__", valueType: "text" },
+  ],
 };
 
 const actionConfigFields: Record<string, string[]> = {
@@ -132,49 +200,49 @@ const actionConfigFields: Record<string, string[]> = {
   db_query: ["table", "queryType"],
 };
 
-const configFieldLabels: Record<string, string> = {
-  to: "Alıcı E-posta", subject: "Konu", body: "İçerik", title: "Başlık",
-  description: "Açıklama", agentType: "Ajan Türü", priority: "Öncelik",
-  summary: "Özet", notificationType: "Bildirim Türü", leadId: "Lead ID",
-  status: "Durum", notes: "Notlar", url: "URL", method: "Metod",
-  expression: "İfade", resultVariable: "Sonuç Değişkeni",
-  authType: "Kimlik Doğrulama", authToken: "Token", authUsername: "Kullanıcı Adı",
-  variableName: "Değişken Adı", value: "Değer",
-  valueType: "Değer Tipi", format: "Format", sourceField: "Kaynak Alan",
-  phone: "Telefon", message: "Mesaj", recipients: "Alıcılar (virgülle ayır)",
-  table: "Tablo", queryType: "Sorgu Türü",
-};
+const getConfigFieldLabels = (t: any): Record<string, string> => ({
+  to: t("automations.fieldTo"), subject: t("automations.fieldSubject"), body: t("automations.fieldBody"), title: t("automations.fieldTitle"),
+  description: t("automations.fieldDescription"), agentType: t("automations.fieldAgentType"), priority: t("automations.fieldPriority"),
+  summary: t("automations.fieldSummary"), notificationType: t("automations.fieldNotificationType"), leadId: t("automations.fieldLeadId"),
+  status: t("automations.fieldStatus"), notes: t("automations.fieldNotes"), url: t("automations.fieldUrl"), method: t("automations.fieldMethod"),
+  expression: t("automations.fieldExpression"), resultVariable: t("automations.fieldResultVariable"),
+  authType: t("automations.fieldAuthType"), authToken: t("automations.fieldAuthToken"), authUsername: t("automations.fieldAuthUsername"),
+  variableName: t("automations.fieldVariableName"), value: t("automations.fieldValue"),
+  valueType: t("automations.fieldValueType"), format: t("automations.fieldFormat"), sourceField: t("automations.fieldSourceField"),
+  phone: t("automations.fieldPhone"), message: t("automations.fieldMessage"), recipients: t("automations.fieldRecipients"),
+  table: t("automations.fieldTable"), queryType: t("automations.fieldQueryType"),
+});
 
-const configFieldPlaceholders: Record<string, string> = {
-  to: "ornek@email.com", subject: "Konu başlığı", body: "E-posta içeriği...",
-  title: "Görev başlığı", description: "Detaylı açıklama...",
+const getConfigFieldPlaceholders = (t: any): Record<string, string> => ({
+  to: "user@example.com", subject: t("automations.phSubject"), body: t("automations.phBody"),
+  title: t("automations.phTitle"), description: t("automations.phDescription"),
   agentType: "bookkeeping, sales-sdr...", priority: "high, medium, low",
-  summary: "Bildirim özeti...", url: "https://api.example.com/endpoint",
+  summary: t("automations.phSummary"), url: "https://api.example.com/endpoint",
   method: "GET, POST, PUT", variableName: "myVar",
   value: "{{data}}", valueType: "string, number, boolean, json",
   format: "json, csv, text",
-  sourceField: "data", phone: "+905551234567", message: "Mesaj metni...",
+  sourceField: "data", phone: "+905551234567", message: t("automations.phMessage"),
   recipients: "a@b.com, c@d.com", table: "agent_tasks, leads...",
   queryType: "count",
-};
+});
 
-const AGENT_TYPE_OPTIONS = [
-  { value: "customer-support", label: "Ava (Müşteri Destek)" },
-  { value: "sales-sdr", label: "Rex (Satış)" },
-  { value: "social-media", label: "Maya (Sosyal Medya)" },
-  { value: "bookkeeping", label: "Finn (Muhasebe)" },
-  { value: "scheduling", label: "Cal (Randevu)" },
-  { value: "hr-recruiting", label: "Harper (İK)" },
-  { value: "data-analyst", label: "DataBot (Veri Analiz)" },
-  { value: "ecommerce-ops", label: "ShopBot (E-Ticaret)" },
-  { value: "real-estate", label: "Reno (Gayrimenkul)" },
-  { value: "manager", label: "Manager (Yönetici)" },
+const getAgentTypeOptions = (t: any) => [
+  { value: "customer-support", label: t("automations.agentAva") },
+  { value: "sales-sdr", label: t("automations.agentRex") },
+  { value: "social-media", label: t("automations.agentMaya") },
+  { value: "bookkeeping", label: t("automations.agentFinn") },
+  { value: "scheduling", label: t("automations.agentCal") },
+  { value: "hr-recruiting", label: t("automations.agentHarper") },
+  { value: "data-analyst", label: t("automations.agentDataBot") },
+  { value: "ecommerce-ops", label: t("automations.agentShopBot") },
+  { value: "real-estate", label: t("automations.agentReno") },
+  { value: "manager", label: t("automations.agentManager") },
 ];
 
-const PRIORITY_OPTIONS = [
-  { value: "high", label: "Yüksek" },
-  { value: "medium", label: "Orta" },
-  { value: "low", label: "Düşük" },
+const getPriorityOptions = (t: any) => [
+  { value: "high", label: t("automations.priorityHigh") },
+  { value: "medium", label: t("automations.priorityMedium") },
+  { value: "low", label: t("automations.priorityLow") },
 ];
 
 const NODE_W = 200;
@@ -210,6 +278,8 @@ function VisualWorkflowEditor({ nodes, onChange, executionResults }: {
   onChange?: (nodes: any[]) => void;
   executionResults?: any[];
 }) {
+  const { t } = useTranslation("pages");
+  const actionTypeLabels = getActionTypeLabels(t);
   const svgRef = useRef<SVGSVGElement>(null);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [dragState, setDragState] = useState<{ nodeId: string; offsetX: number; offsetY: number } | null>(null);
@@ -231,15 +301,15 @@ function VisualWorkflowEditor({ nodes, onChange, executionResults }: {
     }
     if (node.conditionTrueNodeId) {
       const target = positionedNodes.find((n: any) => n.id === node.conditionTrueNodeId);
-      if (target) connections.push({ from: node, to: target, label: "Evet" });
+      if (target) connections.push({ from: node, to: target, label: "yes" });
     }
     if (node.conditionFalseNodeId) {
       const target = positionedNodes.find((n: any) => n.id === node.conditionFalseNodeId);
-      if (target) connections.push({ from: node, to: target, label: "Hayır" });
+      if (target) connections.push({ from: node, to: target, label: "no" });
     }
     if (node.onErrorNodeId) {
       const target = positionedNodes.find((n: any) => n.id === node.onErrorNodeId);
-      if (target) connections.push({ from: node, to: target, label: "Hata" });
+      if (target) connections.push({ from: node, to: target, label: "error" });
     }
   }
 
@@ -298,8 +368,9 @@ function VisualWorkflowEditor({ nodes, onChange, executionResults }: {
           const toX = conn.to.position.x + NODE_W / 2;
           const toY = conn.to.position.y;
           const midY = (fromY + toY) / 2;
-          const strokeColor = conn.label === "Evet" ? "#22C55E" : conn.label === "Hayır" ? "#EF4444" : conn.label === "Hata" ? "#F97316" : "#4B5563";
-          const markerId = conn.label === "Evet" ? "arrowhead-green" : conn.label === "Hayır" ? "arrowhead-red" : "arrowhead";
+          const strokeColor = conn.label === "yes" ? "#22C55E" : conn.label === "no" ? "#EF4444" : conn.label === "error" ? "#F97316" : "#4B5563";
+          const markerId = conn.label === "yes" ? "arrowhead-green" : conn.label === "no" ? "arrowhead-red" : "arrowhead";
+          const connDisplayLabels: Record<string, string> = { yes: t("automations.yes"), no: t("automations.no"), error: t("automations.connError") };
 
           return (
             <g key={i}>
@@ -312,14 +383,14 @@ function VisualWorkflowEditor({ nodes, onChange, executionResults }: {
               />
               {conn.label && (
                 <text
-                  x={(fromX + toX) / 2 + (conn.label === "Evet" ? -30 : conn.label === "Hayır" ? 20 : 0)}
+                  x={(fromX + toX) / 2 + (conn.label === "yes" ? -30 : conn.label === "no" ? 20 : 0)}
                   y={midY - 5}
                   fill={strokeColor}
                   fontSize="11"
                   textAnchor="middle"
                   fontWeight="bold"
                 >
-                  {conn.label}
+                  {connDisplayLabels[conn.label] || conn.label}
                 </text>
               )}
             </g>
@@ -357,12 +428,12 @@ function VisualWorkflowEditor({ nodes, onChange, executionResults }: {
             </div>
             <div className="flex items-center gap-1 mt-1">
               <span className="text-[10px] text-gray-500">
-                {node.type === "trigger" ? "Tetikleyici" :
-                 node.type === "condition" ? "Koşul" :
-                 node.type === "delay" ? "Bekleme" :
-                 node.actionType === "integration" ? (node.config?._integrationLabel || "Entegrasyon") :
-                 node.actionType === "run_skill" ? (node.config?._skillLabel || "Beceri Çalıştır") :
-                 actionTypeLabels[node.actionType] || node.actionType || "Aksiyon"}
+                {node.type === "trigger" ? t("automations.trigger") :
+                 node.type === "condition" ? t("automations.condition") :
+                 node.type === "delay" ? t("automations.delay") :
+                 node.actionType === "integration" ? (node.config?._integrationLabel || t("automations.actionIntegration")) :
+                 node.actionType === "run_skill" ? (node.config?._skillLabel || t("automations.actionRunSkill")) :
+                 actionTypeLabels[node.actionType] || node.actionType || t("automations.action")}
               </span>
               {node.maxRetries && node.maxRetries > 0 && (
                 <Badge variant="outline" className="text-[9px] border-gray-700 text-gray-500 px-1 py-0">
@@ -402,13 +473,20 @@ function NodeDetailPanel({ node, result, onClose, onChange, allNodes }: {
   onChange?: (node: any) => void;
   allNodes?: any[];
 }) {
+  const { t } = useTranslation("pages");
+  const actionTypeLabels = getActionTypeLabels(t);
+  const conditionOperatorLabels = getConditionOperatorLabels(t);
+  const configFieldLabels = getConfigFieldLabels(t);
+  const configFieldPlaceholders = getConfigFieldPlaceholders(t);
+  const AGENT_TYPE_OPTIONS = getAgentTypeOptions(t);
+  const PRIORITY_OPTIONS = getPriorityOptions(t);
   if (!node) return null;
 
   const otherNodes = (allNodes || []).filter((n: any) => n.id !== node.id);
 
   return (
     <div
-      className="absolute right-0 top-0 w-80 h-full bg-gray-900 border-l border-gray-800 p-4 overflow-y-auto z-10"
+      className="absolute right-0 top-0 w-80 h-full bg-gray-900 border-l border-gray-800 p-4 overflow-y-auto z-20"
       data-testid="node-detail-panel"
     >
       <div className="flex items-center justify-between mb-4">
@@ -420,17 +498,17 @@ function NodeDetailPanel({ node, result, onClose, onChange, allNodes }: {
 
       <div className="space-y-3">
         <div>
-          <label className="text-xs text-gray-400 block mb-1">Tür</label>
+          <label className="text-xs text-gray-400 block mb-1">{t("automations.nodeType")}</label>
           <p className="text-sm text-white capitalize">
-            {node.type === "trigger" ? "Tetikleyici" :
-             node.type === "condition" ? "Koşul" :
-             node.type === "delay" ? "Bekleme" : "Aksiyon"}
+            {node.type === "trigger" ? t("automations.trigger") :
+             node.type === "condition" ? t("automations.condition") :
+             node.type === "delay" ? t("automations.delay") : t("automations.action")}
           </p>
         </div>
 
         {node.actionType && (
           <div>
-            <label className="text-xs text-gray-400 block mb-1">Aksiyon</label>
+            <label className="text-xs text-gray-400 block mb-1">{t("automations.action")}</label>
             <p className="text-sm text-white">{actionTypeLabels[node.actionType] || node.actionType}</p>
           </div>
         )}
@@ -438,7 +516,7 @@ function NodeDetailPanel({ node, result, onClose, onChange, allNodes }: {
         {onChange && (
           <>
             <div>
-              <label className="text-xs text-gray-400 block mb-1">Etiket</label>
+              <label className="text-xs text-gray-400 block mb-1">{t("automations.label")}</label>
               <Input
                 value={node.label}
                 onChange={(e) => onChange({ ...node, label: e.target.value })}
@@ -455,7 +533,7 @@ function NodeDetailPanel({ node, result, onClose, onChange, allNodes }: {
                     onValueChange={(v) => onChange({ ...node, config: { ...node.config, [key]: v } })}
                   >
                     <SelectTrigger className="bg-gray-800 border-gray-700 text-white text-xs h-8" data-testid={`select-config-${key}`}>
-                      <SelectValue placeholder="Ajan seçin..." />
+                      <SelectValue placeholder={t("automations.selectAgent")} />
                     </SelectTrigger>
                     <SelectContent>
                       {AGENT_TYPE_OPTIONS.map((opt) => (
@@ -469,7 +547,7 @@ function NodeDetailPanel({ node, result, onClose, onChange, allNodes }: {
                     onValueChange={(v) => onChange({ ...node, config: { ...node.config, [key]: v } })}
                   >
                     <SelectTrigger className="bg-gray-800 border-gray-700 text-white text-xs h-8" data-testid={`select-config-${key}`}>
-                      <SelectValue placeholder="Öncelik seçin..." />
+                      <SelectValue placeholder={t("automations.selectPriority")} />
                     </SelectTrigger>
                     <SelectContent>
                       {PRIORITY_OPTIONS.map((opt) => (
@@ -510,7 +588,7 @@ function NodeDetailPanel({ node, result, onClose, onChange, allNodes }: {
             )}
             {node.type === "delay" && (
               <div>
-                <label className="text-xs text-gray-400 block mb-1">Bekleme Süresi (saniye)</label>
+                <label className="text-xs text-gray-400 block mb-1">{t("automations.delaySeconds")}</label>
                 <Input
                   type="number"
                   min="1"
@@ -526,10 +604,10 @@ function NodeDetailPanel({ node, result, onClose, onChange, allNodes }: {
 
         {onChange && node.type === "condition" && (
           <div className="border-t border-gray-800 pt-3">
-            <h4 className="text-xs text-gray-400 mb-2">Koşul Ayarları</h4>
+            <h4 className="text-xs text-gray-400 mb-2">{t("automations.conditionSettings")}</h4>
             <div className="space-y-2">
               <div className="flex items-center gap-2 mb-2">
-                <label className="text-xs text-gray-500">Mantık:</label>
+                <label className="text-xs text-gray-500">{t("automations.logic")}:</label>
                 <Select
                   value={node.conditionLogic || "and"}
                   onValueChange={(val) => onChange({ ...node, conditionLogic: val })}
@@ -538,15 +616,15 @@ function NodeDetailPanel({ node, result, onClose, onChange, allNodes }: {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="and">VE</SelectItem>
-                    <SelectItem value="or">VEYA</SelectItem>
+                    <SelectItem value="and">{t("automations.and")}</SelectItem>
+                    <SelectItem value="or">{t("automations.or")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               {(node.conditions && node.conditions.length > 0 ? node.conditions : [{ field: node.config?.field || "", operator: node.config?.operator || "equals", value: node.config?.value || "" }]).map((cond: any, idx: number) => (
                 <div key={idx} className="bg-gray-800/50 rounded p-2 space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] text-gray-500">Kural {idx + 1}</span>
+                    <span className="text-[10px] text-gray-500">{t("automations.rule")} {idx + 1}</span>
                     {(node.conditions?.length || 1) > 1 && (
                       <button
                         className="text-[10px] text-red-400 hover:text-red-300"
@@ -557,7 +635,7 @@ function NodeDetailPanel({ node, result, onClose, onChange, allNodes }: {
                         }}
                         data-testid={`button-remove-condition-${idx}`}
                       >
-                        Kaldır
+                        {t("automations.remove")}
                       </button>
                     )}
                   </div>
@@ -569,7 +647,7 @@ function NodeDetailPanel({ node, result, onClose, onChange, allNodes }: {
                       onChange({ ...node, conditions: conds, config: { ...node.config, field: conds[0]?.field, operator: conds[0]?.operator, value: conds[0]?.value } });
                     }}
                     className="bg-gray-800 border-gray-700 text-white text-xs h-7"
-                    placeholder="Alan adı"
+                    placeholder={t("automations.fieldName")}
                     data-testid={`input-condition-field-${idx}`}
                   />
                   <Select
@@ -597,7 +675,7 @@ function NodeDetailPanel({ node, result, onClose, onChange, allNodes }: {
                       onChange({ ...node, conditions: conds, config: { ...node.config, field: conds[0]?.field, operator: conds[0]?.operator, value: conds[0]?.value } });
                     }}
                     className="bg-gray-800 border-gray-700 text-white text-xs h-7"
-                    placeholder="Değer"
+                    placeholder={t("automations.valuePlaceholder")}
                     data-testid={`input-condition-value-${idx}`}
                   />
                 </div>
@@ -612,7 +690,7 @@ function NodeDetailPanel({ node, result, onClose, onChange, allNodes }: {
                 }}
                 data-testid="button-add-condition-rule"
               >
-                <Plus className="w-3 h-3 mr-1" /> Kural Ekle
+                <Plus className="w-3 h-3 mr-1" /> {t("automations.addRule")}
               </Button>
             </div>
           </div>
@@ -620,17 +698,17 @@ function NodeDetailPanel({ node, result, onClose, onChange, allNodes }: {
 
         {onChange && otherNodes.length > 0 && (
           <div className="border-t border-gray-800 pt-3">
-            <h4 className="text-xs text-gray-400 mb-2">Bağlantılar</h4>
+            <h4 className="text-xs text-gray-400 mb-2">{t("automations.connections")}</h4>
             <div className="space-y-2">
               {node.type !== "condition" && (
                 <div>
-                  <label className="text-xs text-gray-500 block mb-1">Sonraki Düğüm</label>
+                  <label className="text-xs text-gray-500 block mb-1">{t("automations.nextNode")}</label>
                   <Select value={node.nextNodeId || "__none__"} onValueChange={(val) => onChange({ ...node, nextNodeId: val === "__none__" ? null : val })}>
                     <SelectTrigger className="bg-gray-800 border-gray-700 text-white text-xs h-8" data-testid="select-next-node">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="__none__">— Yok —</SelectItem>
+                      <SelectItem value="__none__">{t("automations.none")}</SelectItem>
                       {otherNodes.map((n: any) => <SelectItem key={n.id} value={n.id}>{n.label}</SelectItem>)}
                     </SelectContent>
                   </Select>
@@ -639,25 +717,25 @@ function NodeDetailPanel({ node, result, onClose, onChange, allNodes }: {
               {node.type === "condition" && (
                 <>
                   <div>
-                    <label className="text-xs text-gray-500 block mb-1">Evet → Düğüm</label>
+                    <label className="text-xs text-gray-500 block mb-1">{t("automations.yesNode")}</label>
                     <Select value={node.conditionTrueNodeId || "__none__"} onValueChange={(val) => onChange({ ...node, conditionTrueNodeId: val === "__none__" ? null : val })}>
                       <SelectTrigger className="bg-gray-800 border-gray-700 text-white text-xs h-8" data-testid="select-true-node">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="__none__">— Yok —</SelectItem>
+                        <SelectItem value="__none__">{t("automations.none")}</SelectItem>
                         {otherNodes.map((n: any) => <SelectItem key={n.id} value={n.id}>{n.label}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>
                   <div>
-                    <label className="text-xs text-gray-500 block mb-1">Hayır → Düğüm</label>
+                    <label className="text-xs text-gray-500 block mb-1">{t("automations.noNode")}</label>
                     <Select value={node.conditionFalseNodeId || "__none__"} onValueChange={(val) => onChange({ ...node, conditionFalseNodeId: val === "__none__" ? null : val })}>
                       <SelectTrigger className="bg-gray-800 border-gray-700 text-white text-xs h-8" data-testid="select-false-node">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="__none__">— Yok —</SelectItem>
+                        <SelectItem value="__none__">{t("automations.none")}</SelectItem>
                         {otherNodes.map((n: any) => <SelectItem key={n.id} value={n.id}>{n.label}</SelectItem>)}
                       </SelectContent>
                     </Select>
@@ -665,13 +743,13 @@ function NodeDetailPanel({ node, result, onClose, onChange, allNodes }: {
                 </>
               )}
               <div>
-                <label className="text-xs text-gray-500 block mb-1">Hata → Düğüm</label>
+                <label className="text-xs text-gray-500 block mb-1">{t("automations.errorNode")}</label>
                 <Select value={node.onErrorNodeId || "__none__"} onValueChange={(val) => onChange({ ...node, onErrorNodeId: val === "__none__" ? null : val })}>
                   <SelectTrigger className="bg-gray-800 border-gray-700 text-white text-xs h-8" data-testid="select-error-node">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="__none__">— Yok —</SelectItem>
+                    <SelectItem value="__none__">{t("automations.none")}</SelectItem>
                     {otherNodes.map((n: any) => <SelectItem key={n.id} value={n.id}>{n.label}</SelectItem>)}
                   </SelectContent>
                 </Select>
@@ -682,10 +760,10 @@ function NodeDetailPanel({ node, result, onClose, onChange, allNodes }: {
 
         {onChange && (
           <div className="border-t border-gray-800 pt-3">
-            <h4 className="text-xs text-gray-400 mb-2">Hata Yönetimi</h4>
+            <h4 className="text-xs text-gray-400 mb-2">{t("automations.errorHandling")}</h4>
             <div className="space-y-2">
               <div>
-                <label className="text-xs text-gray-500 block mb-1">Tekrar Deneme Sayısı</label>
+                <label className="text-xs text-gray-500 block mb-1">{t("automations.retryCount")}</label>
                 <Input
                   type="number"
                   min="0"
@@ -697,7 +775,7 @@ function NodeDetailPanel({ node, result, onClose, onChange, allNodes }: {
                 />
               </div>
               <div>
-                <label className="text-xs text-gray-500 block mb-1">Tekrar Aralığı (ms)</label>
+                <label className="text-xs text-gray-500 block mb-1">{t("automations.retryDelay")}</label>
                 <Input
                   type="number"
                   min="0"
@@ -708,7 +786,7 @@ function NodeDetailPanel({ node, result, onClose, onChange, allNodes }: {
                 />
               </div>
               <div>
-                <label className="text-xs text-gray-500 block mb-1">Zaman Aşımı (ms)</label>
+                <label className="text-xs text-gray-500 block mb-1">{t("automations.timeout")}</label>
                 <Input
                   type="number"
                   min="0"
@@ -716,7 +794,7 @@ function NodeDetailPanel({ node, result, onClose, onChange, allNodes }: {
                   value={node.timeoutMs || 0}
                   onChange={(e) => onChange({ ...node, timeoutMs: parseInt(e.target.value) || 0 })}
                   className="bg-gray-800 border-gray-700 text-white text-xs h-8"
-                  placeholder="0 = sınırsız"
+                  placeholder={t("automations.noLimit")}
                   data-testid="input-timeout"
                 />
               </div>
@@ -726,7 +804,7 @@ function NodeDetailPanel({ node, result, onClose, onChange, allNodes }: {
 
         {result && (
           <div className="border-t border-gray-800 pt-3">
-            <h4 className="text-xs text-gray-400 mb-2">Çalışma Sonucu</h4>
+            <h4 className="text-xs text-gray-400 mb-2">{t("automations.executionResult")}</h4>
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 {result.status === "success" ? (
@@ -735,7 +813,7 @@ function NodeDetailPanel({ node, result, onClose, onChange, allNodes }: {
                   <XCircle className="w-4 h-4 text-red-400" />
                 )}
                 <span className={`text-xs ${result.status === "success" ? "text-green-400" : "text-red-400"}`}>
-                  {result.status === "success" ? "Başarılı" : "Başarısız"}
+                  {result.status === "success" ? t("automations.successful") : t("automations.failed")}
                 </span>
                 {result.duration && (
                   <span className="text-xs text-gray-500 ml-auto">{result.duration}ms</span>
@@ -748,7 +826,7 @@ function NodeDetailPanel({ node, result, onClose, onChange, allNodes }: {
               )}
               {result.input && (
                 <div>
-                  <label className="text-xs text-gray-500 block mb-1">Girdi</label>
+                  <label className="text-xs text-gray-500 block mb-1">{t("automations.input")}</label>
                   <pre className="text-[10px] text-gray-400 bg-gray-800 rounded p-2 max-h-24 overflow-auto">
                     {JSON.stringify(result.input, null, 2).substring(0, 500)}
                   </pre>
@@ -756,7 +834,7 @@ function NodeDetailPanel({ node, result, onClose, onChange, allNodes }: {
               )}
               {result.output && (
                 <div>
-                  <label className="text-xs text-gray-500 block mb-1">Çıktı</label>
+                  <label className="text-xs text-gray-500 block mb-1">{t("automations.output")}</label>
                   <pre className="text-[10px] text-gray-400 bg-gray-800 rounded p-2 max-h-24 overflow-auto">
                     {JSON.stringify(result.output, null, 2).substring(0, 500)}
                   </pre>
@@ -771,6 +849,7 @@ function NodeDetailPanel({ node, result, onClose, onChange, allNodes }: {
 }
 
 function ExecutionTimeline({ execution }: { execution: Execution }) {
+  const { t, i18n } = useTranslation("pages");
   const [expanded, setExpanded] = useState(false);
   const results = execution.nodeResults || [];
 
@@ -791,15 +870,15 @@ function ExecutionTimeline({ execution }: { execution: Execution }) {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <span className="text-sm text-white font-medium">
-              {execution.status === "completed" ? "Başarılı" : execution.status === "failed" ? "Başarısız" : "Çalışıyor"}
+              {execution.status === "completed" ? t("automations.successful") : execution.status === "failed" ? t("automations.failed") : t("automations.running")}
             </span>
             <Badge variant="outline" className="text-[10px] border-gray-700 text-gray-500">
-              {results.length} adım
+              {results.length} {t("automations.step")}
             </Badge>
           </div>
           {execution.error && <p className="text-xs text-red-400 mt-0.5 truncate">{execution.error}</p>}
         </div>
-        <p className="text-xs text-gray-500 flex-shrink-0">{new Date(execution.startedAt).toLocaleString("tr-TR")}</p>
+        <p className="text-xs text-gray-500 flex-shrink-0">{new Date(execution.startedAt).toLocaleString(i18n.language === "tr" ? "tr-TR" : "en-US")}</p>
         {expanded ? <ChevronDown className="w-4 h-4 text-gray-500" /> : <ChevronRight className="w-4 h-4 text-gray-500" />}
       </div>
 
@@ -830,7 +909,7 @@ function ExecutionTimeline({ execution }: { execution: Execution }) {
                   )}
                   {result.input && (
                     <div className="mt-1">
-                      <span className="text-[9px] text-gray-600 font-medium">Girdi:</span>
+                      <span className="text-[9px] text-gray-600 font-medium">{t("automations.input")}:</span>
                       <pre className="text-[10px] text-gray-500 max-h-12 overflow-auto">
                         {JSON.stringify(result.input, null, 2).substring(0, 200)}
                       </pre>
@@ -838,7 +917,7 @@ function ExecutionTimeline({ execution }: { execution: Execution }) {
                   )}
                   {result.output && (
                     <div className="mt-1">
-                      <span className="text-[9px] text-gray-600 font-medium">Çıktı:</span>
+                      <span className="text-[9px] text-gray-600 font-medium">{t("automations.output")}:</span>
                       <pre className="text-[10px] text-gray-500 max-h-12 overflow-auto">
                         {JSON.stringify(result.output, null, 2).substring(0, 200)}
                       </pre>
@@ -855,6 +934,7 @@ function ExecutionTimeline({ execution }: { execution: Execution }) {
 }
 
 function SkillConfigPanel({ config, onChange }: { config: Record<string, any>; onChange: (config: Record<string, any>) => void }) {
+  const { t } = useTranslation("pages");
   const { data: skillsData } = useQuery<any>({
     queryKey: ["/api/automations/skills"],
   });
@@ -863,7 +943,7 @@ function SkillConfigPanel({ config, onChange }: { config: Record<string, any>; o
 
   return (
     <div className="space-y-2" data-testid="skill-config-panel">
-      <label className="text-xs text-gray-400 block">Beceri Seçin</label>
+      <label className="text-xs text-gray-400 block">{t("automations.selectSkill")}</label>
       <Select
         value={config.skillName || ""}
         onValueChange={(val) => {
@@ -879,7 +959,7 @@ function SkillConfigPanel({ config, onChange }: { config: Record<string, any>; o
         }}
       >
         <SelectTrigger className="bg-gray-800 border-gray-700 text-white text-xs" data-testid="select-skill">
-          <SelectValue placeholder="Beceri seçin..." />
+          <SelectValue placeholder={t("automations.selectSkillPlaceholder")} />
         </SelectTrigger>
         <SelectContent>
           {skills.map((s: any) => (
@@ -899,7 +979,7 @@ function SkillConfigPanel({ config, onChange }: { config: Record<string, any>; o
           <p className="text-[10px] text-gray-500">{selectedSkill.descriptionTr || selectedSkill.description}</p>
           {selectedSkill.parameters && selectedSkill.parameters.length > 0 && (
             <>
-              <label className="text-xs text-emerald-400 block mt-2">Parametreler</label>
+              <label className="text-xs text-emerald-400 block mt-2">{t("automations.parameters")}</label>
               {selectedSkill.parameters.map((p: any) => (
                 <div key={p.name}>
                   <label className="text-[10px] text-gray-400 block mb-0.5">
@@ -923,6 +1003,7 @@ function SkillConfigPanel({ config, onChange }: { config: Record<string, any>; o
 }
 
 function IntegrationConfigPanel({ config, onChange }: { config: Record<string, any>; onChange: (config: Record<string, any>) => void }) {
+  const { t } = useTranslation("pages");
   const [searchTerm, setSearchTerm] = useState("");
   const { data: catalogData } = useQuery<any>({
     queryKey: ["/api/automations/integrations"],
@@ -943,13 +1024,13 @@ function IntegrationConfigPanel({ config, onChange }: { config: Record<string, a
 
     return (
       <div className="space-y-2" data-testid="integration-picker">
-        <label className="text-xs text-gray-400 block">Entegrasyon Seç</label>
+        <label className="text-xs text-gray-400 block">{t("automations.selectIntegration")}</label>
         <div className="relative">
           <Search className="absolute left-2 top-1.5 w-3 h-3 text-gray-500" />
           <Input
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Ara... (Slack, Telegram, vb.)"
+            placeholder={t("automations.searchIntegration")}
             className="bg-gray-800 border-gray-700 text-white text-xs h-7 pl-7"
             data-testid="input-integration-search"
           />
@@ -970,17 +1051,17 @@ function IntegrationConfigPanel({ config, onChange }: { config: Record<string, a
                   </div>
                   <div>
                     <p className="text-xs text-white">{integration.nameTr}</p>
-                    <p className="text-[10px] text-gray-500">{integration.actions?.length || 0} aksiyon</p>
+                    <p className="text-[10px] text-gray-500">{integration.actions?.length || 0} {t("automations.actionCount")}</p>
                   </div>
                 </button>
               ))}
             </div>
           ))}
           {Object.keys(byCategory).length === 0 && (
-            <p className="text-xs text-gray-500 py-2 text-center">Sonuç bulunamadı</p>
+            <p className="text-xs text-gray-500 py-2 text-center">{t("automations.noResults")}</p>
           )}
         </div>
-        <p className="text-[10px] text-gray-600 text-center">{integrations.length} entegrasyon • {catalogData?.totalActions || 0} aksiyon</p>
+        <p className="text-[10px] text-gray-600 text-center">{integrations.length} {t("automations.integrationCount")} • {catalogData?.totalActions || 0} {t("automations.actionCount")}</p>
       </div>
     );
   }
@@ -999,7 +1080,7 @@ function IntegrationConfigPanel({ config, onChange }: { config: Record<string, a
             <X className="w-3 h-3" />
           </button>
         </div>
-        <label className="text-xs text-gray-400 block">Aksiyon Seç</label>
+        <label className="text-xs text-gray-400 block">{t("automations.selectAction")}</label>
         {selectedIntegration.actions.map((action: any) => (
           <button
             key={action.id}
@@ -1072,7 +1153,7 @@ function IntegrationConfigPanel({ config, onChange }: { config: Record<string, a
         ))}
 
         <a href={selectedIntegration.docsUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-[10px] text-blue-400 hover:text-blue-300 mt-1">
-          <ExternalLink className="w-3 h-3" /> API Dokümantasyonu
+          <ExternalLink className="w-3 h-3" /> {t("automations.apiDocs")}
         </a>
       </div>
     );
@@ -1082,6 +1163,7 @@ function IntegrationConfigPanel({ config, onChange }: { config: Record<string, a
 }
 
 function EventMonitorPanel({ workflowId: _workflowId }: { workflowId: number }) {
+  const { t } = useTranslation("pages");
   const { toast } = useToast();
 
   const { data: status, isLoading } = useQuery<any>({
@@ -1098,12 +1180,12 @@ function EventMonitorPanel({ workflowId: _workflowId }: { workflowId: number }) 
       if (data.success) {
         const total = (data.results || []).reduce((acc: number, r: any) => acc + (r.triggeredWorkflows || 0), 0);
         toast({
-          title: "Olay kontrolü tamamlandı",
-          description: `${total} workflow tetiklendi`,
+          title: t("automations.eventCheckComplete"),
+          description: `${total} ${t("automations.workflowTriggered")}`,
         });
       }
     },
-    onError: () => toast({ title: "Kontrol başarısız", variant: "destructive" }),
+    onError: () => toast({ title: t("automations.checkFailed"), variant: "destructive" }),
   });
 
   if (isLoading) return null;
@@ -1116,7 +1198,7 @@ function EventMonitorPanel({ workflowId: _workflowId }: { workflowId: number }) 
         <div className="flex items-center justify-between">
           <CardTitle className="text-white text-lg flex items-center gap-2">
             <Activity className="w-5 h-5 text-blue-400" />
-            Olay İzleyici
+            {t("automations.triggerEventMonitor")}
           </CardTitle>
           <Button
             size="sm"
@@ -1131,17 +1213,17 @@ function EventMonitorPanel({ workflowId: _workflowId }: { workflowId: number }) 
             ) : (
               <Play className="w-3 h-3 mr-1" />
             )}
-            Şimdi Kontrol Et
+            {t("automations.checkNow")}
           </Button>
         </div>
       </CardHeader>
       <CardContent>
         <p className="text-xs text-gray-500 mb-3">
-          Bu workflow, belirli koşullar karşılandığında otomatik olarak tetiklenir. Manuel kontrol yapabilir veya otomatik çalışmasını bekleyebilirsiniz.
+          {t("automations.eventMonitorDesc")}
         </p>
         {monitors.length === 0 ? (
           <div className="text-center py-3">
-            <p className="text-xs text-gray-500">Aktif olay izleyicisi bulunamadı.</p>
+            <p className="text-xs text-gray-500">{t("automations.noActiveMonitors")}</p>
           </div>
         ) : (
           <div className="space-y-2">
@@ -1159,11 +1241,11 @@ function EventMonitorPanel({ workflowId: _workflowId }: { workflowId: number }) 
 
         {checkMutation.data?.results && (
           <div className="mt-3 space-y-2">
-            <p className="text-xs font-medium text-gray-400">Son Kontrol Sonuçları:</p>
+            <p className="text-xs font-medium text-gray-400">{t("automations.lastCheckResults")}:</p>
             {checkMutation.data.results.map((r: any, i: number) => (
               <div key={i} className={`p-2 rounded text-xs ${r.triggeredWorkflows > 0 ? "bg-green-500/10 text-green-400" : "bg-gray-800/50 text-gray-500"}`}>
                 <span className="font-medium">{r.description}</span>
-                {r.triggeredWorkflows > 0 && ` — ${r.triggeredWorkflows} tetiklendi`}
+                {r.triggeredWorkflows > 0 && ` — ${r.triggeredWorkflows} ${t("automations.triggered")}`}
                 {r.errors?.length > 0 && <span className="text-red-400 ml-2">{r.errors[0]}</span>}
               </div>
             ))}
@@ -1178,6 +1260,9 @@ function NaturalLanguageRuleBuilder({ onWorkflowCreated, onClose }: {
   onWorkflowCreated: (workflow: any) => void;
   onClose: () => void;
 }) {
+  const { t } = useTranslation("pages");
+  const triggerTypeLabels = getTriggerTypeLabels(t);
+  const actionTypeLabels = getActionTypeLabels(t);
   const { toast } = useToast();
   const [description, setDescription] = useState("");
   const [generatedWorkflow, setGeneratedWorkflow] = useState<any>(null);
@@ -1193,10 +1278,10 @@ function NaturalLanguageRuleBuilder({ onWorkflowCreated, onClose }: {
         setGeneratedWorkflow(data.workflow);
         setStep("preview");
       } else {
-        toast({ title: "Kural oluşturulamadı", description: data.error, variant: "destructive" });
+        toast({ title: t("automations.ruleCreationFailed"), description: data.error, variant: "destructive" });
       }
     },
-    onError: () => toast({ title: "Hata oluştu", variant: "destructive" }),
+    onError: () => toast({ title: t("automations.errorOccurred"), variant: "destructive" }),
   });
 
   const saveMutation = useMutation({
@@ -1213,17 +1298,17 @@ function NaturalLanguageRuleBuilder({ onWorkflowCreated, onClose }: {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/automations"] });
       onWorkflowCreated(data);
-      toast({ title: "Kural oluşturuldu", description: "Otomasyonu aktifleştirmeyi unutmayın!" });
+      toast({ title: t("automations.ruleCreated"), description: t("automations.dontForgetActivate") });
     },
-    onError: () => toast({ title: "Kaydetme başarısız", variant: "destructive" }),
+    onError: () => toast({ title: t("automations.saveFailed"), variant: "destructive" }),
   });
 
   const EXAMPLES = [
-    "Müşteri 3 gündür yanıt vermediyse Rex hatırlatma e-postası atsın",
-    "Fatura 7 gündür ödenmemişse Finn uyarı bildirimi göndersin",
-    "Yeni lead eklendiğinde takip görevi oluştur ve bildirim gönder",
-    "Her Pazartesi sabahı haftalık özet rapor hazırlansın",
-    "E-posta geldiğinde müşteri destek görevi oluştur",
+    t("automations.nlExample1"),
+    t("automations.nlExample2"),
+    t("automations.nlExample3"),
+    t("automations.nlExample4"),
+    t("automations.nlExample5"),
   ];
 
   return (
@@ -1236,8 +1321,8 @@ function NaturalLanguageRuleBuilder({ onWorkflowCreated, onClose }: {
                 <Sparkles className="w-5 h-5 text-purple-400" />
               </div>
               <div>
-                <h2 className="text-lg font-bold text-white">AI Kural Oluşturucu</h2>
-                <p className="text-gray-400 text-xs">Doğal dilde kuralınızı tarif edin</p>
+                <h2 className="text-lg font-bold text-white">{t("automations.aiRuleBuilder")}</h2>
+                <p className="text-gray-400 text-xs">{t("automations.describeRuleNl")}</p>
               </div>
             </div>
             <Button variant="ghost" size="sm" onClick={onClose} data-testid="button-close-nl-builder">
@@ -1248,18 +1333,18 @@ function NaturalLanguageRuleBuilder({ onWorkflowCreated, onClose }: {
           {step === "input" && (
             <div className="space-y-4">
               <div>
-                <label className="text-sm text-gray-300 block mb-2">Kuralınızı Türkçe veya İngilizce olarak tarif edin</label>
+                <label className="text-sm text-gray-300 block mb-2">{t("automations.describeYourRule")}</label>
                 <Textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Örnek: Müşteri 3 gündür yanıt vermediyse Rex hatırlatma e-postası atsın..."
+                  placeholder={t("automations.nlPlaceholder")}
                   className="bg-gray-800 border-gray-700 text-white min-h-[100px]"
                   data-testid="input-nl-description"
                 />
               </div>
 
               <div>
-                <p className="text-xs text-gray-500 mb-2">Örnekler (tıklayarak seçin):</p>
+                <p className="text-xs text-gray-500 mb-2">{t("automations.examplesClickToSelect")}:</p>
                 <div className="space-y-1">
                   {EXAMPLES.map((ex, i) => (
                     <button
@@ -1274,21 +1359,21 @@ function NaturalLanguageRuleBuilder({ onWorkflowCreated, onClose }: {
                 </div>
               </div>
 
-              <div className="flex gap-3 pt-2">
+              <div className="flex gap-3 pt-2 sticky bottom-0 bg-gray-900 pb-2">
                 <Button
-                  className="bg-purple-600 hover:bg-purple-700 flex-1"
+                  className="bg-purple-600 hover:bg-purple-700 flex-1 min-h-[44px]"
                   onClick={() => nlMutation.mutate(description)}
                   disabled={description.trim().length < 5 || nlMutation.isPending}
                   data-testid="button-generate-workflow"
                 >
                   {nlMutation.isPending ? (
-                    <><Loader2 className="w-4 h-4 animate-spin mr-2" />Oluşturuluyor...</>
+                    <><Loader2 className="w-4 h-4 animate-spin mr-2" />{t("automations.generating")}</>
                   ) : (
-                    <><Sparkles className="w-4 h-4 mr-2" />Kural Oluştur</>
+                    <><Sparkles className="w-4 h-4 mr-2" />{t("automations.createRule")}</>
                   )}
                 </Button>
                 <Button variant="outline" className="border-gray-700 text-gray-300" onClick={onClose}>
-                  İptal
+                  {t("automations.cancel")}
                 </Button>
               </div>
             </div>
@@ -1297,7 +1382,7 @@ function NaturalLanguageRuleBuilder({ onWorkflowCreated, onClose }: {
           {step === "preview" && generatedWorkflow && (
             <div className="space-y-4">
               <div className="bg-purple-500/10 border border-purple-500/20 rounded-lg p-4">
-                <p className="text-xs text-purple-400 font-medium mb-2">AI tarafından oluşturuldu</p>
+                <p className="text-xs text-purple-400 font-medium mb-2">{t("automations.createdByAI")}</p>
                 <h3 className="text-white font-semibold">{generatedWorkflow.name}</h3>
                 {generatedWorkflow.description && (
                   <p className="text-gray-400 text-sm mt-1">{generatedWorkflow.description}</p>
@@ -1307,13 +1392,13 @@ function NaturalLanguageRuleBuilder({ onWorkflowCreated, onClose }: {
                     {triggerTypeLabels[generatedWorkflow.triggerType] || generatedWorkflow.triggerType}
                   </Badge>
                   <Badge variant="outline" className="text-xs border-gray-700 text-gray-400">
-                    {generatedWorkflow.nodes?.length || 0} adım
+                    {generatedWorkflow.nodes?.length || 0} {t("automations.step")}
                   </Badge>
                 </div>
               </div>
 
               <div>
-                <p className="text-xs text-gray-400 font-medium mb-2">Adımlar:</p>
+                <p className="text-xs text-gray-400 font-medium mb-2">{t("automations.steps")}:</p>
                 <div className="space-y-2">
                   {(generatedWorkflow.nodes || []).map((node: any, i: number) => (
                     <div key={i} className="flex items-center gap-3 px-3 py-2 bg-gray-800/50 rounded-lg">
@@ -1327,9 +1412,9 @@ function NaturalLanguageRuleBuilder({ onWorkflowCreated, onClose }: {
                       <div>
                         <p className="text-sm text-white">{node.label}</p>
                         <p className="text-[10px] text-gray-500">
-                          {node.type === "trigger" ? "Tetikleyici" :
-                           node.type === "condition" ? "Koşul" :
-                           actionTypeLabels[node.actionType] || "Aksiyon"}
+                          {node.type === "trigger" ? t("automations.trigger") :
+                           node.type === "condition" ? t("automations.condition") :
+                           actionTypeLabels[node.actionType] || t("automations.action")}
                         </p>
                       </div>
                     </div>
@@ -1337,15 +1422,15 @@ function NaturalLanguageRuleBuilder({ onWorkflowCreated, onClose }: {
                 </div>
               </div>
 
-              <div className="flex gap-3 pt-2">
+              <div className="flex gap-3 pt-2 sticky bottom-0 bg-gray-900 pb-2">
                 <Button
-                  className="bg-green-600 hover:bg-green-700 flex-1"
+                  className="bg-green-600 hover:bg-green-700 flex-1 min-h-[44px]"
                   onClick={() => saveMutation.mutate()}
                   disabled={saveMutation.isPending}
                   data-testid="button-save-nl-workflow"
                 >
                   {saveMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
-                  Kaydet ve Kullan
+                  {t("automations.saveAndUse")}
                 </Button>
                 <Button
                   variant="outline"
@@ -1353,7 +1438,7 @@ function NaturalLanguageRuleBuilder({ onWorkflowCreated, onClose }: {
                   onClick={() => { setStep("input"); setGeneratedWorkflow(null); }}
                   data-testid="button-nl-back"
                 >
-                  Geri
+                  {t("automations.back")}
                 </Button>
               </div>
             </div>
@@ -1368,44 +1453,64 @@ function RuleWizard({ onComplete, onClose }: {
   onComplete: (workflow: any) => void;
   onClose: () => void;
 }) {
+  const { t } = useTranslation("pages");
+  const conditionOperatorLabels = getConditionOperatorLabels(t);
+  const AGENT_TYPE_OPTIONS = getAgentTypeOptions(t);
   const { toast } = useToast();
   const [step, setStep] = useState(1);
   const [triggerType, setTriggerType] = useState("event_monitor");
   const [triggerConfig, setTriggerConfig] = useState<Record<string, any>>({ eventType: "lead_inactivity", daysThreshold: 3 });
-  const [conditions, setConditions] = useState<Array<{ field: string; operator: string; value: string }>>([]);
+  const [conditions, setConditions] = useState<Array<{ field: string; operator: string; value: string; isCustom?: boolean; showAdvanced?: boolean }>>([]);
   const [conditionLogic, setConditionLogic] = useState<"and" | "or">("and");
   const [actionType, setActionType] = useState("notify_owner");
   const [actionConfig, setActionConfig] = useState<Record<string, any>>({});
   const [workflowName, setWorkflowName] = useState("");
 
+  const getAvailableFields = () => TRIGGER_FIELDS[triggerType] || [{ label: "Özel Alan", value: "__custom__", valueType: "text" as const }];
+
+  const getFieldDef = (fieldValue: string): TriggerField | undefined => {
+    return getAvailableFields().find(f => f.value === fieldValue);
+  };
+
+  const buildConditionSummary = (cond: { field: string; operator: string; value: string; isCustom?: boolean }) => {
+    const fields = getAvailableFields();
+    const fieldLabel = cond.isCustom
+      ? (cond.field || "alan")
+      : (fields.find(f => f.value === cond.field)?.label || cond.field || "alan");
+    const opLabel = conditionOperatorLabels[cond.operator] || cond.operator;
+    const valueLabel = cond.value || "değer";
+    if (!cond.field && !cond.value) return null;
+    return `Eğer ${fieldLabel} ${opLabel.toLowerCase()} ${valueLabel} ise`;
+  };
+
   const TRIGGER_OPTIONS = [
-    { value: "event_monitor", label: "Olay İzleyici", description: "Belirli gün sayısı eşiği aşıldığında", icon: "⏱️" },
-    { value: "email_received", label: "E-posta Alındı", description: "Belirli filtrelerle e-posta geldiğinde", icon: "📧" },
-    { value: "schedule", label: "Zamanlanmış", description: "Belirli bir zaman planına göre", icon: "⏰" },
-    { value: "agent_tool_complete", label: "Ajan Aksiyonu", description: "Bir ajan bir işlem tamamladığında", icon: "🤖" },
-    { value: "threshold", label: "Eşik Değer", description: "Sayısal bir değer eşiği aştığında", icon: "📊" },
+    { value: "event_monitor", label: t("automations.triggerEventMonitor"), description: t("automations.wizTriggerEventDesc"), icon: "⏱️" },
+    { value: "email_received", label: t("automations.triggerEmailReceived"), description: t("automations.wizTriggerEmailDesc"), icon: "📧" },
+    { value: "schedule", label: t("automations.triggerScheduled"), description: t("automations.wizTriggerScheduleDesc"), icon: "⏰" },
+    { value: "agent_tool_complete", label: t("automations.triggerAgentAction"), description: t("automations.wizTriggerAgentDesc"), icon: "🤖" },
+    { value: "threshold", label: t("automations.triggerThreshold"), description: t("automations.wizTriggerThresholdDesc"), icon: "📊" },
   ];
 
   const ACTION_OPTIONS = [
-    { value: "notify_owner", label: "Bildirim Gönder", description: "Hesap sahibine bildirim gönder", icon: "🔔" },
-    { value: "send_email", label: "E-posta Gönder", description: "Belirtilen adrese e-posta at", icon: "📧" },
-    { value: "create_task", label: "Görev Oluştur", description: "Ajana yeni bir görev ata", icon: "📋" },
-    { value: "update_lead", label: "Lead Güncelle", description: "Leadin durumunu veya notlarını güncelle", icon: "🎯" },
-    { value: "log_action", label: "Kayıt Tut", description: "Olay günlüğüne kayıt ekle", icon: "📝" },
-    { value: "webhook_call", label: "Webhook Çağrısı", description: "Harici bir API'ya istek gönder", icon: "🔗" },
+    { value: "notify_owner", label: t("automations.actionNotifyOwner"), description: t("automations.wizActionNotifyDesc"), icon: "🔔" },
+    { value: "send_email", label: t("automations.actionSendEmail"), description: t("automations.wizActionEmailDesc"), icon: "📧" },
+    { value: "create_task", label: t("automations.actionCreateTask"), description: t("automations.wizActionTaskDesc"), icon: "📋" },
+    { value: "update_lead", label: t("automations.actionUpdateLead"), description: t("automations.wizActionLeadDesc"), icon: "🎯" },
+    { value: "log_action", label: t("automations.actionLogAction"), description: t("automations.wizActionLogDesc"), icon: "📝" },
+    { value: "webhook_call", label: t("automations.actionWebhookCall"), description: t("automations.wizActionWebhookDesc"), icon: "🔗" },
   ];
 
   const EVENT_TYPE_LABELS: Record<string, string> = {
-    lead_inactivity: "Lead Yanıtsızlık",
-    overdue_invoice: "Ödenmemiş Fatura",
-    uncompleted_tasks: "Tamamlanmamış Görev",
+    lead_inactivity: t("automations.eventLeadInactivity"),
+    overdue_invoice: t("automations.eventOverdueInvoice"),
+    uncompleted_tasks: t("automations.eventUncompletedTasks"),
   };
 
   const buildWorkflow = () => {
     const triggerNode: any = {
       id: "trigger-1",
       type: "trigger",
-      label: TRIGGER_OPTIONS.find(t => t.value === triggerType)?.label || "Tetikleyici",
+      label: TRIGGER_OPTIONS.find(tr => tr.value === triggerType)?.label || t("automations.trigger"),
       config: {},
       position: { x: 250, y: 50 },
     };
@@ -1414,16 +1519,17 @@ function RuleWizard({ onComplete, onClose }: {
     let lastNodeId = "trigger-1";
 
     if (conditions.length > 0) {
+      const cleanConditions = conditions.map(({ field, operator, value }) => ({ field, operator, value }));
       const condNode: any = {
         id: "condition-1",
         type: "condition",
-        label: "Koşul Kontrolü",
+        label: t("automations.conditionCheck"),
         config: {
           field: conditions[0]?.field || "",
           operator: conditions[0]?.operator || "equals",
           value: conditions[0]?.value || "",
         },
-        conditions: conditions,
+        conditions: cleanConditions,
         conditionLogic,
         conditionTrueNodeId: "action-1",
         conditionFalseNodeId: null,
@@ -1439,14 +1545,14 @@ function RuleWizard({ onComplete, onClose }: {
 
     const defaultActionConfig: Record<string, any> = { ...actionConfig };
     if (actionType === "notify_owner" && !defaultActionConfig.summary) {
-      defaultActionConfig.summary = "Otomasyon kuralı tetiklendi";
+      defaultActionConfig.summary = t("automations.automationRuleTriggered");
       defaultActionConfig.notificationType = "automation_rule";
     } else if (actionType === "create_task" && !defaultActionConfig.title) {
-      defaultActionConfig.title = "Otomasyon görevi";
+      defaultActionConfig.title = t("automations.automationTask");
       defaultActionConfig.agentType = "data-analyst";
       defaultActionConfig.priority = "medium";
     } else if (actionType === "log_action" && !defaultActionConfig.description) {
-      defaultActionConfig.description = "Otomasyon kuralı tetiklendi";
+      defaultActionConfig.description = t("automations.automationRuleTriggered");
       defaultActionConfig.agentType = "automation";
     }
 
@@ -1454,18 +1560,18 @@ function RuleWizard({ onComplete, onClose }: {
       id: "action-1",
       type: "action",
       actionType,
-      label: ACTION_OPTIONS.find(a => a.value === actionType)?.label || "Aksiyon",
+      label: ACTION_OPTIONS.find(a => a.value === actionType)?.label || t("automations.action"),
       config: defaultActionConfig,
       nextNodeId: null,
       position: { x: 250, y: conditions.length > 0 ? 310 : 180 },
     };
     nodes.push(actionNode);
 
-    const name = workflowName || `${TRIGGER_OPTIONS.find(t => t.value === triggerType)?.label || "Kural"} → ${ACTION_OPTIONS.find(a => a.value === actionType)?.label || "Aksiyon"}`;
+    const name = workflowName || `${TRIGGER_OPTIONS.find(tr => tr.value === triggerType)?.label || t("automations.rule")} → ${ACTION_OPTIONS.find(a => a.value === actionType)?.label || t("automations.action")}`;
 
     return {
       name,
-      description: `${triggerType === "event_monitor" ? `${triggerConfig.daysThreshold || 3} gün eşiği ile oluşturulan kural` : "Kural sihirbazı ile oluşturuldu"}`,
+      description: `${triggerType === "event_monitor" ? `${triggerConfig.daysThreshold || 3} ${t("automations.dayThresholdRule")}` : t("automations.createdWithWizard")}`,
       triggerType,
       triggerConfig,
       nodes,
@@ -1481,19 +1587,19 @@ function RuleWizard({ onComplete, onClose }: {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/automations"] });
       onComplete(data);
-      toast({ title: "Kural oluşturuldu", description: "Otomasyonu aktifleştirmeyi unutmayın!" });
+      toast({ title: t("automations.ruleCreated"), description: t("automations.dontForgetActivate") });
     },
-    onError: () => toast({ title: "Kaydetme başarısız", variant: "destructive" }),
+    onError: () => toast({ title: t("automations.saveFailed"), variant: "destructive" }),
   });
 
-  const stepTitles = ["Tetikleyici Seç", "Koşul Ekle (İsteğe Bağlı)", "Aksiyon Belirle", "Özet & Kaydet"];
+  const stepTitles = [t("automations.wizStep1"), t("automations.wizStep2"), t("automations.wizStep3"), t("automations.wizStep4")];
 
   return (
     <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" data-testid="rule-wizard-modal">
       <div className="bg-gray-900 border border-gray-700 rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           <div className="flex items-center justify-between mb-2">
-            <h2 className="text-lg font-bold text-white">Kural Sihirbazı</h2>
+            <h2 className="text-lg font-bold text-white">{t("automations.ruleWizard")}</h2>
             <Button variant="ghost" size="sm" onClick={onClose} data-testid="button-close-wizard">
               <X className="w-4 h-4 text-gray-400" />
             </Button>
@@ -1519,7 +1625,7 @@ function RuleWizard({ onComplete, onClose }: {
 
           {step === 1 && (
             <div className="space-y-3">
-              <p className="text-sm text-gray-400">Bu kural ne zaman tetiklensin?</p>
+              <p className="text-sm text-gray-400">{t("automations.whenTrigger")}</p>
               <div className="grid grid-cols-1 gap-2">
                 {TRIGGER_OPTIONS.map((opt) => (
                   <button
@@ -1552,7 +1658,7 @@ function RuleWizard({ onComplete, onClose }: {
 
               {triggerType === "event_monitor" && (
                 <div className="mt-3 space-y-2 bg-gray-800/50 rounded-lg p-3">
-                  <p className="text-xs text-gray-400 font-medium">Olay Ayarları</p>
+                  <p className="text-xs text-gray-400 font-medium">{t("automations.eventSettings")}</p>
                   <Select
                     value={triggerConfig.eventType || "lead_inactivity"}
                     onValueChange={(v) => setTriggerConfig({ ...triggerConfig, eventType: v })}
@@ -1561,13 +1667,13 @@ function RuleWizard({ onComplete, onClose }: {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="lead_inactivity">Lead Yanıtsızlık</SelectItem>
-                      <SelectItem value="overdue_invoice">Ödenmemiş Fatura</SelectItem>
-                      <SelectItem value="uncompleted_tasks">Tamamlanmamış Görev</SelectItem>
+                      <SelectItem value="lead_inactivity">{t("automations.eventLeadInactivity")}</SelectItem>
+                      <SelectItem value="overdue_invoice">{t("automations.eventOverdueInvoice")}</SelectItem>
+                      <SelectItem value="uncompleted_tasks">{t("automations.eventUncompletedTasks")}</SelectItem>
                     </SelectContent>
                   </Select>
                   <div className="flex items-center gap-2">
-                    <label className="text-xs text-gray-500 whitespace-nowrap">Gün eşiği:</label>
+                    <label className="text-xs text-gray-500 whitespace-nowrap">{t("automations.dayThreshold")}:</label>
                     <Input
                       type="number"
                       min="1"
@@ -1576,24 +1682,24 @@ function RuleWizard({ onComplete, onClose }: {
                       className="bg-gray-800 border-gray-700 text-white text-xs h-8 flex-1"
                       data-testid="input-wizard-days"
                     />
-                    <span className="text-xs text-gray-500">gün</span>
+                    <span className="text-xs text-gray-500">{t("automations.days")}</span>
                   </div>
                 </div>
               )}
 
               {triggerType === "email_received" && (
                 <div className="mt-3 space-y-2 bg-gray-800/50 rounded-lg p-3">
-                  <p className="text-xs text-gray-400 font-medium">E-posta Filtresi (İsteğe Bağlı)</p>
+                  <p className="text-xs text-gray-400 font-medium">{t("automations.emailFilterOptional")}</p>
                   <Input
                     value={triggerConfig.senderFilter || ""}
                     onChange={(e) => setTriggerConfig({ ...triggerConfig, senderFilter: e.target.value })}
-                    placeholder="Gönderen filtresi: @example.com"
+                    placeholder={t("automations.senderFilterPh")}
                     className="bg-gray-800 border-gray-700 text-white text-xs h-8"
                   />
                   <Input
                     value={triggerConfig.subjectFilter || ""}
                     onChange={(e) => setTriggerConfig({ ...triggerConfig, subjectFilter: e.target.value })}
-                    placeholder="Konu filtresi: Fatura, Sipariş..."
+                    placeholder={t("automations.subjectFilterPh")}
                     className="bg-gray-800 border-gray-700 text-white text-xs h-8"
                   />
                 </div>
@@ -1604,74 +1710,153 @@ function RuleWizard({ onComplete, onClose }: {
           {step === 2 && (
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <p className="text-sm text-gray-400">Koşullar ekleyin (isteğe bağlı)</p>
+                <p className="text-sm text-gray-400">{t("automations.addConditionsOptional")}</p>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-gray-500">Mantık:</span>
+                  <span className="text-xs text-gray-500">{t("automations.logic")}:</span>
                   <Select value={conditionLogic} onValueChange={(v) => setConditionLogic(v as "and" | "or")}>
                     <SelectTrigger className="bg-gray-800 border-gray-700 text-white text-xs h-7 w-20" data-testid="select-wizard-logic">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="and">VE</SelectItem>
-                      <SelectItem value="or">VEYA</SelectItem>
+                      <SelectItem value="and">{t("automations.and")}</SelectItem>
+                      <SelectItem value="or">{t("automations.or")}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
 
-              {conditions.map((cond, idx) => (
+              {conditions.map((cond, idx) => {
+                const availableFields = getAvailableFields();
+                const isCustom = !!cond.isCustom;
+                const selectedFieldDef = isCustom ? undefined : getFieldDef(cond.field);
+                const hasPresets = !isCustom && selectedFieldDef?.presetValues && selectedFieldDef.presetValues.length > 0;
+                const isAdvanced = !!cond.showAdvanced;
+                const visibleOperators = isAdvanced
+                  ? Object.entries(conditionOperatorLabels)
+                  : Object.entries(conditionOperatorLabels).filter(([k]) => COMMON_OPERATORS.includes(k));
+                const summary = buildConditionSummary(cond);
+
+                return (
                 <div key={idx} className="bg-gray-800/50 rounded-lg p-3 space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-400">Kural {idx + 1}</span>
+                    <span className="text-xs text-gray-400">{t("automations.rule")} {idx + 1}</span>
                     <button
                       onClick={() => setConditions(conditions.filter((_, i) => i !== idx))}
                       className="text-xs text-red-400 hover:text-red-300"
                       data-testid={`button-wizard-remove-cond-${idx}`}
                     >
-                      Kaldır
+                      {t("automations.remove")}
                     </button>
                   </div>
-                  <Input
-                    value={cond.field}
-                    onChange={(e) => {
-                      const next = [...conditions];
-                      next[idx] = { ...next[idx], field: e.target.value };
-                      setConditions(next);
-                    }}
-                    placeholder="Alan adı (örn: status, amount)"
-                    className="bg-gray-800 border-gray-700 text-white text-xs h-7"
-                    data-testid={`input-wizard-field-${idx}`}
-                  />
+
+                  {summary && (
+                    <div className="text-xs text-blue-400 bg-blue-900/20 rounded px-2 py-1 italic" data-testid={`text-wizard-cond-summary-${idx}`}>
+                      {summary}
+                    </div>
+                  )}
+
                   <Select
-                    value={cond.operator}
+                    value={isCustom ? "__custom__" : (cond.field || "")}
                     onValueChange={(v) => {
                       const next = [...conditions];
-                      next[idx] = { ...next[idx], operator: v };
+                      if (v === "__custom__") {
+                        next[idx] = { ...next[idx], isCustom: true, field: "", value: "" };
+                      } else {
+                        next[idx] = { ...next[idx], isCustom: false, field: v, value: "" };
+                      }
                       setConditions(next);
                     }}
                   >
-                    <SelectTrigger className="bg-gray-800 border-gray-700 text-white text-xs h-7" data-testid={`select-wizard-op-${idx}`}>
-                      <SelectValue />
+                    <SelectTrigger className="bg-gray-800 border-gray-700 text-white text-xs h-7" data-testid={`select-wizard-field-${idx}`}>
+                      <SelectValue placeholder={t("automations.fieldSelectPh")} />
                     </SelectTrigger>
                     <SelectContent>
-                      {Object.entries(conditionOperatorLabels).map(([k, v]) => (
-                        <SelectItem key={k} value={k}>{v}</SelectItem>
+                      {availableFields.map(f => (
+                        <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                  <Input
-                    value={cond.value}
-                    onChange={(e) => {
-                      const next = [...conditions];
-                      next[idx] = { ...next[idx], value: e.target.value };
-                      setConditions(next);
-                    }}
-                    placeholder="Değer"
-                    className="bg-gray-800 border-gray-700 text-white text-xs h-7"
-                    data-testid={`input-wizard-value-${idx}`}
-                  />
+
+                  {isCustom && (
+                    <Input
+                      value={cond.field}
+                      onChange={(e) => {
+                        const next = [...conditions];
+                        next[idx] = { ...next[idx], field: e.target.value };
+                        setConditions(next);
+                      }}
+                      placeholder={t("automations.fieldNamePlaceholderWizard")}
+                      className="bg-gray-800 border-gray-700 text-white text-xs h-7"
+                      data-testid={`input-wizard-field-${idx}`}
+                    />
+                  )}
+
+                  <div className="space-y-1">
+                    <Select
+                      value={cond.operator}
+                      onValueChange={(v) => {
+                        const next = [...conditions];
+                        next[idx] = { ...next[idx], operator: v };
+                        setConditions(next);
+                      }}
+                    >
+                      <SelectTrigger className="bg-gray-800 border-gray-700 text-white text-xs h-7" data-testid={`select-wizard-op-${idx}`}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {visibleOperators.map(([k, v]) => (
+                          <SelectItem key={k} value={k}>{v}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <button
+                      onClick={() => {
+                        const next = [...conditions];
+                        next[idx] = { ...next[idx], showAdvanced: !isAdvanced };
+                        setConditions(next);
+                      }}
+                      className="text-xs text-gray-500 hover:text-gray-300 underline"
+                      data-testid={`button-wizard-toggle-ops-${idx}`}
+                    >
+                      {isAdvanced ? t("automations.simplify") : t("automations.advancedOperators")}
+                    </button>
+                  </div>
+
+                  {hasPresets ? (
+                    <Select
+                      value={cond.value}
+                      onValueChange={(v) => {
+                        const next = [...conditions];
+                        next[idx] = { ...next[idx], value: v };
+                        setConditions(next);
+                      }}
+                    >
+                      <SelectTrigger className="bg-gray-800 border-gray-700 text-white text-xs h-7" data-testid={`select-wizard-value-${idx}`}>
+                        <SelectValue placeholder={t("automations.valueSelectPh")} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {selectedFieldDef!.presetValues!.map(pv => (
+                          <SelectItem key={pv.value} value={pv.value}>{pv.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <Input
+                      value={cond.value}
+                      onChange={(e) => {
+                        const next = [...conditions];
+                        next[idx] = { ...next[idx], value: e.target.value };
+                        setConditions(next);
+                      }}
+                      placeholder={t("automations.valuePh")}
+                      type={selectedFieldDef?.valueType === "number" ? "number" : "text"}
+                      className="bg-gray-800 border-gray-700 text-white text-xs h-7"
+                      data-testid={`input-wizard-value-${idx}`}
+                    />
+                  )}
                 </div>
-              ))}
+                );
+              })}
 
               <Button
                 variant="outline"
@@ -1680,13 +1865,13 @@ function RuleWizard({ onComplete, onClose }: {
                 onClick={() => setConditions([...conditions, { field: "", operator: "equals", value: "" }])}
                 data-testid="button-wizard-add-condition"
               >
-                <Plus className="w-3 h-3 mr-1" /> Koşul Ekle
+                <Plus className="w-3 h-3 mr-1" /> {t("automations.addCondition")}
               </Button>
 
               {conditions.length === 0 && (
                 <div className="text-center py-4">
-                  <p className="text-xs text-gray-500">Koşul eklemeden devam edebilirsiniz.</p>
-                  <p className="text-xs text-gray-600">Tüm olaylar için aksiyonu tetikleyecek.</p>
+                  <p className="text-xs text-gray-500">{t("automations.noConditionsHint")}</p>
+                  <p className="text-xs text-gray-600">{t("automations.allEventsWillTrigger")}</p>
                 </div>
               )}
             </div>
@@ -1694,7 +1879,7 @@ function RuleWizard({ onComplete, onClose }: {
 
           {step === 3 && (
             <div className="space-y-3">
-              <p className="text-sm text-gray-400">Bu kural tetiklendiğinde ne yapılsın?</p>
+              <p className="text-sm text-gray-400">{t("automations.whatShouldHappen")}</p>
               <div className="grid grid-cols-1 gap-2">
                 {ACTION_OPTIONS.map((opt) => (
                   <button
@@ -1721,13 +1906,13 @@ function RuleWizard({ onComplete, onClose }: {
                   <Input
                     value={actionConfig.to || ""}
                     onChange={(e) => setActionConfig({ ...actionConfig, to: e.target.value })}
-                    placeholder="Alıcı e-posta adresi"
+                    placeholder={t("automations.recipientEmailPh")}
                     className="bg-gray-800 border-gray-700 text-white text-xs h-8"
                   />
                   <Input
                     value={actionConfig.subject || ""}
                     onChange={(e) => setActionConfig({ ...actionConfig, subject: e.target.value })}
-                    placeholder="E-posta konusu"
+                    placeholder={t("automations.emailSubjectPh")}
                     className="bg-gray-800 border-gray-700 text-white text-xs h-8"
                   />
                 </div>
@@ -1737,7 +1922,7 @@ function RuleWizard({ onComplete, onClose }: {
                   <Input
                     value={actionConfig.summary || ""}
                     onChange={(e) => setActionConfig({ ...actionConfig, summary: e.target.value })}
-                    placeholder="Bildirim özeti (varsayılan: otomatik)"
+                    placeholder={t("automations.notifySummaryPh")}
                     className="bg-gray-800 border-gray-700 text-white text-xs h-8"
                   />
                 </div>
@@ -1747,7 +1932,7 @@ function RuleWizard({ onComplete, onClose }: {
                   <Input
                     value={actionConfig.title || ""}
                     onChange={(e) => setActionConfig({ ...actionConfig, title: e.target.value })}
-                    placeholder="Görev başlığı"
+                    placeholder={t("automations.taskTitlePh")}
                     className="bg-gray-800 border-gray-700 text-white text-xs h-8"
                   />
                   <Select
@@ -1771,33 +1956,33 @@ function RuleWizard({ onComplete, onClose }: {
           {step === 4 && (
             <div className="space-y-4">
               <div>
-                <label className="text-sm text-gray-300 block mb-1">Kural Adı</label>
+                <label className="text-sm text-gray-300 block mb-1">{t("automations.ruleName")}</label>
                 <Input
                   value={workflowName}
                   onChange={(e) => setWorkflowName(e.target.value)}
-                  placeholder={`${TRIGGER_OPTIONS.find(t => t.value === triggerType)?.label || "Kural"} → ${ACTION_OPTIONS.find(a => a.value === actionType)?.label || "Aksiyon"}`}
+                  placeholder={`${TRIGGER_OPTIONS.find(tr => tr.value === triggerType)?.label || t("automations.rule")} → ${ACTION_OPTIONS.find(a => a.value === actionType)?.label || t("automations.action")}`}
                   className="bg-gray-800 border-gray-700 text-white"
                   data-testid="input-wizard-workflow-name"
                 />
               </div>
               <div className="bg-gray-800/50 rounded-lg p-4 space-y-3">
-                <h4 className="text-sm font-medium text-white">Özet</h4>
+                <h4 className="text-sm font-medium text-white">{t("automations.wizSummary")}</h4>
                 <div className="space-y-2">
                   <div className="flex gap-2 items-start">
-                    <span className="text-gray-500 text-xs w-20 flex-shrink-0">Tetikleyici:</span>
+                    <span className="text-gray-500 text-xs w-20 flex-shrink-0">{t("automations.triggerLabel")}:</span>
                     <span className="text-white text-xs">
-                      {TRIGGER_OPTIONS.find(t => t.value === triggerType)?.label}
-                      {triggerType === "event_monitor" && ` — ${EVENT_TYPE_LABELS[triggerConfig.eventType] || ""} (${triggerConfig.daysThreshold || 3} gün)`}
+                      {TRIGGER_OPTIONS.find(tr => tr.value === triggerType)?.label}
+                      {triggerType === "event_monitor" && ` — ${EVENT_TYPE_LABELS[triggerConfig.eventType] || ""} (${triggerConfig.daysThreshold || 3} ${t("automations.daysUnit")})`}
                     </span>
                   </div>
                   <div className="flex gap-2 items-start">
-                    <span className="text-gray-500 text-xs w-20 flex-shrink-0">Koşullar:</span>
+                    <span className="text-gray-500 text-xs w-20 flex-shrink-0">{t("automations.conditionsLabel")}:</span>
                     <span className="text-white text-xs">
-                      {conditions.length === 0 ? "Yok (her zaman)" : `${conditions.length} koşul (${conditionLogic.toUpperCase()})`}
+                      {conditions.length === 0 ? t("automations.noneAlways") : `${conditions.length} ${t("automations.conditionWord")} (${conditionLogic.toUpperCase()})`}
                     </span>
                   </div>
                   <div className="flex gap-2 items-start">
-                    <span className="text-gray-500 text-xs w-20 flex-shrink-0">Aksiyon:</span>
+                    <span className="text-gray-500 text-xs w-20 flex-shrink-0">{t("automations.actionLabel")}:</span>
                     <span className="text-white text-xs">{ACTION_OPTIONS.find(a => a.value === actionType)?.label}</span>
                   </div>
                 </div>
@@ -1805,34 +1990,34 @@ function RuleWizard({ onComplete, onClose }: {
             </div>
           )}
 
-          <div className="flex gap-3 pt-4 border-t border-gray-800 mt-4">
+          <div className="flex gap-3 pt-4 border-t border-gray-800 mt-4 sticky bottom-0 bg-gray-900 pb-2">
             {step > 1 && (
               <Button variant="outline" className="border-gray-700 text-gray-300" onClick={() => setStep(step - 1)}>
-                Geri
+                {t("automations.goBack")}
               </Button>
             )}
             {step < 4 ? (
               <Button
-                className="bg-blue-600 hover:bg-blue-700 flex-1"
+                className="bg-blue-600 hover:bg-blue-700 flex-1 min-h-[44px]"
                 onClick={() => setStep(step + 1)}
                 data-testid={`button-wizard-next-${step}`}
               >
-                {step === 2 && conditions.length === 0 ? "Koşulsuz Devam" : "İleri"}
+                {step === 2 && conditions.length === 0 ? t("automations.continueWithout") : t("automations.next")}
               </Button>
             ) : (
               <Button
-                className="bg-green-600 hover:bg-green-700 flex-1"
+                className="bg-green-600 hover:bg-green-700 flex-1 min-h-[44px]"
                 onClick={() => saveMutation.mutate()}
                 disabled={saveMutation.isPending}
                 data-testid="button-wizard-save"
               >
                 {saveMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
-                Oluştur
+                {t("automations.create")}
               </Button>
             )}
             {step === 1 && (
               <Button variant="outline" className="border-gray-700 text-gray-300" onClick={onClose}>
-                İptal
+                {t("automations.cancel")}
               </Button>
             )}
           </div>
@@ -1842,20 +2027,27 @@ function RuleWizard({ onComplete, onClose }: {
   );
 }
 
-const dayLabels = ["Pzr", "Pzt", "Sal", "Çar", "Per", "Cum", "Cmt"];
+const getDayLabels = (t: any) => [
+  t("automations.daySun"), t("automations.dayMon"), t("automations.dayTue"),
+  t("automations.dayWed"), t("automations.dayThu"), t("automations.dayFri"), t("automations.daySat")
+];
 
 function TriggerConfigEditor({ triggerType, triggerConfig, onChange }: {
   triggerType: string;
   triggerConfig: Record<string, any>;
   onChange: (type: string, config: Record<string, any>) => void;
 }) {
+  const { t } = useTranslation("pages");
+  const triggerTypeLabels = getTriggerTypeLabels(t);
+  const AGENT_TYPE_OPTIONS = getAgentTypeOptions(t);
+  const dayLabels = getDayLabels(t);
   return (
     <Card className="bg-gray-900/50 border-gray-800 mb-4">
       <CardContent className="p-4">
-        <h3 className="text-sm font-medium text-white mb-3">Tetikleyici Ayarları</h3>
+        <h3 className="text-sm font-medium text-white mb-3">{t("automations.triggerSettings")}</h3>
         <div className="space-y-3">
           <div>
-            <label className="text-xs text-gray-400 block mb-1">Tetikleyici Türü</label>
+            <label className="text-xs text-gray-400 block mb-1">{t("automations.triggerTypeLabel")}</label>
             <Select value={triggerType} onValueChange={(val) => onChange(val, triggerConfig)}>
               <SelectTrigger className="bg-gray-800 border-gray-700 text-white text-xs h-8" data-testid="select-trigger-type">
                 <SelectValue />
@@ -1871,13 +2063,13 @@ function TriggerConfigEditor({ triggerType, triggerConfig, onChange }: {
           {triggerType === "agent_tool_complete" && (
             <>
               <div>
-                <label className="text-xs text-gray-400 block mb-1">Ajan Türü</label>
+                <label className="text-xs text-gray-400 block mb-1">{t("automations.agentTypeLabel")}</label>
                 <Select
                   value={triggerConfig.agentType || ""}
                   onValueChange={(v) => onChange(triggerType, { ...triggerConfig, agentType: v })}
                 >
                   <SelectTrigger className="bg-gray-800 border-gray-700 text-white text-xs h-8" data-testid="select-trigger-agent-type">
-                    <SelectValue placeholder="Ajan seçin..." />
+                    <SelectValue placeholder={t("automations.selectAgentPh")} />
                   </SelectTrigger>
                   <SelectContent>
                     {AGENT_TYPE_OPTIONS.map((opt) => (
@@ -1887,11 +2079,11 @@ function TriggerConfigEditor({ triggerType, triggerConfig, onChange }: {
                 </Select>
               </div>
               <div>
-                <label className="text-xs text-gray-400 block mb-1">Araç Adı</label>
+                <label className="text-xs text-gray-400 block mb-1">{t("automations.toolNameLabel")}</label>
                 <Input
                   value={triggerConfig.toolName || ""}
                   onChange={(e) => onChange(triggerType, { ...triggerConfig, toolName: e.target.value })}
-                  placeholder="örn: send_email, generate_pdf"
+                  placeholder={t("automations.toolNamePh")}
                   className="bg-gray-800 border-gray-700 text-white text-xs h-8"
                   data-testid="input-trigger-tool-name"
                 />
@@ -1902,7 +2094,7 @@ function TriggerConfigEditor({ triggerType, triggerConfig, onChange }: {
           {triggerType === "schedule" && (
             <>
               <div>
-                <label className="text-xs text-gray-400 block mb-1">Zamanlama Türü</label>
+                <label className="text-xs text-gray-400 block mb-1">{t("automations.scheduleTypeLabel")}</label>
                 <Select
                   value={triggerConfig.scheduleType || "daily"}
                   onValueChange={(val) => onChange(triggerType, { ...triggerConfig, scheduleType: val })}
@@ -1911,10 +2103,10 @@ function TriggerConfigEditor({ triggerType, triggerConfig, onChange }: {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="daily">Her Gün</SelectItem>
-                    <SelectItem value="weekly">Haftalık</SelectItem>
-                    <SelectItem value="monthly">Aylık</SelectItem>
-                    <SelectItem value="custom">Özel (Cron)</SelectItem>
+                    <SelectItem value="daily">{t("automations.scheduleDaily")}</SelectItem>
+                    <SelectItem value="weekly">{t("automations.scheduleWeekly")}</SelectItem>
+                    <SelectItem value="monthly">{t("automations.scheduleMonthly")}</SelectItem>
+                    <SelectItem value="custom">{t("automations.scheduleCustom")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -1922,7 +2114,7 @@ function TriggerConfigEditor({ triggerType, triggerConfig, onChange }: {
               {triggerConfig.scheduleType !== "custom" && (
                 <div className="flex gap-2">
                   <div className="flex-1">
-                    <label className="text-xs text-gray-400 block mb-1">Saat</label>
+                    <label className="text-xs text-gray-400 block mb-1">{t("automations.hour")}</label>
                     <Select
                       value={String(triggerConfig.scheduleHour ?? 9)}
                       onValueChange={(val) => onChange(triggerType, { ...triggerConfig, scheduleHour: parseInt(val) })}
@@ -1938,7 +2130,7 @@ function TriggerConfigEditor({ triggerType, triggerConfig, onChange }: {
                     </Select>
                   </div>
                   <div className="flex-1">
-                    <label className="text-xs text-gray-400 block mb-1">Dakika</label>
+                    <label className="text-xs text-gray-400 block mb-1">{t("automations.minute")}</label>
                     <Select
                       value={String(triggerConfig.scheduleMinute ?? 0)}
                       onValueChange={(val) => onChange(triggerType, { ...triggerConfig, scheduleMinute: parseInt(val) })}
@@ -1958,7 +2150,7 @@ function TriggerConfigEditor({ triggerType, triggerConfig, onChange }: {
 
               {triggerConfig.scheduleType === "weekly" && (
                 <div>
-                  <label className="text-xs text-gray-400 block mb-1">Günler</label>
+                  <label className="text-xs text-gray-400 block mb-1">{t("automations.daysOfWeek")}</label>
                   <div className="flex gap-1">
                     {dayLabels.map((label, i) => {
                       const selected = (triggerConfig.scheduleDaysOfWeek || []).includes(i);
@@ -1985,7 +2177,7 @@ function TriggerConfigEditor({ triggerType, triggerConfig, onChange }: {
 
               {triggerConfig.scheduleType === "monthly" && (
                 <div>
-                  <label className="text-xs text-gray-400 block mb-1">Ayın Günü</label>
+                  <label className="text-xs text-gray-400 block mb-1">{t("automations.dayOfMonth")}</label>
                   <Select
                     value={String(triggerConfig.scheduleDayOfMonth || 1)}
                     onValueChange={(val) => onChange(triggerType, { ...triggerConfig, scheduleDayOfMonth: parseInt(val) })}
@@ -2004,7 +2196,7 @@ function TriggerConfigEditor({ triggerType, triggerConfig, onChange }: {
 
               {triggerConfig.scheduleType === "custom" && (
                 <div>
-                  <label className="text-xs text-gray-400 block mb-1">Cron İfadesi</label>
+                  <label className="text-xs text-gray-400 block mb-1">{t("automations.cronExpression")}</label>
                   <Input
                     value={triggerConfig.cronExpression || ""}
                     onChange={(e) => onChange(triggerType, { ...triggerConfig, cronExpression: e.target.value })}
@@ -2019,7 +2211,7 @@ function TriggerConfigEditor({ triggerType, triggerConfig, onChange }: {
 
           {triggerType === "webhook" && (
             <div>
-              <label className="text-xs text-gray-400 block mb-1">Webhook Yolu</label>
+              <label className="text-xs text-gray-400 block mb-1">{t("automations.webhookPath")}</label>
               <Input
                 value={triggerConfig.webhookPath || ""}
                 onChange={(e) => onChange(triggerType, { ...triggerConfig, webhookPath: e.target.value })}
@@ -2033,27 +2225,27 @@ function TriggerConfigEditor({ triggerType, triggerConfig, onChange }: {
           {triggerType === "email_received" && (
             <>
               <div>
-                <label className="text-xs text-gray-400 block mb-1">Gönderen Filtresi</label>
+                <label className="text-xs text-gray-400 block mb-1">{t("automations.senderFilter")}</label>
                 <Input
                   value={triggerConfig.senderFilter || ""}
                   onChange={(e) => onChange(triggerType, { ...triggerConfig, senderFilter: e.target.value })}
-                  placeholder="örn: @example.com veya john@example.com"
+                  placeholder={t("automations.senderFilterPh2")}
                   className="bg-gray-800 border-gray-700 text-white text-xs h-8"
                   data-testid="input-email-sender-filter"
                 />
               </div>
               <div>
-                <label className="text-xs text-gray-400 block mb-1">Konu Filtresi</label>
+                <label className="text-xs text-gray-400 block mb-1">{t("automations.subjectFilter")}</label>
                 <Input
                   value={triggerConfig.subjectFilter || ""}
                   onChange={(e) => onChange(triggerType, { ...triggerConfig, subjectFilter: e.target.value })}
-                  placeholder="örn: Fatura, Sipariş"
+                  placeholder={t("automations.subjectFilterPh2")}
                   className="bg-gray-800 border-gray-700 text-white text-xs h-8"
                   data-testid="input-email-subject-filter"
                 />
               </div>
               <div>
-                <label className="text-xs text-gray-400 block mb-1">Hedef E-posta</label>
+                <label className="text-xs text-gray-400 block mb-1">{t("automations.targetEmail")}</label>
                 <Input
                   value={triggerConfig.targetEmail || ""}
                   onChange={(e) => onChange(triggerType, { ...triggerConfig, targetEmail: e.target.value })}
@@ -2068,17 +2260,17 @@ function TriggerConfigEditor({ triggerType, triggerConfig, onChange }: {
           {triggerType === "threshold" && (
             <>
               <div>
-                <label className="text-xs text-gray-400 block mb-1">Alan Adı</label>
+                <label className="text-xs text-gray-400 block mb-1">{t("automations.fieldNameLabel")}</label>
                 <Input
                   value={triggerConfig.thresholdField || ""}
                   onChange={(e) => onChange(triggerType, { ...triggerConfig, thresholdField: e.target.value })}
-                  placeholder="örn: amount, count"
+                  placeholder={t("automations.fieldNamePh2")}
                   className="bg-gray-800 border-gray-700 text-white text-xs h-8"
                   data-testid="input-threshold-field"
                 />
               </div>
               <div>
-                <label className="text-xs text-gray-400 block mb-1">Karşılaştırma</label>
+                <label className="text-xs text-gray-400 block mb-1">{t("automations.comparison")}</label>
                 <Select
                   value={triggerConfig.thresholdOperator || "gt"}
                   onValueChange={(val) => onChange(triggerType, { ...triggerConfig, thresholdOperator: val })}
@@ -2087,16 +2279,16 @@ function TriggerConfigEditor({ triggerType, triggerConfig, onChange }: {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="gt">Büyüktür (&gt;)</SelectItem>
-                    <SelectItem value="lt">Küçüktür (&lt;)</SelectItem>
-                    <SelectItem value="gte">Büyük Eşit (&gt;=)</SelectItem>
-                    <SelectItem value="lte">Küçük Eşit (&lt;=)</SelectItem>
-                    <SelectItem value="eq">Eşittir (=)</SelectItem>
+                    <SelectItem value="gt">{t("automations.greaterThan")}</SelectItem>
+                    <SelectItem value="lt">{t("automations.lessThan")}</SelectItem>
+                    <SelectItem value="gte">{t("automations.greaterEqual")}</SelectItem>
+                    <SelectItem value="lte">{t("automations.lessEqual")}</SelectItem>
+                    <SelectItem value="eq">{t("automations.equalTo")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div>
-                <label className="text-xs text-gray-400 block mb-1">Eşik Değeri</label>
+                <label className="text-xs text-gray-400 block mb-1">{t("automations.thresholdValue")}</label>
                 <Input
                   type="number"
                   value={triggerConfig.thresholdValue || 0}
@@ -2111,7 +2303,7 @@ function TriggerConfigEditor({ triggerType, triggerConfig, onChange }: {
           {triggerType === "event_monitor" && (
             <>
               <div>
-                <label className="text-xs text-gray-400 block mb-1">Olay Türü</label>
+                <label className="text-xs text-gray-400 block mb-1">{t("automations.eventTypeLabel")}</label>
                 <Select
                   value={triggerConfig.eventType || "lead_inactivity"}
                   onValueChange={(val) => onChange(triggerType, { ...triggerConfig, eventType: val })}
@@ -2120,14 +2312,14 @@ function TriggerConfigEditor({ triggerType, triggerConfig, onChange }: {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="lead_inactivity">Lead Yanıtsızlık (X gün)</SelectItem>
-                    <SelectItem value="overdue_invoice">Ödenmemiş Fatura (X gün)</SelectItem>
-                    <SelectItem value="uncompleted_tasks">Tamamlanmamış Görev (X gün)</SelectItem>
+                    <SelectItem value="lead_inactivity">{t("automations.eventLeadInactivitySelect")}</SelectItem>
+                    <SelectItem value="overdue_invoice">{t("automations.eventOverdueInvoiceSelect")}</SelectItem>
+                    <SelectItem value="uncompleted_tasks">{t("automations.eventUncompletedTasksSelect")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div>
-                <label className="text-xs text-gray-400 block mb-1">Gün Eşiği</label>
+                <label className="text-xs text-gray-400 block mb-1">{t("automations.dayThresholdLabel")}</label>
                 <Input
                   type="number"
                   min="1"
@@ -2139,10 +2331,10 @@ function TriggerConfigEditor({ triggerType, triggerConfig, onChange }: {
                   data-testid="input-days-threshold"
                 />
                 <p className="text-[10px] text-gray-500 mt-1">
-                  {triggerConfig.eventType === "lead_inactivity" && "Lead bu kadar gündür güncellenmemişse tetikle"}
-                  {triggerConfig.eventType === "overdue_invoice" && "Muhasebe görevi bu kadar gündür açıksa tetikle"}
-                  {triggerConfig.eventType === "uncompleted_tasks" && "Görev bu kadar gündür tamamlanmamışsa tetikle"}
-                  {!triggerConfig.eventType && "Olay gerçekleşmemişse tetikle"}
+                  {triggerConfig.eventType === "lead_inactivity" && t("automations.leadInactivityHelp")}
+                  {triggerConfig.eventType === "overdue_invoice" && t("automations.overdueInvoiceHelp")}
+                  {triggerConfig.eventType === "uncompleted_tasks" && t("automations.uncompletedTasksHelp")}
+                  {!triggerConfig.eventType && t("automations.eventNotOccurredHelp")}
                 </p>
               </div>
             </>
@@ -2157,6 +2349,8 @@ function WorkflowBuilderView({ workflow, onBack }: {
   workflow: AutomationWorkflow;
   onBack: () => void;
 }) {
+  const { t } = useTranslation("pages");
+  const actionTypeLabels = getActionTypeLabels(t);
   const { toast } = useToast();
   const [nodes, setNodes] = useState(workflow.nodes || []);
   const [triggerType, setTriggerType] = useState(workflow.triggerType || "manual");
@@ -2181,9 +2375,9 @@ function WorkflowBuilderView({ workflow, onBack }: {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/automations"] });
       setHasChanges(false);
-      toast({ title: "Workflow kaydedildi" });
+      toast({ title: t("automations.workflowSaved") });
     },
-    onError: () => toast({ title: "Kaydetme başarısız", variant: "destructive" }),
+    onError: () => toast({ title: t("automations.saveFailedToast"), variant: "destructive" }),
   });
 
   const addNodeMutation = (type: string, actionType?: string) => {
@@ -2192,10 +2386,10 @@ function WorkflowBuilderView({ workflow, onBack }: {
     const newNode: any = {
       id,
       type,
-      label: type === "trigger" ? "Tetikleyici" :
-             type === "condition" ? "Koşul" :
-             type === "delay" ? "Bekleme" :
-             actionTypeLabels[actionType || ""] || "Aksiyon",
+      label: type === "trigger" ? t("automations.trigger") :
+             type === "condition" ? t("automations.condition") :
+             type === "delay" ? t("automations.delay") :
+             actionTypeLabels[actionType || ""] || t("automations.action"),
       config: {},
       nextNodeId: null,
       position: { x: 250, y: maxY + 130 },
@@ -2239,7 +2433,7 @@ function WorkflowBuilderView({ workflow, onBack }: {
           </Button>
           <div className="flex-1">
             <h1 className="text-xl font-bold text-white">{workflow.name}</h1>
-            <p className="text-gray-400 text-xs mt-0.5">Görsel Düzenleyici</p>
+            <p className="text-gray-400 text-xs mt-0.5">{t("automations.visualEditor")}</p>
           </div>
           <div className="flex gap-2">
             {hasChanges && (
@@ -2250,7 +2444,7 @@ function WorkflowBuilderView({ workflow, onBack }: {
                 data-testid="button-save-workflow"
               >
                 {saveMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : null}
-                Kaydet
+                {t("automations.save")}
               </Button>
             )}
           </div>
@@ -2258,34 +2452,34 @@ function WorkflowBuilderView({ workflow, onBack }: {
 
         <div className="flex gap-2 mb-4 flex-wrap">
           <Button size="sm" variant="outline" className="text-xs border-gray-700 text-gray-300" onClick={() => addNodeMutation("action", "send_email")} data-testid="button-add-email-node">
-            <Mail className="w-3 h-3 mr-1" /> E-posta
+            <Mail className="w-3 h-3 mr-1" /> {t("automations.emailNode")}
           </Button>
           <Button size="sm" variant="outline" className="text-xs border-gray-700 text-gray-300" onClick={() => addNodeMutation("action", "create_task")} data-testid="button-add-task-node">
-            <FileText className="w-3 h-3 mr-1" /> Görev
+            <FileText className="w-3 h-3 mr-1" /> {t("automations.taskNode")}
           </Button>
           <Button size="sm" variant="outline" className="text-xs border-gray-700 text-gray-300" onClick={() => addNodeMutation("action", "notify_owner")} data-testid="button-add-notify-node">
-            <Bell className="w-3 h-3 mr-1" /> Bildirim
+            <Bell className="w-3 h-3 mr-1" /> {t("automations.notificationNode")}
           </Button>
           <Button size="sm" variant="outline" className="text-xs border-gray-700 text-gray-300" onClick={() => addNodeMutation("action", "http_request")} data-testid="button-add-http-node">
             <Globe className="w-3 h-3 mr-1" /> HTTP
           </Button>
           <Button size="sm" variant="outline" className="text-xs border-gray-700 text-gray-300" onClick={() => addNodeMutation("action", "set_variable")} data-testid="button-add-variable-node">
-            <Variable className="w-3 h-3 mr-1" /> Değişken
+            <Variable className="w-3 h-3 mr-1" /> {t("automations.variableNode")}
           </Button>
           <Button size="sm" variant="outline" className="text-xs border-gray-700 text-gray-300" onClick={() => addNodeMutation("condition")} data-testid="button-add-condition-node">
-            <AlertTriangle className="w-3 h-3 mr-1" /> Koşul
+            <AlertTriangle className="w-3 h-3 mr-1" /> {t("automations.condition")}
           </Button>
           <Button size="sm" variant="outline" className="text-xs border-gray-700 text-gray-300" onClick={() => addNodeMutation("delay")} data-testid="button-add-delay-node">
-            <Timer className="w-3 h-3 mr-1" /> Bekleme
+            <Timer className="w-3 h-3 mr-1" /> {t("automations.delay")}
           </Button>
           <Button size="sm" variant="outline" className="text-xs border-gray-700 text-gray-300" onClick={() => addNodeMutation("action", "whatsapp_message")} data-testid="button-add-whatsapp-node">
             <MessageSquare className="w-3 h-3 mr-1" /> WhatsApp
           </Button>
           <Button size="sm" variant="outline" className="text-xs border-gray-700 text-gray-300" onClick={() => addNodeMutation("action", "format_data")} data-testid="button-add-format-node">
-            <Database className="w-3 h-3 mr-1" /> Veri Dönüştür
+            <Database className="w-3 h-3 mr-1" /> {t("automations.dataTransform")}
           </Button>
           <Button size="sm" variant="outline" className="text-xs border-blue-700 text-blue-300 bg-blue-500/10" onClick={() => addNodeMutation("action", "integration")} data-testid="button-add-integration-node">
-            <Plug className="w-3 h-3 mr-1" /> Entegrasyon
+            <Plug className="w-3 h-3 mr-1" /> {t("automations.integrationNode")}
           </Button>
         </div>
 
@@ -2299,7 +2493,7 @@ function WorkflowBuilderView({ workflow, onBack }: {
 
         {nodes.length > 0 && (
           <div className="mt-4">
-            <h3 className="text-sm font-medium text-gray-400 mb-2">Düğümler ({nodes.length})</h3>
+            <h3 className="text-sm font-medium text-gray-400 mb-2">{t("automations.nodes")} ({nodes.length})</h3>
             <div className="space-y-1">
               {nodes.map((node: any) => (
                 <div key={node.id} className="flex items-center gap-2 px-3 py-1.5 bg-gray-800/30 rounded text-xs">
@@ -2325,6 +2519,9 @@ function WorkflowBuilderView({ workflow, onBack }: {
 }
 
 export default function Automations() {
+  const { t, i18n } = useTranslation("pages");
+  const categoryLabels = getCategoryLabels(t);
+  const triggerTypeLabels = getTriggerTypeLabels(t);
   const { user } = useAuth();
   const { toast } = useToast();
   const [view, setView] = useState<"list" | "templates" | "detail" | "create" | "builder">("list");
@@ -2362,9 +2559,9 @@ export default function Automations() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/automations"] });
-      toast({ title: "Otomasyon güncellendi" });
+      toast({ title: t("automations.automationUpdated") });
     },
-    onError: () => toast({ title: "Güncelleme başarısız", variant: "destructive" }),
+    onError: () => toast({ title: t("automations.updateFailed"), variant: "destructive" }),
   });
 
   const deleteMutation = useMutation({
@@ -2374,9 +2571,9 @@ export default function Automations() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/automations"] });
       setView("list");
-      toast({ title: "Otomasyon silindi" });
+      toast({ title: t("automations.automationDeleted") });
     },
-    onError: () => toast({ title: "Silme başarısız", variant: "destructive" }),
+    onError: () => toast({ title: t("automations.deleteFailed"), variant: "destructive" }),
   });
 
   const createFromTemplateMutation = useMutation({
@@ -2387,9 +2584,9 @@ export default function Automations() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/automations"] });
       setView("list");
-      toast({ title: "Otomasyon oluşturuldu", description: "Şablondan başarıyla oluşturuldu. Aktifleştirmek için düğmeye basın." });
+      toast({ title: t("automations.automationCreated"), description: t("automations.createdFromTemplateDesc") });
     },
-    onError: () => toast({ title: "Şablon oluşturma başarısız", variant: "destructive" }),
+    onError: () => toast({ title: t("automations.templateCreateFailed"), variant: "destructive" }),
   });
 
   const executeMutation = useMutation({
@@ -2401,12 +2598,12 @@ export default function Automations() {
       queryClient.invalidateQueries({ queryKey: ["/api/automations"] });
       queryClient.invalidateQueries({ queryKey: ["/api/automations", selectedWorkflowId, "executions"] });
       toast({
-        title: data.success ? "Otomasyon çalıştırıldı" : "Otomasyon başarısız",
-        description: data.error || "Başarıyla tamamlandı",
+        title: data.success ? t("automations.automationExecuted") : t("automations.automationFailed"),
+        description: data.error || t("automations.completedSuccessfully"),
         variant: data.success ? "default" : "destructive",
       });
     },
-    onError: () => toast({ title: "Çalıştırma başarısız", variant: "destructive" }),
+    onError: () => toast({ title: t("automations.executionFailed"), variant: "destructive" }),
   });
 
   const createMutation = useMutation({
@@ -2417,8 +2614,8 @@ export default function Automations() {
         triggerType: "manual",
         triggerConfig: {},
         nodes: [
-          { id: "trigger-1", type: "trigger", label: "Manuel Tetikleyici", config: {}, nextNodeId: "action-1", position: { x: 250, y: 50 } },
-          { id: "action-1", type: "action", actionType: "log_action", label: "Aksiyon Kaydet", config: { description: "Manuel otomasyon çalıştırıldı" }, nextNodeId: null, position: { x: 250, y: 180 } },
+          { id: "trigger-1", type: "trigger", label: t("automations.manualTrigger"), config: {}, nextNodeId: "action-1", position: { x: 250, y: 50 } },
+          { id: "action-1", type: "action", actionType: "log_action", label: t("automations.logAction"), config: { description: t("automations.manualAutomationRan") }, nextNodeId: null, position: { x: 250, y: 180 } },
         ],
       });
       return res.json();
@@ -2428,9 +2625,9 @@ export default function Automations() {
       setView("list");
       setNewName("");
       setNewDescription("");
-      toast({ title: "Otomasyon oluşturuldu" });
+      toast({ title: t("automations.automationCreated") });
     },
-    onError: () => toast({ title: "Oluşturma başarısız", variant: "destructive" }),
+    onError: () => toast({ title: t("automations.createFailed"), variant: "destructive" }),
   });
 
   if (!user) {
@@ -2439,10 +2636,10 @@ export default function Automations() {
         <Card className="bg-gray-900/50 border-gray-800 max-w-md">
           <CardContent className="p-8 text-center">
             <Zap className="w-12 h-12 text-yellow-400 mx-auto mb-4" />
-            <h2 className="text-xl font-bold text-white mb-2">Otomasyonlar</h2>
-            <p className="text-gray-400 mb-6">Otomasyonları kullanmak için giriş yapın.</p>
+            <h2 className="text-xl font-bold text-white mb-2">{t("automations.pageTitle")}</h2>
+            <p className="text-gray-400 mb-6">{t("automations.loginRequired")}</p>
             <Link href="/login">
-              <Button className="bg-blue-600 hover:bg-blue-700" data-testid="link-login-automations">Giriş Yap</Button>
+              <Button className="bg-blue-600 hover:bg-blue-700 min-h-[44px]" data-testid="link-login-automations">{t("automations.login")}</Button>
             </Link>
           </CardContent>
         </Card>
@@ -2487,8 +2684,8 @@ export default function Automations() {
               <ArrowLeft className="w-5 h-5 text-gray-400" />
             </Button>
             <div>
-              <h1 className="text-2xl font-bold text-white">Şablon Galerisi</h1>
-              <p className="text-gray-400 text-sm">Hazır otomasyon şablonlarından seçin</p>
+              <h1 className="text-2xl font-bold text-white">{t("automations.templateGallery")}</h1>
+              <p className="text-gray-400 text-sm">{t("automations.selectFromTemplates")}</p>
             </div>
           </div>
 
@@ -2518,7 +2715,7 @@ export default function Automations() {
                               {triggerTypeLabels[template.triggerType]}
                             </Badge>
                             <Badge variant="outline" className="text-xs border-gray-700 text-gray-400">
-                              {template.nodeCount} adım
+                              {template.nodeCount} {t("automations.step")}
                             </Badge>
                           </div>
                           <Button
@@ -2528,7 +2725,7 @@ export default function Automations() {
                             disabled={createFromTemplateMutation.isPending}
                             data-testid={`button-use-template-${template.id}`}
                           >
-                            {createFromTemplateMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : "Kullan"}
+                            {createFromTemplateMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : t("automations.use")}
                           </Button>
                         </div>
                       </CardContent>
@@ -2551,43 +2748,43 @@ export default function Automations() {
             <Button variant="ghost" size="icon" onClick={() => setView("list")} data-testid="button-back-create">
               <ArrowLeft className="w-5 h-5 text-gray-400" />
             </Button>
-            <h1 className="text-2xl font-bold text-white">Yeni Otomasyon</h1>
+            <h1 className="text-2xl font-bold text-white">{t("automations.newAutomation")}</h1>
           </div>
           <Card className="bg-gray-900/50 border-gray-800">
             <CardContent className="p-6 space-y-4">
               <div>
-                <label className="text-sm text-gray-300 mb-1 block">İsim</label>
+                <label className="text-sm text-gray-300 mb-1 block">{t("automations.nameLabel")}</label>
                 <Input
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
-                  placeholder="Otomasyon adı..."
+                  placeholder={t("automations.automationNamePh")}
                   className="bg-gray-800 border-gray-700 text-white"
                   data-testid="input-automation-name"
                 />
               </div>
               <div>
-                <label className="text-sm text-gray-300 mb-1 block">Açıklama</label>
+                <label className="text-sm text-gray-300 mb-1 block">{t("automations.descriptionLabel")}</label>
                 <Textarea
                   value={newDescription}
                   onChange={(e) => setNewDescription(e.target.value)}
-                  placeholder="Bu otomasyon ne yapar..."
+                  placeholder={t("automations.automationDescPh")}
                   className="bg-gray-800 border-gray-700 text-white"
                   rows={3}
                   data-testid="input-automation-description"
                 />
               </div>
-              <div className="flex gap-3 pt-2">
+              <div className="flex gap-3 pt-2 sticky bottom-0 bg-gray-900 pb-2">
                 <Button
-                  className="bg-blue-600 hover:bg-blue-700 flex-1"
+                  className="bg-blue-600 hover:bg-blue-700 flex-1 min-h-[44px]"
                   onClick={() => createMutation.mutate()}
                   disabled={!newName.trim() || createMutation.isPending}
                   data-testid="button-create-automation"
                 >
                   {createMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
-                  Oluştur
+                  {t("automations.create")}
                 </Button>
                 <Button variant="outline" className="border-gray-700 text-gray-300" onClick={() => setView("list")} data-testid="button-cancel-create">
-                  İptal
+                  {t("automations.cancel")}
                 </Button>
               </div>
             </CardContent>
@@ -2617,7 +2814,7 @@ export default function Automations() {
                 onCheckedChange={(checked) => toggleMutation.mutate({ id: selectedWorkflow.id, isActive: checked })}
                 data-testid="switch-workflow-active"
               />
-              <span className="text-sm text-gray-400">{selectedWorkflow.isActive ? "Aktif" : "Pasif"}</span>
+              <span className="text-sm text-gray-400">{selectedWorkflow.isActive ? t("automations.active") : t("automations.inactive")}</span>
             </div>
           </div>
 
@@ -2627,7 +2824,7 @@ export default function Automations() {
                 <Activity className="w-8 h-8 text-blue-400" />
                 <div>
                   <p className="text-2xl font-bold text-white">{selectedWorkflow.runCount}</p>
-                  <p className="text-xs text-gray-400">Toplam Çalışma</p>
+                  <p className="text-xs text-gray-400">{t("automations.totalRuns")}</p>
                 </div>
               </CardContent>
             </Card>
@@ -2636,9 +2833,9 @@ export default function Automations() {
                 <Clock className="w-8 h-8 text-green-400" />
                 <div>
                   <p className="text-sm font-medium text-white">
-                    {selectedWorkflow.lastRunAt ? new Date(selectedWorkflow.lastRunAt).toLocaleString("tr-TR") : "Hiç"}
+                    {selectedWorkflow.lastRunAt ? new Date(selectedWorkflow.lastRunAt).toLocaleString(i18n.language === "tr" ? "tr-TR" : "en-US") : t("automations.never")}
                   </p>
-                  <p className="text-xs text-gray-400">Son Çalışma</p>
+                  <p className="text-xs text-gray-400">{t("automations.lastRun")}</p>
                 </div>
               </CardContent>
             </Card>
@@ -2650,7 +2847,7 @@ export default function Automations() {
                 })()}
                 <div>
                   <p className="text-sm font-medium text-white">{triggerTypeLabels[selectedWorkflow.triggerType] || selectedWorkflow.triggerType}</p>
-                  <p className="text-xs text-gray-400">Tetikleyici Türü</p>
+                  <p className="text-xs text-gray-400">{t("automations.triggerTypeLabel")}</p>
                 </div>
               </CardContent>
             </Card>
@@ -2664,7 +2861,7 @@ export default function Automations() {
               data-testid="button-execute-workflow"
             >
               {executeMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Play className="w-4 h-4 mr-2" />}
-              Manuel Çalıştır
+              {t("automations.manualRun")}
             </Button>
             <Button
               variant="outline"
@@ -2673,12 +2870,12 @@ export default function Automations() {
               data-testid="button-open-builder"
             >
               <Settings className="w-4 h-4 mr-2" />
-              Görsel Düzenleyici
+              {t("automations.visualEditor")}
             </Button>
             <Button
               variant="destructive"
               onClick={() => {
-                if (confirm("Bu otomasyonu silmek istediğinizden emin misiniz?")) {
+                if (confirm(t("automations.deleteConfirm"))) {
                   deleteMutation.mutate(selectedWorkflow.id);
                 }
               }}
@@ -2686,13 +2883,13 @@ export default function Automations() {
               data-testid="button-delete-workflow"
             >
               <Trash2 className="w-4 h-4 mr-2" />
-              Sil
+              {t("automations.delete")}
             </Button>
           </div>
 
           <Card className="bg-gray-900/50 border-gray-800 mb-6">
             <CardHeader>
-              <CardTitle className="text-white text-lg">Workflow Görünümü</CardTitle>
+              <CardTitle className="text-white text-lg">{t("automations.workflowView")}</CardTitle>
             </CardHeader>
             <CardContent>
               <VisualWorkflowEditor
@@ -2708,11 +2905,11 @@ export default function Automations() {
 
           <Card className="bg-gray-900/50 border-gray-800">
             <CardHeader>
-              <CardTitle className="text-white text-lg">Çalışma Geçmişi</CardTitle>
+              <CardTitle className="text-white text-lg">{t("automations.executionHistory")}</CardTitle>
             </CardHeader>
             <CardContent>
               {executions.length === 0 ? (
-                <p className="text-gray-500 text-sm">Henüz çalışma geçmişi yok.</p>
+                <p className="text-gray-500 text-sm">{t("automations.noExecutions")}</p>
               ) : (
                 <div className="space-y-3">
                   {executions.map((exec) => (
@@ -2734,9 +2931,9 @@ export default function Automations() {
           <div>
             <h1 className="text-2xl md:text-3xl font-bold text-white flex items-center gap-3">
               <Zap className="w-8 h-8 text-yellow-400" />
-              Otomasyonlar
+              {t("automations.pageTitle")}
             </h1>
-            <p className="text-gray-400 text-sm mt-1">Ajan aksiyonlarını otomatik workflow'lara bağlayın</p>
+            <p className="text-gray-400 text-sm mt-1">{t("automations.pageDescription")}</p>
           </div>
           <div className="flex gap-2 flex-wrap justify-end">
             <Button
@@ -2746,7 +2943,7 @@ export default function Automations() {
               data-testid="button-view-templates"
             >
               <LayoutTemplate className="w-4 h-4 mr-2" />
-              Şablonlar
+              {t("automations.templates")}
             </Button>
             <Button
               variant="outline"
@@ -2755,7 +2952,7 @@ export default function Automations() {
               data-testid="button-nl-builder"
             >
               <Sparkles className="w-4 h-4 mr-2" />
-              AI ile Oluştur
+              {t("automations.createWithAI")}
             </Button>
             <Button
               variant="outline"
@@ -2764,7 +2961,7 @@ export default function Automations() {
               data-testid="button-open-wizard"
             >
               <ChevronRight className="w-4 h-4 mr-2" />
-              Sihirbaz
+              {t("automations.wizard")}
             </Button>
             <Button
               className="bg-blue-600 hover:bg-blue-700"
@@ -2772,7 +2969,7 @@ export default function Automations() {
               data-testid="button-new-automation"
             >
               <Plus className="w-4 h-4 mr-2" />
-              Yeni
+              {t("automations.new")}
             </Button>
           </div>
         </div>
@@ -2785,9 +2982,9 @@ export default function Automations() {
           <Card className="bg-gray-900/50 border-gray-800">
             <CardContent className="p-12 text-center">
               <Zap className="w-16 h-16 text-gray-700 mx-auto mb-4" />
-              <h2 className="text-xl font-semibold text-white mb-2">Henüz otomasyon yok</h2>
+              <h2 className="text-xl font-semibold text-white mb-2">{t("automations.noAutomationsYet")}</h2>
               <p className="text-gray-400 mb-6 max-w-md mx-auto">
-                Ajan aksiyonlarını otomatik zincirlere bağlayın. Örneğin: fatura oluşturulunca e-posta gönder, yeni lead gelince takip planla.
+                {t("automations.noAutomationsDesc")}
               </p>
               <div className="flex gap-3 justify-center">
                 <Button
@@ -2797,15 +2994,15 @@ export default function Automations() {
                   data-testid="button-browse-templates-empty"
                 >
                   <LayoutTemplate className="w-4 h-4 mr-2" />
-                  Şablonlara Göz At
+                  {t("automations.browseTemplates")}
                 </Button>
                 <Button
-                  className="bg-blue-600 hover:bg-blue-700"
+                  className="bg-blue-600 hover:bg-blue-700 min-h-[44px]"
                   onClick={() => setView("create")}
                   data-testid="button-create-first-automation"
                 >
                   <Plus className="w-4 h-4 mr-2" />
-                  İlk Otomasyonu Oluştur
+                  {t("automations.createFirst")}
                 </Button>
               </div>
             </CardContent>
@@ -2841,17 +3038,17 @@ export default function Automations() {
                     <div className="flex items-center justify-between">
                       <div className="flex gap-2">
                         <Badge variant={workflow.isActive ? "default" : "secondary"} className={`text-xs ${workflow.isActive ? "bg-green-500/20 text-green-400 border-green-500/30" : "bg-gray-700/50 text-gray-400"}`}>
-                          {workflow.isActive ? "Aktif" : "Pasif"}
+                          {workflow.isActive ? t("automations.active") : t("automations.inactive")}
                         </Badge>
                         <Badge variant="outline" className="text-xs border-gray-700 text-gray-500">
-                          {workflow.runCount} çalışma
+                          {workflow.runCount} {t("automations.runs")}
                         </Badge>
                       </div>
                       <ChevronRight className="w-4 h-4 text-gray-600" />
                     </div>
                     {workflow.lastRunAt && (
                       <p className="text-xs text-gray-600 mt-2">
-                        Son: {new Date(workflow.lastRunAt).toLocaleString("tr-TR")}
+                        {t("automations.lastPrefix")} {new Date(workflow.lastRunAt).toLocaleString(i18n.language === "tr" ? "tr-TR" : "en-US")}
                       </p>
                     )}
                   </CardContent>

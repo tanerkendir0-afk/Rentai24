@@ -121,19 +121,20 @@ export class WebhookHandlers {
 
   static async handleSubscriptionUpdated(subscription: any): Promise<void> {
     const customerId = typeof subscription.customer === 'string' ? subscription.customer : subscription.customer.id;
-    const user = await storage.getUserByStripeCustomerId(customerId);
-    if (!user) return;
 
-    const boost = await storage.getActiveBoostSubscription(user.id);
-    if (boost && boost.stripeBoostSubId === subscription.id) {
+    const boostBySub = await storage.getBoostSubscriptionByStripeId(subscription.id);
+    if (boostBySub) {
       if (subscription.status === 'active' || subscription.status === 'trialing') {
-        await storage.updateBoostSubscription(boost.id, { status: 'active' });
+        await storage.updateBoostSubscription(boostBySub.id, { status: 'active' });
       } else if (subscription.status === 'past_due' || subscription.status === 'unpaid' || subscription.status === 'canceled') {
-        await storage.updateBoostSubscription(boost.id, { status: 'inactive' });
-        console.log(`Webhook: Boost subscription ${subscription.id} is ${subscription.status} for user ${user.id}`);
+        await storage.updateBoostSubscription(boostBySub.id, { status: 'inactive' });
+        console.log(`Webhook: Boost subscription ${subscription.id} is ${subscription.status} for user ${boostBySub.userId}`);
       }
       return;
     }
+
+    const user = await storage.getUserByStripeCustomerId(customerId);
+    if (!user) return;
 
     await storage.updateUserStripeInfo(user.id, { stripeSubscriptionId: subscription.id });
 
@@ -146,15 +147,16 @@ export class WebhookHandlers {
 
   static async handleSubscriptionDeleted(subscription: any): Promise<void> {
     const customerId = typeof subscription.customer === 'string' ? subscription.customer : subscription.customer.id;
-    const user = await storage.getUserByStripeCustomerId(customerId);
-    if (!user) return;
 
-    const boost = await storage.getActiveBoostSubscription(user.id);
-    if (boost && boost.stripeBoostSubId === subscription.id) {
-      await storage.deactivateBoostSubscription(user.id);
-      console.log(`Webhook: Deactivated boost subscription for user ${user.id} (subscription cancelled)`);
+    const boostBySub = await storage.getBoostSubscriptionByStripeId(subscription.id);
+    if (boostBySub) {
+      await storage.updateBoostSubscription(boostBySub.id, { status: 'inactive' });
+      console.log(`Webhook: Deactivated boost subscription ${subscription.id} for user ${boostBySub.userId}`);
       return;
     }
+
+    const user = await storage.getUserByStripeCustomerId(customerId);
+    if (!user) return;
 
     await storage.updateUserStripeInfo(user.id, { stripeSubscriptionId: null });
     await storage.deactivateUserRentals(user.id);

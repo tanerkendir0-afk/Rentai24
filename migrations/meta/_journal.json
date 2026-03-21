@@ -29,6 +29,13 @@
       "when": 1742511600000,
       "tag": "0003_scheduled_tasks",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1742598000000,
+      "tag": "0004_boost_subscriptions",
+      "breakpoints": true
     }
   ]
 }

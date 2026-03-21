@@ -3248,7 +3248,9 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}${QUICK_REPLY_BUTT
                 if (convoRow && convoRow.boostStatus !== "running") {
                   await db.update(conversations).set({ boostStatus: "running" }).where(eq(conversations.id, convoRow.id));
                 }
-              } catch (_) {}
+              } catch (bErr: any) {
+                console.error("Boost status tracking error (disallowed agent):", bErr.message);
+              }
             } else {
               const isThisConvoBoost = activeBoostConvos.some(c => c.visibleId === clientSessionId);
               if (!isThisConvoBoost && activeBoostConvos.length >= boostSub.maxParallelTasks) {
@@ -3274,7 +3276,9 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}${QUICK_REPLY_BUTT
                       boostStatus: "running",
                     }).where(eq(conversations.id, convoRow.id));
                   }
-                } catch (_) {}
+                } catch (bErr: any) {
+                  console.error("Boost task registration error:", bErr.message);
+                }
               } else {
                 const thisConvo = activeBoostConvos.find(c => c.visibleId === clientSessionId);
                 if (thisConvo && thisConvo.boostStatus !== "running") {
@@ -3309,7 +3313,9 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}${QUICK_REPLY_BUTT
               if (convoRow && convoRow.boostStatus !== "running") {
                 await db.update(conversations).set({ boostStatus: "running" }).where(eq(conversations.id, convoRow.id));
               }
-            } catch (_) {}
+            } catch (bErr: any) {
+              console.error("Boost status tracking error (non-boost):", bErr.message);
+            }
           }
         }
       } else {

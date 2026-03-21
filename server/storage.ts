@@ -245,6 +245,7 @@ export interface IStorage {
 
   createBoostSubscription(data: InsertBoostSubscription): Promise<BoostSubscription>;
   getActiveBoostSubscription(userId: number): Promise<BoostSubscription | undefined>;
+  getBoostSubscriptionByStripeId(stripeSubId: string): Promise<BoostSubscription | undefined>;
   updateBoostSubscription(id: number, updates: Partial<Pick<BoostSubscription, "status" | "stripeBoostSubId" | "expiresAt">>): Promise<BoostSubscription | undefined>;
   deactivateBoostSubscription(userId: number): Promise<void>;
   updateConversationBoostStatus(conversationId: number, boostStatus: string): Promise<void>;
@@ -1916,6 +1917,13 @@ export class DatabaseStorage implements IStorage {
   async getActiveBoostSubscription(userId: number): Promise<BoostSubscription | undefined> {
     const [boost] = await db.select().from(boostSubscriptions).where(
       and(eq(boostSubscriptions.userId, userId), eq(boostSubscriptions.status, "active"))
+    );
+    return boost;
+  }
+
+  async getBoostSubscriptionByStripeId(stripeSubId: string): Promise<BoostSubscription | undefined> {
+    const [boost] = await db.select().from(boostSubscriptions).where(
+      eq(boostSubscriptions.stripeBoostSubId, stripeSubId)
     );
     return boost;
   }

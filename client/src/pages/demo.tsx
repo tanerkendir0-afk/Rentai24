@@ -399,6 +399,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
     },
     enabled: !!user,
     staleTime: 30000,
+    refetchInterval: 15000,
   });
 
   const hasBoost = boostStatus?.active === true;
@@ -1171,7 +1172,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                   data-testid="button-boost-split"
                 >
                   <Zap className={`w-3.5 h-3.5 ${splitScreenActive ? "animate-pulse" : ""}`} />
-                  <span>⚡ Boost</span>
+                  <span>{t("boost.splitScreen")}</span>
                 </button>
                 {splitScreenActive && isDesktop && (
                   <>

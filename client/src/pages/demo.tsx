@@ -73,6 +73,7 @@ import { FeedbackButton } from "@/components/feedback-dialog";
 import { useAnalytics } from "@/lib/analytics";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import BoostChatPanel from "@/components/boost-chat-panel";
+import BoostTaskBar from "@/components/boost-taskbar";
 
 interface AgentAction {
   type: string;
@@ -2553,6 +2554,18 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
               onClose={() => setShowTasksPanel(false)}
             />
           </>
+        )}
+
+        {hasBoost && user && (
+          <BoostTaskBar
+            onTaskClick={(task) => {
+              const agentOpt = agentOptions.find(a => a.id === task.agentType);
+              if (agentOpt) {
+                setSelectedAgent(task.agentType);
+              }
+              setActiveConvoId(prev => ({ ...prev, [task.agentType]: task.visibleId }));
+            }}
+          />
         )}
 
       </div>

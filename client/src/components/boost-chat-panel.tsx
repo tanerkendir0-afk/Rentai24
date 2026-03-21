@@ -56,7 +56,7 @@ interface Message {
 
 interface BoostChatPanelProps {
   panelId: string;
-  allowedAgents?: string[];
+  allowedAgents: string[] | null;
   rentedAgentIds: Set<string>;
   onClose?: () => void;
   isOnly?: boolean;

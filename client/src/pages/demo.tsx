@@ -116,7 +116,7 @@ function SplitScreenWrapper({ active, splitPanelCount, allowedAgents, rentedAgen
   active: boolean;
   splitPanelCount: number;
   allowedAgents: string[] | null;
-  rentedAgentIds: string[];
+  rentedAgentIds: Set<string>;
   onCloseSplit: () => void;
   onReducePanels: () => void;
   children: ReactNode;
@@ -125,41 +125,37 @@ function SplitScreenWrapper({ active, splitPanelCount, allowedAgents, rentedAgen
     return <div className="flex-1 flex min-w-0">{children}</div>;
   }
 
-  const boostPanels = Array.from({ length: splitPanelCount }).map((_, idx) => (
+  const extraPanelCount = splitPanelCount - 1;
+  const boostPanels = Array.from({ length: extraPanelCount }).map((_, idx) => (
     <BoostChatPanel
       key={`boost-panel-${idx}`}
       panelId={`split-${idx}`}
       allowedAgents={allowedAgents}
       rentedAgentIds={rentedAgentIds}
       onClose={() => {
-        if (splitPanelCount <= 1) {
+        if (extraPanelCount <= 1) {
           onCloseSplit();
         } else {
           onReducePanels();
         }
       }}
-      isOnly={splitPanelCount <= 1}
+      isOnly={extraPanelCount <= 1}
     />
   ));
 
-  const panelSize = Math.floor(100 / (splitPanelCount + 1));
+  const panelSize = Math.floor(100 / splitPanelCount);
 
   return (
     <ResizablePanelGroup direction="horizontal" className="flex-1 min-w-0" data-testid="boost-split-group">
       <ResizablePanel defaultSize={panelSize} minSize={20}>
         {children}
       </ResizablePanel>
-      {boostPanels.reduce<JSX.Element[]>((acc, panel, idx) => {
-        acc.push(
-          <ResizableHandle key={`handle-${idx}`} withHandle className="bg-amber-500/10 hover:bg-amber-500/20" />
-        );
-        acc.push(
-          <ResizablePanel key={`panel-${idx}`} defaultSize={panelSize} minSize={20}>
-            {panel}
-          </ResizablePanel>
-        );
-        return acc;
-      }, [])}
+      {boostPanels.map((panel, idx) => [
+        <ResizableHandle key={`handle-${idx}`} withHandle className="bg-amber-500/10 hover:bg-amber-500/20" />,
+        <ResizablePanel key={`panel-${idx}`} defaultSize={panelSize} minSize={20}>
+          {panel}
+        </ResizablePanel>,
+      ])}
     </ResizablePanelGroup>
   );
 }
@@ -409,7 +405,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
   const boostMaxSlots = boostStatus?.maxParallelTasks ?? 1;
   const boostActiveCount = boostStatus?.activeTaskCount ?? 0;
   const boostIsUnlimited = boostMaxSlots === -1;
-  const boostAllowedAgents = boostStatus?.plan === "boost-accounting" ? ["bookkeeping"] : undefined;
+  const boostAllowedAgents: string[] | null = boostStatus?.plan === "boost-accounting" ? ["bookkeeping"] : null;
   const isDesktop = typeof window !== "undefined" && window.innerWidth >= 1024;
 
   const { data: socialAccounts = [] } = useQuery<{ id: number; platform: string; username: string; profileUrl: string | null; status: string }[]>({
@@ -2369,19 +2365,18 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
             />
           </>
         )}
-      </div>
 
-      {user && hasBoost && (
-        <BoostTaskBar
-          onTaskClick={(task) => {
-            setSelectedAgent(task.agentType);
-            setActiveConvoId(prev => ({ ...prev, [task.agentType]: task.visibleId }));
-            queryClient.invalidateQueries({ queryKey: ['/api/conversations', task.agentType] });
-            if (splitScreenActive) setSplitScreenActive(false);
-            if (window.innerWidth < 1024) setSidebarOpen(false);
-          }}
-        />
-      )}
-    </div>
+        {user && hasBoost && (
+          <BoostTaskBar
+            onTaskClick={(task) => {
+              setSelectedAgent(task.agentType);
+              setActiveConvoId(prev => ({ ...prev, [task.agentType]: task.visibleId }));
+              queryClient.invalidateQueries({ queryKey: ['/api/conversations', task.agentType] });
+              if (splitScreenActive) setSplitScreenActive(false);
+              if (window.innerWidth < 1024) setSidebarOpen(false);
+            }}
+          />
+        )}
+      </div>
   );
 }

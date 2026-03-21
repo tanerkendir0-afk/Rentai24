@@ -2862,45 +2862,32 @@ export async function registerRoutes(
       });
     }
 
+    let boostSubForChat: Awaited<ReturnType<typeof storage.getActiveBoostSubscription>> | undefined;
+    let isBoostAgentAllowed = false;
     if (req.session.userId) {
-      const boostSubEarly = await storage.getActiveBoostSubscription(req.session.userId);
-      const boostCfgEarly = boostSubEarly ? BOOST_CONFIG[boostSubEarly.boostPlan] : null;
-      const isAgentAllowedEarly = boostSubEarly && (!boostCfgEarly?.allowedAgents || boostCfgEarly.allowedAgents.includes(agentType));
-      const maxAllowedEarly = boostSubEarly ? (isAgentAllowedEarly ? boostSubEarly.maxParallelTasks : 1) : 1;
+      boostSubForChat = await storage.getActiveBoostSubscription(req.session.userId);
+      const boostCfgCheck = boostSubForChat ? BOOST_CONFIG[boostSubForChat.boostPlan] : null;
+      isBoostAgentAllowed = !!boostSubForChat && (!boostCfgCheck?.allowedAgents || boostCfgCheck.allowedAgents.includes(agentType));
+      const maxAllowed = boostSubForChat ? (isBoostAgentAllowed ? boostSubForChat.maxParallelTasks : 1) : 1;
 
-      const boostCheckResult = await db.execute(sql`
-        WITH running_count AS (
-          SELECT COUNT(*) as cnt FROM conversations
-          WHERE user_id = ${req.session.userId}
-            AND agent_type = ${agentType}
-            AND boost_status = 'running'
-            AND visible_id != ${chatSessionId}
-        ),
-        mark_running AS (
-          UPDATE conversations SET
-            boost_status = 'running',
-            is_boost_task = ${isAgentAllowedEarly ? sql`true` : sql`is_boost_task`}
-          WHERE user_id = ${req.session.userId}
-            AND visible_id = ${chatSessionId}
-            AND boost_status != 'running'
-            AND (SELECT cnt FROM running_count) < ${maxAllowedEarly}
-          RETURNING id
-        )
-        SELECT
-          (SELECT cnt FROM running_count) as running_count,
-          (SELECT COUNT(*) FROM mark_running) as marked
+      const countResult = await db.execute(sql`
+        SELECT COUNT(*) as cnt FROM conversations
+        WHERE user_id = ${req.session.userId}
+          AND agent_type = ${agentType}
+          AND boost_status = 'running'
+          AND visible_id != ${chatSessionId}
       `);
+      const runningCount = Number(countResult.rows[0]?.cnt ?? 0);
 
-      const runningCount = Number(boostCheckResult.rows[0]?.running_count ?? 0);
-      if (runningCount >= maxAllowedEarly) {
-        if (boostSubEarly && isAgentAllowedEarly) {
+      if (runningCount >= maxAllowed) {
+        if (boostSubForChat && isBoostAgentAllowed) {
           return res.status(429).json({
-            reply: `Paralel görev limitinize (${boostSubEarly.maxParallelTasks}) ulaştınız. Lütfen mevcut görevlerden birinin tamamlanmasını bekleyin veya Boost planınızı yükseltin.`,
+            reply: `Paralel görev limitinize (${boostSubForChat.maxParallelTasks}) ulaştınız. Lütfen mevcut görevlerden birinin tamamlanmasını bekleyin veya Boost planınızı yükseltin.`,
             boostLimitReached: true,
             activeCount: runningCount,
-            maxCount: boostSubEarly.maxParallelTasks,
+            maxCount: boostSubForChat.maxParallelTasks,
           });
-        } else if (boostSubEarly) {
+        } else if (boostSubForChat) {
           return res.status(429).json({
             reply: "Bu ajan Boost planınız kapsamında değil. Aynı anda yalnızca 1 aktif sohbet yürütebilirsiniz.",
             boostRequired: true,
@@ -3425,6 +3412,21 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}${QUICK_REPLY_BUTT
 
       messages.push({ role: "user", content: message });
 
+      if (req.session.userId) {
+        try {
+          await db.execute(sql`
+            UPDATE conversations SET
+              boost_status = 'running',
+              is_boost_task = CASE WHEN ${isBoostAgentAllowed ? sql`true` : sql`false`} THEN true ELSE is_boost_task END
+            WHERE user_id = ${req.session.userId}
+              AND visible_id = ${chatSessionId}
+              AND boost_status != 'running'
+          `);
+        } catch (bErr: unknown) {
+          console.error("Boost running mark error:", bErr instanceof Error ? bErr.message : bErr);
+        }
+      }
+
       let totalPromptTokens = 0;
       let totalCompletionTokens = 0;
       let operationType = "chat";
@@ -3889,12 +3891,12 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}${QUICK_REPLY_BUTT
       console.error(`[AGENT ERROR] ${agentType}:`, error?.message || error);
       circuitBreaker.recordFailure(agentType);
 
-      if (req.session.userId && clientSessionId) {
+      if (req.session.userId && chatSessionId) {
         try {
           const errConvoRows = await db.select().from(conversations).where(
             and(
               eq(conversations.userId, req.session.userId),
-              eq(conversations.visibleId, clientSessionId),
+              eq(conversations.visibleId, chatSessionId),
               eq(conversations.boostStatus, "running")
             )
           );

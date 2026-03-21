@@ -55,6 +55,12 @@ interface Message {
   isLimitWarning?: boolean;
 }
 
+interface HistoryMessage {
+  role: string;
+  content: string;
+  agentType?: string;
+}
+
 interface BoostChatPanelProps {
   panelId: string;
   allowedAgents: string[] | null;
@@ -97,15 +103,20 @@ export default function BoostChatPanel({ panelId, allowedAgents, rentedAgentIds,
       if (conversationAgentType) setSelectedAgent(conversationAgentType);
       setLoadingHistory(true);
       fetch(`/api/conversations/${conversationVisibleId}/messages`)
-        .then(res => res.json())
-        .then((msgs: any[]) => {
+        .then(res => {
+          if (!res.ok) throw new Error(`Failed to load history: ${res.status}`);
+          return res.json();
+        })
+        .then((msgs: HistoryMessage[]) => {
+          const derivedAgent = msgs.find(m => m.agentType)?.agentType;
+          if (derivedAgent) setSelectedAgent(derivedAgent);
           const parsed: Message[] = msgs.map(m => ({
             role: m.role as "user" | "assistant",
             content: m.content,
           }));
           setMessages(parsed);
         })
-        .catch(() => setMessages([]))
+        .catch(() => setMessages([{ role: "system", content: "Conversation history unavailable." }]))
         .finally(() => setLoadingHistory(false));
     } else if (!conversationVisibleId && user && !conversationId) {
       const visId = generateVisibleId();

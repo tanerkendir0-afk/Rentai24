@@ -2565,6 +2565,14 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
               }
               setActiveConvoId(prev => ({ ...prev, [task.agentType]: task.visibleId }));
             }}
+            onTaskDelete={async (task) => {
+              try {
+                await apiRequest("DELETE", `/api/conversations/${task.id}`);
+                queryClient.invalidateQueries({ queryKey: ["/api/boost/tasks"] });
+                queryClient.invalidateQueries({ queryKey: ["/api/boost/status"] });
+                queryClient.invalidateQueries({ queryKey: ['/api/conversations', task.agentType] });
+              } catch {}
+            }}
           />
         )}
 

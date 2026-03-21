@@ -18,6 +18,7 @@ import {
   ChevronUp,
   ChevronDown,
   Zap,
+  X,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useToast } from "@/hooks/use-toast";
@@ -46,9 +47,10 @@ interface BoostTask {
 
 interface BoostTaskBarProps {
   onTaskClick?: (task: BoostTask) => void;
+  onTaskDelete?: (task: BoostTask) => void;
 }
 
-export default function BoostTaskBar({ onTaskClick }: BoostTaskBarProps) {
+export default function BoostTaskBar({ onTaskClick, onTaskDelete }: BoostTaskBarProps) {
   const { t } = useTranslation("pages");
   const { toast } = useToast();
   const [collapsed, setCollapsed] = useState(false);
@@ -120,10 +122,10 @@ export default function BoostTaskBar({ onTaskClick }: BoostTaskBarProps) {
                 const isError = task.boostStatus === "error";
 
                 return (
-                  <button
+                  <div
                     key={task.id}
+                    className="relative flex items-center gap-2 px-2.5 py-1.5 rounded-lg border border-border/50 bg-muted/20 hover:bg-muted/40 transition-all shrink-0 min-w-[140px] max-w-[200px] text-left group cursor-pointer"
                     onClick={() => onTaskClick?.(task)}
-                    className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg border border-border/50 bg-muted/20 hover:bg-muted/40 transition-all shrink-0 min-w-[140px] max-w-[200px] text-left group"
                     data-testid={`boost-task-card-${task.id}`}
                   >
                     <div className={`w-6 h-6 rounded-full bg-gradient-to-br ${agentInfo.color} flex items-center justify-center shrink-0`}>
@@ -137,7 +139,7 @@ export default function BoostTaskBar({ onTaskClick }: BoostTaskBarProps) {
                         {agentInfo.persona}
                       </p>
                     </div>
-                    <div className="shrink-0">
+                    <div className="shrink-0 flex items-center gap-1">
                       {isRunning && (
                         <span className="relative flex h-2.5 w-2.5" data-testid={`boost-task-status-running-${task.id}`}>
                           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
@@ -153,8 +155,15 @@ export default function BoostTaskBar({ onTaskClick }: BoostTaskBarProps) {
                       {!isRunning && !isCompleted && !isError && (
                         <span className="w-2.5 h-2.5 rounded-full bg-muted-foreground/30 inline-block" />
                       )}
+                      <button
+                        onClick={(e) => { e.stopPropagation(); onTaskDelete?.(task); }}
+                        className="w-4 h-4 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-red-500/30 hover:text-red-400 text-muted-foreground/50 transition-all"
+                        data-testid={`boost-task-delete-${task.id}`}
+                      >
+                        <X className="w-2.5 h-2.5" />
+                      </button>
                     </div>
-                  </button>
+                  </div>
                 );
               })}
             </div>

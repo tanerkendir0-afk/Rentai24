@@ -116,6 +116,73 @@ const getConditionOperatorLabels = (t: any): Record<string, string> => ({
   starts_with: t("automations.opStartsWith"), ends_with: t("automations.opEndsWith"),
 });
 
+const COMMON_OPERATORS = ["equals", "not_equals", "contains", "greater_than", "less_than", "exists"];
+
+interface TriggerField {
+  label: string;
+  value: string;
+  valueType: "text" | "number" | "select";
+  presetValues?: { label: string; value: string }[];
+}
+
+const TRIGGER_FIELDS: Record<string, TriggerField[]> = {
+  event_monitor: [
+    { label: "Durum", value: "status", valueType: "select", presetValues: [
+      { label: "Tamamlandı", value: "completed" },
+      { label: "Beklemede", value: "pending" },
+      { label: "İptal", value: "cancelled" },
+      { label: "Devam Ediyor", value: "in_progress" },
+    ]},
+    { label: "Gün Sayısı", value: "daysThreshold", valueType: "number" },
+    { label: "Ajan Türü", value: "agentType", valueType: "select", presetValues: [
+      { label: "Satış Ajanı", value: "sales" },
+      { label: "Destek Ajanı", value: "support" },
+      { label: "Analiz Ajanı", value: "analysis" },
+    ]},
+    { label: "Özel Alan", value: "__custom__", valueType: "text" },
+  ],
+  email_received: [
+    { label: "Gönderen", value: "from", valueType: "text" },
+    { label: "Konu", value: "subject", valueType: "text" },
+    { label: "İçerik", value: "body", valueType: "text" },
+    { label: "Alıcı", value: "to", valueType: "text" },
+    { label: "Özel Alan", value: "__custom__", valueType: "text" },
+  ],
+  schedule: [
+    { label: "Saat", value: "hour", valueType: "number" },
+    { label: "Gün", value: "dayOfWeek", valueType: "select", presetValues: [
+      { label: "Pazartesi", value: "monday" },
+      { label: "Salı", value: "tuesday" },
+      { label: "Çarşamba", value: "wednesday" },
+      { label: "Perşembe", value: "thursday" },
+      { label: "Cuma", value: "friday" },
+      { label: "Cumartesi", value: "saturday" },
+      { label: "Pazar", value: "sunday" },
+    ]},
+    { label: "Özel Alan", value: "__custom__", valueType: "text" },
+  ],
+  agent_tool_complete: [
+    { label: "Ajan Türü", value: "agentType", valueType: "select", presetValues: [
+      { label: "Satış Ajanı", value: "sales" },
+      { label: "Destek Ajanı", value: "support" },
+      { label: "Analiz Ajanı", value: "analysis" },
+    ]},
+    { label: "Görev Durumu", value: "taskStatus", valueType: "select", presetValues: [
+      { label: "Tamamlandı", value: "completed" },
+      { label: "Başarısız", value: "failed" },
+      { label: "İptal", value: "cancelled" },
+    ]},
+    { label: "Sonuç", value: "result", valueType: "text" },
+    { label: "Özel Alan", value: "__custom__", valueType: "text" },
+  ],
+  threshold: [
+    { label: "Tutar", value: "amount", valueType: "number" },
+    { label: "Sayı", value: "count", valueType: "number" },
+    { label: "Yüzde", value: "percentage", valueType: "number" },
+    { label: "Özel Alan", value: "__custom__", valueType: "text" },
+  ],
+};
+
 const actionConfigFields: Record<string, string[]> = {
   send_email: ["to", "subject", "body"],
   create_task: ["title", "description", "agentType", "priority"],
@@ -1393,11 +1460,28 @@ function RuleWizard({ onComplete, onClose }: {
   const [step, setStep] = useState(1);
   const [triggerType, setTriggerType] = useState("event_monitor");
   const [triggerConfig, setTriggerConfig] = useState<Record<string, any>>({ eventType: "lead_inactivity", daysThreshold: 3 });
-  const [conditions, setConditions] = useState<Array<{ field: string; operator: string; value: string }>>([]);
+  const [conditions, setConditions] = useState<Array<{ field: string; operator: string; value: string; isCustom?: boolean; showAdvanced?: boolean }>>([]);
   const [conditionLogic, setConditionLogic] = useState<"and" | "or">("and");
   const [actionType, setActionType] = useState("notify_owner");
   const [actionConfig, setActionConfig] = useState<Record<string, any>>({});
   const [workflowName, setWorkflowName] = useState("");
+
+  const getAvailableFields = () => TRIGGER_FIELDS[triggerType] || [{ label: "Özel Alan", value: "__custom__", valueType: "text" as const }];
+
+  const getFieldDef = (fieldValue: string): TriggerField | undefined => {
+    return getAvailableFields().find(f => f.value === fieldValue);
+  };
+
+  const buildConditionSummary = (cond: { field: string; operator: string; value: string; isCustom?: boolean }) => {
+    const fields = getAvailableFields();
+    const fieldLabel = cond.isCustom
+      ? (cond.field || "alan")
+      : (fields.find(f => f.value === cond.field)?.label || cond.field || "alan");
+    const opLabel = conditionOperatorLabels[cond.operator] || cond.operator;
+    const valueLabel = cond.value || "değer";
+    if (!cond.field && !cond.value) return null;
+    return `Eğer ${fieldLabel} ${opLabel.toLowerCase()} ${valueLabel} ise`;
+  };
 
   const TRIGGER_OPTIONS = [
     { value: "event_monitor", label: t("automations.triggerEventMonitor"), description: t("automations.wizTriggerEventDesc"), icon: "⏱️" },
@@ -1435,6 +1519,7 @@ function RuleWizard({ onComplete, onClose }: {
     let lastNodeId = "trigger-1";
 
     if (conditions.length > 0) {
+      const cleanConditions = conditions.map(({ field, operator, value }) => ({ field, operator, value }));
       const condNode: any = {
         id: "condition-1",
         type: "condition",
@@ -1444,7 +1529,7 @@ function RuleWizard({ onComplete, onClose }: {
           operator: conditions[0]?.operator || "equals",
           value: conditions[0]?.value || "",
         },
-        conditions: conditions,
+        conditions: cleanConditions,
         conditionLogic,
         conditionTrueNodeId: "action-1",
         conditionFalseNodeId: null,
@@ -1640,7 +1725,18 @@ function RuleWizard({ onComplete, onClose }: {
                 </div>
               </div>
 
-              {conditions.map((cond, idx) => (
+              {conditions.map((cond, idx) => {
+                const availableFields = getAvailableFields();
+                const isCustom = !!cond.isCustom;
+                const selectedFieldDef = isCustom ? undefined : getFieldDef(cond.field);
+                const hasPresets = !isCustom && selectedFieldDef?.presetValues && selectedFieldDef.presetValues.length > 0;
+                const isAdvanced = !!cond.showAdvanced;
+                const visibleOperators = isAdvanced
+                  ? Object.entries(conditionOperatorLabels)
+                  : Object.entries(conditionOperatorLabels).filter(([k]) => COMMON_OPERATORS.includes(k));
+                const summary = buildConditionSummary(cond);
+
+                return (
                 <div key={idx} className="bg-gray-800/50 rounded-lg p-3 space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-gray-400">{t("automations.rule")} {idx + 1}</span>
@@ -1652,47 +1748,115 @@ function RuleWizard({ onComplete, onClose }: {
                       {t("automations.remove")}
                     </button>
                   </div>
-                  <Input
-                    value={cond.field}
-                    onChange={(e) => {
-                      const next = [...conditions];
-                      next[idx] = { ...next[idx], field: e.target.value };
-                      setConditions(next);
-                    }}
-                    placeholder={t("automations.fieldNamePlaceholderWizard")}
-                    className="bg-gray-800 border-gray-700 text-white text-xs h-7"
-                    data-testid={`input-wizard-field-${idx}`}
-                  />
+
+                  {summary && (
+                    <div className="text-xs text-blue-400 bg-blue-900/20 rounded px-2 py-1 italic" data-testid={`text-wizard-cond-summary-${idx}`}>
+                      {summary}
+                    </div>
+                  )}
+
                   <Select
-                    value={cond.operator}
+                    value={isCustom ? "__custom__" : (cond.field || "")}
                     onValueChange={(v) => {
                       const next = [...conditions];
-                      next[idx] = { ...next[idx], operator: v };
+                      if (v === "__custom__") {
+                        next[idx] = { ...next[idx], isCustom: true, field: "", value: "" };
+                      } else {
+                        next[idx] = { ...next[idx], isCustom: false, field: v, value: "" };
+                      }
                       setConditions(next);
                     }}
                   >
-                    <SelectTrigger className="bg-gray-800 border-gray-700 text-white text-xs h-7" data-testid={`select-wizard-op-${idx}`}>
-                      <SelectValue />
+                    <SelectTrigger className="bg-gray-800 border-gray-700 text-white text-xs h-7" data-testid={`select-wizard-field-${idx}`}>
+                      <SelectValue placeholder={t("automations.fieldSelectPh")} />
                     </SelectTrigger>
                     <SelectContent>
-                      {Object.entries(conditionOperatorLabels).map(([k, v]) => (
-                        <SelectItem key={k} value={k}>{v}</SelectItem>
+                      {availableFields.map(f => (
+                        <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                  <Input
-                    value={cond.value}
-                    onChange={(e) => {
-                      const next = [...conditions];
-                      next[idx] = { ...next[idx], value: e.target.value };
-                      setConditions(next);
-                    }}
-                    placeholder={t("automations.valuePh")}
-                    className="bg-gray-800 border-gray-700 text-white text-xs h-7"
-                    data-testid={`input-wizard-value-${idx}`}
-                  />
+
+                  {isCustom && (
+                    <Input
+                      value={cond.field}
+                      onChange={(e) => {
+                        const next = [...conditions];
+                        next[idx] = { ...next[idx], field: e.target.value };
+                        setConditions(next);
+                      }}
+                      placeholder={t("automations.fieldNamePlaceholderWizard")}
+                      className="bg-gray-800 border-gray-700 text-white text-xs h-7"
+                      data-testid={`input-wizard-field-${idx}`}
+                    />
+                  )}
+
+                  <div className="space-y-1">
+                    <Select
+                      value={cond.operator}
+                      onValueChange={(v) => {
+                        const next = [...conditions];
+                        next[idx] = { ...next[idx], operator: v };
+                        setConditions(next);
+                      }}
+                    >
+                      <SelectTrigger className="bg-gray-800 border-gray-700 text-white text-xs h-7" data-testid={`select-wizard-op-${idx}`}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {visibleOperators.map(([k, v]) => (
+                          <SelectItem key={k} value={k}>{v}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <button
+                      onClick={() => {
+                        const next = [...conditions];
+                        next[idx] = { ...next[idx], showAdvanced: !isAdvanced };
+                        setConditions(next);
+                      }}
+                      className="text-xs text-gray-500 hover:text-gray-300 underline"
+                      data-testid={`button-wizard-toggle-ops-${idx}`}
+                    >
+                      {isAdvanced ? t("automations.simplify") : t("automations.advancedOperators")}
+                    </button>
+                  </div>
+
+                  {hasPresets ? (
+                    <Select
+                      value={cond.value}
+                      onValueChange={(v) => {
+                        const next = [...conditions];
+                        next[idx] = { ...next[idx], value: v };
+                        setConditions(next);
+                      }}
+                    >
+                      <SelectTrigger className="bg-gray-800 border-gray-700 text-white text-xs h-7" data-testid={`select-wizard-value-${idx}`}>
+                        <SelectValue placeholder={t("automations.valueSelectPh")} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {selectedFieldDef!.presetValues!.map(pv => (
+                          <SelectItem key={pv.value} value={pv.value}>{pv.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <Input
+                      value={cond.value}
+                      onChange={(e) => {
+                        const next = [...conditions];
+                        next[idx] = { ...next[idx], value: e.target.value };
+                        setConditions(next);
+                      }}
+                      placeholder={t("automations.valuePh")}
+                      type={selectedFieldDef?.valueType === "number" ? "number" : "text"}
+                      className="bg-gray-800 border-gray-700 text-white text-xs h-7"
+                      data-testid={`input-wizard-value-${idx}`}
+                    />
+                  )}
                 </div>
-              ))}
+                );
+              })}
 
               <Button
                 variant="outline"

@@ -231,7 +231,7 @@ function UsersPanel({ token }: { token: string }) {
   const saveTokenLimit = async (userId: number) => {
     const val = parseFloat(limitValue);
     if (isNaN(val) || val < 0) {
-      toast({ title: "Geçersiz değer", description: "Lütfen 0 veya daha büyük bir sayı girin.", variant: "destructive" });
+      toast({ title: t("admin.toastInvalidValue"), description: t("admin.toastInvalidValueDesc"), variant: "destructive" });
       return;
     }
     setSavingLimit(true);
@@ -244,13 +244,13 @@ function UsersPanel({ token }: { token: string }) {
       if (res.ok) {
         setUsers(prev => prev.map(u => u.id === userId ? { ...u, token_spending_limit: val.toFixed(2) } : u));
         setEditingLimit(null);
-        toast({ title: "Kaydedildi", description: `Token limiti $${val.toFixed(2)} olarak güncellendi.` });
+        toast({ title: t("admin.toastSaved"), description: t("admin.toastTokenLimitUpdated", { value: val.toFixed(2) }) });
       } else {
         const err = await res.json().catch(() => null);
-        toast({ title: "Hata", description: err?.error || "Limit güncellenemedi.", variant: "destructive" });
+        toast({ title: t("admin.toastError"), description: err?.error || t("admin.toastLimitUpdateFailed"), variant: "destructive" });
       }
     } catch {
-      toast({ title: "Hata", description: "Limit güncellenemedi.", variant: "destructive" });
+      toast({ title: t("admin.toastError"), description: t("admin.toastLimitUpdateFailed"), variant: "destructive" });
     } finally {
       setSavingLimit(false);
     }
@@ -331,7 +331,7 @@ function UsersPanel({ token }: { token: string }) {
                   )}
                   <div className="flex items-center gap-2 mt-2 pt-2 border-t border-[#1E2448]">
                     <DollarSign className="w-3.5 h-3.5 text-yellow-400" />
-                    <span className="text-gray-400 text-xs">Token Limiti:</span>
+                    <span className="text-gray-400 text-xs">{t("admin.tokenLimitLabel")}</span>
                     {editingLimit === user.id ? (
                       <div className="flex items-center gap-1">
                         <span className="text-yellow-400 text-xs">$</span>
@@ -5433,19 +5433,19 @@ function AIProviderPanel({ token }: { token: string }) {
           <div className="p-4 bg-[#111633] rounded-lg border border-[#1E2448]">
             <h4 className="text-white font-medium mb-3 flex items-center gap-2">
               <Cpu className="w-4 h-4 text-green-400" />
-              NVIDIA Nemotron API Anahtarı
+              {t("admin.nvidiaApiKeyTitle")}
               {nvidiaConfigured && (
-                <span className="text-xs text-green-400 bg-green-900/30 border border-green-800/50 px-2 py-0.5 rounded-full ml-auto">Yapılandırıldı</span>
+                <span className="text-xs text-green-400 bg-green-900/30 border border-green-800/50 px-2 py-0.5 rounded-full ml-auto">{t("admin.nvidiaConfigured")}</span>
               )}
             </h4>
             <p className="text-gray-400 text-sm mb-3">
-              NVIDIA Cloud API anahtarınızı girin. Nemotron modellerini kullanmak için gereklidir. <a href="https://build.nvidia.com" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">build.nvidia.com</a> adresinden API anahtarı alabilirsiniz.
+              {t("admin.nvidiaApiKeyDesc")} <a href="https://build.nvidia.com" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">build.nvidia.com</a> {t("admin.nvidiaGetApiKey")}
             </p>
             <div className="flex gap-2">
               <div className="relative flex-1 max-w-md">
                 <Input
                   type={showNvidiaKey ? "text" : "password"}
-                  placeholder={nvidiaConfigured ? "Mevcut anahtar: ******* (değiştirmek için yenisini girin)" : "nvapi-xxxxxxxxxxxx"}
+                  placeholder={nvidiaConfigured ? t("admin.nvidiaPlaceholderExisting") : "nvapi-xxxxxxxxxxxx"}
                   value={nvidiaApiKey}
                   onChange={(e) => setNvidiaApiKey(e.target.value)}
                   className="bg-[#0A0E27] border-[#1E2448] text-white pr-10 font-mono text-sm"
@@ -5461,7 +5461,7 @@ function AIProviderPanel({ token }: { token: string }) {
                 </button>
               </div>
             </div>
-            <p className="text-gray-500 text-xs mt-2">Anahtarınız sistem ayarları olarak kaydedilir. Sunucu tarafında güvenli ortam değişkeni (NVIDIA_API_KEY) ile de yapılandırılabilir.</p>
+            <p className="text-gray-500 text-xs mt-2">{t("admin.nvidiaKeyNote")}</p>
           </div>
 
           <div className="p-4 bg-[#111633] rounded-lg border border-[#1E2448]">
@@ -5480,13 +5480,13 @@ function AIProviderPanel({ token }: { token: string }) {
                 <SelectItem value="openai">{t("adminPage.select.openaiModels")}</SelectItem>
                 <SelectItem value="anthropic">{t("adminPage.select.anthropicSonnet")}</SelectItem>
                 <SelectItem value="nvidia" data-testid="option-nvidia">NVIDIA Nemotron (Llama 3.1 70B)</SelectItem>
-                <SelectItem value="auto" data-testid="option-auto-routing">Auto - Akıllı Yönlendirme</SelectItem>
+                <SelectItem value="auto" data-testid="option-auto-routing">{t("admin.autoSmartRouting")}</SelectItem>
               </SelectContent>
             </Select>
             {defaultProvider === "auto" && (
               <div className="mt-3 p-3 bg-blue-900/15 border border-blue-800/30 rounded-lg">
                 <p className="text-blue-300 text-xs leading-relaxed">
-                  <strong>Akıllı Yönlendirme:</strong> Basit mesajlar (selam, teşekkür) → GPT-4o-mini (ucuz), orta karmaşıklık → GPT-4o, derin analiz/rapor/strateji → Claude Sonnet 4 (en güçlü). Maliyet optimize edilirken kalite korunur.
+                  <strong>{t("admin.smartRoutingTitle")}</strong> {t("admin.smartRoutingDesc")}
                 </p>
               </div>
             )}
@@ -5495,10 +5495,10 @@ function AIProviderPanel({ token }: { token: string }) {
           <div className="p-4 bg-[#111633] rounded-lg border border-[#1E2448]">
             <h4 className="text-white font-medium mb-3 flex items-center gap-2">
               <Shield className="w-4 h-4 text-emerald-400" />
-              Fallback (Yedek Sistem)
+              {t("admin.fallbackTitle")}
             </h4>
             <p className="text-gray-400 text-sm mb-3">
-              Birincil sağlayıcı hata verdiğinde otomatik olarak diğerine geçiş yapar. Hizmet kesintisi olmaz.
+              {t("admin.fallbackDesc")}
             </p>
             <div className="flex items-center gap-3">
               <button
@@ -5509,12 +5509,12 @@ function AIProviderPanel({ token }: { token: string }) {
                 <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${fallbackEnabled ? "translate-x-6" : "translate-x-0.5"}`} />
               </button>
               <span className={`text-sm ${fallbackEnabled ? "text-emerald-400" : "text-gray-500"}`}>
-                {fallbackEnabled ? "Aktif" : "Devre Dışı"}
+                {fallbackEnabled ? t("admin.fallbackActive") : t("admin.fallbackDisabled")}
               </span>
             </div>
             {fallbackEnabled && (
               <div className="mt-2 text-[11px] text-gray-500">
-                Örn: OpenAI hata → Anthropic devreye girer → NVIDIA devreye girer | NVIDIA birincil ise → Anthropic → OpenAI sırası uygulanır
+                {t("admin.fallbackExample")}
               </div>
             )}
           </div>
@@ -5528,7 +5528,7 @@ function AIProviderPanel({ token }: { token: string }) {
               {t("adminPage.aiProvider.perAgentDesc")}
             </p>
             <div className="mb-3 p-2 bg-yellow-900/20 border border-yellow-700/30 rounded-lg text-[11px] text-yellow-300/70">
-              Not: NVIDIA Nemotron, araç çağrısı (tool-calling) desteklememektedir. Araç kullanan agentlara NVIDIA atanırsa araç işlevleri çalışmaz.
+              {t("admin.nvidiaToolCallWarning")}
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {AGENTS_DATA.map(agent => (
@@ -5546,7 +5546,7 @@ function AIProviderPanel({ token }: { token: string }) {
                       <SelectItem value="openai">OpenAI</SelectItem>
                       <SelectItem value="anthropic">Anthropic</SelectItem>
                       <SelectItem value="nvidia">NVIDIA Nemotron</SelectItem>
-                      <SelectItem value="auto">Auto (Akıllı)</SelectItem>
+                      <SelectItem value="auto">{t("admin.autoSmart")}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -5603,10 +5603,10 @@ function AIProviderPanel({ token }: { token: string }) {
         <CardHeader>
           <CardTitle className="text-lg text-white flex items-center gap-2">
             <BarChart3 className="w-5 h-5 text-blue-400" />
-            Sağlayıcı Maliyet Karşılaştırması
+            {t("admin.providerCostComparison")}
           </CardTitle>
           <CardDescription className="text-gray-400">
-            Son 30 günlük AI sağlayıcı kullanım ve maliyet analizi
+            {t("admin.providerCostDesc")}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -5615,7 +5615,7 @@ function AIProviderPanel({ token }: { token: string }) {
               <Loader2 className="w-6 h-6 animate-spin text-blue-400" />
             </div>
           ) : !statsData ? (
-            <p className="text-gray-500 text-sm text-center py-6">Veri bulunamadı</p>
+            <p className="text-gray-500 text-sm text-center py-6">{t("admin.noDataFound")}</p>
           ) : (
             <div className="space-y-5">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -5625,17 +5625,17 @@ function AIProviderPanel({ token }: { token: string }) {
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <p className="text-[11px] text-gray-500 uppercase tracking-wider">Toplam Maliyet</p>
+                      <p className="text-[11px] text-gray-500 uppercase tracking-wider">{t("admin.totalCost")}</p>
                       <p className="text-xl font-bold text-green-400">${openaiTotal.toFixed(4)}</p>
                     </div>
                     <div>
-                      <p className="text-[11px] text-gray-500 uppercase tracking-wider">İstek Sayısı</p>
+                      <p className="text-[11px] text-gray-500 uppercase tracking-wider">{t("admin.requestCount")}</p>
                       <p className="text-xl font-bold text-white">{openaiRequests.toLocaleString()}</p>
                     </div>
                   </div>
                   {openaiRequests > 0 && (
                     <p className="text-[11px] text-gray-500 mt-2">
-                      Ort. ${(openaiTotal / openaiRequests).toFixed(6)} / istek
+                      {t("admin.avgPerRequest", { value: (openaiTotal / openaiRequests).toFixed(6) })}
                     </p>
                   )}
                   {openaiStats.length > 0 && (
@@ -5643,7 +5643,7 @@ function AIProviderPanel({ token }: { token: string }) {
                       {openaiStats.map((s: any, i: number) => (
                         <div key={i} className="flex justify-between text-[11px]">
                           <span className="text-gray-400">{s.model}</span>
-                          <span className="text-white">{s.request_count} istek · ${parseFloat(s.total_cost || "0").toFixed(4)}</span>
+                          <span className="text-white">{t("admin.requestsCount", { count: s.request_count })} · ${parseFloat(s.total_cost || "0").toFixed(4)}</span>
                         </div>
                       ))}
                     </div>
@@ -5656,17 +5656,17 @@ function AIProviderPanel({ token }: { token: string }) {
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <p className="text-[11px] text-gray-500 uppercase tracking-wider">Toplam Maliyet</p>
+                      <p className="text-[11px] text-gray-500 uppercase tracking-wider">{t("admin.totalCost")}</p>
                       <p className="text-xl font-bold text-violet-400">${anthropicTotal.toFixed(4)}</p>
                     </div>
                     <div>
-                      <p className="text-[11px] text-gray-500 uppercase tracking-wider">İstek Sayısı</p>
+                      <p className="text-[11px] text-gray-500 uppercase tracking-wider">{t("admin.requestCount")}</p>
                       <p className="text-xl font-bold text-white">{anthropicRequests.toLocaleString()}</p>
                     </div>
                   </div>
                   {anthropicRequests > 0 && (
                     <p className="text-[11px] text-gray-500 mt-2">
-                      Ort. ${(anthropicTotal / anthropicRequests).toFixed(6)} / istek
+                      {t("admin.avgPerRequest", { value: (anthropicTotal / anthropicRequests).toFixed(6) })}
                     </p>
                   )}
                   {anthropicStats.length > 0 && (
@@ -5674,7 +5674,7 @@ function AIProviderPanel({ token }: { token: string }) {
                       {anthropicStats.map((s: any, i: number) => (
                         <div key={i} className="flex justify-between text-[11px]">
                           <span className="text-gray-400">{s.model}</span>
-                          <span className="text-white">{s.request_count} istek · ${parseFloat(s.total_cost || "0").toFixed(4)}</span>
+                          <span className="text-white">{t("admin.requestsCount", { count: s.request_count })} · ${parseFloat(s.total_cost || "0").toFixed(4)}</span>
                         </div>
                       ))}
                     </div>
@@ -5687,17 +5687,17 @@ function AIProviderPanel({ token }: { token: string }) {
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <p className="text-[11px] text-gray-500 uppercase tracking-wider">Toplam Maliyet</p>
+                      <p className="text-[11px] text-gray-500 uppercase tracking-wider">{t("admin.totalCost")}</p>
                       <p className="text-xl font-bold text-green-400">${nvidiaTotal.toFixed(4)}</p>
                     </div>
                     <div>
-                      <p className="text-[11px] text-gray-500 uppercase tracking-wider">İstek Sayısı</p>
+                      <p className="text-[11px] text-gray-500 uppercase tracking-wider">{t("admin.requestCount")}</p>
                       <p className="text-xl font-bold text-white">{nvidiaRequests.toLocaleString()}</p>
                     </div>
                   </div>
                   {nvidiaRequests > 0 && (
                     <p className="text-[11px] text-gray-500 mt-2">
-                      Ort. ${(nvidiaTotal / nvidiaRequests).toFixed(6)} / istek
+                      {t("admin.avgPerRequest", { value: (nvidiaTotal / nvidiaRequests).toFixed(6) })}
                     </p>
                   )}
                   {nvidiaStats.length > 0 && (
@@ -5705,13 +5705,13 @@ function AIProviderPanel({ token }: { token: string }) {
                       {nvidiaStats.map((s: any, i: number) => (
                         <div key={i} className="flex justify-between text-[11px]">
                           <span className="text-gray-400">{s.model}</span>
-                          <span className="text-white">{s.request_count} istek · ${parseFloat(s.total_cost || "0").toFixed(4)}</span>
+                          <span className="text-white">{t("admin.requestsCount", { count: s.request_count })} · ${parseFloat(s.total_cost || "0").toFixed(4)}</span>
                         </div>
                       ))}
                     </div>
                   )}
                   {nvidiaRequests === 0 && (
-                    <p className="text-[11px] text-gray-600 mt-2 italic">Henüz NVIDIA kullanımı yok</p>
+                    <p className="text-[11px] text-gray-600 mt-2 italic">{t("admin.noNvidiaUsageYet")}</p>
                   )}
                 </div>
               </div>
@@ -5720,7 +5720,7 @@ function AIProviderPanel({ token }: { token: string }) {
                 const totalAll = openaiTotal + anthropicTotal + nvidiaTotal;
                 return totalAll > 0 ? (
                 <div className="p-4 bg-[#111633] rounded-lg border border-[#1E2448]">
-                  <h5 className="text-white text-sm font-medium mb-3">Maliyet Dağılımı</h5>
+                  <h5 className="text-white text-sm font-medium mb-3">{t("admin.costDistribution")}</h5>
                   <div className="h-3 bg-[#0A0E27] rounded-full overflow-hidden flex">
                     <div
                       className="h-full bg-gradient-to-r from-green-500 to-green-600 transition-all"
@@ -5746,7 +5746,7 @@ function AIProviderPanel({ token }: { token: string }) {
 
               {statsData.byAgent && statsData.byAgent.length > 0 && (
                 <div className="p-4 bg-[#111633] rounded-lg border border-[#1E2448]">
-                  <h5 className="text-white text-sm font-medium mb-3">Ajan Bazlı Kullanım</h5>
+                  <h5 className="text-white text-sm font-medium mb-3">{t("admin.agentBasedUsage")}</h5>
                   <div className="space-y-2">
                     {Array.from(new Set(statsData.byAgent.map((r: any) => r.agent_type))).map((agentType: any) => {
                       const agentRows = statsData.byAgent.filter((r: any) => r.agent_type === agentType);
@@ -6314,15 +6314,9 @@ function AdminFeedbackPanel({ token }: { token: string }) {
   );
 }
 
-const SKILL_CATEGORY_LABELS: Record<string, string> = {
-  data_processing: "Veri İşleme", text_analysis: "Metin Analizi", communication: "İletişim",
-  calculation: "Hesaplama", integration: "Entegrasyon", file_ops: "Dosya İşlemleri",
-  ai_powered: "AI Destekli", utility: "Yardımcı Araçlar",
-};
+const SKILL_CATEGORY_KEYS = ["data_processing", "text_analysis", "communication", "calculation", "integration", "file_ops", "ai_powered", "utility"] as const;
 
-const SKILL_TYPE_LABELS: Record<string, string> = {
-  builtin: "Yerleşik", http: "HTTP", prompt: "AI Prompt", expression: "İfade",
-};
+const SKILL_TYPE_KEYS = ["builtin", "http", "prompt", "expression"] as const;
 
 const SKILL_ICONS: Record<string, any> = {
   FileText, Globe, Calculator, Hash, Code2, Zap, Brain, Wrench, Search, FileSearch, Mail,
@@ -6341,6 +6335,7 @@ interface SkillAssignment {
 }
 
 function SkillsPanel({ token }: { token: string }) {
+  const { t } = useTranslation("pages");
   const { toast } = useToast();
   const [skills, setSkills] = useState<SkillData[]>([]);
   const [assignments, setAssignments] = useState<SkillAssignment[]>([]);
@@ -6371,7 +6366,7 @@ function SkillsPanel({ token }: { token: string }) {
         setSkillStats(stats);
       }
     } catch (err: any) {
-      toast({ title: "Hata", description: err.message, variant: "destructive" });
+      toast({ title: t("admin.toastError"), description: err.message, variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -6384,10 +6379,10 @@ function SkillsPanel({ token }: { token: string }) {
       const res = await fetch(`${ADMIN_API}/skills/seed`, { method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } });
       if (!res.ok) throw new Error("Seed failed");
       const data = await res.json();
-      toast({ title: "Başarılı", description: `${data.count} beceri yüklendi` });
+      toast({ title: t("admin.toastSuccess"), description: t("admin.toastSkillsLoaded", { count: data.count }) });
       loadSkills();
     } catch (err: any) {
-      toast({ title: "Hata", description: err.message, variant: "destructive" });
+      toast({ title: t("admin.toastError"), description: err.message, variant: "destructive" });
     }
   };
 
@@ -6399,24 +6394,24 @@ function SkillsPanel({ token }: { token: string }) {
         body: JSON.stringify({ isActive: !skill.isActive }),
       });
       if (!res.ok) throw new Error("Update failed");
-      toast({ title: skill.isActive ? "Devre dışı" : "Aktif", description: `${skill.nameTr} ${skill.isActive ? "devre dışı bırakıldı" : "aktifleştirildi"}` });
+      toast({ title: skill.isActive ? t("admin.toastDisabled") : t("admin.toastActive"), description: skill.isActive ? t("admin.skillDeactivated", { name: skill.nameTr }) : t("admin.skillActivated", { name: skill.nameTr }) });
       loadSkills();
     } catch (err: any) {
-      toast({ title: "Hata", description: err.message, variant: "destructive" });
+      toast({ title: t("admin.toastError"), description: err.message, variant: "destructive" });
     }
   };
 
   const deleteSkill = async (skill: SkillData) => {
-    if (!confirm(`"${skill.nameTr}" becerisini silmek istediğinize emin misiniz?`)) return;
+    if (!confirm(t("admin.confirmDeleteSkill", { name: skill.nameTr }))) return;
     try {
       const res = await fetch(`${ADMIN_API}/skills/${skill.id}`, {
         method: "DELETE", headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) throw new Error("Delete failed");
-      toast({ title: "Silindi", description: `${skill.nameTr} silindi` });
+      toast({ title: t("admin.toastDeleted"), description: t("admin.skillDeleted", { name: skill.nameTr }) });
       loadSkills();
     } catch (err: any) {
-      toast({ title: "Hata", description: err.message, variant: "destructive" });
+      toast({ title: t("admin.toastError"), description: err.message, variant: "destructive" });
     }
   };
 
@@ -6428,11 +6423,11 @@ function SkillsPanel({ token }: { token: string }) {
         body: JSON.stringify({ agents }),
       });
       if (!res.ok) throw new Error("Assign failed");
-      toast({ title: "Atandı", description: `${agents.length} ajana atandı` });
+      toast({ title: t("admin.toastAssigned"), description: t("admin.assignedToAgents", { count: agents.length }) });
       loadSkills();
       setShowAssignModal(false);
     } catch (err: any) {
-      toast({ title: "Hata", description: err.message, variant: "destructive" });
+      toast({ title: t("admin.toastError"), description: err.message, variant: "destructive" });
     }
   };
 
@@ -6462,25 +6457,25 @@ function SkillsPanel({ token }: { token: string }) {
         <Card className="bg-gradient-to-br from-cyan-900/40 to-blue-900/40 border-cyan-700/30">
           <CardContent className="p-4 text-center">
             <div className="text-2xl font-bold text-cyan-300" data-testid="skills-total-count">{skills.length}</div>
-            <div className="text-xs text-gray-400">Toplam Beceri</div>
+            <div className="text-xs text-gray-400">{t("admin.totalSkills")}</div>
           </CardContent>
         </Card>
         <Card className="bg-gradient-to-br from-green-900/40 to-emerald-900/40 border-green-700/30">
           <CardContent className="p-4 text-center">
             <div className="text-2xl font-bold text-green-300" data-testid="skills-active-count">{activeCount}</div>
-            <div className="text-xs text-gray-400">Aktif</div>
+            <div className="text-xs text-gray-400">{t("admin.activeLabel")}</div>
           </CardContent>
         </Card>
         <Card className="bg-gradient-to-br from-violet-900/40 to-purple-900/40 border-violet-700/30">
           <CardContent className="p-4 text-center">
             <div className="text-2xl font-bold text-violet-300" data-testid="skills-builtin-count">{builtinCount}</div>
-            <div className="text-xs text-gray-400">Yerleşik</div>
+            <div className="text-xs text-gray-400">{t("admin.builtinLabel")}</div>
           </CardContent>
         </Card>
         <Card className="bg-gradient-to-br from-amber-900/40 to-orange-900/40 border-amber-700/30">
           <CardContent className="p-4 text-center">
             <div className="text-2xl font-bold text-amber-300" data-testid="skills-custom-count">{customCount}</div>
-            <div className="text-xs text-gray-400">Özel</div>
+            <div className="text-xs text-gray-400">{t("admin.customLabel")}</div>
           </CardContent>
         </Card>
       </div>
@@ -6489,7 +6484,7 @@ function SkillsPanel({ token }: { token: string }) {
         <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <Input
-            placeholder="Beceri ara..."
+            placeholder={t("admin.searchSkills")}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-9 bg-[#0B0F2E] border-[#1E2448] text-white"
@@ -6501,9 +6496,9 @@ function SkillsPanel({ token }: { token: string }) {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Tüm Kategoriler</SelectItem>
+            <SelectItem value="all">{t("admin.allCategories")}</SelectItem>
             {categories.map(c => (
-              <SelectItem key={c} value={c}>{SKILL_CATEGORY_LABELS[c] || c}</SelectItem>
+              <SelectItem key={c} value={c}>{t("admin.skillCategories." + c, c)}</SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -6512,19 +6507,19 @@ function SkillsPanel({ token }: { token: string }) {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Tüm Tipler</SelectItem>
-            <SelectItem value="builtin">Yerleşik</SelectItem>
-            <SelectItem value="http">HTTP</SelectItem>
-            <SelectItem value="prompt">AI Prompt</SelectItem>
-            <SelectItem value="expression">İfade</SelectItem>
+            <SelectItem value="all">{t("admin.allTypes")}</SelectItem>
+            <SelectItem value="builtin">{t("admin.skillTypes.builtin")}</SelectItem>
+            <SelectItem value="http">{t("admin.skillTypes.http")}</SelectItem>
+            <SelectItem value="prompt">{t("admin.skillTypes.prompt")}</SelectItem>
+            <SelectItem value="expression">{t("admin.skillTypes.expression")}</SelectItem>
           </SelectContent>
         </Select>
         <Button onClick={() => setShowCreateModal(true)} className="bg-cyan-600 hover:bg-cyan-700" data-testid="skills-create-btn">
-          <Plus className="w-4 h-4 mr-1" /> Yeni Beceri
+          <Plus className="w-4 h-4 mr-1" /> {t("admin.newSkill")}
         </Button>
         {skills.length === 0 && (
           <Button onClick={seedSkills} variant="outline" className="border-cyan-600 text-cyan-400 hover:bg-cyan-900/30" data-testid="skills-seed-btn">
-            <Zap className="w-4 h-4 mr-1" /> Yerleşik Becerileri Yükle
+            <Zap className="w-4 h-4 mr-1" /> {t("admin.loadBuiltinSkills")}
           </Button>
         )}
       </div>
@@ -6544,13 +6539,13 @@ function SkillsPanel({ token }: { token: string }) {
                     <div className="flex items-center gap-2 flex-wrap">
                       <h3 className="font-semibold text-white text-sm" data-testid={`skill-name-${skill.id}`}>{skill.nameTr}</h3>
                       <Badge variant="outline" className={`text-[10px] ${skill.isBuiltin ? "border-violet-600 text-violet-400" : "border-amber-600 text-amber-400"}`}>
-                        {skill.isBuiltin ? "Yerleşik" : "Özel"}
+                        {skill.isBuiltin ? t("admin.builtinBadge") : t("admin.customBadge")}
                       </Badge>
                       <Badge variant="outline" className="text-[10px] border-blue-600 text-blue-400">
-                        {SKILL_CATEGORY_LABELS[skill.category] || skill.category}
+                        {t("admin.skillCategories." + skill.category, skill.category)}
                       </Badge>
                       <Badge variant="outline" className="text-[10px] border-gray-600 text-gray-400">
-                        {SKILL_TYPE_LABELS[skill.skillType] || skill.skillType}
+                        {t("admin.skillTypes." + skill.skillType, skill.skillType)}
                       </Badge>
                     </div>
                     <p className="text-xs text-gray-400 mt-1">{skill.descriptionTr || skill.description}</p>
@@ -6558,9 +6553,9 @@ function SkillsPanel({ token }: { token: string }) {
                       const stat = skillStats.skillStats.find((s: any) => s.id === skill.id);
                       return stat && stat.usageCount > 0 ? (
                         <div className="flex gap-3 mt-1.5 text-[10px]">
-                          <span className="text-gray-500">Kullanım: <span className="text-cyan-400">{stat.usageCount}</span></span>
-                          <span className="text-gray-500">Başarı: <span className={stat.successRate >= 80 ? "text-green-400" : stat.successRate >= 50 ? "text-amber-400" : "text-red-400"}>{stat.successRate}%</span></span>
-                          <span className="text-gray-500">Ort: <span className="text-blue-400">{stat.avgDurationMs}ms</span></span>
+                          <span className="text-gray-500">{t("admin.usageLabel")} <span className="text-cyan-400">{stat.usageCount}</span></span>
+                          <span className="text-gray-500">{t("admin.successLabel")} <span className={stat.successRate >= 80 ? "text-green-400" : stat.successRate >= 50 ? "text-amber-400" : "text-red-400"}>{stat.successRate}%</span></span>
+                          <span className="text-gray-500">{t("admin.avgLabel")} <span className="text-blue-400">{stat.avgDurationMs}ms</span></span>
                         </div>
                       ) : null;
                     })()}
@@ -6587,17 +6582,17 @@ function SkillsPanel({ token }: { token: string }) {
                     )}
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
-                    <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-gray-400 hover:text-cyan-400" onClick={() => { setAssignSkill(skill); setShowAssignModal(true); }} data-testid={`skill-assign-${skill.id}`} title="Ajan Ata">
+                    <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-gray-400 hover:text-cyan-400" onClick={() => { setAssignSkill(skill); setShowAssignModal(true); }} data-testid={`skill-assign-${skill.id}`} title={t("admin.assignAgentTitle")}>
                       <Users className="w-4 h-4" />
                     </Button>
-                    <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-gray-400 hover:text-blue-400" onClick={() => setSelectedSkill(skill)} data-testid={`skill-detail-${skill.id}`} title="Detay">
+                    <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-gray-400 hover:text-blue-400" onClick={() => setSelectedSkill(skill)} data-testid={`skill-detail-${skill.id}`} title={t("admin.detailTitle")}>
                       <Eye className="w-4 h-4" />
                     </Button>
-                    <Button size="sm" variant="ghost" className={`h-8 w-8 p-0 ${skill.isActive ? "text-green-400 hover:text-red-400" : "text-gray-500 hover:text-green-400"}`} onClick={() => toggleSkill(skill)} data-testid={`skill-toggle-${skill.id}`} title={skill.isActive ? "Devre Dışı" : "Aktif Et"}>
+                    <Button size="sm" variant="ghost" className={`h-8 w-8 p-0 ${skill.isActive ? "text-green-400 hover:text-red-400" : "text-gray-500 hover:text-green-400"}`} onClick={() => toggleSkill(skill)} data-testid={`skill-toggle-${skill.id}`} title={skill.isActive ? t("admin.disableTitle") : t("admin.enableTitle")}>
                       {skill.isActive ? <ToggleRight className="w-4 h-4" /> : <ToggleLeft className="w-4 h-4" />}
                     </Button>
                     {!skill.isBuiltin && (
-                      <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-gray-400 hover:text-red-400" onClick={() => deleteSkill(skill)} data-testid={`skill-delete-${skill.id}`} title="Sil">
+                      <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-gray-400 hover:text-red-400" onClick={() => deleteSkill(skill)} data-testid={`skill-delete-${skill.id}`} title={t("admin.deleteTitle")}>
                         <Trash2 className="w-4 h-4" />
                       </Button>
                     )}
@@ -6610,7 +6605,7 @@ function SkillsPanel({ token }: { token: string }) {
         {filteredSkills.length === 0 && (
           <div className="text-center py-12 text-gray-500">
             <Sparkles className="w-12 h-12 mx-auto mb-3 opacity-30" />
-            <p className="text-sm">{skills.length === 0 ? "Henüz beceri yok. Yerleşik becerileri yükleyin." : "Filtreyle eşleşen beceri bulunamadı."}</p>
+            <p className="text-sm">{skills.length === 0 ? t("admin.noSkillsYet") : t("admin.noSkillsMatch")}</p>
           </div>
         )}
       </div>
@@ -6648,6 +6643,7 @@ function SkillsPanel({ token }: { token: string }) {
 function AgentAssignModal({ skill, currentAssignments, onSave, onClose }: {
   skill: SkillData; currentAssignments: string[]; onSave: (agents: string[]) => void; onClose: () => void;
 }) {
+  const { t } = useTranslation("pages");
   const [selected, setSelected] = useState<string[]>(currentAssignments);
   const toggle = (slug: string) => {
     setSelected(prev => prev.includes(slug) ? prev.filter(s => s !== slug) : [...prev, slug]);
@@ -6656,10 +6652,10 @@ function AgentAssignModal({ skill, currentAssignments, onSave, onClose }: {
     <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" onClick={onClose}>
       <div className="bg-[#0B0F2E] border border-[#1E2448] rounded-xl w-full max-w-md p-6 space-y-4" onClick={e => e.stopPropagation()} data-testid="agent-assign-modal">
         <div className="flex justify-between items-center">
-          <h3 className="text-lg font-semibold text-white">Ajan Atama: {skill.nameTr}</h3>
+          <h3 className="text-lg font-semibold text-white">{t("admin.agentAssignTitle")} {skill.nameTr}</h3>
           <Button size="sm" variant="ghost" onClick={onClose} className="text-gray-400"><X className="w-4 h-4" /></Button>
         </div>
-        <p className="text-xs text-gray-400">Bu beceriyi kullanabilecek ajanları seçin</p>
+        <p className="text-xs text-gray-400">{t("admin.agentAssignDesc")}</p>
         <div className="space-y-2 max-h-[300px] overflow-y-auto">
           {AGENTS_DATA.map(agent => (
             <button
@@ -6679,11 +6675,11 @@ function AgentAssignModal({ skill, currentAssignments, onSave, onClose }: {
           ))}
         </div>
         <div className="flex gap-2">
-          <Button onClick={() => setSelected(AGENTS_DATA.map(a => a.slug))} variant="outline" className="flex-1 text-xs border-gray-600 text-gray-300" data-testid="assign-select-all">Tümünü Seç</Button>
-          <Button onClick={() => setSelected([])} variant="outline" className="flex-1 text-xs border-gray-600 text-gray-300" data-testid="assign-clear-all">Temizle</Button>
+          <Button onClick={() => setSelected(AGENTS_DATA.map(a => a.slug))} variant="outline" className="flex-1 text-xs border-gray-600 text-gray-300" data-testid="assign-select-all">{t("admin.selectAll")}</Button>
+          <Button onClick={() => setSelected([])} variant="outline" className="flex-1 text-xs border-gray-600 text-gray-300" data-testid="assign-clear-all">{t("admin.clearAll")}</Button>
         </div>
         <Button onClick={() => onSave(selected)} className="w-full bg-cyan-600 hover:bg-cyan-700" data-testid="assign-save-btn">
-          Kaydet ({selected.length} ajan)
+          {t("admin.saveWithCount", { count: selected.length })}
         </Button>
       </div>
     </div>
@@ -6691,6 +6687,7 @@ function AgentAssignModal({ skill, currentAssignments, onSave, onClose }: {
 }
 
 function CreateSkillModal({ token, onClose, onCreated }: { token: string; onClose: () => void; onCreated: () => void }) {
+  const { t } = useTranslation("pages");
   const { toast } = useToast();
   const [form, setForm] = useState({
     name: "", nameTr: "", description: "", descriptionTr: "",
@@ -6713,7 +6710,7 @@ function CreateSkillModal({ token, onClose, onCreated }: { token: string; onClos
 
   const save = async () => {
     if (!form.name || !form.nameTr || !form.description) {
-      toast({ title: "Hata", description: "Ad, Türkçe Ad ve Açıklama zorunludur", variant: "destructive" });
+      toast({ title: t("admin.toastError"), description: t("admin.errorRequiredFields"), variant: "destructive" });
       return;
     }
     setSaving(true);
@@ -6724,10 +6721,10 @@ function CreateSkillModal({ token, onClose, onCreated }: { token: string; onClos
         body: JSON.stringify(form),
       });
       if (!res.ok) throw new Error("Create failed");
-      toast({ title: "Oluşturuldu", description: `${form.nameTr} becerisi oluşturuldu` });
+      toast({ title: t("admin.toastCreated"), description: t("admin.skillCreated", { name: form.nameTr }) });
       onCreated();
     } catch (err: any) {
-      toast({ title: "Hata", description: err.message, variant: "destructive" });
+      toast({ title: t("admin.toastError"), description: err.message, variant: "destructive" });
     } finally {
       setSaving(false);
     }
@@ -6737,49 +6734,49 @@ function CreateSkillModal({ token, onClose, onCreated }: { token: string; onClos
     <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" onClick={onClose}>
       <div className="bg-[#0B0F2E] border border-[#1E2448] rounded-xl w-full max-w-lg p-6 space-y-4 max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()} data-testid="create-skill-modal">
         <div className="flex justify-between items-center">
-          <h3 className="text-lg font-semibold text-white">Yeni Beceri Oluştur</h3>
+          <h3 className="text-lg font-semibold text-white">{t("admin.createSkillTitle")}</h3>
           <Button size="sm" variant="ghost" onClick={onClose} className="text-gray-400"><X className="w-4 h-4" /></Button>
         </div>
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="text-xs text-gray-400 mb-1 block">Ad (EN)</label>
+            <label className="text-xs text-gray-400 mb-1 block">{t("admin.labelNameEN")}</label>
             <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="my_skill" className="bg-[#111633] border-[#1E2448] text-white" data-testid="create-skill-name" />
           </div>
           <div>
-            <label className="text-xs text-gray-400 mb-1 block">Ad (TR)</label>
-            <Input value={form.nameTr} onChange={e => setForm(f => ({ ...f, nameTr: e.target.value }))} placeholder="Benim Becerim" className="bg-[#111633] border-[#1E2448] text-white" data-testid="create-skill-name-tr" />
+            <label className="text-xs text-gray-400 mb-1 block">{t("admin.labelNameTR")}</label>
+            <Input value={form.nameTr} onChange={e => setForm(f => ({ ...f, nameTr: e.target.value }))} placeholder={t("admin.mySkillPlaceholder")} className="bg-[#111633] border-[#1E2448] text-white" data-testid="create-skill-name-tr" />
           </div>
         </div>
 
         <div>
-          <label className="text-xs text-gray-400 mb-1 block">Açıklama</label>
+          <label className="text-xs text-gray-400 mb-1 block">{t("admin.labelDescription")}</label>
           <Input value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="What this skill does..." className="bg-[#111633] border-[#1E2448] text-white" data-testid="create-skill-description" />
         </div>
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="text-xs text-gray-400 mb-1 block">Kategori</label>
+            <label className="text-xs text-gray-400 mb-1 block">{t("admin.labelCategory")}</label>
             <Select value={form.category} onValueChange={v => setForm(f => ({ ...f, category: v }))}>
               <SelectTrigger className="bg-[#111633] border-[#1E2448] text-white" data-testid="create-skill-category">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {Object.entries(SKILL_CATEGORY_LABELS).map(([k, v]) => (
-                  <SelectItem key={k} value={k}>{v}</SelectItem>
+                {SKILL_CATEGORY_KEYS.map(k => (
+                  <SelectItem key={k} value={k}>{t("admin.skillCategories." + k)}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
           <div>
-            <label className="text-xs text-gray-400 mb-1 block">Tip</label>
+            <label className="text-xs text-gray-400 mb-1 block">{t("admin.labelType")}</label>
             <Select value={form.skillType} onValueChange={v => setForm(f => ({ ...f, skillType: v }))}>
               <SelectTrigger className="bg-[#111633] border-[#1E2448] text-white" data-testid="create-skill-type">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {Object.entries(SKILL_TYPE_LABELS).filter(([k]) => k !== "builtin").map(([k, v]) => (
-                  <SelectItem key={k} value={k}>{v}</SelectItem>
+                {SKILL_TYPE_KEYS.filter(k => k !== "builtin").map(k => (
+                  <SelectItem key={k} value={k}>{t("admin.skillTypes." + k)}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -6788,7 +6785,7 @@ function CreateSkillModal({ token, onClose, onCreated }: { token: string; onClos
 
         {form.skillType === "http" && (
           <div className="space-y-2 p-3 bg-[#111633] rounded-lg border border-[#1E2448]">
-            <label className="text-xs font-medium text-cyan-400">HTTP Yapılandırma</label>
+            <label className="text-xs font-medium text-cyan-400">{t("admin.httpConfig")}</label>
             <div className="grid grid-cols-3 gap-2">
               <Select value={form.config.method} onValueChange={v => setForm(f => ({ ...f, config: { ...f.config, method: v } }))}>
                 <SelectTrigger className="bg-[#0B0F2E] border-[#1E2448] text-white" data-testid="create-skill-method"><SelectValue /></SelectTrigger>
@@ -6806,11 +6803,11 @@ function CreateSkillModal({ token, onClose, onCreated }: { token: string; onClos
 
         {form.skillType === "prompt" && (
           <div className="space-y-2 p-3 bg-[#111633] rounded-lg border border-[#1E2448]">
-            <label className="text-xs font-medium text-cyan-400">AI Prompt Şablonu</label>
+            <label className="text-xs font-medium text-cyan-400">{t("admin.aiPromptTemplate")}</label>
             <textarea
               value={form.config.userPromptTemplate || ""}
               onChange={e => setForm(f => ({ ...f, config: { ...f.config, userPromptTemplate: e.target.value } }))}
-              placeholder="{{input}} verisini analiz et ve sonuçları JSON olarak döndür..."
+              placeholder={t("admin.promptPlaceholder")}
               className="w-full h-24 bg-[#0B0F2E] border border-[#1E2448] text-white rounded-md p-2 text-sm resize-none"
               data-testid="create-skill-prompt"
             />
@@ -6819,7 +6816,7 @@ function CreateSkillModal({ token, onClose, onCreated }: { token: string; onClos
 
         {form.skillType === "expression" && (
           <div className="space-y-2 p-3 bg-[#111633] rounded-lg border border-[#1E2448]">
-            <label className="text-xs font-medium text-cyan-400">JavaScript İfadesi</label>
+            <label className="text-xs font-medium text-cyan-400">{t("admin.jsExpression")}</label>
             <textarea
               value={form.config.expression || ""}
               onChange={e => setForm(f => ({ ...f, config: { ...f.config, expression: e.target.value } }))}
@@ -6831,26 +6828,26 @@ function CreateSkillModal({ token, onClose, onCreated }: { token: string; onClos
         )}
 
         <div className="space-y-2">
-          <label className="text-xs font-medium text-gray-400">Parametreler</label>
+          <label className="text-xs font-medium text-gray-400">{t("admin.parametersLabel")}</label>
           {form.parameters.map((p, i) => (
             <div key={i} className="flex items-center gap-2 text-xs bg-[#111633] p-2 rounded border border-[#1E2448]">
               <span className="text-white font-medium">{p.name}</span>
               <Badge variant="outline" className="text-[10px]">{p.type}</Badge>
-              {p.required && <Badge variant="outline" className="text-[10px] border-red-600 text-red-400">zorunlu</Badge>}
+              {p.required && <Badge variant="outline" className="text-[10px] border-red-600 text-red-400">{t("admin.requiredBadge")}</Badge>}
               <span className="text-gray-500 flex-1 truncate">{p.description}</span>
               <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-red-400" onClick={() => removeParam(i)}><X className="w-3 h-3" /></Button>
             </div>
           ))}
           <div className="flex gap-2">
-            <Input value={newParam.name} onChange={e => setNewParam(p => ({ ...p, name: e.target.value }))} placeholder="param_adı" className="flex-1 bg-[#111633] border-[#1E2448] text-white text-xs" data-testid="create-skill-param-name" />
-            <Input value={newParam.description} onChange={e => setNewParam(p => ({ ...p, description: e.target.value }))} placeholder="Açıklama" className="flex-1 bg-[#111633] border-[#1E2448] text-white text-xs" data-testid="create-skill-param-desc" />
+            <Input value={newParam.name} onChange={e => setNewParam(p => ({ ...p, name: e.target.value }))} placeholder={t("admin.paramNamePlaceholder")} className="flex-1 bg-[#111633] border-[#1E2448] text-white text-xs" data-testid="create-skill-param-name" />
+            <Input value={newParam.description} onChange={e => setNewParam(p => ({ ...p, description: e.target.value }))} placeholder={t("admin.descriptionPlaceholder")} className="flex-1 bg-[#111633] border-[#1E2448] text-white text-xs" data-testid="create-skill-param-desc" />
             <Button size="sm" onClick={addParam} className="bg-cyan-700 text-xs" data-testid="create-skill-add-param"><Plus className="w-3 h-3" /></Button>
           </div>
         </div>
 
         <Button onClick={save} disabled={saving} className="w-full bg-cyan-600 hover:bg-cyan-700" data-testid="create-skill-save">
           {saving ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Plus className="w-4 h-4 mr-1" />}
-          Oluştur
+          {t("admin.createButton")}
         </Button>
       </div>
     </div>
@@ -6860,6 +6857,7 @@ function CreateSkillModal({ token, onClose, onCreated }: { token: string; onClos
 function SkillDetailModal({ skill, assignments, onClose, token, onUpdated }: {
   skill: SkillData; assignments: SkillAssignment[]; onClose: () => void; token: string; onUpdated: () => void;
 }) {
+  const { t } = useTranslation("pages");
   const { toast } = useToast();
   const IconComp = SKILL_ICONS[skill.icon] || Sparkles;
   const [editing, setEditing] = useState(false);
@@ -6878,11 +6876,11 @@ function SkillDetailModal({ skill, assignments, onClose, token, onUpdated }: {
         body: JSON.stringify(editForm),
       });
       if (!res.ok) throw new Error("Update failed");
-      toast({ title: "Güncellendi", description: `${editForm.nameTr} güncellendi` });
+      toast({ title: t("admin.toastUpdated"), description: t("admin.skillUpdated", { name: editForm.nameTr }) });
       setEditing(false);
       onUpdated();
     } catch (err: any) {
-      toast({ title: "Hata", description: err.message, variant: "destructive" });
+      toast({ title: t("admin.toastError"), description: err.message, variant: "destructive" });
     } finally {
       setSaving(false);
     }
@@ -6914,36 +6912,36 @@ function SkillDetailModal({ skill, assignments, onClose, token, onUpdated }: {
         {editing ? (
           <div className="space-y-3">
             <div>
-              <label className="text-xs text-gray-400">Türkçe Ad</label>
+              <label className="text-xs text-gray-400">{t("admin.labelNameTrEdit")}</label>
               <Input value={editForm.nameTr} onChange={e => setEditForm(f => ({ ...f, nameTr: e.target.value }))} className="bg-[#111633] border-[#1E2448] text-white" data-testid="edit-skill-name-tr" />
             </div>
             <div>
-              <label className="text-xs text-gray-400">Açıklama</label>
+              <label className="text-xs text-gray-400">{t("admin.labelDescriptionEdit")}</label>
               <Input value={editForm.description} onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))} className="bg-[#111633] border-[#1E2448] text-white" data-testid="edit-skill-description" />
             </div>
             <div>
-              <label className="text-xs text-gray-400">Türkçe Açıklama</label>
+              <label className="text-xs text-gray-400">{t("admin.labelDescriptionTrEdit")}</label>
               <Input value={editForm.descriptionTr} onChange={e => setEditForm(f => ({ ...f, descriptionTr: e.target.value }))} className="bg-[#111633] border-[#1E2448] text-white" data-testid="edit-skill-description-tr" />
             </div>
             <div>
-              <label className="text-xs text-gray-400">Kategori</label>
+              <label className="text-xs text-gray-400">{t("admin.labelCategory")}</label>
               <Select value={editForm.category} onValueChange={v => setEditForm(f => ({ ...f, category: v }))}>
                 <SelectTrigger className="bg-[#111633] border-[#1E2448] text-white" data-testid="edit-skill-category">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {Object.entries(SKILL_CATEGORY_LABELS).map(([k, v]) => (
-                    <SelectItem key={k} value={k}>{v}</SelectItem>
+                  {SKILL_CATEGORY_KEYS.map(k => (
+                    <SelectItem key={k} value={k}>{t("admin.skillCategories." + k)}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div className="flex gap-2">
               <Button onClick={saveEdit} disabled={saving} className="flex-1 bg-cyan-600 hover:bg-cyan-700" data-testid="edit-skill-save">
-                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : "Kaydet"}
+                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : t("admin.saveButton")}
               </Button>
               <Button onClick={() => setEditing(false)} variant="outline" className="flex-1 border-gray-600 text-gray-300" data-testid="edit-skill-cancel">
-                İptal
+                {t("admin.cancelButton")}
               </Button>
             </div>
           </div>
@@ -6953,28 +6951,28 @@ function SkillDetailModal({ skill, assignments, onClose, token, onUpdated }: {
 
             <div className="grid grid-cols-3 gap-2 text-center">
               <div className="bg-[#111633] rounded-lg p-2">
-                <div className="text-xs text-gray-400">Tip</div>
-                <div className="text-sm font-medium text-white">{SKILL_TYPE_LABELS[skill.skillType]}</div>
+                <div className="text-xs text-gray-400">{t("admin.labelType")}</div>
+                <div className="text-sm font-medium text-white">{t("admin.skillTypes." + skill.skillType, skill.skillType)}</div>
               </div>
               <div className="bg-[#111633] rounded-lg p-2">
-                <div className="text-xs text-gray-400">Kategori</div>
-                <div className="text-sm font-medium text-white">{SKILL_CATEGORY_LABELS[skill.category]}</div>
+                <div className="text-xs text-gray-400">{t("admin.labelCategory")}</div>
+                <div className="text-sm font-medium text-white">{t("admin.skillCategories." + skill.category, skill.category)}</div>
               </div>
               <div className="bg-[#111633] rounded-lg p-2">
-                <div className="text-xs text-gray-400">Durum</div>
-                <div className={`text-sm font-medium ${skill.isActive ? "text-green-400" : "text-red-400"}`}>{skill.isActive ? "Aktif" : "Pasif"}</div>
+                <div className="text-xs text-gray-400">{t("admin.statusLabel")}</div>
+                <div className={`text-sm font-medium ${skill.isActive ? "text-green-400" : "text-red-400"}`}>{skill.isActive ? t("admin.activeLabel") : t("admin.passiveLabel")}</div>
               </div>
             </div>
 
             {skill.parameters && skill.parameters.length > 0 && (
               <div>
-                <h4 className="text-xs font-medium text-gray-400 mb-2">Parametreler</h4>
+                <h4 className="text-xs font-medium text-gray-400 mb-2">{t("admin.parametersLabel")}</h4>
                 <div className="space-y-1">
                   {skill.parameters.map((p: any) => (
                     <div key={p.name} className="flex items-center gap-2 text-xs bg-[#111633] p-2 rounded">
                       <code className="text-cyan-400 font-mono">{p.name}</code>
                       <Badge variant="outline" className="text-[10px]">{p.type}</Badge>
-                      {p.required && <Badge variant="outline" className="text-[10px] border-red-600 text-red-400">zorunlu</Badge>}
+                      {p.required && <Badge variant="outline" className="text-[10px] border-red-600 text-red-400">{t("admin.requiredBadge")}</Badge>}
                       <span className="text-gray-500">{p.description}</span>
                     </div>
                   ))}
@@ -6984,7 +6982,7 @@ function SkillDetailModal({ skill, assignments, onClose, token, onUpdated }: {
 
             {assignments.length > 0 && (
               <div>
-                <h4 className="text-xs font-medium text-gray-400 mb-2">Atanmış Ajanlar</h4>
+                <h4 className="text-xs font-medium text-gray-400 mb-2">{t("admin.assignedAgents")}</h4>
                 <div className="flex gap-1 flex-wrap">
                   {assignments.filter(a => a.isEnabled).map(a => {
                     const agent = AGENTS_DATA.find(ag => ag.slug === a.agentSlug);
@@ -7000,7 +6998,7 @@ function SkillDetailModal({ skill, assignments, onClose, token, onUpdated }: {
 
             {skill.keywords && skill.keywords.length > 0 && (
               <div>
-                <h4 className="text-xs font-medium text-gray-400 mb-2">Anahtar Kelimeler</h4>
+                <h4 className="text-xs font-medium text-gray-400 mb-2">{t("admin.keywords")}</h4>
                 <div className="flex gap-1 flex-wrap">
                   {skill.keywords.map((kw: string) => (
                     <span key={kw} className="text-[10px] px-1.5 py-0.5 rounded bg-gray-800 text-gray-400">{kw}</span>
@@ -7375,7 +7373,7 @@ export default function AdminPage() {
                   </TabsTrigger>
                   <TabsTrigger value="skills" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500 data-[state=active]:to-blue-600 data-[state=active]:text-white" data-testid="tab-skills">
                     <Sparkles className="w-3.5 h-3.5 mr-1" />
-                    Beceriler
+                    {t("admin.totalSkills") || "Skills"}
                   </TabsTrigger>
                 </>
               )}

@@ -289,7 +289,7 @@ export default function Dashboard() {
               <Link href="/dashboard/tasks">
                 <Button variant="outline" size="sm" data-testid="button-tasks-dashboard">
                   <ClipboardList className="w-4 h-4 mr-1" />
-                  Görev Takibi
+                  {t("dashboard.taskTracking")}
                 </Button>
               </Link>
               <Link href="/settings">
@@ -446,8 +446,8 @@ export default function Dashboard() {
                     <Building2 className="w-5 h-5 text-violet-400/60" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-foreground text-sm">Organizasyon Oluştur</h3>
-                    <p className="text-xs text-muted-foreground">Ekibinizle birlikte AI çalışanlarınızı yönetin</p>
+                    <h3 className="font-semibold text-foreground text-sm">{t("dashboard.createOrg")}</h3>
+                    <p className="text-xs text-muted-foreground">{t("dashboard.createOrgDesc")}</p>
                   </div>
                 </div>
                 <Link href="/settings">

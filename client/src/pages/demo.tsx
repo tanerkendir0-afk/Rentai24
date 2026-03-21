@@ -641,10 +641,10 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
         if (xmlResult.error) {
           toast({ title: t("demoPage.toast.uploadFailed"), description: xmlResult.error, variant: "destructive" });
         } else {
-          const msg = (xmlResult.basarili || 0) + " fatura OK, " + (xmlResult.hatali || 0) + " hata, " + (xmlResult.mukerrer || 0) + " mukerrer";
-          setUploadedFile({ url: "", name: file.name, type: "document", documentContent: "[e-Fatura XML parse edildi: " + msg + "]" });
+          const msg = (xmlResult.basarili || 0) + " " + t("demoPage.invoiceOk") + ", " + (xmlResult.hatali || 0) + " " + t("demoPage.invoiceError") + ", " + (xmlResult.mukerrer || 0) + " " + t("demoPage.invoiceDuplicate");
+          setUploadedFile({ url: "", name: file.name, type: "document", documentContent: "[e-Fatura XML: " + msg + "]" });
           trackEvent("file_uploaded", "agent", { fileType: "xml", agentType: selectedAgent });
-          toast({ title: "e-Fatura Yuklendi", description: msg });
+          toast({ title: t("demoPage.eInvoiceUploaded"), description: msg });
         }
       } else {
         const formData = new FormData();
@@ -665,7 +665,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                 const dataRes = await fetch("/api/files/upload", { method: "POST", body: dataForm, credentials: "include" });
                 const dataResult = await dataRes.json();
                 if (dataResult.id) {
-                  const extra = `\n\n[Dosya analiz sistemine kaydedildi: ID=${dataResult.id}, ${dataResult.rowCount} satır, ${dataResult.columnCount} kolon]`;
+                  const extra = `\n\n[File saved to analysis system: ID=${dataResult.id}, ${dataResult.rowCount} rows, ${dataResult.columnCount} columns]`;
                   setUploadedFile(prev => prev ? { ...prev, documentContent: (prev.documentContent || "") + extra } : prev);
                 }
               } catch {}
@@ -696,11 +696,11 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
         xmlForm.append("donem", String(now.getMonth() + 1).padStart(2, "0") + "/" + now.getFullYear());
         const xmlRes = await fetch("/api/efatura/upload", { method: "POST", body: xmlForm, credentials: "include" });
         const result = await xmlRes.json();
-        const msg = result.basarili + " fatura OK, " + result.hatali + " hata, " + result.mukerrer + " mukerrer";
-        setUploadedFile({ url: "", name: xmlFiles.length + " XML dosya", type: "document", documentContent: "[e-Fatura toplu yukleme: " + msg + "]" });
-        toast({ title: "e-Fatura Yuklendi", description: msg });
+        const msg = result.basarili + " " + t("demoPage.invoiceOk") + ", " + result.hatali + " " + t("demoPage.invoiceError") + ", " + result.mukerrer + " " + t("demoPage.invoiceDuplicate");
+        setUploadedFile({ url: "", name: xmlFiles.length + " XML", type: "document", documentContent: "[e-Fatura: " + msg + "]" });
+        toast({ title: t("demoPage.eInvoiceUploaded"), description: msg });
       } catch (err) {
-        toast({ title: "Yukleme hatasi", variant: "destructive" });
+        toast({ title: t("demoPage.toast.uploadFailed"), variant: "destructive" });
       } finally {
         setUploading(false);
         if (fileInputRef.current) fileInputRef.current.value = "";
@@ -1105,7 +1105,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                   {conversations.length === 0 && (
                     <div className="px-3 py-4 text-center">
                       <MessageCircle className="w-6 h-6 text-muted-foreground/20 mx-auto mb-1.5" />
-                      <p className="text-[11px] text-muted-foreground/40">{t("demoPage.noChatsYet") || "Henüz sohbet yok"}</p>
+                      <p className="text-[11px] text-muted-foreground/40">{t("demoPage.noChatsYet")}</p>
                     </div>
                   )}
                 </div>

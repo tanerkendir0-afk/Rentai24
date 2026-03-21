@@ -439,8 +439,13 @@ export default function Dashboard() {
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-xs font-medium text-foreground truncate">
-                              {task.title || persona}
+                              {persona}
                             </p>
+                            {task.title && (
+                              <p className="text-[10px] text-muted-foreground/70 truncate">
+                                {task.title}
+                              </p>
+                            )}
                           </div>
                           <span className="text-[10px] text-muted-foreground/60 group-hover:text-amber-400 transition-colors">
                             {t("dashboard.boost.openConversation")}

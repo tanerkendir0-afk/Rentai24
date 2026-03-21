@@ -66,12 +66,11 @@ interface BoostChatPanelProps {
   allowedAgents: string[] | null;
   rentedAgentIds: Set<string>;
   onClose?: () => void;
-  isOnly?: boolean;
   conversationVisibleId?: string;
   conversationAgentType?: string;
 }
 
-export default function BoostChatPanel({ panelId, allowedAgents, rentedAgentIds, onClose, isOnly, conversationVisibleId, conversationAgentType }: BoostChatPanelProps) {
+export default function BoostChatPanel({ panelId, allowedAgents, rentedAgentIds, onClose, conversationVisibleId, conversationAgentType }: BoostChatPanelProps) {
   const { user } = useAuth();
   const { t } = useTranslation("pages");
   const [selectedAgent, setSelectedAgent] = useState(() => {
@@ -116,7 +115,7 @@ export default function BoostChatPanel({ panelId, allowedAgents, rentedAgentIds,
           }));
           setMessages(parsed);
         })
-        .catch(() => setMessages([{ role: "system", content: "Conversation history unavailable." }]))
+        .catch(() => setMessages([{ role: "system", content: t("boost.historyUnavailable", "Conversation history unavailable.") }]))
         .finally(() => setLoadingHistory(false));
     } else if (!conversationVisibleId && user && !conversationId) {
       const visId = generateVisibleId();

@@ -2680,6 +2680,7 @@
     "slotsFullDesc": "All your parallel conversation slots are in use. Upgrade your plan for more.",
     "taskbar": "Boost Tasks",
     "maxPanels": "Maximum split panels reached",
+    "historyUnavailable": "Conversation history unavailable.",
     "active": "active",
     "taskComplete": "Task Completed",
     "conversation": "Conversation",

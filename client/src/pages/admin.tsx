@@ -7373,7 +7373,7 @@ export default function AdminPage() {
                   </TabsTrigger>
                   <TabsTrigger value="skills" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500 data-[state=active]:to-blue-600 data-[state=active]:text-white" data-testid="tab-skills">
                     <Sparkles className="w-3.5 h-3.5 mr-1" />
-                    {t("admin.totalSkills") || "Skills"}
+                    {t("admin.skillsTab")}
                   </TabsTrigger>
                 </>
               )}

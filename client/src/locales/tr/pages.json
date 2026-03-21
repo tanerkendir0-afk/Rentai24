@@ -2859,7 +2859,10 @@
       "connectionSuccess": "Bağlantı başarılı",
       "connectionError": "Bağlantı hatası",
       "testError": "Test hatası",
-      "fillAllFields": "Tüm alanları doldurun"
+      "fillAllFields": "Tüm alanları doldurun",
+      "trendyolApiKeyPh": "Trendyol API Key",
+      "trendyolApiSecretPh": "Trendyol API Secret",
+      "shopifyUrlPh": "magazaniz.myshopify.com"
     },
     "org": {
       "title": "Organizasyon",

@@ -526,7 +526,7 @@ function MarketplaceConnectionsCard() {
                 <Input
                   value={creds.apiKey || ""}
                   onChange={(e) => setCreds({ ...creds, apiKey: e.target.value })}
-                  placeholder="Trendyol API Key"
+                  placeholder={t("settings.marketplace.trendyolApiKeyPh")}
                   data-testid="input-trendyol-api-key"
                 />
               </div>
@@ -536,7 +536,7 @@ function MarketplaceConnectionsCard() {
                   type="password"
                   value={creds.apiSecret || ""}
                   onChange={(e) => setCreds({ ...creds, apiSecret: e.target.value })}
-                  placeholder="Trendyol API Secret"
+                  placeholder={t("settings.marketplace.trendyolApiSecretPh")}
                   data-testid="input-trendyol-api-secret"
                 />
               </div>
@@ -548,7 +548,7 @@ function MarketplaceConnectionsCard() {
                 <Input
                   value={creds.storeUrl || ""}
                   onChange={(e) => setCreds({ ...creds, storeUrl: e.target.value })}
-                  placeholder="magazaniz.myshopify.com"
+                  placeholder={t("settings.marketplace.shopifyUrlPh")}
                   data-testid="input-shopify-store-url"
                 />
               </div>

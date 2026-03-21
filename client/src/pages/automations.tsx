@@ -147,7 +147,7 @@ const getConfigFieldLabels = (t: any): Record<string, string> => ({
 });
 
 const getConfigFieldPlaceholders = (t: any): Record<string, string> => ({
-  to: "ornek@email.com", subject: t("automations.phSubject"), body: t("automations.phBody"),
+  to: "user@example.com", subject: t("automations.phSubject"), body: t("automations.phBody"),
   title: t("automations.phTitle"), description: t("automations.phDescription"),
   agentType: "bookkeeping, sales-sdr...", priority: "high, medium, low",
   summary: t("automations.phSummary"), url: "https://api.example.com/endpoint",

@@ -2859,7 +2859,10 @@
       "connectionSuccess": "Connection successful",
       "connectionError": "Connection error",
       "testError": "Test error",
-      "fillAllFields": "Fill in all fields"
+      "fillAllFields": "Fill in all fields",
+      "trendyolApiKeyPh": "Trendyol API Key",
+      "trendyolApiSecretPh": "Trendyol API Secret",
+      "shopifyUrlPh": "yourstore.myshopify.com"
     },
     "org": {
       "title": "Organization",

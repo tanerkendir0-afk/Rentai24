@@ -453,7 +453,7 @@ export default function Dashboard() {
                 <Link href="/settings">
                   <Button size="sm" variant="outline" className="text-xs border-violet-500/30 text-violet-400 hover:bg-violet-500/10" data-testid="button-create-org-cta">
                     <Building2 className="w-3 h-3 mr-1" />
-                    Organizasyon Kur
+                    {t("dashboard.createOrg")}
                   </Button>
                 </Link>
               </div>

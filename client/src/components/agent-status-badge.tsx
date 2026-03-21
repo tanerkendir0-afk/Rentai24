@@ -42,14 +42,14 @@ export function AgentStatusBadge({ agentId }: { agentId: string }) {
       <TooltipTrigger asChild>
         <div className="flex items-center gap-1.5">
           <div className={`w-2 h-2 rounded-full ${config.color} ${config.dotClass}`} />
-          <span className="text-xs text-slate-400">{config.label}</span>
+          <span className="text-xs text-muted-foreground">{config.label}</span>
         </div>
       </TooltipTrigger>
-      <TooltipContent side="bottom" className="bg-slate-800 border-slate-700 text-white">
+      <TooltipContent side="bottom" className="bg-popover border-border text-foreground">
         <p className="font-medium">{AGENT_NAMES[agentId] || agentId}</p>
-        <p className="text-xs text-slate-400">Status: {config.label}</p>
+        <p className="text-xs text-muted-foreground">Status: {config.label}</p>
         {responseTime !== undefined && (
-          <p className="text-xs text-slate-400">Response: {responseTime}ms</p>
+          <p className="text-xs text-muted-foreground">Response: {responseTime}ms</p>
         )}
       </TooltipContent>
     </Tooltip>
@@ -74,19 +74,19 @@ export function AgentStatusOverview() {
   const total = agents.length;
 
   return (
-    <div className="flex items-center gap-3 p-3 bg-slate-800/50 rounded-lg border border-slate-700">
+    <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg border border-border">
       <div className="flex -space-x-1">
         {agents.slice(0, 5).map(([id, status]: [string, any]) => (
           <div
             key={id}
-            className={`w-3 h-3 rounded-full border-2 border-slate-800 ${
+            className={`w-3 h-3 rounded-full border-2 border-background ${
               status.status === "healthy" ? "bg-green-500" :
               status.status === "degraded" ? "bg-yellow-500" : "bg-red-500"
             }`}
           />
         ))}
       </div>
-      <span className="text-sm text-slate-400">
+      <span className="text-sm text-muted-foreground">
         {healthy}/{total} agents online
       </span>
     </div>

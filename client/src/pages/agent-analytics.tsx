@@ -127,11 +127,11 @@ export default function AgentAnalytics() {
             <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent">
               Agent Analytics & Performance
             </h1>
-            <p className="text-slate-400 mt-1">Monitor your AI agents in real-time</p>
+            <p className="text-muted-foreground mt-1">Monitor your AI agents in real-time</p>
           </div>
           <div className="flex gap-3">
             <Select value={timeRange} onValueChange={setTimeRange}>
-              <SelectTrigger className="w-36 bg-slate-800 border-slate-700">
+              <SelectTrigger className="w-36 bg-muted border-border">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -141,11 +141,11 @@ export default function AgentAnalytics() {
               </SelectContent>
             </Select>
             <Button variant="outline" size="sm" onClick={() => exportMutation.mutate("csv")}
-              className="border-slate-700 hover:bg-slate-800">
+              className="border-border hover:bg-muted">
               <Download className="w-4 h-4 mr-2" /> CSV
             </Button>
             <Button variant="outline" size="sm" onClick={() => exportMutation.mutate("pdf")}
-              className="border-slate-700 hover:bg-slate-800">
+              className="border-border hover:bg-muted">
               <FileText className="w-4 h-4 mr-2" /> PDF
             </Button>
           </div>
@@ -153,46 +153,46 @@ export default function AgentAnalytics() {
 
         {/* Overview Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          <Card className="bg-slate-800/50 border-slate-700">
+          <Card className="bg-muted/50 border-border">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-blue-500/20 rounded-lg">
                   <MessageSquare className="w-5 h-5 text-blue-400" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-white">{analytics?.totalConversations || 0}</p>
-                  <p className="text-xs text-slate-400">Total Conversations</p>
+                  <p className="text-2xl font-bold text-foreground">{analytics?.totalConversations || 0}</p>
+                  <p className="text-xs text-muted-foreground">Total Conversations</p>
                 </div>
               </div>
             </CardContent>
           </Card>
-          <Card className="bg-slate-800/50 border-slate-700">
+          <Card className="bg-muted/50 border-border">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-green-500/20 rounded-lg">
                   <TrendingUp className="w-5 h-5 text-green-400" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-white">{analytics?.totalMessages || 0}</p>
-                  <p className="text-xs text-slate-400">Total Messages</p>
+                  <p className="text-2xl font-bold text-foreground">{analytics?.totalMessages || 0}</p>
+                  <p className="text-xs text-muted-foreground">Total Messages</p>
                 </div>
               </div>
             </CardContent>
           </Card>
-          <Card className="bg-slate-800/50 border-slate-700">
+          <Card className="bg-muted/50 border-border">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-violet-500/20 rounded-lg">
                   <BarChart3 className="w-5 h-5 text-violet-400" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-white">{analytics?.avgMessagesPerConv || 0}</p>
-                  <p className="text-xs text-slate-400">Avg Messages/Conv</p>
+                  <p className="text-2xl font-bold text-foreground">{analytics?.avgMessagesPerConv || 0}</p>
+                  <p className="text-xs text-muted-foreground">Avg Messages/Conv</p>
                 </div>
               </div>
             </CardContent>
           </Card>
-          <Card className="bg-slate-800/50 border-slate-700">
+          <Card className="bg-muted/50 border-border">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
                 <div className={`p-2 rounded-lg ${
@@ -205,8 +205,8 @@ export default function AgentAnalytics() {
                   }`} />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-white capitalize">{systemHealth?.status || "..."}</p>
-                  <p className="text-xs text-slate-400">System Health</p>
+                  <p className="text-2xl font-bold text-foreground capitalize">{systemHealth?.status || "..."}</p>
+                  <p className="text-xs text-muted-foreground">System Health</p>
                 </div>
               </div>
             </CardContent>
@@ -214,7 +214,7 @@ export default function AgentAnalytics() {
         </div>
 
         <Tabs defaultValue="conversations" className="space-y-6">
-          <TabsList className="bg-slate-800 border-slate-700">
+          <TabsList className="bg-muted border-border">
             <TabsTrigger value="conversations">Conversations</TabsTrigger>
             <TabsTrigger value="performance">Agent Performance</TabsTrigger>
             <TabsTrigger value="status">Agent Status</TabsTrigger>
@@ -224,9 +224,9 @@ export default function AgentAnalytics() {
           {/* Conversations Tab */}
           <TabsContent value="conversations" className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card className="bg-slate-800/50 border-slate-700">
+              <Card className="bg-muted/50 border-border">
                 <CardHeader>
-                  <CardTitle className="text-white text-lg">Daily Activity</CardTitle>
+                  <CardTitle className="text-foreground text-lg">Daily Activity</CardTitle>
                 </CardHeader>
                 <CardContent>
                   {analytics?.dailyActivity?.length > 0 ? (
@@ -240,14 +240,14 @@ export default function AgentAnalytics() {
                       </LineChart>
                     </ResponsiveContainer>
                   ) : (
-                    <div className="h-[300px] flex items-center justify-center text-slate-500">No data available</div>
+                    <div className="h-[300px] flex items-center justify-center text-muted-foreground/70">No data available</div>
                   )}
                 </CardContent>
               </Card>
 
-              <Card className="bg-slate-800/50 border-slate-700">
+              <Card className="bg-muted/50 border-border">
                 <CardHeader>
-                  <CardTitle className="text-white text-lg">Agent Distribution</CardTitle>
+                  <CardTitle className="text-foreground text-lg">Agent Distribution</CardTitle>
                 </CardHeader>
                 <CardContent>
                   {pieData.length > 0 ? (
@@ -263,7 +263,7 @@ export default function AgentAnalytics() {
                       </PieChart>
                     </ResponsiveContainer>
                   ) : (
-                    <div className="h-[300px] flex items-center justify-center text-slate-500">No data available</div>
+                    <div className="h-[300px] flex items-center justify-center text-muted-foreground/70">No data available</div>
                   )}
                 </CardContent>
               </Card>
@@ -272,9 +272,9 @@ export default function AgentAnalytics() {
 
           {/* Performance Tab */}
           <TabsContent value="performance" className="space-y-6">
-            <Card className="bg-slate-800/50 border-slate-700">
+            <Card className="bg-muted/50 border-border">
               <CardHeader>
-                <CardTitle className="text-white text-lg">Agent Response Time (ms)</CardTitle>
+                <CardTitle className="text-foreground text-lg">Agent Response Time (ms)</CardTitle>
               </CardHeader>
               <CardContent>
                 {agentPerformanceData.length > 0 ? (
@@ -293,29 +293,29 @@ export default function AgentAnalytics() {
                     </BarChart>
                   </ResponsiveContainer>
                 ) : (
-                  <div className="h-[350px] flex items-center justify-center text-slate-500">No performance data yet</div>
+                  <div className="h-[350px] flex items-center justify-center text-muted-foreground/70">No performance data yet</div>
                 )}
               </CardContent>
             </Card>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {agentPerformanceData.map((agent) => (
-                <Card key={agent.agent} className="bg-slate-800/50 border-slate-700">
+                <Card key={agent.agent} className="bg-muted/50 border-border">
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="font-semibold text-white">{agent.agent}</span>
+                      <span className="font-semibold text-foreground">{agent.agent}</span>
                       <Badge variant={agent.errors > 0 ? "destructive" : "default"} className="text-xs">
                         {agent.errors > 0 ? `${agent.errors} errors` : "Healthy"}
                       </Badge>
                     </div>
                     <div className="grid grid-cols-2 gap-2 text-sm">
                       <div>
-                        <p className="text-slate-400">Requests</p>
-                        <p className="text-white font-mono">{agent.requests}</p>
+                        <p className="text-muted-foreground">Requests</p>
+                        <p className="text-foreground font-mono">{agent.requests}</p>
                       </div>
                       <div>
-                        <p className="text-slate-400">Avg Time</p>
-                        <p className="text-white font-mono">{agent.avgTime}ms</p>
+                        <p className="text-muted-foreground">Avg Time</p>
+                        <p className="text-foreground font-mono">{agent.avgTime}ms</p>
                       </div>
                     </div>
                   </CardContent>
@@ -328,7 +328,7 @@ export default function AgentAnalytics() {
           <TabsContent value="status" className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {heartbeat && Object.entries(heartbeat).map(([agentId, status]: [string, any]) => (
-                <Card key={agentId} className="bg-slate-800/50 border-slate-700">
+                <Card key={agentId} className="bg-muted/50 border-border">
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-2">
@@ -336,7 +336,7 @@ export default function AgentAnalytics() {
                           status.status === "healthy" ? "bg-green-500 animate-pulse" :
                           status.status === "degraded" ? "bg-yellow-500 animate-pulse" : "bg-red-500"
                         }`} />
-                        <span className="font-semibold text-white">{AGENT_NAMES[agentId] || agentId}</span>
+                        <span className="font-semibold text-foreground">{AGENT_NAMES[agentId] || agentId}</span>
                       </div>
                       <Badge variant={
                         status.status === "healthy" ? "default" :
@@ -347,12 +347,12 @@ export default function AgentAnalytics() {
                     </div>
                     <div className="text-sm space-y-1">
                       <div className="flex justify-between">
-                        <span className="text-slate-400">Response Time</span>
-                        <span className="text-white font-mono">{status.responseTimeMs}ms</span>
+                        <span className="text-muted-foreground">Response Time</span>
+                        <span className="text-foreground font-mono">{status.responseTimeMs}ms</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-slate-400">Last Check</span>
-                        <span className="text-white text-xs">
+                        <span className="text-muted-foreground">Last Check</span>
+                        <span className="text-foreground text-xs">
                           {status.lastCheck ? new Date(status.lastCheck).toLocaleTimeString("tr-TR") : "-"}
                         </span>
                       </div>
@@ -367,16 +367,16 @@ export default function AgentAnalytics() {
                 </Card>
               ))}
               {!heartbeat && (
-                <div className="col-span-3 text-center py-12 text-slate-500">Loading agent status...</div>
+                <div className="col-span-3 text-center py-12 text-muted-foreground/70">Loading agent status...</div>
               )}
             </div>
           </TabsContent>
 
           {/* Reports Tab */}
           <TabsContent value="reports" className="space-y-6">
-            <Card className="bg-slate-800/50 border-slate-700">
+            <Card className="bg-muted/50 border-border">
               <CardHeader>
-                <CardTitle className="text-white text-lg flex items-center gap-2">
+                <CardTitle className="text-foreground text-lg flex items-center gap-2">
                   <Clock className="w-5 h-5" /> Scheduled Reports
                 </CardTitle>
               </CardHeader>
@@ -384,10 +384,10 @@ export default function AgentAnalytics() {
                 {scheduledReports && scheduledReports.length > 0 ? (
                   <div className="space-y-3">
                     {scheduledReports.map((report: any) => (
-                      <div key={report.id} className="flex items-center justify-between p-3 bg-slate-900/50 rounded-lg">
+                      <div key={report.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
                         <div>
-                          <p className="text-white font-medium">{report.report_type}</p>
-                          <p className="text-xs text-slate-400">
+                          <p className="text-foreground font-medium">{report.report_type}</p>
+                          <p className="text-xs text-muted-foreground">
                             {report.frequency} | Agent: {AGENT_NAMES[report.agent_type] || report.agent_type}
                           </p>
                         </div>
@@ -398,7 +398,7 @@ export default function AgentAnalytics() {
                     ))}
                   </div>
                 ) : (
-                  <div className="text-center py-8 text-slate-500">
+                  <div className="text-center py-8 text-muted-foreground/70">
                     <FileText className="w-8 h-8 mx-auto mb-2 opacity-50" />
                     <p>No scheduled reports yet.</p>
                     <p className="text-xs mt-1">Create reports from the Settings page.</p>

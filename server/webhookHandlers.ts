@@ -7,7 +7,7 @@ const BOOST_CONFIG: Record<string, { maxParallelTasks: number }> = {
   "boost-3": { maxParallelTasks: 3 },
   "boost-7": { maxParallelTasks: 7 },
   "boost-accounting": { maxParallelTasks: 3 },
-  "boost-pro": { maxParallelTasks: 99 },
+  "boost-pro": { maxParallelTasks: Infinity },
 };
 
 const processedEventIds = new Set<string>();

@@ -3224,7 +3224,31 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}${QUICK_REPLY_BUTT
           if (boostSub) {
             const boostCfg = BOOST_CONFIG[boostSub.boostPlan];
             if (boostCfg?.allowedAgents && !boostCfg.allowedAgents.includes(resolvedAgentType)) {
-              // pass — boost restrictions don't block, just don't count toward boost
+              const runningConvos = await db.select().from(conversations).where(
+                and(
+                  eq(conversations.userId, req.session.userId!),
+                  eq(conversations.agentType, resolvedAgentType),
+                  eq(conversations.boostStatus, "running")
+                )
+              );
+              const otherRunning = runningConvos.filter(c => c.visibleId !== clientSessionId);
+              if (otherRunning.length > 0) {
+                return res.status(429).json({
+                  reply: "Bu ajan Boost planınız kapsamında değil. Aynı anda yalnızca 1 aktif sohbet yürütebilirsiniz.",
+                  boostRequired: true,
+                });
+              }
+              try {
+                const [convoRow] = await db.select().from(conversations).where(
+                  and(
+                    eq(conversations.userId, req.session.userId!),
+                    eq(conversations.visibleId, clientSessionId!)
+                  )
+                );
+                if (convoRow && convoRow.boostStatus !== "running") {
+                  await db.update(conversations).set({ boostStatus: "running" }).where(eq(conversations.id, convoRow.id));
+                }
+              } catch (_) {}
             } else {
               const isThisConvoBoost = activeBoostConvos.some(c => c.visibleId === clientSessionId);
               if (!isThisConvoBoost && activeBoostConvos.length >= boostSub.maxParallelTasks) {
@@ -3866,7 +3890,7 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}${QUICK_REPLY_BUTT
             and(
               eq(conversations.userId, req.session.userId),
               eq(conversations.visibleId, chatSessionId),
-              eq(conversations.isBoostTask, true)
+              eq(conversations.boostStatus, "running")
             )
           );
           if (convoRows.length > 0) {
@@ -3915,7 +3939,7 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}${QUICK_REPLY_BUTT
             and(
               eq(conversations.userId, req.session.userId),
               eq(conversations.visibleId, clientSessionId),
-              eq(conversations.isBoostTask, true)
+              eq(conversations.boostStatus, "running")
             )
           );
           if (errConvoRows.length > 0) {

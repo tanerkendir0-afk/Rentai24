@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, type ReactNode } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -110,6 +110,58 @@ interface RentalData {
   id: number;
   agentType: string;
   status: string;
+}
+
+function SplitScreenWrapper({ active, splitPanelCount, allowedAgents, rentedAgentIds, onCloseSplit, onReducePanels, children }: {
+  active: boolean;
+  splitPanelCount: number;
+  allowedAgents: string[] | null;
+  rentedAgentIds: string[];
+  onCloseSplit: () => void;
+  onReducePanels: () => void;
+  children: ReactNode;
+}) {
+  if (!active) {
+    return <div className="flex-1 flex min-w-0">{children}</div>;
+  }
+
+  const boostPanels = Array.from({ length: splitPanelCount }).map((_, idx) => (
+    <BoostChatPanel
+      key={`boost-panel-${idx}`}
+      panelId={`split-${idx}`}
+      allowedAgents={allowedAgents}
+      rentedAgentIds={rentedAgentIds}
+      onClose={() => {
+        if (splitPanelCount <= 1) {
+          onCloseSplit();
+        } else {
+          onReducePanels();
+        }
+      }}
+      isOnly={splitPanelCount <= 1}
+    />
+  ));
+
+  const panelSize = Math.floor(100 / (splitPanelCount + 1));
+
+  return (
+    <ResizablePanelGroup direction="horizontal" className="flex-1 min-w-0" data-testid="boost-split-group">
+      <ResizablePanel defaultSize={panelSize} minSize={20}>
+        {children}
+      </ResizablePanel>
+      {boostPanels.reduce<JSX.Element[]>((acc, panel, idx) => {
+        acc.push(
+          <ResizableHandle key={`handle-${idx}`} withHandle className="bg-amber-500/10 hover:bg-amber-500/20" />
+        );
+        acc.push(
+          <ResizablePanel key={`panel-${idx}`} defaultSize={panelSize} minSize={20}>
+            {panel}
+          </ResizablePanel>
+        );
+        return acc;
+      }, [])}
+    </ResizablePanelGroup>
+  );
 }
 
 export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean }) {
@@ -1056,14 +1108,15 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
         )}
       </AnimatePresence>
 
-      <div className="flex-1 flex min-w-0">
-       {splitScreenActive && hasBoost && isDesktop ? (
-         <ResizablePanelGroup direction="horizontal" data-testid="boost-split-group">
-           <ResizablePanel defaultSize={Math.floor(100 / (splitPanelCount + 1))} minSize={25}>
+      <SplitScreenWrapper
+        active={splitScreenActive && hasBoost && isDesktop}
+        splitPanelCount={splitPanelCount}
+        allowedAgents={boostAllowedAgents}
+        rentedAgentIds={rentedAgentIds}
+        onCloseSplit={() => setSplitScreenActive(false)}
+        onReducePanels={() => setSplitPanelCount(p => Math.max(p - 1, 2))}
+      >
        <div className="flex-1 flex flex-col min-w-0 h-full">
-       ) : (
-       <div className="flex-1 flex flex-col min-w-0">
-       )}
         <div className={`min-h-[3.5rem] border-b border-border/50 flex items-center gap-3 px-4 bg-card/30 backdrop-blur-sm shrink-0 relative z-20`}>
           {!sidebarOpen && (
             <Button
@@ -2290,39 +2343,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
           </div>
         </div>
        </div>
-
-        {splitScreenActive && hasBoost && isDesktop && (
-          <div className="flex-1 min-w-0 border-l border-amber-500/20" data-testid="boost-split-container">
-            <ResizablePanelGroup direction="horizontal">
-              {Array.from({ length: splitPanelCount }).map((_, idx) => (
-                <ResizablePanel key={`boost-panel-${idx}`} minSize={25} defaultSize={Math.floor(100 / splitPanelCount)}>
-                  <BoostChatPanel
-                    panelId={`split-${idx}`}
-                    allowedAgents={boostAllowedAgents}
-                    rentedAgentIds={rentedAgentIds}
-                    onClose={() => {
-                      if (splitPanelCount <= 2) {
-                        setSplitScreenActive(false);
-                      } else {
-                        setSplitPanelCount(p => Math.max(p - 1, 2));
-                      }
-                    }}
-                    isOnly={splitPanelCount <= 1}
-                  />
-                  {idx < splitPanelCount - 1 && null}
-                </ResizablePanel>
-              )).reduce<React.ReactNode[]>((acc, panel, idx) => {
-                if (idx > 0) {
-                  acc.push(
-                    <ResizableHandle key={`handle-${idx}`} withHandle className="bg-amber-500/10 hover:bg-amber-500/20" />
-                  );
-                }
-                acc.push(panel);
-                return acc;
-              }, [])}
-            </ResizablePanelGroup>
-          </div>
-        )}
+      </SplitScreenWrapper>
 
         {user && (
           <button

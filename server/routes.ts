@@ -2190,7 +2190,8 @@ export async function registerRoutes(
       }
       res.json(updated);
     } else {
-      await db.execute(sql`UPDATE conversations SET project = ${project || null} WHERE id = ${id} AND user_id = ${req.session.userId!}`);
+      const result = await db.execute(sql`UPDATE conversations SET project = ${project || null} WHERE id = ${id} AND user_id = ${req.session.userId!}`);
+      if (Number(result.rowCount) === 0) return res.status(404).json({ error: msg("conversationNotFound", req.lang!) });
       res.json({ success: true });
     }
   });

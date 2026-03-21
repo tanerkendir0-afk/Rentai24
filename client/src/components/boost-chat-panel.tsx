@@ -123,7 +123,7 @@ export default function BoostChatPanel({ panelId, allowedAgents, rentedAgentIds,
       apiRequest("POST", "/api/conversations", { agentType: selectedAgent, visibleId: visId })
         .catch(() => {});
     }
-  }, [conversationVisibleId, user]);
+  }, [conversationVisibleId, conversationAgentType, user, t]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });

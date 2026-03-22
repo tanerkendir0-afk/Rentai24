@@ -287,6 +287,175 @@ export async function publishToSocialMedia(
   }
 }
 
+export interface InstagramProfileData {
+  username: string;
+  name: string;
+  biography: string;
+  followersCount: number;
+  followsCount: number;
+  mediaCount: number;
+  profilePictureUrl: string;
+  website: string;
+}
+
+export interface TwitterProfileData {
+  username: string;
+  name: string;
+  description: string;
+  followersCount: number;
+  followingCount: number;
+  tweetCount: number;
+  listedCount: number;
+  profileImageUrl: string;
+  createdAt: string;
+}
+
+export interface MediaPostData {
+  id: string;
+  caption: string;
+  mediaType: string;
+  timestamp: string;
+  likeCount: number;
+  commentCount: number;
+  permalink: string;
+}
+
+export interface InstagramProfileResult {
+  success: boolean;
+  data?: InstagramProfileData;
+  error?: string;
+}
+
+export interface TwitterProfileResult {
+  success: boolean;
+  data?: TwitterProfileData;
+  error?: string;
+}
+
+export type ProfileResult = InstagramProfileResult | TwitterProfileResult;
+
+export interface RecentMediaResult {
+  success: boolean;
+  posts?: MediaPostData[];
+  error?: string;
+}
+
+export async function fetchInstagramProfile(account: SocialAccount): Promise<InstagramProfileResult> {
+  const { accessToken, businessAccountId } = account;
+  if (!accessToken || !businessAccountId) {
+    return { success: false, error: "Instagram Business credentials incomplete. Need Meta Access Token and Business Account ID." };
+  }
+  try {
+    const fields = "media_count,followers_count,follows_count,biography,name,profile_picture_url,username,website";
+    const res = await fetch(
+      `https://graph.facebook.com/v18.0/${businessAccountId}?fields=${fields}&access_token=${accessToken}`
+    );
+    if (!res.ok) {
+      const errData = await res.text();
+      return { success: false, error: `Instagram API error (${res.status}): ${errData}` };
+    }
+    const data = await res.json() as Record<string, unknown>;
+    return {
+      success: true,
+      data: {
+        username: String(data.username || account.username),
+        name: String(data.name || ""),
+        biography: String(data.biography || ""),
+        followersCount: Number(data.followers_count) || 0,
+        followsCount: Number(data.follows_count) || 0,
+        mediaCount: Number(data.media_count) || 0,
+        profilePictureUrl: String(data.profile_picture_url || ""),
+        website: String(data.website || ""),
+      },
+    };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return { success: false, error: `Instagram profile fetch failed: ${msg}` };
+  }
+}
+
+export async function fetchInstagramRecentMedia(account: SocialAccount, limit: number = 6): Promise<RecentMediaResult> {
+  const { accessToken, businessAccountId } = account;
+  if (!accessToken || !businessAccountId) {
+    return { success: false, error: "Instagram Business credentials incomplete." };
+  }
+  try {
+    const fields = "id,caption,media_type,timestamp,like_count,comments_count,permalink";
+    const res = await fetch(
+      `https://graph.facebook.com/v18.0/${businessAccountId}/media?fields=${fields}&limit=${limit}&access_token=${accessToken}`
+    );
+    if (!res.ok) {
+      const errData = await res.text();
+      return { success: false, error: `Instagram media error (${res.status}): ${errData}` };
+    }
+    interface IGMediaItem { id?: string; caption?: string; media_type?: string; timestamp?: string; like_count?: number; comments_count?: number; permalink?: string }
+    const data = await res.json() as { data?: IGMediaItem[] };
+    const posts: MediaPostData[] = (data.data || []).map((p: IGMediaItem) => ({
+      id: String(p.id || ""),
+      caption: p.caption ? p.caption.substring(0, 100) + (p.caption.length > 100 ? "..." : "") : "",
+      mediaType: String(p.media_type || ""),
+      timestamp: String(p.timestamp || ""),
+      likeCount: Number(p.like_count) || 0,
+      commentCount: Number(p.comments_count) || 0,
+      permalink: String(p.permalink || ""),
+    }));
+    return { success: true, posts };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return { success: false, error: `Instagram media fetch failed: ${msg}` };
+  }
+}
+
+export async function fetchTwitterProfile(account: SocialAccount): Promise<TwitterProfileResult> {
+  const { apiKey, apiSecret, accessToken, accessTokenSecret } = account;
+  if (!apiKey || !apiSecret || !accessToken || !accessTokenSecret) {
+    return { success: false, error: "Twitter API credentials incomplete." };
+  }
+  try {
+    const oauthNonce = Math.random().toString(36).substring(2);
+    const oauthTimestamp = Math.floor(Date.now() / 1000).toString();
+    const url = "https://api.twitter.com/2/users/me";
+    const queryParamsObj: Record<string, string> = {
+      "user.fields": "public_metrics,description,profile_image_url,created_at",
+    };
+    const auth = generateOAuth1Header(
+      "GET", url, queryParamsObj,
+      apiKey, apiSecret, accessToken, accessTokenSecret,
+      oauthNonce, oauthTimestamp
+    );
+    const queryString = new URLSearchParams(queryParamsObj).toString();
+    const res = await fetch(`${url}?${queryString}`, {
+      headers: { "Authorization": auth },
+    });
+    if (!res.ok) {
+      const errData = await res.text();
+      return { success: false, error: `Twitter API error (${res.status}): ${errData}` };
+    }
+    interface TwitterPublicMetrics { followers_count?: number; following_count?: number; tweet_count?: number; listed_count?: number }
+    interface TwitterUserData { username?: string; name?: string; description?: string; public_metrics?: TwitterPublicMetrics; profile_image_url?: string; created_at?: string }
+    const json = await res.json() as { data?: TwitterUserData };
+    const user = json.data || {};
+    const pm = user.public_metrics || {};
+    return {
+      success: true,
+      data: {
+        username: String(user.username || account.username),
+        name: String(user.name || ""),
+        description: String(user.description || ""),
+        followersCount: Number(pm.followers_count) || 0,
+        followingCount: Number(pm.following_count) || 0,
+        tweetCount: Number(pm.tweet_count) || 0,
+        listedCount: Number(pm.listed_count) || 0,
+        profileImageUrl: String(user.profile_image_url || ""),
+        createdAt: String(user.created_at || ""),
+      },
+    };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return { success: false, error: `Twitter profile fetch failed: ${msg}` };
+  }
+}
+
 function generateOAuth1Header(
   method: string,
   url: string,

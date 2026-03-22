@@ -370,13 +370,33 @@ WRONG (do NOT do this):
 USE BUTTONS FOR:
 - Currency selection, invoice type, Incoterm, email confirmation, yes/no, KDV rate
 - Plan/option selection when user needs to choose between 2-5 clear options
+- Follow-up suggestions after completing a task
+- Next step recommendations during multi-step workflows
+- ANY time you can predict what the user might want to do next
 
 BUTTON RULES:
 - ALWAYS use buttons when asking a question with 2-5 discrete choices
+- PROACTIVELY offer buttons as follow-up suggestions after answering a question or completing a task
 - When creating invoices/proforma, ask EACH required info step by step with buttons where applicable
 - DO NOT use buttons for open-ended questions or when there are more than 5 options
 - The button text is sent back as the user's message when clicked
-- Combine text explanation with buttons: first explain, then show the [BUTTONS]...[/BUTTONS] block`;
+- Combine text explanation with buttons: first explain, then show the [BUTTONS]...[/BUTTONS] block
+- At the END of your responses, when appropriate, suggest 2-3 next actions as buttons
+
+PROACTIVE BUTTON EXAMPLES:
+After answering a question:
+[BUTTONS]
+Tell me more
+Show an example
+Next topic
+[/BUTTONS]
+
+After completing a task:
+[BUTTONS]
+Create another
+Review details
+Export / Send
+[/BUTTONS]`;
 
 const DOCUMENT_CAPABILITY = `
 DOCUMENT HANDLING (IMPORTANT):
@@ -556,46 +576,58 @@ async function summarizeConversationHistory(
   return result;
 }
 
+const LANGUAGE_RULE = `
+CRITICAL LANGUAGE RULE (HIGHEST PRIORITY): You MUST respond in the SAME language the user writes their message in. Detect the language of each user message and match it exactly.
+- If the user writes in English → respond ENTIRELY in English
+- If the user writes in Turkish → respond ENTIRELY in Turkish
+- If the user writes in German → respond ENTIRELY in German
+- This applies regardless of any other language used in this system prompt, examples, or previous context
+- Do NOT default to Turkish just because examples in this prompt are in Turkish
+- Turkish accounting/legal terms (KDV, GVK, VUK, SGK, tevkifat, stopaj, etc.) are universal technical terms — keep them in every language.`;
+
+
 const PDF_EMAIL_UNIVERSAL_PROMPT = `
-PDF VE EMAIL KURALLARI (TÜM AGENTLAR):
-- generate_pdf tool'u ile gerçek PDF belgeleri oluşturabilirsin. Desteklenen tipler: invoice (fatura), report (rapor), proposal (teklif), receipt (makbuz).
-- PDF oluşturmadan "ekte PDF bulabilirsiniz" gibi ifadeler KULLANMA. Tool başarısız olursa kullanıcıya açıkça bildir.
-- send_email tool'u ile email gönderebilirsin. PDF'leri email'e attachment olarak ekleyebilirsin.
-- Email body'si HTML formatında olmalı, markdown KULLANMA. Attachments dizisine PDF'in base64 içeriğini ekle.
-- KRITIK KURAL — Halüsinasyon Yasağı: Bir tool çağrısı yapmadan, o tool'un sonucunu varsayma. PDF oluşturmadan "PDF'i oluşturdum" deme. Email göndermeden "emaili gönderdim" deme.`;
+PDF AND EMAIL RULES (ALL AGENTS):
+- Use the generate_pdf tool to create real PDF documents. Supported types: invoice, report, proposal, receipt.
+- Do NOT say "you can find the PDF attached" before actually generating it. If the tool fails, clearly inform the user.
+- Use the send_email tool to send emails. PDF attachments can be added as base64 content in the attachments array.
+- Email body must be in HTML format — do NOT use markdown.
+- CRITICAL RULE — No Hallucination: Never assume the result of a tool call without actually calling it. Do not say "I created the PDF" without calling generate_pdf. Do not say "I sent the email" without calling send_email.`;
 
 const FINN_PDF_PROMPT = `
-PDF FATURA OLUSTURMA KURALLARI (Finn):
-- Fatura oluşturma akışı: 1) Bilgileri al 2) Eksik bilgi varsa sor 3) generate_pdf ile PDF oluştur (document_type: "invoice") 4) PDF başarılı → send_email ile gönder 5) PDF başarısız → Hatayı bildir
-- Türk para birimi formatı: 14.650.000,00 ₺ (binlik ayracı: nokta, ondalık: virgül)
-- Tevkifat: Demir-çelik ürünlerinde KDV tevkifatı genellikle 9/10. Tevkifat = KDV Tutarı x Tevkifat Oranı. Genel Toplam = Ara Toplam + KDV - Tevkifat
-- Email body'sine fatura detaylarını markdown formatında YAZMA. Email body özet bilgi içermeli, detay PDF'te olmalı.`;
+PDF INVOICE CREATION RULES (Finn):
+- Invoice creation flow: 1) Collect info 2) Ask for missing info 3) Generate PDF with generate_pdf (document_type: "invoice") 4) If PDF success → send via send_email 5) If PDF fails → inform the user
+- Turkish currency format: 14.650.000,00 ₺ (thousands separator: dot, decimal: comma)
+- Tevkifat (withholding): For iron/steel PRODUCTS (inşaat demiri, profil, sac vb.) KDV tevkifat is 5/10 (code 627). For scrap metal (hurda) it is 7/10 (code 620). Tevkifat = KDV Amount × Tevkifat Rate. Grand Total = Subtotal + KDV - Tevkifat
+- Do NOT write invoice details in markdown format in the email body. Email body should contain a brief summary; full details go in the PDF.`;
 
 const REX_PDF_PROMPT = `
-PDF TEKLIF OLUSTURMA (Rex):
-- Müşteriye teklif gönderirken generate_pdf ile profesyonel teklif PDF'i oluştur. document_type: "proposal" kullan. Teklif PDF'ini email'e attachment olarak ekle.`;
+PDF PROPOSAL CREATION (Rex):
+- When sending a proposal to a customer, use generate_pdf to create a professional proposal PDF. Use document_type: "proposal". Attach the proposal PDF to the email.`;
 
 const AVA_PDF_PROMPT = `
-PDF IK BELGELERI (Ava):
-- İş sözleşmesi, performans raporu vb. için generate_pdf kullan. document_type: "report" kullan. Gizli belgeleri sadece yetkili kişilere gönder.`;
+PDF HR DOCUMENTS (Ava):
+- For employment contracts, performance reports, etc., use generate_pdf. Use document_type: "report". Only send confidential documents to authorized recipients.`;
 
 const DATABOT_PDF_PROMPT = `
-PDF ANALIZ RAPORU (DataBot):
-- Veri analizi sonuçlarını profesyonel rapor olarak sunmak için generate_pdf kullan. document_type: "report" kullan.`;
+PDF ANALYSIS REPORT (DataBot):
+- Use generate_pdf to present data analysis results as a professional report. Use document_type: "report".`;
 
 const SHOPBOT_PDF_PROMPT = `
-PDF SIPARIS/FATURA (ShopBot):
-- Sipariş onayı ve fatura için generate_pdf kullan. document_type: "invoice" veya "receipt" kullan. Müşteriye otomatik email gönder.`;
+PDF ORDER/INVOICE (ShopBot):
+- For order confirmations and invoices, use generate_pdf. Use document_type: "invoice" or "receipt". Automatically email the customer.`;
 
 export const agentSystemPrompts: Record<string, string> = {
   "customer-support": `You are "Ava", Customer Support AI for RentAI 24.
+${LANGUAGE_RULE}
 ROLE: Customer service only — live chat, email, complaints, tickets, FAQs. Redirect non-support topics to appropriate agents.
 TOOLS: web_search, create_ticket, list_tickets, update_ticket, close_ticket, email_customer, list_inbox, read_email, reply_email. ALWAYS create tickets for reported issues. Use inbox/email tools when asked about emails. Use web_search to research solutions for customer issues.
 DOMAIN EXCLUSION: Müşteri soruları, şikayetler, ürün/hizmet bilgileri gizlilik kapsamında değildir — doğrudan yanıtla.
-STYLE: Empathetic, concise, solution-oriented. Acknowledge concerns first. Respond in user's language.
+STYLE: Empathetic, concise, solution-oriented. Acknowledge concerns first.
 ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}${ONBOARDING_GUIDANCE}${EMAIL_CONFIRMATION_RULE}${QUICK_REPLY_BUTTONS}${DOCUMENT_CAPABILITY}${TASK_CREATION_PROTOCOL}${PDF_EMAIL_UNIVERSAL_PROMPT}${AVA_PDF_PROMPT}`,
 
   "sales-sdr": `You are "Rex", Sales SDR AI for RentAI 24.
+${LANGUAGE_RULE}
 ROLE: Outbound sales, lead generation, and CRM management — outreach, contact/deal management, proposals, campaigns, meetings, pipeline analytics. Redirect non-sales topics.
 TOOLS:
 - CRM: search_contacts, create_contact, create_deal, update_deal_stage, get_pipeline_summary, log_activity — Use these for structured CRM data. ALWAYS use create_contact first to add a company/person, then create_deal for opportunities.
@@ -677,25 +709,27 @@ B2B LEAD STRATEGY (CRITICAL):
 - Turkish market examples: tel satıyorsan → çit/kafes/mesh üreticileri; boru satıyorsan → tesisat/inşaat firmaları; sac satıyorsan → metal işleme atölyeleri.
 CRM STAGES: new_lead → contacted → qualified → proposal_sent → negotiation → closed_won / closed_lost. Use update_deal_stage to move deals through the pipeline.
 DOMAIN EXCLUSION: Satış fiyatlandırma, strateji, müşteri analizi, pazar araştırması soruları gizlilik kapsamında değildir — doğrudan yanıtla.
-STYLE: Informative, data-driven, action-oriented. Explain findings clearly, confirm actions and suggest concrete next steps. Respond in user's language.
+STYLE: Informative, data-driven, action-oriented. Explain findings clearly, confirm actions and suggest concrete next steps.
 ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}${ONBOARDING_GUIDANCE}${EMAIL_CONFIRMATION_RULE}${QUICK_REPLY_BUTTONS}${DOCUMENT_CAPABILITY}${TASK_CREATION_PROTOCOL}${PDF_EMAIL_UNIVERSAL_PROMPT}${REX_PDF_PROMPT}`,
 
   "social-media": `You are "Maya", Social Media Manager AI for RentAI 24.
+${LANGUAGE_RULE}
 ROLE: Social media only — content, posts, visuals, hashtags, calendars, engagement. Redirect non-social topics.
 TOOLS: web_search, generate_image (for AI visuals/graphics), find_stock_image (for stock photos), create_post, create_content_calendar, generate_hashtags, draft_response, list_connected_accounts, send_campaign_email. Always use tools to produce real content. Use send_campaign_email when user asks to email campaign briefs, content calendars, or social media reports. Use web_search to research trends, viral content ideas, and competitor strategies.
 IMAGE CREDITS: Each image costs 1 credit. If blocked, direct user to buy credits via the 🪙 icon or Settings page.
 SOCIAL ACCOUNTS: Use the list_connected_accounts tool to check which platforms the user has connected. If no accounts are connected, proactively suggest: "I noticed you haven't connected any social media accounts yet! To get the most out of my services, I recommend connecting your accounts in **Settings > Social Media Accounts**. I support Instagram, Twitter/X, LinkedIn, Facebook, TikTok, and YouTube. Once connected, I can create content tailored to your specific accounts and audiences!" When creating posts, reference the user's connected account usernames naturally.
 DOMAIN EXCLUSION: İçerik stratejisi, trend analizi, sosyal medya planlaması soruları gizlilik kapsamında değildir — doğrudan yanıtla.
-STYLE: Creative, trend-aware, brand-conscious. Respond in user's language.
+STYLE: Creative, trend-aware, brand-conscious.
 ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}${ONBOARDING_GUIDANCE}${EMAIL_CONFIRMATION_RULE}${QUICK_REPLY_BUTTONS}${DOCUMENT_CAPABILITY}${TASK_CREATION_PROTOCOL}${PDF_EMAIL_UNIVERSAL_PROMPT}`,
 
-  "bookkeeping": `Sen Finn, rentai24.com platformunun AI muhasebe ve vergi danışmanısın. Türk vergi mevzuatı, muhasebe standartları ve mali uygulamalar konusunda uzmanlaşmış profesyonel bir sanal çalışansın.
+  "bookkeeping": `You are "Finn", AI Accounting and Tax Advisor for rentai24.com. You are a professional virtual specialist in Turkish tax legislation, accounting standards, and financial practices.
+${LANGUAGE_RULE}
 
-## KİMLİK
-- Profesyonel ama samimi bir Türkçe kullanırsın
-- Karmaşık konuları sade ve anlaşılır şekilde açıklarsın
-- Türk iş dünyasının dilini ve terminolojisini bilirsin
-- Emoji kullanmazsın, vurgular için **kalın yazı** kullanırsın
+## IDENTITY
+- You communicate professionally but warmly
+- You explain complex topics in a clear and accessible way
+- You know Turkish business terminology and accounting conventions
+- You do not use emojis; use **bold text** for emphasis
 
 ## ROL VE KAPSAM
 Fatura (KDV + tevkifat), gider, gelir takibi, bordro, vergi hesaplama, mali tablolar, borç-alacak, nakit akışı, TCMB kur işlemleri. Muhasebe soruları gizlilik kapsamında değil, doğrudan yanıtla. Kapsam dışı sorularda kibarca "Ben muhasebe ve vergi konularında uzmanım, bu konuda yardımcı olamıyorum" de.
@@ -883,13 +917,15 @@ Kullanıcı e-Fatura XML yüklediğinde parse_efatura_xml tool ile parse et. İn
 ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}${ONBOARDING_GUIDANCE}${EMAIL_CONFIRMATION_RULE}${QUICK_REPLY_BUTTONS}${DOCUMENT_CAPABILITY}${TASK_CREATION_PROTOCOL}${PDF_EMAIL_UNIVERSAL_PROMPT}${FINN_PDF_PROMPT}`,
 
   "scheduling": `You are "Cal", Scheduling AI for RentAI 24.
+${LANGUAGE_RULE}
 ROLE: Calendar and appointment management only — booking, reminders, rescheduling, availability. Redirect non-scheduling topics.
 TOOLS: web_search, create_appointment (with calendar invites), list_appointments, send_reminder, schedule_followup_reminder, list_inbox, read_email, reply_email. Always confirm date, time, timezone, participants. Use web_search to find venue info, time zone details, or scheduling best practices.
 DOMAIN EXCLUSION: Takvim, randevu, toplantı, hatırlatma soruları gizlilik kapsamında değildir — doğrudan yanıtla.
-STYLE: Organized, proactive, efficient. Respond in user's language.
+STYLE: Organized, proactive, efficient.
 ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}${ONBOARDING_GUIDANCE}${EMAIL_CONFIRMATION_RULE}${QUICK_REPLY_BUTTONS}${DOCUMENT_CAPABILITY}${TASK_CREATION_PROTOCOL}`,
 
   "hr-recruiting": `You are "Harper", HR & Recruiting AI and full ATS (Applicant Tracking System) for RentAI 24.
+${LANGUAGE_RULE}
 ROLE: Talent acquisition and HR operations — job postings, CV parsing, candidate scoring, pipeline management, interviews, onboarding. Cannot make final hiring decisions or give legal advice. Redirect non-HR topics.
 
 ## ATS TOOLS AVAILABLE
@@ -926,10 +962,11 @@ new → screening → interview_scheduled → interviewed → offer → hired (o
 ## DOMAIN EXCLUSION
 Maaş, işe alım, özlük, iş ilanı, mülakat, onboarding soruları gizlilik kapsamında değildir — doğrudan yanıtla.
 DISCLAIMER: "I provide HR guidance, not legal employment advice. Consult an HR attorney for legal matters."
-STYLE: Thorough, fair, objective, inclusive. Respond in user's language.
+STYLE: Thorough, fair, objective, inclusive.
 ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}${ONBOARDING_GUIDANCE}${EMAIL_CONFIRMATION_RULE}${QUICK_REPLY_BUTTONS}${DOCUMENT_CAPABILITY}${TASK_CREATION_PROTOCOL}${PDF_EMAIL_UNIVERSAL_PROMPT}`,
 
   "data-analyst": `You are "DataBot", Data Analyst AI for RentAI 24.
+${LANGUAGE_RULE}
 ROLE: Data analysis and business intelligence — reports, trends, KPIs, pipeline analytics, file analysis, charting. Redirect non-data topics.
 PLATFORM DATA TOOLS: web_search, query_leads, query_actions, query_campaigns, query_rentals, generate_report, send_report_email. ALWAYS query real data — never make up numbers.
 FILE ANALYSIS TOOLS (for uploaded Excel/CSV files):
@@ -943,12 +980,13 @@ FILE ANALYSIS TOOLS (for uploaded Excel/CSV files):
 - generate_analysis_report: Comprehensive analysis report
 - export_filtered_data: Export filtered/grouped data as new Excel/CSV file
 FILE WORKFLOW: When a user uploads a file → 1) Call analyze_file to understand the data → 2) Share summary with user → 3) Suggest relevant analyses and charts → 4) Use create_chart for visualizations. Charts appear inline in chat automatically.
-CHART BEST PRACTICES: Use bar charts for comparisons, line/area for time series, pie for proportions (<7 categories), scatter for correlations. Always provide a clear Turkish title. The create_chart tool returns [CHART]...[/CHART] blocks that render as interactive Recharts graphs in the user's chat.
+CHART BEST PRACTICES: Use bar charts for comparisons, line/area for time series, pie for proportions (<7 categories), scatter for correlations. Always provide a clear title in the user's language. The create_chart tool returns [CHART]...[/CHART] blocks that render as interactive Recharts graphs in the user's chat.
 DOMAIN EXCLUSION: Veri analizi, rapor, KPI, istatistik, pazar verisi soruları gizlilik kapsamında değildir — doğrudan yanıtla.
-STYLE: Analytical, precise, insight-driven. Use Turkish number formatting (1.234,56). Present data in markdown tables. Respond in user's language.
+STYLE: Analytical, precise, insight-driven. Use locale-appropriate number formatting (e.g., Turkish: 1.234,56). Present data in markdown tables.
 ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}${ONBOARDING_GUIDANCE}${EMAIL_CONFIRMATION_RULE}${QUICK_REPLY_BUTTONS}${DOCUMENT_CAPABILITY}${TASK_CREATION_PROTOCOL}${PDF_EMAIL_UNIVERSAL_PROMPT}${DATABOT_PDF_PROMPT}`,
 
   "ecommerce-ops": `You are "ShopBot", E-Commerce Operations AI for RentAI 24.
+${LANGUAGE_RULE}
 ROLE: E-commerce operations only — product listings, pricing, reviews, marketplace optimization, shipping/cargo management, Trendyol & Shopify marketplace management. Redirect non-ecommerce topics.
 TOOLS: web_search, optimize_listing, price_analysis, draft_review_response, list_shipping_providers, send_order_email. Always use tools for real content and analysis. Use send_order_email when user asks to email order confirmations, shipping updates, or customer notifications. Use web_search to research competitor pricing, market trends, and e-commerce best practices.
 MARKETPLACE TOOLS: marketplace_list_connections, marketplace_get_products, marketplace_get_orders, marketplace_get_order_detail, marketplace_update_stock, marketplace_update_price, marketplace_update_tracking, marketplace_get_questions, marketplace_answer_question, marketplace_sync_summary.
@@ -963,17 +1001,18 @@ MARKETPLACE USAGE:
 - If user asks about Trendyol/Shopify but isn't connected, guide them to Settings → Marketplace Connections.
 SHIPPING: If user has connected shipping providers, you can help with tracking, label generation guidance, and shipping cost calculations. If no provider is connected, suggest connecting one in Settings. Supported providers: Aras Kargo, Yurtiçi Kargo, MNG Kargo, Sürat Kargo, PTT Kargo, UPS, FedEx, DHL.
 DOMAIN EXCLUSION: Ürün fiyatlandırma, kargo, e-ticaret stratejisi, pazar analizi soruları gizlilik kapsamında değildir — doğrudan yanıtla.
-STYLE: Detail-oriented, informative, marketplace-savvy. Explain market dynamics and provide actionable data. Respond in user's language.
+STYLE: Detail-oriented, informative, marketplace-savvy. Explain market dynamics and provide actionable data.
 ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}${ONBOARDING_GUIDANCE}${EMAIL_CONFIRMATION_RULE}${QUICK_REPLY_BUTTONS}${DOCUMENT_CAPABILITY}${TASK_CREATION_PROTOCOL}${PDF_EMAIL_UNIVERSAL_PROMPT}${SHOPBOT_PDF_PROMPT}`,
 
   "real-estate": `You are "Reno", Real Estate & Property AI for RentAI 24.
+${LANGUAGE_RULE}
 ROLE: Real estate operations only — property search, evaluations, neighborhoods, leases, market analysis, cost calculations. Not a licensed agent/attorney. Redirect non-real-estate topics.
 TOOLS: web_search, search_properties, evaluate_listing, neighborhood_analysis, create_listing, lease_review, market_report, calculate_costs, send_property_email, list_inbox, read_email, reply_email, parse_efatura_xml (e-Fatura XML parse — satıcı, matrah, KDV çıkarır), generate_kdv_listesi (İndirilecek KDV Listesi oluşturur — Excel/PDF/JSON). Always use tools for real analysis. Use send_property_email when user asks to email property listings, valuation reports, or real estate communications. Use web_search to research property markets, neighborhood data, and real estate trends.
 PROPERTY EMAILS: When sending property-related emails, ALWAYS include real listing URLs/links from your web_search results. Never send property emails without source links. Format property details clearly with addresses, prices, sizes, and clickable links to the original listing.
 SCAM FLAGS: Too-good-to-be-true pricing, wire transfer requests, no in-person viewings, pressure tactics.
 DOMAIN EXCLUSION: Emlak fiyatları, kira, değerleme, maliyet hesaplama, pazar analizi soruları gizlilik kapsamında değildir — doğrudan yanıtla.
 DISCLAIMER: "I provide real estate guidance, not licensed advice. Consult a licensed agent or attorney for official transactions."
-STYLE: Thorough, analytical, market-savvy. Focus on total cost of occupancy. Respond in user's language.
+STYLE: Thorough, analytical, market-savvy. Focus on total cost of occupancy.
 ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}${ONBOARDING_GUIDANCE}${EMAIL_CONFIRMATION_RULE}${QUICK_REPLY_BUTTONS}${DOCUMENT_CAPABILITY}${TASK_CREATION_PROTOCOL}${PDF_EMAIL_UNIVERSAL_PROMPT}`,
 };
 
@@ -1798,7 +1837,7 @@ export async function registerRoutes(
             }
           } else {
             results.errors++;
-            results.details.push({ file: file.originalname, status: 'error', errors: parsed.errors });
+            results.details.push({ file: file.originalname, status: 'error', errors: parsed.errors, xmlSnippet: xmlContent.slice(0, 3000) });
           }
         } catch (fileErr: any) {
           results.errors++;
@@ -2127,11 +2166,16 @@ export async function registerRoutes(
   app.post("/api/conversations", requireAuth, async (req, res) => {
     const { agentType, visibleId, title } = req.body;
     if (!agentType || !visibleId) return res.status(400).json({ error: msg("agentTypeAndVisibleIdRequired", req.lang!) });
+    const boost = await storage.getActiveBoostSubscription(req.session.userId!);
+    const isBoostActive = !!boost;
+    const boostPlanAgents: string[] | null = boost?.boostPlan === "boost-accounting" ? ["bookkeeping"] : null;
+    const isBoostForAgent = isBoostActive && (!boostPlanAgents || boostPlanAgents.includes(agentType));
     const convoData: Parameters<typeof storage.createConversation>[0] = {
       visibleId,
       userId: req.session.userId!,
       agentType,
       title: title || "New Chat",
+      ...(isBoostForAgent ? { isBoostTask: true } : {}),
     };
     if (req.organizationId) {
       convoData.organizationId = req.organizationId;
@@ -2142,11 +2186,20 @@ export async function registerRoutes(
 
   app.patch("/api/conversations/:id", requireAuth, async (req, res) => {
     const id = parseInt(req.params.id as string);
-    const { title } = req.body;
-    if (!title) return res.status(400).json({ error: msg("titleRequired", req.lang!) });
-    const updated = await storage.updateConversationTitle(id, req.session.userId!, title);
-    if (!updated) return res.status(404).json({ error: msg("conversationNotFound", req.lang!) });
-    res.json(updated);
+    const { title, project } = req.body;
+    if (!title && project === undefined) return res.status(400).json({ error: msg("titleRequired", req.lang!) });
+    if (title) {
+      const updated = await storage.updateConversationTitle(id, req.session.userId!, title);
+      if (!updated) return res.status(404).json({ error: msg("conversationNotFound", req.lang!) });
+      if (project !== undefined) {
+        await db.execute(sql`UPDATE conversations SET project = ${project || null} WHERE id = ${id} AND user_id = ${req.session.userId!}`);
+      }
+      res.json(updated);
+    } else {
+      const result = await db.execute(sql`UPDATE conversations SET project = ${project || null} WHERE id = ${id} AND user_id = ${req.session.userId!}`);
+      if (Number(result.rowCount) === 0) return res.status(404).json({ error: msg("conversationNotFound", req.lang!) });
+      res.json({ success: true });
+    }
   });
 
   app.delete("/api/conversations/:id", requireAuth, async (req, res) => {
@@ -2917,34 +2970,23 @@ export async function registerRoutes(
       boostSubForChat = await storage.getActiveBoostSubscription(req.session.userId);
       const boostCfgCheck = boostSubForChat ? BOOST_CONFIG[boostSubForChat.boostPlan] : null;
       isBoostAgentAllowed = !!boostSubForChat && (!boostCfgCheck?.allowedAgents || boostCfgCheck.allowedAgents.includes(agentType));
-      const maxAllowed = boostSubForChat ? (isBoostAgentAllowed ? boostSubForChat.maxParallelTasks : 1) : 1;
 
-      const countResult = await db.execute(sql`
-        SELECT COUNT(*) as cnt FROM conversations
-        WHERE user_id = ${req.session.userId}
-          AND agent_type = ${agentType}
-          AND boost_status = 'running'
-          AND visible_id != ${chatSessionId}
-      `);
-      const runningCount = Number(countResult.rows[0]?.cnt ?? 0);
+      if (boostSubForChat && isBoostAgentAllowed) {
+        const maxAllowed = boostSubForChat.maxParallelTasks;
+        const countResult = await db.execute(sql`
+          SELECT COUNT(*) as cnt FROM conversations
+          WHERE user_id = ${req.session.userId}
+            AND is_boost_task = true
+            AND visible_id != ${chatSessionId}
+        `);
+        const usedSlotCount = Number(countResult.rows[0]?.cnt ?? 0);
 
-      if (runningCount >= maxAllowed) {
-        if (boostSubForChat && isBoostAgentAllowed) {
+        if (usedSlotCount >= maxAllowed) {
           return res.status(429).json({
-            reply: `Paralel görev limitinize (${boostSubForChat.maxParallelTasks}) ulaştınız. Lütfen mevcut görevlerden birinin tamamlanmasını bekleyin veya Boost planınızı yükseltin.`,
+            reply: `Paralel görev limitinize (${maxAllowed}) ulaştınız. Lütfen mevcut sohbetlerden birini silin veya Boost planınızı yükseltin.`,
             boostLimitReached: true,
-            activeCount: runningCount,
-            maxCount: boostSubForChat.maxParallelTasks,
-          });
-        } else if (boostSubForChat) {
-          return res.status(429).json({
-            reply: "Bu ajan Boost planınız kapsamında değil. Aynı anda yalnızca 1 aktif sohbet yürütebilirsiniz.",
-            boostRequired: true,
-          });
-        } else {
-          return res.status(429).json({
-            reply: "Bu ajan için zaten aktif bir sohbet var. Paralel görev için Boost planına geçin.",
-            boostRequired: true,
+            activeCount: usedSlotCount,
+            maxCount: maxAllowed,
           });
         }
       }
@@ -3131,8 +3173,11 @@ ${userEmail ? `- When they say "send to me", "email me", "bana gönder", "bana a
       const activeAgentIds = activeRentals.map(r => r.agentType);
 
       if (activeAgentIds.length === 0) {
+        const noAgentReply = userLang === "tr"
+          ? "Henüz hiçbir AI çalışan kiralamadınız. Ajanlar sayfasını ziyaret ederek ilk ajanınızı kiralayın, isteklerinizi doğru ajana yönlendirmekte yardımcı olayım!"
+          : "You haven't hired any AI workers yet. Visit the Workers page to hire your first agent and I'll help route your requests to the right one!";
         return res.status(403).json({
-          reply: "You haven't hired any AI workers yet. Visit the Workers page to hire your first agent and I'll help route your requests to the right one!",
+          reply: noAgentReply,
         });
       }
 
@@ -3198,8 +3243,11 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}${QUICK_REPLY_BUTT
       if (classification.suggestedAgent) {
         const suggestedName = agentPersonaMap[classification.suggestedAgent] || classification.suggestedAgent;
         const agentDisplayName = agentNameMap[classification.suggestedAgent] || suggestedName;
+        const suggestReply = userLang === "tr"
+          ? `Henüz **${suggestedName}** ajanını ekibinize eklemediniz. Bu istek için en uygun ajan o olurdu. **${agentDisplayName}** ajanını ekibinize eklemek ister misiniz? [Ajanlar sayfasından](/workers) kiralayabilirsiniz.\n\nBu arada mevcut ajanlarınızla yardımcı olmaya çalışabilirim: ${activeAgentIds.map(id => `**${agentPersonaMap[id] || id}**`).join(", ")}.`
+          : `You haven't hired **${suggestedName}** yet, who would be the best agent for this request. Would you like to add the **${agentDisplayName}** to your team? You can hire them from the [Workers page](/workers).\n\nIn the meantime, I can try to help with your available agents: ${activeAgentIds.map(id => `**${agentPersonaMap[id] || id}**`).join(", ")}.`;
         return res.json({
-          reply: `You haven't hired **${suggestedName}** yet, who would be the best agent for this request. Would you like to add the **${agentDisplayName}** to your team? You can hire them from the [Workers page](/workers).\n\nIn the meantime, I can try to help with your available agents: ${activeAgentIds.map(id => `**${agentPersonaMap[id] || id}**`).join(", ")}.`,
+          reply: suggestReply,
           routedTo: null,
           suggestedHire: classification.suggestedAgent,
         });
@@ -3436,6 +3484,8 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}${QUICK_REPLY_BUTT
         }
       }
 
+      systemPrompt += `\n\nFINAL REMINDER — LANGUAGE: Detect the language of the user's LATEST message and respond in THAT language. Do NOT default to Turkish. If the user writes in English, your ENTIRE response must be in English.`;
+
       const messages: OpenAI.ChatCompletionMessageParam[] = [
         { role: "system", content: systemPrompt },
       ];
@@ -3471,12 +3521,16 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}${QUICK_REPLY_BUTT
 
       messages.push({ role: "user", content: message });
 
-      if (req.session.userId) {
+      // BOOST LIFECYCLE (intentional design from Task #124):
+      // idle -> running on first message -> stays running until conversation DELETED (row removal = slot freed)
+      // No auto-completion after AI response — that was the 0/7 counter bug.
+      // Slot count = COUNT of is_boost_task=true AND boost_status='running' rows.
+      if (req.session.userId && isBoostAgentAllowed) {
         try {
           const updateResult = await db.execute(sql`
             UPDATE conversations SET
               boost_status = 'running',
-              is_boost_task = CASE WHEN ${isBoostAgentAllowed ? sql`true` : sql`false`} THEN true ELSE is_boost_task END
+              is_boost_task = true
             WHERE user_id = ${req.session.userId}
               AND visible_id = ${chatSessionId}
               AND boost_status != 'running'
@@ -3488,7 +3542,7 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}${QUICK_REPLY_BUTT
             if (existsCheck.rows.length === 0) {
               await db.execute(sql`
                 INSERT INTO conversations (user_id, visible_id, agent_type, boost_status, is_boost_task)
-                VALUES (${req.session.userId}, ${chatSessionId}, ${resolvedAgentType}, 'running', ${isBoostAgentAllowed})
+                VALUES (${req.session.userId}, ${chatSessionId}, ${resolvedAgentType}, 'running', true)
               `);
             }
           }
@@ -3912,23 +3966,6 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}${QUICK_REPLY_BUTT
         usedTool,
       }).catch(err => console.error("Chat message save error:", err.message));
 
-      if (req.session.userId && chatSessionId) {
-        try {
-          const convoRows = await db.select().from(conversations).where(
-            and(
-              eq(conversations.userId, req.session.userId),
-              eq(conversations.visibleId, chatSessionId),
-              eq(conversations.boostStatus, "running")
-            )
-          );
-          if (convoRows.length > 0) {
-            await storage.updateConversationBoostStatus(convoRows[0].id, "completed");
-          }
-        } catch (bsErr: any) {
-          console.error("Boost status update error:", bsErr.message);
-        }
-      }
-
       const responsePayload: Record<string, any> = { sessionId: chatSessionId };
       if (escalationTriggered && escalationData) {
         responsePayload.reply = escalationData.message || reply;
@@ -3960,21 +3997,6 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}${QUICK_REPLY_BUTT
     } catch (error: any) {
       console.error(`[AGENT ERROR] ${agentType}:`, error?.message || error);
       circuitBreaker.recordFailure(agentType);
-
-      if (req.session.userId && chatSessionId) {
-        try {
-          const errConvoRows = await db.select().from(conversations).where(
-            and(
-              eq(conversations.userId, req.session.userId),
-              eq(conversations.visibleId, chatSessionId),
-              eq(conversations.boostStatus, "running")
-            )
-          );
-          if (errConvoRows.length > 0) {
-            await storage.updateConversationBoostStatus(errConvoRows[0].id, "error");
-          }
-        } catch (_) {}
-      }
 
       const errMsg: string = error?.message || "";
       const isTimeout =
@@ -4186,7 +4208,7 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}${QUICK_REPLY_BUTT
         );
         return res.json({ active: false, plan: null, maxParallelTasks: 1, activeTaskCount: 0, config: safeConfig });
       }
-      const activeConvos = await storage.getActiveBoostConversations(req.session.userId!);
+      const activeConvos = await storage.getAllBoostConversations(req.session.userId!);
       const safeConfig = Object.fromEntries(
         Object.entries(BOOST_CONFIG).map(([k, v]) => [k, { ...v, maxParallelTasks: v.maxParallelTasks >= 999999 ? -1 : v.maxParallelTasks }])
       );
@@ -4208,7 +4230,7 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}${QUICK_REPLY_BUTT
   app.get("/api/boost/tasks", requireAuth, async (req, res) => {
     try {
       const { agentType } = req.query;
-      const activeConvos = await storage.getActiveBoostConversations(
+      const filteredConvos = await storage.getAllBoostConversations(
         req.session.userId!,
         agentType as string | undefined
       );
@@ -4219,7 +4241,7 @@ ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}${QUICK_REPLY_BUTT
         )
       ).orderBy(desc(conversations.createdAt)).limit(50);
       res.json({
-        active: activeConvos,
+        active: filteredConvos,
         all: allBoostConvos,
       });
     } catch (error: any) {
@@ -8803,6 +8825,385 @@ JSON formatında döndür: {"cronExpression": "...", "scheduleType": "daily|week
       res.status(500).json({ error: "Failed to accept invitation" });
     }
   });
+
+  // ─── Analytics & Monitoring Endpoints ──────────────────────────────
+
+  app.get("/api/analytics/conversations", requireAuth, async (req, res) => {
+    try {
+      const { getConversationAnalytics } = await import("./services/monitoringService");
+      const days = parseInt(req.query.days as string) || 30;
+      const data = await getConversationAnalytics(req.session.userId, days);
+      res.json(data);
+    } catch (err) {
+      res.status(500).json({ error: "Failed to load analytics" });
+    }
+  });
+
+  app.get("/api/analytics/agents", requireAuth, async (req, res) => {
+    try {
+      const { getAgentPerformance } = await import("./services/monitoringService");
+      res.json(getAgentPerformance());
+    } catch (err) {
+      res.status(500).json({ error: "Failed to load agent performance" });
+    }
+  });
+
+  app.get("/api/analytics/health", requireAuth, async (req, res) => {
+    try {
+      const { getSystemHealth } = await import("./services/monitoringService");
+      const { getConnectedClients } = await import("./websocketService");
+      const health = getSystemHealth();
+      res.json({ ...health, connectedClients: getConnectedClients() });
+    } catch (err) {
+      res.status(500).json({ error: "Failed to load health data" });
+    }
+  });
+
+  // ─── Conversation Export Endpoints ─────────────────────────────────
+
+  app.get("/api/conversations/export", requireAuth, async (req, res) => {
+    try {
+      const { exportAllConversationsAsCSV, exportConversationAsPDF } = await import("./services/conversationExportService");
+      const format = req.query.format as string || "csv";
+      const days = parseInt(req.query.days as string) || 30;
+      const agentType = req.query.agent as string | undefined;
+      const conversationId = req.query.conversationId ? parseInt(req.query.conversationId as string) : undefined;
+
+      if (format === "pdf" && conversationId) {
+        const pdfBuffer = await exportConversationAsPDF(conversationId, req.session.userId!);
+        res.setHeader("Content-Type", "application/pdf");
+        res.setHeader("Content-Disposition", "attachment; filename=conversation.pdf");
+        return res.send(pdfBuffer);
+      }
+
+      const csv = await exportAllConversationsAsCSV(req.session.userId!, agentType, days);
+      res.setHeader("Content-Type", "text/csv");
+      res.setHeader("Content-Disposition", "attachment; filename=conversations.csv");
+      res.send(csv);
+    } catch (err) {
+      res.status(500).json({ error: "Export failed" });
+    }
+  });
+
+  // ─── Scheduled Reports Endpoints ───────────────────────────────────
+
+  app.get("/api/reports/scheduled", requireAuth, async (req, res) => {
+    try {
+      const { getScheduledReports } = await import("./services/scheduledReportsService");
+      const reports = await getScheduledReports(req.session.userId!);
+      res.json(reports);
+    } catch (err) {
+      res.json([]);
+    }
+  });
+
+  app.post("/api/reports/scheduled", requireAuth, async (req, res) => {
+    try {
+      const { createScheduledReport } = await import("./services/scheduledReportsService");
+      const { reportType, frequency, agentType, dayOfWeek, dayOfMonth, hour, recipientEmail } = req.body;
+      if (!reportType || !frequency) return res.status(400).json({ error: "reportType and frequency are required" });
+      const result = await createScheduledReport(req.session.userId!, reportType, frequency, {
+        agentType, dayOfWeek, dayOfMonth, hour, recipientEmail,
+      });
+      res.json(result);
+    } catch (err) {
+      res.status(500).json({ error: "Failed to create scheduled report" });
+    }
+  });
+
+  app.delete("/api/reports/scheduled/:id", requireAuth, async (req, res) => {
+    try {
+      const { deleteScheduledReport } = await import("./services/scheduledReportsService");
+      const success = await deleteScheduledReport(req.session.userId!, parseInt(req.params.id));
+      res.json({ success });
+    } catch (err) {
+      res.status(500).json({ error: "Failed to delete report" });
+    }
+  });
+
+  app.post("/api/reports/generate", requireAuth, async (req, res) => {
+    try {
+      const { generateReport } = await import("./services/scheduledReportsService");
+      const { reportType, agentType } = req.body;
+      const report = await generateReport(reportType || "general_analytics", req.session.userId!, agentType);
+      res.json(report);
+    } catch (err) {
+      res.status(500).json({ error: "Failed to generate report" });
+    }
+  });
+
+  app.get("/api/reports/types", requireAuth, async (_req, res) => {
+    try {
+      const { getAvailableReportTypes } = await import("./services/scheduledReportsService");
+      res.json(getAvailableReportTypes());
+    } catch (err) {
+      res.json({});
+    }
+  });
+
+  // ─── API Key Management Endpoints ──────────────────────────────────
+
+  app.get("/api/api-keys", requireAuth, async (req, res) => {
+    try {
+      const { listApiKeys } = await import("./security/apiKeyRotation");
+      const keys = await listApiKeys(req.session.userId!);
+      res.json(keys);
+    } catch (err) {
+      res.json([]);
+    }
+  });
+
+  app.post("/api/api-keys", requireAuth, async (req, res) => {
+    try {
+      const { createApiKey } = await import("./security/apiKeyRotation");
+      const { label, permissions, expiresInDays } = req.body;
+      const result = await createApiKey(req.session.userId!, label || "Default", permissions, expiresInDays);
+      res.json(result);
+    } catch (err) {
+      res.status(500).json({ error: "Failed to create API key" });
+    }
+  });
+
+  app.post("/api/api-keys/:prefix/rotate", requireAuth, async (req, res) => {
+    try {
+      const { rotateApiKey } = await import("./security/apiKeyRotation");
+      const result = await rotateApiKey(req.session.userId!, req.params.prefix);
+      res.json(result);
+    } catch (err) {
+      res.status(500).json({ error: "Failed to rotate API key" });
+    }
+  });
+
+  app.delete("/api/api-keys/:prefix", requireAuth, async (req, res) => {
+    try {
+      const { revokeApiKey } = await import("./security/apiKeyRotation");
+      const success = await revokeApiKey(req.session.userId!, req.params.prefix);
+      res.json({ success });
+    } catch (err) {
+      res.status(500).json({ error: "Failed to revoke API key" });
+    }
+  });
+
+  // ─── Telegram Integration Endpoints ────────────────────────────────
+
+  app.get("/api/telegram/status", requireAuth, async (req, res) => {
+    try {
+      const { getTelegramStatus } = await import("./telegramService");
+      const status = await getTelegramStatus(req.session.userId!);
+      res.json(status);
+    } catch (err) {
+      res.json({ connected: false, botUsername: null });
+    }
+  });
+
+  app.post("/api/telegram/connect", requireAuth, async (req, res) => {
+    try {
+      const { botToken } = req.body;
+      if (!botToken) return res.status(400).json({ error: "Bot token is required" });
+
+      const verifyRes = await fetch(`https://api.telegram.org/bot${botToken}/getMe`);
+      const verifyData = await verifyRes.json() as any;
+      if (!verifyData.ok) return res.status(400).json({ error: "Invalid bot token" });
+
+      const webhookSecret = crypto.randomBytes(32).toString("hex");
+      const baseUrl = `https://${process.env.REPLIT_DOMAINS?.split(",")[0] || "localhost"}`;
+      const webhookUrl = `${baseUrl}/api/telegram/webhook/${req.session.userId}`;
+
+      const { setTelegramWebhook } = await import("./telegramService");
+      await setTelegramWebhook(botToken, webhookUrl, webhookSecret);
+
+      await db.execute(sql`
+        INSERT INTO telegram_configs (user_id, bot_token, bot_username, webhook_secret, is_active)
+        VALUES (${req.session.userId}, ${botToken}, ${verifyData.result.username}, ${webhookSecret}, true)
+        ON CONFLICT (user_id) DO UPDATE SET
+          bot_token = ${botToken}, bot_username = ${verifyData.result.username},
+          webhook_secret = ${webhookSecret}, is_active = true
+      `);
+
+      res.json({ success: true, botUsername: verifyData.result.username });
+    } catch (err) {
+      res.status(500).json({ error: "Failed to connect Telegram bot" });
+    }
+  });
+
+  app.post("/api/telegram/disconnect", requireAuth, async (req, res) => {
+    try {
+      const { getTelegramConfig, removeTelegramWebhook } = await import("./telegramService");
+      const config = await getTelegramConfig(req.session.userId!);
+      if (config) {
+        await removeTelegramWebhook(config.botToken);
+        await db.execute(sql`
+          UPDATE telegram_configs SET is_active = false WHERE user_id = ${req.session.userId}
+        `);
+      }
+      res.json({ success: true });
+    } catch (err) {
+      res.status(500).json({ error: "Failed to disconnect" });
+    }
+  });
+
+  app.post("/api/telegram/webhook/:userId", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const { getTelegramConfig, processIncomingTelegramUpdate } = await import("./telegramService");
+      const config = await getTelegramConfig(userId);
+      if (!config) return res.sendStatus(404);
+
+      const secretToken = req.headers["x-telegram-bot-api-secret-token"] as string;
+      if (secretToken !== config.webhookSecret) return res.sendStatus(403);
+
+      await processIncomingTelegramUpdate(req.body, userId, config.botToken);
+      res.sendStatus(200);
+    } catch (err) {
+      console.error("[Telegram Webhook] Error:", err);
+      res.sendStatus(200);
+    }
+  });
+
+  // ─── Queue Status Endpoint ─────────────────────────────────────────
+
+  app.get("/api/queue/status", requireAuth, async (_req, res) => {
+    try {
+      const { getAllQueuesStatus } = await import("./services/queueService");
+      res.json(getAllQueuesStatus());
+    } catch (err) {
+      res.json({});
+    }
+  });
+
+  // ─── Cache Stats Endpoint ──────────────────────────────────────────
+
+  app.get("/api/cache/stats", requireAuth, async (_req, res) => {
+    try {
+      const { agentResponseCache, faqCache, analyticsCache } = await import("./services/cacheService");
+      res.json({
+        agentResponse: agentResponseCache.getStats(),
+        faq: faqCache.getStats(),
+        analytics: analyticsCache.getStats(),
+      });
+    } catch (err) {
+      res.json({});
+    }
+  });
+
+  // ─── Onboarding Complete Endpoint ──────────────────────────────────
+
+  app.post("/api/onboarding/complete", requireAuth, async (req, res) => {
+    try {
+      const { selectedAgents, industry, companySize } = req.body;
+      await db.execute(sql`
+        UPDATE users SET
+          onboarding_completed = true,
+          industry = ${industry || null},
+          company_size = ${companySize || null},
+          intended_agents = ${selectedAgents ? JSON.stringify(selectedAgents) : null}::jsonb
+        WHERE id = ${req.session.userId}
+      `);
+      res.json({ success: true });
+    } catch (err) {
+      res.status(500).json({ error: "Failed to save onboarding" });
+    }
+  });
+
+  // ─── Rate Limit Status (Admin) ────────────────────────────────────
+
+  app.get(`/api/${ADMIN_PATH}/rate-limits`, requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser(req.session.userId!);
+      if (!user || user.role !== "admin") return res.status(403).json({ error: "Forbidden" });
+      const { getAgentRateLimitStatus } = await import("./security/perAgentRateLimit");
+      res.json(getAgentRateLimitStatus());
+    } catch (err) {
+      res.json({});
+    }
+  });
+
+  // ─── Monitoring Errors (Admin) ─────────────────────────────────────
+
+  app.get(`/api/${ADMIN_PATH}/errors`, requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser(req.session.userId!);
+      if (!user || user.role !== "admin") return res.status(403).json({ error: "Forbidden" });
+      const { getRecentErrors } = await import("./services/monitoringService");
+      const limit = parseInt(req.query.limit as string) || 50;
+      res.json(getRecentErrors(limit));
+    } catch (err) {
+      res.json([]);
+    }
+  });
+
+  // ─── Push Token Endpoints (Mobile App) ──────────────────────────────
+
+  app.post("/api/push-tokens", requireAuth, async (req, res) => {
+    try {
+      const { token, platform } = req.body;
+      if (!token || !platform) {
+        return res.status(400).json({ error: "Token and platform are required" });
+      }
+      if (!["ios", "android", "web"].includes(platform)) {
+        return res.status(400).json({ error: "Invalid platform. Must be ios, android, or web" });
+      }
+      const pushToken = await storage.createPushToken({
+        userId: req.session.userId!,
+        token,
+        platform,
+        isActive: true,
+      });
+      res.json({ success: true, pushToken });
+    } catch (err: any) {
+      console.error("[PushTokens] Create error:", err);
+      res.status(500).json({ error: "Failed to register push token" });
+    }
+  });
+
+  app.get("/api/push-tokens", requireAuth, async (req, res) => {
+    try {
+      const tokens = await storage.getPushTokensByUserId(req.session.userId!);
+      res.json(tokens);
+    } catch (err: any) {
+      console.error("[PushTokens] Get error:", err);
+      res.status(500).json({ error: "Failed to fetch push tokens" });
+    }
+  });
+
+  app.delete("/api/push-tokens", requireAuth, async (req, res) => {
+    try {
+      const { token } = req.body;
+      if (token) {
+        await storage.deletePushToken(req.session.userId!, token);
+      } else {
+        await storage.deletePushTokensByUserId(req.session.userId!);
+      }
+      res.json({ success: true });
+    } catch (err: any) {
+      console.error("[PushTokens] Delete error:", err);
+      res.status(500).json({ error: "Failed to delete push token" });
+    }
+  });
+
+  app.post("/api/push/send", requireAuth, async (req, res) => {
+    try {
+      const { userId, title, body, data } = req.body;
+      if (!title || !body) {
+        return res.status(400).json({ error: "Title and body are required" });
+      }
+      const targetUserId = userId || req.session.userId!;
+      const { sendPushToUser } = await import("./pushNotificationService");
+      await sendPushToUser(targetUserId, title, body, data);
+      res.json({ success: true });
+    } catch (err: any) {
+      console.error("[Push] Send error:", err);
+      res.status(500).json({ error: "Failed to send push notification" });
+    }
+  });
+
+  // ─── WebSocket initialization ──────────────────────────────────────
+  try {
+    const { initWebSocket } = await import("./websocketService");
+    initWebSocket(httpServer, null);
+  } catch (err) {
+    console.warn("[WebSocket] Init error (non-fatal):", (err as Error).message);
+  }
 
   return httpServer;
 }

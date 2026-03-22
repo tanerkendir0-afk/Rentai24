@@ -129,6 +129,13 @@ export default function Dashboard() {
     enabled: !!user,
   });
 
+  const { data: boostTasks } = useQuery<{ all: { id: number; visibleId: string; agentType: string; title: string; boostStatus: string }[] }>({
+    queryKey: ["/api/boost/tasks"],
+    queryFn: async () => { const res = await fetch("/api/boost/tasks"); return res.json(); },
+    enabled: !!user && boostStatus?.active === true,
+    refetchInterval: 10000,
+  });
+
   const { data: campaigns } = useQuery<any[]>({
     queryKey: ["/api/campaigns"],
     enabled: !!user,
@@ -234,7 +241,7 @@ export default function Dashboard() {
 
   return (
     <div className="pt-16 min-h-screen">
-      <div className="bg-gradient-to-r from-blue-500/10 to-violet-500/10 border-b border-border/50">
+      <div className="bg-primary/10 border-b border-border/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
@@ -245,7 +252,7 @@ export default function Dashboard() {
                 {t("dashboard.manageSubtitle")}
                 {orgData?.organization && (
                   <Link href="/settings">
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-violet-500/20 text-violet-400 border border-violet-500/30 cursor-pointer hover:bg-violet-500/30 transition-colors" data-testid="badge-org-context">
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-primary/20 text-primary border border-primary/30 cursor-pointer hover:bg-primary/30 transition-colors" data-testid="badge-org-context">
                       <Building2 className="w-3 h-3" />
                       {orgData.organization.name}
                       <ChevronRight className="w-3 h-3" />
@@ -266,8 +273,8 @@ export default function Dashboard() {
                   <span
                     className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium ${
                       emailStatus.provider === "gmail"
-                        ? "bg-blue-500/20 text-blue-400 border border-blue-500/30"
-                        : "bg-violet-500/20 text-violet-400 border border-violet-500/30"
+                        ? "bg-primary/20 text-primary border border-primary/30"
+                        : "bg-primary/20 text-primary border border-primary/30"
                     }`}
                     data-testid="badge-email-status"
                   >
@@ -289,7 +296,7 @@ export default function Dashboard() {
               <Link href="/dashboard/tasks">
                 <Button variant="outline" size="sm" data-testid="button-tasks-dashboard">
                   <ClipboardList className="w-4 h-4 mr-1" />
-                  Görev Takibi
+                  {t("dashboard.taskTracking")}
                 </Button>
               </Link>
               <Link href="/settings">
@@ -311,8 +318,8 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
           <Card className="p-3 sm:p-5 bg-card border-border/50">
             <div className="flex items-center gap-2 sm:gap-3">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-blue-500/10 flex items-center justify-center shrink-0">
-                <Bot className="w-4 h-4 sm:w-5 sm:h-5 text-blue-400" />
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                <Bot className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
               </div>
               <div className="min-w-0">
                 <p className="text-xl sm:text-2xl font-bold text-foreground" data-testid="text-active-workers">
@@ -325,8 +332,8 @@ export default function Dashboard() {
 
           <Card className="p-3 sm:p-5 bg-card border-border/50">
             <div className="flex items-center gap-2 sm:gap-3">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-violet-500/10 flex items-center justify-center shrink-0">
-                <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5 text-violet-400" />
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
               </div>
               <div className="min-w-0">
                 <p className="text-xl sm:text-2xl font-bold text-foreground" data-testid="text-messages-used">
@@ -413,6 +420,43 @@ export default function Dashboard() {
                   </Link>
                 </div>
               </div>
+              {boostTasks?.all && boostTasks.all.length > 0 && (
+                <div className="mt-3 pt-3 border-t border-amber-500/15 space-y-1" data-testid="boost-conversations-list">
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/70 mb-1.5">
+                    {t("dashboard.boost.activeConversations")}
+                  </p>
+                  {boostTasks.all.slice(0, 5).map((task) => {
+                    const Icon = agentIcons[task.agentType] || MessageSquare;
+                    const persona = agentPersonas[task.agentType] || task.agentType;
+                    return (
+                      <Link key={task.id} href={`/chat?agent=${task.agentType}&convo=${task.visibleId}`}>
+                        <div
+                          className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-amber-500/10 transition-colors cursor-pointer group"
+                          data-testid={`boost-convo-${task.id}`}
+                        >
+                          <div className="w-5 h-5 rounded-full bg-gradient-to-br from-amber-500/20 to-orange-500/20 flex items-center justify-center shrink-0">
+                            <Icon className="w-3 h-3 text-amber-400" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-medium text-foreground truncate">
+                              {persona}
+                            </p>
+                            {task.title && (
+                              <p className="text-[10px] text-muted-foreground/70 truncate">
+                                {task.title}
+                              </p>
+                            )}
+                          </div>
+                          <span className="text-[10px] text-muted-foreground/60 group-hover:text-amber-400 transition-colors">
+                            {t("dashboard.boost.openConversation")}
+                          </span>
+                          <ChevronRight className="w-3 h-3 text-muted-foreground/40 group-hover:text-amber-400 transition-colors" />
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
             </Card>
           ) : (
             <Card className="p-4 sm:p-5 bg-card border-border/50 border-dashed" data-testid="card-boost-cta">
@@ -442,18 +486,18 @@ export default function Dashboard() {
             <Card className="p-4 sm:p-5 bg-card border-border/50 border-dashed" data-testid="card-org-cta">
               <div className="flex items-center justify-between flex-wrap gap-3">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-violet-500/10 to-purple-500/10 flex items-center justify-center">
-                    <Building2 className="w-5 h-5 text-violet-400/60" />
+                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <Building2 className="w-5 h-5 text-primary/60" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-foreground text-sm">Organizasyon Oluştur</h3>
-                    <p className="text-xs text-muted-foreground">Ekibinizle birlikte AI çalışanlarınızı yönetin</p>
+                    <h3 className="font-semibold text-foreground text-sm">{t("dashboard.createOrg")}</h3>
+                    <p className="text-xs text-muted-foreground">{t("dashboard.createOrgDesc")}</p>
                   </div>
                 </div>
                 <Link href="/settings">
-                  <Button size="sm" variant="outline" className="text-xs border-violet-500/30 text-violet-400 hover:bg-violet-500/10" data-testid="button-create-org-cta">
+                  <Button size="sm" variant="outline" className="text-xs border-primary/30 text-primary hover:bg-primary/10" data-testid="button-create-org-cta">
                     <Building2 className="w-3 h-3 mr-1" />
-                    Organizasyon Kur
+                    {t("dashboard.createOrg")}
                   </Button>
                 </Link>
               </div>
@@ -471,8 +515,8 @@ export default function Dashboard() {
           </div>
         ) : activeRentals.length === 0 ? (
           <Card className="p-12 bg-card border-border/50 text-center">
-            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500/20 to-violet-500/20 flex items-center justify-center mx-auto mb-4">
-              <Bot className="w-8 h-8 text-blue-400" />
+            <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center mx-auto mb-4">
+              <Bot className="w-8 h-8 text-primary" />
             </div>
             <h3 className="text-lg font-semibold text-foreground mb-2" data-testid="text-no-workers">
               {t("dashboard.noWorkersTitle")}
@@ -481,7 +525,7 @@ export default function Dashboard() {
               {t("dashboard.noWorkersDesc")}
             </p>
             <Link href="/workers">
-              <Button className="bg-gradient-to-r from-blue-500 to-violet-500 text-white border-0" data-testid="button-get-started">
+              <Button className="bg-primary text-white border-0" data-testid="button-get-started">
                 {t("dashboard.browseWorkers")}
               </Button>
             </Link>
@@ -500,10 +544,10 @@ export default function Dashboard() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.1 }}
                 >
-                  <Card className="p-5 bg-card border-border/50 hover:border-blue-500/30 transition-colors" data-testid={`card-rental-${rental.agentType}`}>
+                  <Card className="p-5 bg-card border-border/50 hover:border-primary/30 transition-colors" data-testid={`card-rental-${rental.agentType}`}>
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-violet-500 flex items-center justify-center">
+                        <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center">
                           <Icon className="w-5 h-5 text-white" />
                         </div>
                         <div>
@@ -524,7 +568,7 @@ export default function Dashboard() {
                       <div className="h-2 bg-muted rounded-full overflow-hidden">
                         <div
                           className={`h-full rounded-full transition-all ${
-                            usagePercent > 80 ? "bg-red-500" : usagePercent > 50 ? "bg-yellow-500" : "bg-gradient-to-r from-blue-500 to-violet-500"
+                            usagePercent > 80 ? "bg-red-500" : usagePercent > 50 ? "bg-yellow-500" : "bg-primary"
                           }`}
                           style={{ width: `${Math.min(usagePercent, 100)}%` }}
                         />
@@ -552,7 +596,7 @@ export default function Dashboard() {
         {availableAgents.length > 0 && (
           <div className="mt-8">
             <div className="flex items-center gap-2 mb-4">
-              <Plus className="w-5 h-5 text-violet-400" />
+              <Plus className="w-5 h-5 text-primary" />
               <h2 className="text-lg font-semibold text-foreground" data-testid="text-available-workers">{t("dashboard.availableWorkers")}</h2>
               <Badge variant="secondary" className="text-xs">{availableAgents.length}</Badge>
             </div>
@@ -566,10 +610,10 @@ export default function Dashboard() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.05 }}
                   >
-                    <Card className="p-4 bg-card border-border/50 hover:border-violet-500/30 transition-colors" data-testid={`card-available-${agent.id}`}>
+                    <Card className="p-4 bg-card border-border/50 hover:border-primary/30 transition-colors" data-testid={`card-available-${agent.id}`}>
                       <div className="flex items-center gap-3 mb-3">
-                        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500/20 to-violet-500/20 flex items-center justify-center">
-                          <Icon className="w-4 h-4 text-violet-400" />
+                        <div className="w-9 h-9 rounded-full bg-primary/20 flex items-center justify-center">
+                          <Icon className="w-4 h-4 text-primary" />
                         </div>
                         <div className="flex-1 min-w-0">
                           <h4 className="text-sm font-semibold text-foreground truncate">{agent.name}</h4>
@@ -579,7 +623,7 @@ export default function Dashboard() {
                       <p className="text-xs text-muted-foreground mb-3 line-clamp-2">{agent.shortDescription}</p>
                       <Button
                         size="sm"
-                        className="w-full bg-gradient-to-r from-blue-500 to-violet-500 text-white border-0"
+                        className="w-full bg-primary text-white border-0"
                         disabled={installingAgent === agent.id}
                         onClick={() => handleInstallAgent(agent.id)}
                         data-testid={`button-install-${agent.id}`}
@@ -614,7 +658,7 @@ export default function Dashboard() {
                 const severityConfig: Record<string, { icon: any; bg: string; text: string; border: string }> = {
                   urgent: { icon: AlertCircle, bg: "bg-red-500/10", text: "text-red-400", border: "border-red-500/30" },
                   warning: { icon: AlertTriangle, bg: "bg-yellow-500/10", text: "text-yellow-400", border: "border-yellow-500/30" },
-                  info: { icon: Info, bg: "bg-blue-500/10", text: "text-blue-400", border: "border-blue-500/30" },
+                  info: { icon: Info, bg: "bg-primary/10", text: "text-primary", border: "border-primary/30" },
                   success: { icon: Flame, bg: "bg-emerald-500/10", text: "text-emerald-400", border: "border-emerald-500/30" },
                 };
                 const config = severityConfig[alert.severity] || severityConfig.info;
@@ -659,7 +703,7 @@ export default function Dashboard() {
         {agentActions && agentActions.length > 0 && (
           <div className="mt-6 sm:mt-8">
             <div className="flex items-center gap-2 mb-3 sm:mb-4">
-              <Activity className="w-5 h-5 text-blue-400" />
+              <Activity className="w-5 h-5 text-primary" />
               <h2 className="text-base sm:text-lg font-semibold text-foreground" data-testid="text-actions-title">{t("dashboard.activityLog")}</h2>
               <Badge variant="secondary" className="text-xs">{agentActions.length}</Badge>
             </div>
@@ -708,8 +752,8 @@ export default function Dashboard() {
 
                 return (
                   <div key={action.id} className="flex items-start gap-3 px-4 py-3" data-testid={`action-item-${i}`}>
-                    <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0 mt-0.5">
-                      <ActionIcon className="w-4 h-4 text-blue-400" />
+                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
+                      <ActionIcon className="w-4 h-4 text-primary" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm text-foreground">{action.description}</p>

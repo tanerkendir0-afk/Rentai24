@@ -348,6 +348,7 @@ export const conversations = pgTable("conversations", {
   qualityRating: text("quality_rating"),
   isBoostTask: boolean("is_boost_task").notNull().default(false),
   boostStatus: text("boost_status").notNull().default("idle"),
+  project: text("project"),
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
 });
 
@@ -1506,3 +1507,98 @@ export const insertOrganizationInviteSchema = createInsertSchema(organizationInv
 
 export type OrganizationInvite = typeof organizationInvites.$inferSelect;
 export type InsertOrganizationInvite = z.infer<typeof insertOrganizationInviteSchema>;
+
+// ─── API Keys Table ──────────────────────────────────────────────────
+
+export const apiKeys = pgTable("api_keys", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  keyPrefix: text("key_prefix").notNull(),
+  keyHash: text("key_hash").notNull().unique(),
+  label: text("label").notNull().default("Default"),
+  permissions: jsonb("permissions").default(["chat"]),
+  isActive: boolean("is_active").notNull().default(true),
+  lastUsedAt: timestamp("last_used_at"),
+  expiresAt: timestamp("expires_at"),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
+export const insertApiKeySchema = createInsertSchema(apiKeys).omit({
+  id: true,
+  createdAt: true,
+});
+
+// ─── Telegram Config Table ───────────────────────────────────────────
+
+export const telegramConfigs = pgTable("telegram_configs", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id).unique(),
+  botToken: text("bot_token").notNull(),
+  botUsername: text("bot_username"),
+  defaultChatId: text("default_chat_id"),
+  webhookSecret: text("webhook_secret").notNull(),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
+export const insertTelegramConfigSchema = createInsertSchema(telegramConfigs).omit({
+  id: true,
+  createdAt: true,
+});
+
+// ─── Telegram Messages Table ─────────────────────────────────────────
+
+export const telegramMessages = pgTable("telegram_messages", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  chatId: text("chat_id").notNull(),
+  senderName: text("sender_name"),
+  senderId: text("sender_id"),
+  direction: text("direction", { enum: ["inbound", "outbound"] }).notNull(),
+  content: text("content").notNull(),
+  telegramMessageId: integer("telegram_message_id"),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
+// ─── Scheduled Reports Table ─────────────────────────────────────────
+
+export const scheduledReports = pgTable("scheduled_reports", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  agentType: text("agent_type").notNull().default("all"),
+  reportType: text("report_type").notNull(),
+  frequency: text("frequency", { enum: ["daily", "weekly", "monthly"] }).notNull(),
+  dayOfWeek: integer("day_of_week"),
+  dayOfMonth: integer("day_of_month"),
+  hour: integer("hour").notNull().default(9),
+  isActive: boolean("is_active").notNull().default(true),
+  recipientEmail: text("recipient_email"),
+  lastRunAt: timestamp("last_run_at"),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
+export const insertScheduledReportSchema = createInsertSchema(scheduledReports).omit({
+  id: true,
+  createdAt: true,
+});
+
+// ─── Push Tokens Table (Mobile App) ────────────────────────────────────
+
+export const pushTokens = pgTable("push_tokens", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  token: text("token").notNull(),
+  platform: text("platform", { enum: ["ios", "android", "web"] }).notNull(),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+  updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
+export const insertPushTokenSchema = createInsertSchema(pushTokens).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type PushToken = typeof pushTokens.$inferSelect;
+export type InsertPushToken = z.infer<typeof insertPushTokenSchema>;

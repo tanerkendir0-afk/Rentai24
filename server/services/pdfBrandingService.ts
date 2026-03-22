@@ -415,25 +415,77 @@ export function generateBrandedReportPDF(data: ReportData, branding?: UserBrandi
     if (section.table) {
       const { headers, rows } = section.table;
       if (headers.length > 0) {
-        const colW = contentWidth / headers.length;
+        const TABLE_FONT_SIZE = 8;
+        const CELL_PAD = 4;
+        const HEADER_H = 22;
+        const MIN_COL_W = 30;
+        const ROW_PAD = 6;
+        const PAGE_BOTTOM = doc.page.height - 80;
 
-        doc.rect(marginLeft, y, contentWidth, 20).fill(theme.primary || DEFAULT_THEME.primary);
-        doc.font(FONT_BOLD).fontSize(8).fillColor("white");
-        for (let i = 0; i < headers.length; i++) {
-          doc.text(headers[i], marginLeft + i * colW + 4, y + 5, { width: colW - 8 });
+        const maxLens: number[] = headers.map((h: string) => h.length);
+        for (const row of rows) {
+          for (let ci = 0; ci < row.length; ci++) {
+            const len = String(row[ci] || "").length;
+            if (ci < maxLens.length && len > maxLens[ci]) maxLens[ci] = len;
+          }
         }
-        y += 20;
+        const totalChars = maxLens.reduce((s: number, v: number) => s + v, 0) || 1;
+        const colWidths: number[] = maxLens.map((len: number) => {
+          const proportional = (len / totalChars) * contentWidth;
+          return Math.max(proportional, MIN_COL_W);
+        });
+        const rawTotal = colWidths.reduce((s: number, v: number) => s + v, 0);
+        const scale = contentWidth / rawTotal;
+        for (let i = 0; i < colWidths.length; i++) colWidths[i] = Math.floor(colWidths[i] * scale);
+        const remainder = contentWidth - colWidths.reduce((s: number, v: number) => s + v, 0);
+        if (colWidths.length > 0) colWidths[colWidths.length - 1] += remainder;
 
-        doc.font(FONT).fontSize(8);
+        const colOffsets: number[] = [];
+        let off = 0;
+        for (const w of colWidths) { colOffsets.push(off); off += w; }
+
+        if (y + HEADER_H + 16 > PAGE_BOTTOM) {
+          doc.addPage();
+          y = 50;
+        }
+
+        const drawTableHeader = () => {
+          doc.rect(marginLeft, y, contentWidth, HEADER_H).fill(theme.primary || DEFAULT_THEME.primary);
+          doc.font(FONT_BOLD).fontSize(TABLE_FONT_SIZE).fillColor("white");
+          for (let i = 0; i < headers.length; i++) {
+            doc.text(headers[i], marginLeft + colOffsets[i] + CELL_PAD, y + 6, { width: colWidths[i] - CELL_PAD * 2 });
+          }
+          y += HEADER_H;
+        };
+
+        drawTableHeader();
+
+        doc.font(FONT).fontSize(TABLE_FONT_SIZE);
         for (let ri = 0; ri < rows.length; ri++) {
+          let rowH = 16;
+          for (let ci = 0; ci < rows[ri].length; ci++) {
+            const cellW = (ci < colWidths.length ? colWidths[ci] : colWidths[colWidths.length - 1]) - CELL_PAD * 2;
+            const textH = doc.heightOfString(String(rows[ri][ci] || ""), { width: cellW, fontSize: TABLE_FONT_SIZE });
+            if (textH + ROW_PAD > rowH) rowH = textH + ROW_PAD;
+          }
+          rowH = Math.max(rowH, 16);
+
+          if (y + rowH > PAGE_BOTTOM) {
+            doc.addPage();
+            y = 50;
+            drawTableHeader();
+            doc.font(FONT).fontSize(TABLE_FONT_SIZE);
+          }
+
           if (ri % 2 === 1) {
-            doc.rect(marginLeft, y, contentWidth, 18).fill(theme.light || DEFAULT_THEME.light);
+            doc.rect(marginLeft, y, contentWidth, rowH).fill(theme.light || DEFAULT_THEME.light);
           }
           doc.fillColor(theme.text || "#1B1B1B");
           for (let ci = 0; ci < rows[ri].length; ci++) {
-            doc.text(rows[ri][ci], marginLeft + ci * colW + 4, y + 4, { width: colW - 8 });
+            const cellW = (ci < colWidths.length ? colWidths[ci] : colWidths[colWidths.length - 1]) - CELL_PAD * 2;
+            doc.text(String(rows[ri][ci] || ""), marginLeft + (ci < colOffsets.length ? colOffsets[ci] : 0) + CELL_PAD, y + 3, { width: cellW });
           }
-          y += 18;
+          y += rowH;
         }
 
         doc.moveTo(marginLeft, y).lineTo(pageWidth - marginRight, y)

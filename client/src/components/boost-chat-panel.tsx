@@ -20,6 +20,7 @@ import {
   BrainCircuit,
   Square,
   Zap,
+  Loader2,
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/lib/auth";
@@ -54,18 +55,26 @@ interface Message {
   isLimitWarning?: boolean;
 }
 
+interface HistoryMessage {
+  role: string;
+  content: string;
+  agentType?: string;
+}
+
 interface BoostChatPanelProps {
   panelId: string;
   allowedAgents: string[] | null;
   rentedAgentIds: Set<string>;
   onClose?: () => void;
-  isOnly?: boolean;
+  conversationVisibleId?: string;
+  conversationAgentType?: string;
 }
 
-export default function BoostChatPanel({ panelId, allowedAgents, rentedAgentIds, onClose, isOnly }: BoostChatPanelProps) {
+export default function BoostChatPanel({ panelId, allowedAgents, rentedAgentIds, onClose, conversationVisibleId, conversationAgentType }: BoostChatPanelProps) {
   const { user } = useAuth();
   const { t } = useTranslation("pages");
   const [selectedAgent, setSelectedAgent] = useState(() => {
+    if (conversationAgentType) return conversationAgentType;
     if (allowedAgents && allowedAgents.length > 0) {
       const first = allowedAgents.find(a => rentedAgentIds.has(a));
       return first || allowedAgents[0];
@@ -77,21 +86,44 @@ export default function BoostChatPanel({ panelId, allowedAgents, rentedAgentIds,
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+  const [conversationId, setConversationId] = useState<string | null>(conversationVisibleId || null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const loadedVisibleIdRef = useRef<string | null>(null);
 
   const generateVisibleId = () => Date.now().toString() + Math.random().toString(36).slice(2, 6);
 
   useEffect(() => {
-    if (user && !conversationId) {
+    if (conversationVisibleId && conversationVisibleId !== loadedVisibleIdRef.current) {
+      loadedVisibleIdRef.current = conversationVisibleId;
+      setConversationId(conversationVisibleId);
+      if (conversationAgentType) setSelectedAgent(conversationAgentType);
+      setLoadingHistory(true);
+      fetch(`/api/conversations/${conversationVisibleId}/messages`)
+        .then(res => {
+          if (!res.ok) throw new Error(`Failed to load history: ${res.status}`);
+          return res.json();
+        })
+        .then((msgs: HistoryMessage[]) => {
+          const derivedAgent = msgs.find(m => m.agentType)?.agentType;
+          if (derivedAgent) setSelectedAgent(derivedAgent);
+          const parsed: Message[] = msgs.map(m => ({
+            role: (m.role === "system" ? "system" : m.role === "assistant" ? "assistant" : "user") as Message["role"],
+            content: m.content,
+          }));
+          setMessages(parsed);
+        })
+        .catch(() => setMessages([{ role: "system", content: t("boost.historyUnavailable", "Conversation history unavailable.") }]))
+        .finally(() => setLoadingHistory(false));
+    } else if (!conversationVisibleId && user && !conversationId) {
       const visId = generateVisibleId();
       setConversationId(visId);
       apiRequest("POST", "/api/conversations", { agentType: selectedAgent, visibleId: visId })
         .catch(() => {});
     }
-  }, [user]);
+  }, [conversationVisibleId, conversationAgentType, user, t]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -144,6 +176,8 @@ export default function BoostChatPanel({ panelId, allowedAgents, rentedAgentIds,
   const agent = getAgent(selectedAgent);
   const AgentIcon = agent.icon;
 
+  const isExistingConvo = !!conversationVisibleId;
+
   const availableAgents = allowedAgents
     ? agentOptions.filter(a => allowedAgents.includes(a.id) && rentedAgentIds.has(a.id))
     : agentOptions.filter(a => rentedAgentIds.has(a.id));
@@ -152,50 +186,64 @@ export default function BoostChatPanel({ panelId, allowedAgents, rentedAgentIds,
     <div className="flex flex-col h-full bg-background border-r border-border/30 last:border-r-0" data-testid={`boost-panel-${panelId}`}>
       <div className="flex items-center gap-2 px-3 py-2 border-b border-border/50 bg-card/30 shrink-0">
         <div className="relative">
-          <button
-            onClick={() => setShowAgentPicker(!showAgentPicker)}
-            className="flex items-center gap-2 hover:bg-muted/50 rounded-lg px-2 py-1 transition-colors"
-            data-testid={`boost-panel-agent-picker-${panelId}`}
-          >
-            <div className={`w-7 h-7 rounded-full bg-gradient-to-br ${agent.color} flex items-center justify-center`}>
-              <AgentIcon className="w-3.5 h-3.5 text-white" />
+          {isExistingConvo ? (
+            <div className="flex items-center gap-2 px-2 py-1">
+              <div className={`w-7 h-7 rounded-full bg-gradient-to-br ${agent.color} flex items-center justify-center`}>
+                <AgentIcon className="w-3.5 h-3.5 text-white" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-semibold text-foreground truncate">{agent.persona}</p>
+                <p className="text-[10px] text-muted-foreground truncate">{t("demoPage.roles." + agent.roleKey)}</p>
+              </div>
             </div>
-            <div className="min-w-0">
-              <p className="text-xs font-semibold text-foreground truncate">{agent.persona}</p>
-              <p className="text-[10px] text-muted-foreground truncate">{t("demoPage.roles." + agent.roleKey)}</p>
-            </div>
-            <ChevronDown className="w-3 h-3 text-muted-foreground" />
-          </button>
-          {showAgentPicker && (
-            <div className="absolute top-full left-0 mt-1 w-56 bg-card border border-border rounded-xl shadow-2xl z-50 p-1.5 max-h-[300px] overflow-y-auto">
-              {availableAgents.map(a => {
-                const AIcon = a.icon;
-                return (
-                  <button
-                    key={a.id}
-                    onClick={() => {
-                      setSelectedAgent(a.id);
-                      setShowAgentPicker(false);
-                      setMessages([]);
-                      setConversationId(null);
-                      const visId = generateVisibleId();
-                      setConversationId(visId);
-                      apiRequest("POST", "/api/conversations", { agentType: a.id, visibleId: visId })
-                        .catch(() => {});
-                    }}
-                    className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-left text-xs transition-all ${
-                      selectedAgent === a.id ? "bg-primary/10 text-foreground" : "text-muted-foreground hover:bg-muted/50"
-                    }`}
-                    data-testid={`boost-panel-agent-${a.id}-${panelId}`}
-                  >
-                    <div className={`w-6 h-6 rounded-full bg-gradient-to-br ${a.color} flex items-center justify-center`}>
-                      <AIcon className="w-3 h-3 text-white" />
-                    </div>
-                    <span className="font-medium">{a.persona}</span>
-                  </button>
-                );
-              })}
-            </div>
+          ) : (
+            <>
+              <button
+                onClick={() => setShowAgentPicker(!showAgentPicker)}
+                className="flex items-center gap-2 hover:bg-muted/50 rounded-lg px-2 py-1 transition-colors"
+                data-testid={`boost-panel-agent-picker-${panelId}`}
+              >
+                <div className={`w-7 h-7 rounded-full bg-gradient-to-br ${agent.color} flex items-center justify-center`}>
+                  <AgentIcon className="w-3.5 h-3.5 text-white" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold text-foreground truncate">{agent.persona}</p>
+                  <p className="text-[10px] text-muted-foreground truncate">{t("demoPage.roles." + agent.roleKey)}</p>
+                </div>
+                <ChevronDown className="w-3 h-3 text-muted-foreground" />
+              </button>
+              {showAgentPicker && (
+                <div className="absolute top-full left-0 mt-1 w-56 bg-card border border-border rounded-xl shadow-2xl z-50 p-1.5 max-h-[300px] overflow-y-auto">
+                  {availableAgents.map(a => {
+                    const AIcon = a.icon;
+                    return (
+                      <button
+                        key={a.id}
+                        onClick={() => {
+                          setSelectedAgent(a.id);
+                          setShowAgentPicker(false);
+                          setMessages([]);
+                          setConversationId(null);
+                          const visId = generateVisibleId();
+                          setConversationId(visId);
+                          apiRequest("POST", "/api/conversations", { agentType: a.id, visibleId: visId })
+                            .catch(() => {});
+                        }}
+                        className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-left text-xs transition-all ${
+                          selectedAgent === a.id ? "bg-primary/10 text-foreground" : "text-muted-foreground hover:bg-muted/50"
+                        }`}
+                        data-testid={`boost-panel-agent-${a.id}-${panelId}`}
+                      >
+                        <div className={`w-6 h-6 rounded-full bg-gradient-to-br ${a.color} flex items-center justify-center`}>
+                          <AIcon className="w-3 h-3 text-white" />
+                        </div>
+                        <span className="font-medium">{a.persona}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </>
           )}
         </div>
         <div className="flex-1" />
@@ -205,7 +253,7 @@ export default function BoostChatPanel({ panelId, allowedAgents, rentedAgentIds,
             <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
           </span>
         </div>
-        {onClose && !isOnly && (
+        {onClose && (
           <Button
             variant="ghost"
             size="icon"
@@ -219,7 +267,11 @@ export default function BoostChatPanel({ panelId, allowedAgents, rentedAgentIds,
       </div>
 
       <div className="flex-1 overflow-y-auto px-3 py-4">
-        {messages.length === 0 ? (
+        {loadingHistory ? (
+          <div className="h-full flex items-center justify-center">
+            <Loader2 className="w-6 h-6 animate-spin text-amber-400" />
+          </div>
+        ) : messages.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-center">
             <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${agent.color} flex items-center justify-center mb-3 shadow-lg`}>
               <AgentIcon className="w-6 h-6 text-white" />
@@ -343,7 +395,7 @@ export default function BoostChatPanel({ panelId, allowedAgents, rentedAgentIds,
             placeholder={t("demoPage.messagePlaceholder", { agent: agent.persona })}
             disabled={loading}
             rows={1}
-            className="flex-1 min-h-[36px] max-h-[80px] px-3 py-2 rounded-lg bg-muted/50 border border-border/50 text-xs text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-amber-500/30 resize-none"
+            className="flex-1 min-w-0 min-h-[36px] max-h-[80px] px-3 py-2 rounded-lg bg-muted/50 border border-border/50 text-xs text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-amber-500/30 resize-none"
             data-testid={`boost-panel-input-${panelId}`}
           />
           {loading ? (

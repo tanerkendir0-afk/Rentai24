@@ -406,14 +406,14 @@ function MarketplaceConnectionsCard() {
       return res.json();
     },
     onSuccess: (data) => {
-      toast({ title: data.message || "Bağlantı oluşturuldu" });
+      toast({ title: data.message || t("settings.marketplace.connectionCreated") });
       queryClient.invalidateQueries({ queryKey: ["/api/marketplace/connections"] });
       setShowForm(false);
       setCreds({});
       setStoreName("");
     },
     onError: (err: any) => {
-      toast({ title: "Hata", description: err.message, variant: "destructive" });
+      toast({ title: t("settings.marketplace.error"), description: err.message, variant: "destructive" });
     },
   });
 
@@ -423,7 +423,7 @@ function MarketplaceConnectionsCard() {
       return res.json();
     },
     onSuccess: () => {
-      toast({ title: "Bağlantı kaldırıldı" });
+      toast({ title: t("settings.marketplace.connectionRemoved") });
       queryClient.invalidateQueries({ queryKey: ["/api/marketplace/connections"] });
     },
   });
@@ -435,22 +435,22 @@ function MarketplaceConnectionsCard() {
       return res.json();
     },
     onSuccess: (data) => {
-      toast({ title: data.success ? "Bağlantı başarılı" : "Bağlantı hatası", description: data.message, variant: data.success ? "default" : "destructive" });
+      toast({ title: data.success ? t("settings.marketplace.connectionSuccess") : t("settings.marketplace.connectionError"), description: data.message, variant: data.success ? "default" : "destructive" });
       setTestingId(null);
     },
     onError: (err: any) => {
-      toast({ title: "Test hatası", description: err.message, variant: "destructive" });
+      toast({ title: t("settings.marketplace.testError"), description: err.message, variant: "destructive" });
       setTestingId(null);
     },
   });
 
   const handleSubmit = () => {
     if (platform === "trendyol" && (!creds.sellerId || !creds.apiKey || !creds.apiSecret)) {
-      toast({ title: "Tüm alanları doldurun", variant: "destructive" });
+      toast({ title: t("settings.marketplace.fillAllFields"), variant: "destructive" });
       return;
     }
     if (platform === "shopify" && (!creds.storeUrl || !creds.accessToken)) {
-      toast({ title: "Tüm alanları doldurun", variant: "destructive" });
+      toast({ title: t("settings.marketplace.fillAllFields"), variant: "destructive" });
       return;
     }
     createMutation.mutate({ platform, storeName, credentials: creds });
@@ -460,10 +460,10 @@ function MarketplaceConnectionsCard() {
 
   return (
     <Card className="p-4 sm:p-6 bg-card border-border/50" data-testid="card-marketplace-connections">
-      <div className="flex items-center justify-between mb-5">
+      <div className="flex items-center justify-between gap-2 flex-wrap mb-5">
         <div className="flex items-center gap-2">
           <Store className="w-5 h-5 text-purple-400" />
-          <h2 className="text-lg font-semibold text-foreground">Pazaryeri Bağlantıları</h2>
+          <h2 className="text-lg font-semibold text-foreground">{t("settings.marketplace.title")}</h2>
           {connections.length > 0 && (
             <Badge variant="secondary" className="text-xs">{connections.length}</Badge>
           )}
@@ -475,7 +475,7 @@ function MarketplaceConnectionsCard() {
           data-testid="button-add-marketplace"
         >
           <Plus className="w-4 h-4 mr-1" />
-          Bağlantı Ekle
+          {t("settings.marketplace.addConnection")}
         </Button>
       </div>
 
@@ -501,11 +501,11 @@ function MarketplaceConnectionsCard() {
           </div>
 
           <div>
-            <Label>Mağaza Adı</Label>
+            <Label>{t("settings.marketplace.storeName")}</Label>
             <Input
               value={storeName}
               onChange={(e) => setStoreName(e.target.value)}
-              placeholder="Mağazanızın adı"
+              placeholder={t("settings.marketplace.storeNamePlaceholder")}
               data-testid="input-marketplace-store-name"
             />
           </div>
@@ -513,11 +513,11 @@ function MarketplaceConnectionsCard() {
           {platform === "trendyol" ? (
             <>
               <div>
-                <Label>Satıcı ID (Seller ID)</Label>
+                <Label>{t("settings.marketplace.sellerIdLabel")}</Label>
                 <Input
                   value={creds.sellerId || ""}
                   onChange={(e) => setCreds({ ...creds, sellerId: e.target.value })}
-                  placeholder="Trendyol Satıcı ID"
+                  placeholder={t("settings.marketplace.sellerIdPlaceholder")}
                   data-testid="input-trendyol-seller-id"
                 />
               </div>
@@ -526,7 +526,7 @@ function MarketplaceConnectionsCard() {
                 <Input
                   value={creds.apiKey || ""}
                   onChange={(e) => setCreds({ ...creds, apiKey: e.target.value })}
-                  placeholder="Trendyol API Key"
+                  placeholder={t("settings.marketplace.trendyolApiKeyPh")}
                   data-testid="input-trendyol-api-key"
                 />
               </div>
@@ -536,7 +536,7 @@ function MarketplaceConnectionsCard() {
                   type="password"
                   value={creds.apiSecret || ""}
                   onChange={(e) => setCreds({ ...creds, apiSecret: e.target.value })}
-                  placeholder="Trendyol API Secret"
+                  placeholder={t("settings.marketplace.trendyolApiSecretPh")}
                   data-testid="input-trendyol-api-secret"
                 />
               </div>
@@ -544,11 +544,11 @@ function MarketplaceConnectionsCard() {
           ) : (
             <>
               <div>
-                <Label>Mağaza URL</Label>
+                <Label>{t("settings.marketplace.storeUrlLabel")}</Label>
                 <Input
                   value={creds.storeUrl || ""}
                   onChange={(e) => setCreds({ ...creds, storeUrl: e.target.value })}
-                  placeholder="magazaniz.myshopify.com"
+                  placeholder={t("settings.marketplace.shopifyUrlPh")}
                   data-testid="input-shopify-store-url"
                 />
               </div>
@@ -573,7 +573,7 @@ function MarketplaceConnectionsCard() {
               data-testid="button-save-marketplace"
             >
               {createMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Save className="w-4 h-4 mr-1" />}
-              Kaydet
+              {t("settings.marketplace.save")}
             </Button>
             <Button
               size="sm"
@@ -581,7 +581,7 @@ function MarketplaceConnectionsCard() {
               onClick={() => setShowForm(false)}
               data-testid="button-cancel-marketplace"
             >
-              İptal
+              {t("settings.marketplace.cancel")}
             </Button>
           </div>
         </div>
@@ -593,7 +593,7 @@ function MarketplaceConnectionsCard() {
         </div>
       ) : connections.length === 0 ? (
         <p className="text-sm text-muted-foreground text-center py-4">
-          Henüz bağlı pazaryeri yok. Trendyol veya Shopify mağazanızı bağlayın.
+          {t("settings.marketplace.noConnections")}
         </p>
       ) : (
         <div className="space-y-3">
@@ -668,6 +668,7 @@ interface OrgData {
 }
 
 function OrganizationCard({ userId }: { userId: number }) {
+  const { t } = useTranslation("pages");
   const { toast } = useToast();
   const [showCreate, setShowCreate] = useState(false);
   const [createName, setCreateName] = useState("");
@@ -694,10 +695,10 @@ function OrganizationCard({ userId }: { userId: number }) {
       queryClient.invalidateQueries({ queryKey: ["/api/organization"] });
       setShowCreate(false);
       setCreateName("");
-      toast({ title: "Organizasyon oluşturuldu" });
+      toast({ title: t("settings.org.orgCreated") });
     },
     onError: (err: any) => {
-      toast({ title: "Hata", description: err.message, variant: "destructive" });
+      toast({ title: t("settings.org.error"), description: err.message, variant: "destructive" });
     },
   });
 
@@ -709,10 +710,10 @@ function OrganizationCard({ userId }: { userId: number }) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/organization"] });
       setEditingOrgName(false);
-      toast({ title: "Organizasyon adı güncellendi" });
+      toast({ title: t("settings.org.orgNameUpdated") });
     },
     onError: (err: any) => {
-      toast({ title: "Hata", description: err.message, variant: "destructive" });
+      toast({ title: t("settings.org.error"), description: err.message, variant: "destructive" });
     },
   });
 
@@ -726,10 +727,10 @@ function OrganizationCard({ userId }: { userId: number }) {
       setShowInviteForm(false);
       setInviteEmail("");
       setInviteRole("member");
-      toast({ title: "Davet gönderildi", description: "Kullanıcıya e-posta ile davet gönderildi." });
+      toast({ title: t("settings.org.inviteSent"), description: t("settings.org.inviteSentDesc") });
     },
     onError: (err: any) => {
-      toast({ title: "Hata", description: err.message, variant: "destructive" });
+      toast({ title: t("settings.org.error"), description: err.message, variant: "destructive" });
     },
   });
 
@@ -740,7 +741,7 @@ function OrganizationCard({ userId }: { userId: number }) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/organization"] });
-      toast({ title: "Davet iptal edildi" });
+      toast({ title: t("settings.org.inviteCancelled") });
     },
   });
 
@@ -752,7 +753,7 @@ function OrganizationCard({ userId }: { userId: number }) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/organization"] });
       setRoleDialogMember(null);
-      toast({ title: "Rol güncellendi" });
+      toast({ title: t("settings.org.roleUpdated") });
     },
   });
 
@@ -764,7 +765,7 @@ function OrganizationCard({ userId }: { userId: number }) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/organization"] });
       setRemovingMemberId(null);
-      toast({ title: "Üye çıkarıldı" });
+      toast({ title: t("settings.org.memberRemoved") });
     },
   });
 
@@ -787,16 +788,16 @@ function OrganizationCard({ userId }: { userId: number }) {
           <div className="w-14 h-14 rounded-full bg-violet-500/10 flex items-center justify-center mx-auto mb-4">
             <Building2 className="w-7 h-7 text-violet-400" />
           </div>
-          <h2 className="text-lg font-semibold text-foreground mb-1">Organizasyon</h2>
+          <h2 className="text-lg font-semibold text-foreground mb-1">{t("settings.org.title")}</h2>
           <p className="text-sm text-muted-foreground mb-5 max-w-sm mx-auto">
-            Bir organizasyon oluşturarak ekip üyelerinizi davet edin ve AI çalışanlarınızı birlikte yönetin.
+            {t("settings.org.description")}
           </p>
           {showCreate ? (
             <div className="max-w-sm mx-auto space-y-3">
               <Input
                 value={createName}
                 onChange={(e) => setCreateName(e.target.value)}
-                placeholder="Organizasyon adı"
+                placeholder={t("settings.org.namePlaceholder")}
                 data-testid="input-org-name-create"
               />
               <div className="flex gap-2 justify-center">
@@ -807,10 +808,10 @@ function OrganizationCard({ userId }: { userId: number }) {
                   className="bg-gradient-to-r from-violet-500 to-purple-500 text-white border-0"
                   data-testid="button-create-org-submit"
                 >
-                  {createOrgMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Building2 className="w-4 h-4 mr-1" />Oluştur</>}
+                  {createOrgMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Building2 className="w-4 h-4 mr-1" />{t("settings.org.create")}</>}
                 </Button>
                 <Button size="sm" variant="outline" onClick={() => setShowCreate(false)} data-testid="button-create-org-cancel">
-                  İptal
+                  {t("settings.org.cancel")}
                 </Button>
               </div>
             </div>
@@ -821,7 +822,7 @@ function OrganizationCard({ userId }: { userId: number }) {
               data-testid="button-create-org"
             >
               <Plus className="w-4 h-4 mr-2" />
-              Organizasyon Oluştur
+              {t("settings.org.createOrg")}
             </Button>
           )}
         </div>
@@ -835,11 +836,11 @@ function OrganizationCard({ userId }: { userId: number }) {
 
   return (
     <Card className="p-4 sm:p-6 bg-card border-border/50" data-testid="card-team-members">
-      <div className="flex items-center justify-between mb-2">
+      <div className="flex items-center justify-between gap-2 flex-wrap mb-2">
         <div className="flex items-center gap-2">
           <Building2 className="w-5 h-5 text-violet-400" />
-          <h2 className="text-lg font-semibold text-foreground">Organizasyon</h2>
-          <Badge variant="secondary" className="ml-1 text-xs" data-testid="badge-team-count">{members.length + 1} üye</Badge>
+          <h2 className="text-lg font-semibold text-foreground">{t("settings.org.title")}</h2>
+          <Badge variant="secondary" className="ml-1 text-xs" data-testid="badge-team-count">{members.length + 1} {t("settings.org.memberCount")}</Badge>
         </div>
         {isOwner && (
           <Button
@@ -849,7 +850,7 @@ function OrganizationCard({ userId }: { userId: number }) {
             onClick={() => setShowInviteForm(!showInviteForm)}
             data-testid="button-invite-member"
           >
-            <Plus className="w-3.5 h-3.5 mr-1" />Üye Davet Et
+            <Plus className="w-3.5 h-3.5 mr-1" />{t("settings.org.inviteMember")}
           </Button>
         )}
       </div>
@@ -877,7 +878,7 @@ function OrganizationCard({ userId }: { userId: number }) {
                 {updateOrgMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
               </Button>
               <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setEditingOrgName(false)}>
-                İptal
+                {t("settings.org.cancel")}
               </Button>
             </div>
           ) : (
@@ -895,34 +896,34 @@ function OrganizationCard({ userId }: { userId: number }) {
             </div>
           )}
           <p className="text-xs text-muted-foreground">
-            {isOwner ? "Sahibi" : (orgData.role === "admin" ? "Yönetici" : "Üye")}
+            {isOwner ? t("settings.org.owner") : (orgData.role === "admin" ? t("settings.org.admin") : t("settings.org.member"))}
           </p>
         </div>
       </div>
 
       {isOwner && showInviteForm && (
         <div className="mb-4 p-4 rounded-lg bg-muted/30 border border-violet-500/20 space-y-3">
-          <p className="text-sm font-medium text-foreground">Yeni Üye Davet Et</p>
+          <p className="text-sm font-medium text-foreground">{t("settings.org.inviteNew")}</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <Label className="text-xs text-muted-foreground">E-posta *</Label>
+              <Label className="text-xs text-muted-foreground">{t("settings.org.emailLabel")}</Label>
               <Input
                 value={inviteEmail}
                 onChange={(e) => setInviteEmail(e.target.value)}
-                placeholder="kullanici@sirket.com"
+                placeholder={t("settings.org.emailPlaceholder")}
                 className="mt-1 h-8 text-sm"
                 data-testid="input-invite-email"
               />
             </div>
             <div>
-              <Label className="text-xs text-muted-foreground">Rol</Label>
+              <Label className="text-xs text-muted-foreground">{t("settings.org.roleLabel")}</Label>
               <Select value={inviteRole} onValueChange={setInviteRole}>
                 <SelectTrigger className="mt-1 h-8 text-sm" data-testid="select-invite-role">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="member">Üye</SelectItem>
-                  <SelectItem value="admin">Yönetici</SelectItem>
+                  <SelectItem value="member">{t("settings.org.member")}</SelectItem>
+                  <SelectItem value="admin">{t("settings.org.admin")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -936,28 +937,28 @@ function OrganizationCard({ userId }: { userId: number }) {
               data-testid="button-send-invite"
             >
               {inviteMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" /> : <Plus className="w-3.5 h-3.5 mr-1" />}
-              Davet Gönder
+              {t("settings.org.sendInvite")}
             </Button>
             <Button size="sm" variant="outline" onClick={() => setShowInviteForm(false)} data-testid="button-cancel-invite-form">
-              İptal
+              {t("settings.org.cancel")}
             </Button>
           </div>
         </div>
       )}
 
       <div className="space-y-2 mb-4">
-        <p className="text-xs font-medium text-muted-foreground mb-2">Aktif Üyeler</p>
+        <p className="text-xs font-medium text-muted-foreground mb-2">{t("settings.org.activeMembers")}</p>
         <div className="flex items-center justify-between p-3 rounded-lg bg-muted/20 border border-border/50" data-testid={`card-member-owner`}>
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-8 h-8 rounded-full bg-violet-500/15 flex items-center justify-center shrink-0">
               <User className="w-4 h-4 text-violet-400" />
             </div>
             <div className="min-w-0">
-              <p className="text-sm font-medium text-foreground">{members.find(m => m.userId === org.ownerId)?.user?.fullName || "Sen"}</p>
-              <p className="text-xs text-muted-foreground">Sahip</p>
+              <p className="text-sm font-medium text-foreground">{members.find(m => m.userId === org.ownerId)?.user?.fullName || t("settings.org.you")}</p>
+              <p className="text-xs text-muted-foreground">{t("settings.org.ownerBadge")}</p>
             </div>
           </div>
-          <Badge className="bg-violet-500/10 text-violet-400 border-violet-500/30 text-xs">Sahip</Badge>
+          <Badge className="bg-violet-500/10 text-violet-400 border-violet-500/30 text-xs">{t("settings.org.ownerBadge")}</Badge>
         </div>
 
         {members.filter(m => m.userId !== org.ownerId).map((member) => (
@@ -973,14 +974,14 @@ function OrganizationCard({ userId }: { userId: number }) {
             </div>
             <div className="flex items-center gap-2 shrink-0">
               <Badge className={`text-xs ${member.role === "admin" ? "bg-amber-500/10 text-amber-400 border-amber-500/30" : "bg-blue-500/10 text-blue-400 border-blue-500/30"}`} data-testid={`badge-member-role-${member.id}`}>
-                {member.role === "admin" ? "Yönetici" : "Üye"}
+                {member.role === "admin" ? t("settings.org.admin") : t("settings.org.member")}
               </Badge>
               {isOwner && (
                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                   <button
                     onClick={() => { setRoleDialogMember({ ...member, id: member.userId }); setNewRole(member.role); }}
                     className="p-1.5 rounded hover:bg-blue-500/10 text-muted-foreground hover:text-blue-400 transition-colors"
-                    title="Rol Değiştir"
+                    title={t("settings.org.changeRole")}
                     data-testid={`button-change-role-${member.id}`}
                   >
                     <Pencil className="w-3.5 h-3.5" />
@@ -988,7 +989,7 @@ function OrganizationCard({ userId }: { userId: number }) {
                   <button
                     onClick={() => setRemovingMemberId(member.userId)}
                     className="p-1.5 rounded hover:bg-red-500/10 text-muted-foreground hover:text-red-400 transition-colors"
-                    title="Üyeyi Çıkar"
+                    title={t("settings.org.removeMember")}
                     data-testid={`button-remove-member-${member.id}`}
                   >
                     <Trash2 className="w-3.5 h-3.5" />
@@ -1002,7 +1003,7 @@ function OrganizationCard({ userId }: { userId: number }) {
 
       {isOwner && invitations.length > 0 && (
         <div className="space-y-2">
-          <p className="text-xs font-medium text-muted-foreground mb-2">Bekleyen Davetler</p>
+          <p className="text-xs font-medium text-muted-foreground mb-2">{t("settings.org.pendingInvitations")}</p>
           {invitations.map((inv) => (
             <div key={inv.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/10 border border-dashed border-border/50" data-testid={`card-invitation-${inv.id}`}>
               <div className="flex items-center gap-3 min-w-0">
@@ -1012,16 +1013,16 @@ function OrganizationCard({ userId }: { userId: number }) {
                 <div className="min-w-0">
                   <p className="text-sm font-medium text-foreground truncate" data-testid={`text-invite-email-${inv.id}`}>{inv.email}</p>
                   <p className="text-xs text-muted-foreground">
-                    {inv.role === "admin" ? "Yönetici" : "Üye"} · {new Date(inv.expiresAt) > new Date() ? "Bekliyor" : "Süresi doldu"}
+                    {inv.role === "admin" ? t("settings.org.admin") : t("settings.org.member")} · {new Date(inv.expiresAt) > new Date() ? t("settings.org.pending") : t("settings.org.expired")}
                   </p>
                 </div>
               </div>
               <div className="flex items-center gap-2 shrink-0">
-                <Badge className="bg-amber-500/10 text-amber-400 border-amber-500/30 text-xs">Bekliyor</Badge>
+                <Badge className="bg-amber-500/10 text-amber-400 border-amber-500/30 text-xs">{t("settings.org.pending")}</Badge>
                 <button
                   onClick={() => cancelInviteMutation.mutate(inv.id)}
                   className="p-1.5 rounded hover:bg-red-500/10 text-muted-foreground hover:text-red-400 transition-colors"
-                  title="İptal Et"
+                  title={t("settings.org.cancelInvite")}
                   data-testid={`button-cancel-invite-${inv.id}`}
                 >
                   <Trash2 className="w-3.5 h-3.5" />
@@ -1035,17 +1036,17 @@ function OrganizationCard({ userId }: { userId: number }) {
       {roleDialogMember && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={() => setRoleDialogMember(null)}>
           <div className="bg-card border border-border rounded-xl p-6 max-w-sm w-full shadow-2xl" onClick={(e) => e.stopPropagation()} data-testid="dialog-change-role">
-            <h3 className="font-semibold text-foreground mb-4">Rol Değiştir</h3>
+            <h3 className="font-semibold text-foreground mb-4">{t("settings.org.changeRole")}</h3>
             <p className="text-sm text-muted-foreground mb-4">
-              <strong>{roleDialogMember.user.fullName}</strong> için yeni rol seçin:
+              {t("settings.org.selectNewRole", { name: roleDialogMember.user.fullName })}
             </p>
             <Select value={newRole} onValueChange={setNewRole}>
               <SelectTrigger data-testid="select-new-role">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="member">Üye</SelectItem>
-                <SelectItem value="admin">Yönetici</SelectItem>
+                <SelectItem value="member">{t("settings.org.member")}</SelectItem>
+                <SelectItem value="admin">{t("settings.org.admin")}</SelectItem>
               </SelectContent>
             </Select>
             <div className="flex gap-2 mt-4">
@@ -1055,9 +1056,9 @@ function OrganizationCard({ userId }: { userId: number }) {
                 disabled={updateRoleMutation.isPending}
                 data-testid="button-confirm-role-change"
               >
-                {updateRoleMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Güncelle"}
+                {updateRoleMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : t("settings.org.update")}
               </Button>
-              <Button variant="outline" onClick={() => setRoleDialogMember(null)} data-testid="button-cancel-role-change">İptal</Button>
+              <Button variant="outline" onClick={() => setRoleDialogMember(null)} data-testid="button-cancel-role-change">{t("settings.org.cancel")}</Button>
             </div>
           </div>
         </div>
@@ -1066,9 +1067,9 @@ function OrganizationCard({ userId }: { userId: number }) {
       {removingMemberId !== null && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={() => setRemovingMemberId(null)}>
           <div className="bg-card border border-border rounded-xl p-6 max-w-sm w-full shadow-2xl" onClick={(e) => e.stopPropagation()} data-testid="dialog-remove-member">
-            <h3 className="font-semibold text-foreground mb-2">Üyeyi Çıkar</h3>
+            <h3 className="font-semibold text-foreground mb-2">{t("settings.org.removeMember")}</h3>
             <p className="text-sm text-muted-foreground mb-4">
-              Bu üyeyi organizasyondan çıkarmak istediğinizden emin misiniz?
+              {t("settings.org.removeMemberConfirm")}
             </p>
             <div className="flex gap-2">
               <Button
@@ -1078,9 +1079,9 @@ function OrganizationCard({ userId }: { userId: number }) {
                 disabled={removeMemberMutation.isPending}
                 data-testid="button-confirm-remove-member"
               >
-                {removeMemberMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Çıkar"}
+                {removeMemberMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : t("settings.org.remove")}
               </Button>
-              <Button variant="outline" onClick={() => setRemovingMemberId(null)} data-testid="button-cancel-remove-member">İptal</Button>
+              <Button variant="outline" onClick={() => setRemovingMemberId(null)} data-testid="button-cancel-remove-member">{t("settings.org.cancel")}</Button>
             </div>
           </div>
         </div>

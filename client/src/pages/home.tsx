@@ -73,11 +73,11 @@ const industryIcons: Record<string, any> = {
 };
 
 const heroWorkers = [
-  { name: "Ava", roleKey: "customerSupport", icon: Headphones, color: "from-blue-400 to-blue-600", delay: 0 },
-  { name: "Rex", roleKey: "salesDevRep", icon: TrendingUp, color: "from-violet-400 to-purple-600", delay: 0.05 },
+  { name: "Ava", roleKey: "customerSupport", icon: Headphones, color: "from-primary/60 to-primary", delay: 0 },
+  { name: "Rex", roleKey: "salesDevRep", icon: TrendingUp, color: "from-primary/60 to-primary", delay: 0.05 },
   { name: "Maya", roleKey: "socialMedia", icon: Share2, color: "from-fuchsia-400 to-pink-600", delay: 0.1 },
-  { name: "Finn", roleKey: "bookkeeping", icon: Calculator, color: "from-cyan-400 to-blue-500", delay: 0.15 },
-  { name: "Cal", roleKey: "scheduling", icon: CalendarCheck, color: "from-indigo-400 to-violet-500", delay: 0.2 },
+  { name: "Finn", roleKey: "bookkeeping", icon: Calculator, color: "from-cyan-400 to-primary", delay: 0.15 },
+  { name: "Cal", roleKey: "scheduling", icon: CalendarCheck, color: "from-primary/60 to-primary", delay: 0.2 },
   { name: "Harper", roleKey: "hrRecruiting", icon: Users, color: "from-purple-400 to-fuchsia-500", delay: 0.25 },
   { name: "DataBot", roleKey: "dataAnalyst", icon: BarChart3, color: "from-emerald-400 to-teal-600", delay: 0.3 },
   { name: "ShopBot", roleKey: "ecommerceOps", icon: Package, color: "from-amber-400 to-orange-500", delay: 0.35 },
@@ -159,12 +159,12 @@ function HeroCarousel() {
 
   return (
     <div className="relative">
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3/4 h-3/4 bg-blue-500/10 rounded-full blur-[120px] pointer-events-none z-0" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3/4 h-3/4 bg-primary/10 rounded-full blur-[120px] pointer-events-none z-0" />
 
       {canScrollLeft && (
         <button
           onClick={() => scroll("left")}
-          className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-2 z-20 w-10 h-10 rounded-full bg-black/60 backdrop-blur-sm border border-white/10 flex items-center justify-center text-white/80 hover:text-white hover:bg-black/80 transition-all shadow-lg hidden sm:flex"
+          className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-2 z-20 w-10 h-10 rounded-full bg-background/80 dark:bg-black/60 backdrop-blur-sm border border-border/50 dark:border-white/10 flex items-center justify-center text-foreground/70 hover:text-foreground hover:bg-background dark:hover:bg-black/80 transition-all shadow-lg hidden sm:flex"
           data-testid="button-carousel-left"
         >
           <ChevronLeft className="w-5 h-5" />
@@ -173,7 +173,7 @@ function HeroCarousel() {
       {canScrollRight && (
         <button
           onClick={() => scroll("right")}
-          className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-2 z-20 w-10 h-10 rounded-full bg-black/60 backdrop-blur-sm border border-white/10 flex items-center justify-center text-white/80 hover:text-white hover:bg-black/80 transition-all shadow-lg hidden sm:flex"
+          className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-2 z-20 w-10 h-10 rounded-full bg-background/80 dark:bg-black/60 backdrop-blur-sm border border-border/50 dark:border-white/10 flex items-center justify-center text-foreground/70 hover:text-foreground hover:bg-background dark:hover:bg-black/80 transition-all shadow-lg hidden sm:flex"
           data-testid="button-carousel-right"
         >
           <ChevronRight className="w-5 h-5" />
@@ -191,37 +191,37 @@ function HeroCarousel() {
             <motion.div
               key={worker.name}
               data-card
-              className="group relative p-[1px] rounded-[1.25rem] bg-gradient-to-b from-white/10 to-white/0 hover:from-blue-500/50 hover:to-violet-500/50 transition-all duration-500 z-10 snap-center shrink-0 w-[180px] sm:w-[200px]"
+              className="group relative p-[1px] rounded-[1.25rem] bg-gradient-to-b from-border/50 to-border/0 dark:from-white/10 dark:to-white/0 hover:from-primary/50 hover:to-primary/30 transition-all duration-500 z-10 snap-center shrink-0 w-[180px] sm:w-[200px]"
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.3 + worker.delay }}
               data-testid={`card-hero-worker-${worker.name.toLowerCase()}`}
             >
-              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-violet-500/20 rounded-[1.25rem] blur-xl transition-opacity duration-500 opacity-0 group-hover:opacity-100" />
+              <div className="absolute inset-0 bg-primary/10 rounded-[1.25rem] blur-xl transition-opacity duration-500 opacity-0 group-hover:opacity-100" />
 
-              <div className="relative h-full bg-[#0E1332] hover:bg-[#12183A] backdrop-blur-xl rounded-2xl p-4 sm:p-5 flex flex-col items-center text-center overflow-hidden transition-all duration-500 group-hover:-translate-y-2 shadow-lg group-hover:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.5)]">
-                <div className="absolute top-3 right-3 flex items-center gap-1.5 bg-black/20 px-1.5 py-0.5 rounded-full border border-white/5">
+              <div className="relative h-full bg-card dark:bg-[#0E1332] hover:bg-card/90 dark:hover:bg-[#12183A] backdrop-blur-xl rounded-2xl p-4 sm:p-5 flex flex-col items-center text-center overflow-hidden transition-all duration-500 group-hover:-translate-y-2 shadow-lg group-hover:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.15)] dark:group-hover:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.5)] border border-border/30 dark:border-transparent">
+                <div className="absolute top-3 right-3 flex items-center gap-1.5 bg-muted/50 dark:bg-black/20 px-1.5 py-0.5 rounded-full border border-border/30 dark:border-white/5">
                   <div className="relative flex h-1.5 w-1.5">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
                     <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500 shadow-[0_0_5px_rgba(16,185,129,0.8)]" />
                   </div>
-                  <span className="text-[8px] uppercase tracking-wider font-bold text-emerald-400/90">{t("home.online")}</span>
+                  <span className="text-[8px] uppercase tracking-wider font-bold text-emerald-600 dark:text-emerald-400/90">{t("home.online")}</span>
                 </div>
 
                 <div className="relative w-16 h-16 sm:w-20 sm:h-20 mt-4 mb-4 flex items-center justify-center group-hover:scale-110 transition-transform duration-500 ease-out">
                   <div className={`absolute inset-0 bg-gradient-to-br ${worker.color} rounded-full opacity-10 group-hover:opacity-30 blur-lg transition-opacity duration-500`} />
                   <div className={`absolute inset-1 bg-gradient-to-br ${worker.color} rounded-full opacity-20 group-hover:opacity-40 blur-md transition-opacity duration-500`} />
                   <div className={`absolute inset-3 bg-gradient-to-br ${worker.color} rounded-full opacity-30 group-hover:opacity-50 blur-sm transition-opacity duration-500`} />
-                  <div className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gradient-to-b from-[#1A2250] to-[#0A0E27] border border-white/10 flex items-center justify-center shadow-inner z-10">
-                    <Icon className="w-5 h-5 sm:w-6 sm:h-6 text-white/90 drop-shadow-md" strokeWidth={1.5} />
+                  <div className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gradient-to-b from-muted to-muted/80 dark:from-[#1A2250] dark:to-[#0A0E27] border border-border/50 dark:border-white/10 flex items-center justify-center shadow-inner z-10">
+                    <Icon className="w-5 h-5 sm:w-6 sm:h-6 text-primary dark:text-white/90 drop-shadow-md" strokeWidth={1.5} />
                   </div>
                 </div>
 
-                <h3 className="text-base sm:text-lg font-bold text-white mb-1 tracking-tight">{worker.name}</h3>
-                <p className="text-[11px] sm:text-xs text-blue-200/60 font-medium leading-relaxed">{ta(`heroRoles.${worker.roleKey}`)}</p>
+                <h3 className="text-base sm:text-lg font-bold text-foreground mb-1 tracking-tight">{worker.name}</h3>
+                <p className="text-[11px] sm:text-xs text-primary/60 font-medium leading-relaxed">{ta(`heroRoles.${worker.roleKey}`)}</p>
 
-                <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                <div className="absolute bottom-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-blue-500/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-border dark:via-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                <div className="absolute bottom-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
               </div>
             </motion.div>
           );
@@ -230,7 +230,7 @@ function HeroCarousel() {
 
       <div className="flex justify-center gap-1.5 mt-3 sm:hidden">
         {heroWorkers.map((w, i) => (
-          <div key={i} className="w-1.5 h-1.5 rounded-full bg-white/20" />
+          <div key={i} className="w-1.5 h-1.5 rounded-full bg-foreground/20" />
         ))}
       </div>
     </div>
@@ -238,8 +238,8 @@ function HeroCarousel() {
 }
 
 const showcaseScenes = [
-  { id: "office", titleKey: "office", icon: Monitor, color: "from-blue-500 to-indigo-600", duration: 8000 },
-  { id: "agents", titleKey: "agents", icon: Users, color: "from-violet-500 to-purple-600", duration: 8000 },
+  { id: "office", titleKey: "office", icon: Monitor, color: "from-primary/60 to-primary", duration: 8000 },
+  { id: "agents", titleKey: "agents", icon: Users, color: "from-primary/60 to-primary", duration: 8000 },
   { id: "tasks", titleKey: "tasks", icon: Zap, color: "from-emerald-500 to-teal-600", duration: 8000 },
   { id: "results", titleKey: "results", icon: TrendingUp, color: "from-amber-500 to-orange-600", duration: 8000 },
   { id: "scale", titleKey: "scale", icon: Globe, color: "from-rose-500 to-pink-600", duration: 8000 },
@@ -248,8 +248,8 @@ const showcaseScenes = [
 function OfficeScene({ active }: { active: boolean }) {
   const { t } = useTranslation("pages");
   const officeItems = [
-    { icon: Monitor, labelKey: "workspace", color: "text-blue-400" },
-    { icon: MessageSquare, labelKey: "liveChat", color: "text-violet-400" },
+    { icon: Monitor, labelKey: "workspace", color: "text-primary" },
+    { icon: MessageSquare, labelKey: "liveChat", color: "text-primary" },
     { icon: Mail, labelKey: "emails", color: "text-cyan-400" },
     { icon: BarChart3, labelKey: "analytics", color: "text-emerald-400" },
     { icon: CalendarCheck, labelKey: "calendar", color: "text-amber-400" },
@@ -259,7 +259,7 @@ function OfficeScene({ active }: { active: boolean }) {
     <div className="relative w-full h-full flex items-center justify-center">
       <div className="relative w-full max-w-md">
         <motion.div
-          className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-indigo-500/10 rounded-2xl blur-xl"
+          className="absolute inset-0 bg-primary/10 rounded-2xl blur-xl"
           animate={active ? { scale: [1, 1.1, 1], opacity: [0.5, 0.8, 0.5] } : {}}
           transition={{ duration: 3, repeat: Infinity }}
         />
@@ -365,12 +365,12 @@ function TasksScene({ active }: { active: boolean }) {
               animate={active ? { opacity: 1, x: 0 } : { opacity: 0, x: 40 }}
               transition={{ duration: 0.4, delay: i * 0.15 }}
               className={`flex items-center gap-3 p-2.5 rounded-xl border transition-all duration-500 ${
-                isDone ? "border-emerald-500/30 bg-emerald-500/5" : "border-blue-500/20 bg-blue-500/5"
+                isDone ? "border-emerald-500/30 bg-emerald-500/5" : "border-primary/20 bg-primary/5"
               }`}
             >
               <motion.div
                 className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
-                  isDone ? "bg-emerald-500/20" : "bg-blue-500/20"
+                  isDone ? "bg-emerald-500/20" : "bg-primary/20"
                 }`}
                 animate={isDone ? {} : { rotate: 360 }}
                 transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
@@ -378,12 +378,12 @@ function TasksScene({ active }: { active: boolean }) {
                 {isDone ? (
                   <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                 ) : (
-                  <Zap className="w-3.5 h-3.5 text-blue-400" />
+                  <Zap className="w-3.5 h-3.5 text-primary" />
                 )}
               </motion.div>
               <div className="flex-1 min-w-0">
                 <div className="text-[11px] font-medium text-foreground truncate">{t(`home.taskLabels.${task.labelKey}`)}</div>
-                <div className={`text-[9px] ${isDone ? "text-emerald-400" : "text-blue-400/70"}`}>
+                <div className={`text-[9px] ${isDone ? "text-emerald-400" : "text-primary/70"}`}>
                   {isDone ? t("home.taskLabels.completed") : t("home.taskLabels.working", { agent: task.agent })}
                 </div>
               </div>
@@ -422,9 +422,9 @@ function ResultsScene({ active }: { active: boolean }) {
       <div className="grid grid-cols-2 gap-3 w-full max-w-sm">
         {[
           { labelKey: "costSavings", value: `${counts.revenue}%`, icon: TrendingUp, color: "text-emerald-400", bg: "bg-emerald-500/10" },
-          { labelKey: "timeSaved", value: `${counts.time}${t("homePage.stats.hrsMo")}`, icon: CalendarCheck, color: "text-blue-400", bg: "bg-blue-500/10" },
+          { labelKey: "timeSaved", value: `${counts.time}${t("homePage.stats.hrsMo")}`, icon: CalendarCheck, color: "text-primary", bg: "bg-primary/10" },
           { labelKey: "satisfaction", value: `${counts.satisfaction}%`, icon: Star, color: "text-amber-400", bg: "bg-amber-500/10" },
-          { labelKey: "tasksDone", value: counts.tasks.toLocaleString(), icon: CheckCircle2, color: "text-violet-400", bg: "bg-violet-500/10" },
+          { labelKey: "tasksDone", value: counts.tasks.toLocaleString(), icon: CheckCircle2, color: "text-primary", bg: "bg-primary/10" },
         ].map((stat, i) => (
           <motion.div
             key={stat.labelKey}
@@ -467,7 +467,7 @@ function ScaleScene({ active }: { active: boolean }) {
               style={{ originY: 1 }}
             >
               <div
-                className="w-12 rounded-lg bg-gradient-to-t from-blue-500/30 to-violet-500/30 border border-border/20 flex items-end justify-center pb-1"
+                className="w-12 rounded-lg bg-primary/20 border border-border/20 flex items-end justify-center pb-1"
                 style={{ height: `${20 + count * 12}px` }}
               >
                 <span className="text-xs font-bold text-foreground">{count}</span>
@@ -484,7 +484,7 @@ function ScaleScene({ active }: { active: boolean }) {
           animate={active ? { opacity: 1 } : { opacity: 0 }}
           transition={{ delay: 1.5, duration: 0.5 }}
         >
-          <Badge className="bg-gradient-to-r from-blue-500/10 to-violet-500/10 text-blue-400 border-blue-500/20">
+          <Badge className="bg-primary/10 text-primary border-primary/20">
             {t("home.scaleLabels.scaleInstantly")}
           </Badge>
         </motion.div>
@@ -522,12 +522,12 @@ function AnimatedShowcase() {
     <section className="py-16 sm:py-24 relative overflow-hidden" data-testid="section-showcase">
       <div className="absolute inset-0 pointer-events-none">
         <motion.div
-          className="absolute top-[20%] left-[15%] w-[400px] h-[400px] bg-blue-600/10 rounded-full blur-[120px]"
+          className="absolute top-[20%] left-[15%] w-[400px] h-[400px] bg-primary/10 rounded-full blur-[120px]"
           animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.6, 0.3] }}
           transition={{ duration: 6, repeat: Infinity }}
         />
         <motion.div
-          className="absolute bottom-[20%] right-[15%] w-[400px] h-[400px] bg-violet-600/10 rounded-full blur-[120px]"
+          className="absolute bottom-[20%] right-[15%] w-[400px] h-[400px] bg-primary/10 rounded-full blur-[120px]"
           animate={{ scale: [1.2, 1, 1.2], opacity: [0.3, 0.6, 0.3] }}
           transition={{ duration: 6, repeat: Infinity, delay: 3 }}
         />
@@ -535,7 +535,7 @@ function AnimatedShowcase() {
 
       <div ref={containerRef} className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <motion.div className="text-center mb-10 sm:mb-14" {...fadeUp}>
-          <Badge className="mb-4 bg-gradient-to-r from-blue-500/10 to-violet-500/10 text-blue-400 border-blue-500/20" data-testid="badge-showcase">
+          <Badge className="mb-4 bg-primary/10 text-primary border-primary/20" data-testid="badge-showcase">
             <Sparkles className="w-3 h-3 mr-1" /> {t("home.showcase.badge")}
           </Badge>
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-3 sm:mb-4" data-testid="text-showcase-title">
@@ -557,7 +557,7 @@ function AnimatedShowcase() {
                   onClick={() => setActiveScene(i)}
                   className={`w-full flex items-center gap-4 p-4 rounded-xl border transition-all duration-300 text-left ${
                     isActive
-                      ? "border-blue-500/40 bg-blue-500/5 shadow-lg shadow-blue-500/5"
+                      ? "border-primary/40 bg-primary/5 shadow-lg shadow-primary/5"
                       : "border-border/30 bg-card/30 hover:border-border/50"
                   }`}
                   initial={{ opacity: 0, x: -20 }}
@@ -575,7 +575,7 @@ function AnimatedShowcase() {
                   </div>
                   {isActive && (
                     <motion.div
-                      className="w-1.5 h-8 rounded-full bg-gradient-to-b from-blue-500 to-violet-500"
+                      className="w-1.5 h-8 rounded-full bg-primary"
                       layoutId="showcase-indicator"
                     />
                   )}
@@ -588,7 +588,7 @@ function AnimatedShowcase() {
                 <div key={i} className="flex-1 relative h-1 rounded-full bg-border/30 overflow-hidden">
                   {i === activeScene && (
                     <motion.div
-                      className="absolute inset-y-0 left-0 bg-gradient-to-r from-blue-500 to-violet-500 rounded-full"
+                      className="absolute inset-y-0 left-0 bg-primary rounded-full"
                       initial={{ width: "0%" }}
                       animate={{ width: "100%" }}
                       transition={{ duration: showcaseScenes[activeScene].duration / 1000, ease: "linear" }}
@@ -596,7 +596,7 @@ function AnimatedShowcase() {
                     />
                   )}
                   {i < activeScene && (
-                    <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-violet-500 rounded-full" />
+                    <div className="absolute inset-0 bg-primary rounded-full" />
                   )}
                 </div>
               ))}
@@ -605,7 +605,7 @@ function AnimatedShowcase() {
 
           <div className="relative min-h-[300px] sm:min-h-[350px]">
             <div className="absolute inset-0 bg-gradient-to-br from-card/50 to-card/30 rounded-2xl border border-border/30 backdrop-blur-sm overflow-hidden">
-              <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-blue-500/20 to-transparent" />
+              <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
               <div className="p-4 sm:p-6 h-full flex items-center justify-center">
                 <AnimatePresence mode="wait">
                   <motion.div
@@ -629,8 +629,8 @@ function AnimatedShowcase() {
 }
 
 const quickActions = [
-  { icon: LayoutDashboard, labelKey: "dashboard", descKey: "dashboardDesc", href: "/dashboard", color: "from-blue-500 to-indigo-500" },
-  { icon: MessageSquare, labelKey: "chat", descKey: "chatDesc", href: "/chat", color: "from-violet-500 to-purple-500" },
+  { icon: LayoutDashboard, labelKey: "dashboard", descKey: "dashboardDesc", href: "/dashboard", color: "from-primary/60 to-primary" },
+  { icon: MessageSquare, labelKey: "chat", descKey: "chatDesc", href: "/chat", color: "from-primary/60 to-primary" },
   { icon: Users, labelKey: "aiWorkers", descKey: "aiWorkersDesc", href: "/workers", color: "from-fuchsia-500 to-pink-500" },
   { icon: Settings, labelKey: "settings", descKey: "settingsDesc", href: "/settings", color: "from-amber-500 to-orange-500" },
   { icon: BookOpen, labelKey: "guide", descKey: "guideDesc", href: "/guide", color: "from-emerald-500 to-teal-500" },
@@ -643,76 +643,79 @@ function LoggedInHome({ userName }: { userName: string }) {
 
   return (
     <div className="overflow-x-hidden">
-      <section className="relative min-h-[60vh] flex items-center overflow-hidden pt-16" data-testid="section-welcome">
-        <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
-          <div className="absolute top-[10%] left-[20%] w-[300px] sm:w-[500px] h-[300px] sm:h-[500px] bg-blue-600/15 rounded-full blur-[120px] mix-blend-screen" />
-          <div className="absolute bottom-[10%] right-[10%] w-[400px] sm:w-[600px] h-[400px] sm:h-[600px] bg-violet-600/15 rounded-full blur-[120px] mix-blend-screen" />
-        </div>
+      {/* Welcome Hero - compact, gradient banner */}
+      <section className="relative overflow-hidden pt-16" data-testid="section-welcome">
+        <div className="relative bg-gradient-to-br from-primary/5 via-primary/10 to-indigo-500/5 dark:from-primary/10 dark:via-primary/5 dark:to-indigo-500/10 border-b border-border/30">
+          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            <div className="absolute top-0 right-[20%] w-[400px] h-[400px] bg-primary/10 rounded-full blur-[100px]" />
+            <div className="absolute bottom-0 left-[10%] w-[300px] h-[300px] bg-indigo-500/10 rounded-full blur-[100px]" />
+          </div>
 
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:3rem_3rem] [mask-image:radial-gradient(ellipse_80%_80%_at_50%_50%,#000_20%,transparent_100%)] pointer-events-none" />
-
-        <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 relative z-10 py-12 sm:py-20">
-          <motion.div
-            className="text-center space-y-6"
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7 }}
-          >
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 py-10 sm:py-14">
             <motion.div
-              className="inline-flex items-center space-x-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 backdrop-blur-sm"
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.2 }}
+              className="flex flex-col sm:flex-row items-center sm:items-start gap-6 sm:gap-8"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
             >
-              <span className="flex h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)] animate-pulse" />
-              <span className="text-sm font-medium text-white/90">{t("home.loggedIn.teamOnline")}</span>
-            </motion.div>
+              {/* Left: Greeting */}
+              <div className="flex-1 text-center sm:text-left">
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 mb-4">
+                  <span className="flex h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.6)] animate-pulse" />
+                  <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">{t("home.loggedIn.teamOnline")}</span>
+                </div>
 
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight" data-testid="text-welcome-title">
-              {t("home.loggedIn.welcomeBack", { name: firstName })}
-            </h1>
+                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-foreground mb-2" data-testid="text-welcome-title">
+                  {t("home.loggedIn.welcomeBack", { name: firstName })}
+                </h1>
 
-            <p className="text-base sm:text-lg text-white/50 max-w-lg mx-auto" data-testid="text-welcome-subtitle">
-              {t("home.loggedIn.subtitle")}
-            </p>
-          </motion.div>
-        </div>
-      </section>
+                <p className="text-sm sm:text-base text-muted-foreground max-w-md" data-testid="text-welcome-subtitle">
+                  {t("home.loggedIn.subtitle")}
+                </p>
 
-      <section className="py-10 sm:py-16 relative" data-testid="section-quick-actions">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.h2
-            className="text-xl sm:text-2xl font-bold text-foreground mb-6 sm:mb-8"
-            {...fadeUp}
-            data-testid="text-quick-actions"
-          >
-            {t("home.loggedIn.quickActions")}
-          </motion.h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
-            {quickActions.map((action, i) => {
-              const Icon = action.icon;
-              return (
-                <motion.div
-                  key={action.labelKey}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, delay: i * 0.08 }}
-                >
-                  <Link href={action.href}>
-                    <Card
-                      className="p-4 sm:p-5 bg-card border-border/50 hover:border-blue-500/30 hover:-translate-y-1 transition-all duration-300 cursor-pointer text-center group"
-                      data-testid={`quick-action-${action.labelKey}`}
-                    >
-                      <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br ${action.color} flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform duration-300`}>
-                        <Icon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-                      </div>
-                      <h3 className="font-semibold text-foreground text-sm mb-0.5">{t(`home.loggedIn.${action.labelKey}`)}</h3>
-                      <p className="text-[10px] sm:text-xs text-muted-foreground">{t(`home.loggedIn.${action.descKey}`)}</p>
-                    </Card>
+                <div className="flex flex-wrap gap-2 mt-5 justify-center sm:justify-start">
+                  <Link href="/dashboard">
+                    <Button className="bg-primary text-white border-0 shadow-md shadow-primary/20" data-testid="button-go-dashboard">
+                      <LayoutDashboard className="w-4 h-4 mr-2" />
+                      {t("home.loggedIn.dashboard")}
+                    </Button>
                   </Link>
-                </motion.div>
-              );
-            })}
+                  <Link href="/workers">
+                    <Button variant="outline" className="border-border" data-testid="button-go-workers">
+                      <Users className="w-4 h-4 mr-2" />
+                      {t("home.loggedIn.aiWorkers")}
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+
+              {/* Right: Quick Action Grid */}
+              <div className="grid grid-cols-3 sm:grid-cols-3 gap-2 sm:gap-3 w-full sm:w-auto sm:shrink-0">
+                {quickActions.slice(0, 6).map((action, i) => {
+                  const Icon = action.icon;
+                  return (
+                    <motion.div
+                      key={action.labelKey}
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ duration: 0.3, delay: 0.15 + i * 0.05 }}
+                    >
+                      <Link href={action.href}>
+                        <div
+                          className="flex flex-col items-center gap-1.5 p-3 sm:p-4 rounded-xl bg-card/80 dark:bg-card/50 border border-border/50 hover:border-primary/30 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer group"
+                          data-testid={`quick-action-${action.labelKey}`}
+                        >
+                          <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-gradient-to-br ${action.color} flex items-center justify-center group-hover:scale-110 transition-transform duration-200`}>
+                            <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                          </div>
+                          <span className="text-[10px] sm:text-xs font-medium text-foreground text-center leading-tight">{t(`home.loggedIn.${action.labelKey}`)}</span>
+                        </div>
+                      </Link>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            </motion.div>
           </div>
         </div>
       </section>
@@ -741,9 +744,9 @@ function LoggedInHome({ userName }: { userName: string }) {
                   viewport={{ once: true }}
                   transition={{ duration: 0.4, delay: i * 0.06 }}
                 >
-                  <Card className="p-4 bg-card border-border/50 hover:border-blue-500/30 transition-all duration-300" data-testid={`agent-summary-${agent.id}`}>
+                  <Card className="p-4 bg-card border-border/50 hover:border-primary/30 transition-all duration-300" data-testid={`agent-summary-${agent.id}`}>
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-violet-500 flex items-center justify-center shrink-0">
+                      <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center shrink-0">
                         <Icon className="w-5 h-5 text-white" />
                       </div>
                       <div className="flex-1 min-w-0">
@@ -782,8 +785,8 @@ function LoggedInHome({ userName }: { userName: string }) {
           <Card className="p-4 sm:p-6 bg-card border-border/50" data-testid="card-recent-activity">
             <div className="space-y-4">
               {[
-                { icon: Mail, textKey: "activity1", timeKey: "time2h", color: "text-violet-400", bg: "bg-violet-500/10" },
-                { icon: MessageSquare, textKey: "activity2", timeKey: "time4h", color: "text-blue-400", bg: "bg-blue-500/10" },
+                { icon: Mail, textKey: "activity1", timeKey: "time2h", color: "text-primary", bg: "bg-primary/10" },
+                { icon: MessageSquare, textKey: "activity2", timeKey: "time4h", color: "text-primary", bg: "bg-primary/10" },
                 { icon: BarChart3, textKey: "activity3", timeKey: "time6h", color: "text-emerald-400", bg: "bg-emerald-500/10" },
                 { icon: CalendarCheck, textKey: "activity4", timeKey: "timeYesterday", color: "text-amber-400", bg: "bg-amber-500/10" },
                 { icon: Share2, textKey: "activity5", timeKey: "timeYesterday", color: "text-pink-400", bg: "bg-pink-500/10" },
@@ -822,7 +825,7 @@ function LoggedInHome({ userName }: { userName: string }) {
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
               <Link href="/guide">
-                <Button className="bg-gradient-to-r from-blue-500 to-violet-500 text-white border-0 px-6" data-testid="button-explore-guide">
+                <Button className="bg-primary text-white border-0 px-6" data-testid="button-explore-guide">
                   <BookOpen className="w-4 h-4 mr-2" />
                   {t("home.loggedIn.platformGuide")}
                 </Button>
@@ -896,7 +899,7 @@ export default function Home() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <motion.div
-          className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full"
+          className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full"
           animate={{ rotate: 360 }}
           transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
         />
@@ -913,20 +916,20 @@ export default function Home() {
       <section ref={heroRef} className="relative min-h-screen flex items-center overflow-hidden pt-16" data-testid="section-hero">
         <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
           <motion.div
-            className="absolute top-[10%] left-[20%] w-[300px] sm:w-[500px] h-[300px] sm:h-[500px] bg-blue-600/20 rounded-full blur-[120px] mix-blend-screen"
+            className="absolute top-[10%] left-[20%] w-[300px] sm:w-[500px] h-[300px] sm:h-[500px] bg-primary/10 rounded-full blur-[120px] dark:mix-blend-screen"
             style={{ y: heroBlob1Y }}
           />
           <motion.div
-            className="absolute bottom-[10%] right-[10%] w-[400px] sm:w-[600px] h-[400px] sm:h-[600px] bg-violet-600/20 rounded-full blur-[150px] mix-blend-screen"
+            className="absolute bottom-[10%] right-[10%] w-[400px] sm:w-[600px] h-[400px] sm:h-[600px] bg-primary/10 rounded-full blur-[150px] dark:mix-blend-screen"
             style={{ y: heroBlob2Y }}
           />
           <motion.div
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] sm:w-[800px] h-[250px] sm:h-[400px] bg-indigo-500/10 rounded-full blur-[100px] mix-blend-screen"
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] sm:w-[800px] h-[250px] sm:h-[400px] bg-indigo-500/10 rounded-full blur-[100px] dark:mix-blend-screen"
             style={{ y: heroBlob3Y }}
           />
         </div>
 
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:3rem_3rem] [mask-image:radial-gradient(ellipse_80%_80%_at_50%_50%,#000_20%,transparent_100%)] pointer-events-none" />
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.02)_1px,transparent_1px)] dark:bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:3rem_3rem] [mask-image:radial-gradient(ellipse_80%_80%_at_50%_50%,#000_20%,transparent_100%)] pointer-events-none" />
 
         <div className="max-w-[1400px] mx-auto w-full px-4 sm:px-6 lg:px-12 relative z-10 py-12 sm:py-20">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-8 items-center">
@@ -936,23 +939,23 @@ export default function Home() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.8 }}
             >
-              <div className="inline-flex items-center space-x-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 backdrop-blur-sm shadow-[0_0_15px_rgba(255,255,255,0.05)]">
+              <div className="inline-flex items-center space-x-2 px-3 py-1.5 rounded-full bg-primary/5 dark:bg-white/5 border border-primary/10 dark:border-white/10 backdrop-blur-sm shadow-sm dark:shadow-[0_0_15px_rgba(255,255,255,0.05)]">
                 <span className="flex h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)] animate-pulse" />
-                <span className="text-sm font-medium text-white/90 tracking-wide">{t("home.hero.agentsStandingBy")}</span>
+                <span className="text-sm font-medium text-foreground/80 tracking-wide">{t("home.hero.agentsStandingBy")}</span>
               </div>
 
               <h1
-                className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.15]"
+                className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.15] text-foreground"
                 data-testid="text-hero-title"
               >
                 {t("home.hero.titleLine1")} <br className="hidden sm:block" />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-400 to-violet-400 drop-shadow-sm">
+                <span className="text-primary drop-shadow-sm">
                   {t("home.hero.titleLine2")}
                 </span>
               </h1>
 
               <p
-                className="text-base sm:text-lg text-white/60 leading-relaxed max-w-md font-medium"
+                className="text-base sm:text-lg text-muted-foreground leading-relaxed max-w-md font-medium"
                 data-testid="text-hero-subtitle"
               >
                 {t("home.hero.subtitle")}
@@ -961,7 +964,7 @@ export default function Home() {
               <div className="pt-2 flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
                 <Link href="/workers">
                   <button
-                    className="group relative w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-4 bg-gradient-to-r from-blue-500 to-violet-500 rounded-xl font-bold text-white overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_30px_-5px_rgba(139,92,246,0.6)] active:scale-[0.98]"
+                    className="group relative w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-4 bg-primary rounded-xl font-bold text-white overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_30px_-5px_rgba(139,92,246,0.6)] active:scale-[0.98]"
                     data-testid="button-hero-browse"
                   >
                     <div className="absolute inset-0 bg-white/20 translate-y-[100%] group-hover:translate-y-0 transition-transform duration-300 ease-out" />
@@ -974,10 +977,10 @@ export default function Home() {
 
                 <Link href="/workers">
                   <button
-                    className="w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-4 bg-[#12183A] hover:bg-[#1A2250] border border-white/10 hover:border-white/20 rounded-xl font-semibold text-white transition-all duration-300 flex items-center justify-center gap-2 text-sm sm:text-base shadow-sm"
+                    className="w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-4 bg-card dark:bg-[#12183A] hover:bg-card/80 dark:hover:bg-[#1A2250] border border-border dark:border-white/10 hover:border-primary/20 dark:hover:border-white/20 rounded-xl font-semibold text-foreground dark:text-white transition-all duration-300 flex items-center justify-center gap-2 text-sm sm:text-base shadow-sm"
                     data-testid="button-hero-demo"
                   >
-                    <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-violet-400" />
+                    <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
                     {t("home.hero.viewRoster")}
                   </button>
                 </Link>
@@ -1028,10 +1031,10 @@ export default function Home() {
                 viewport={{ once: true }}
                 transition={{ duration: 0.5, delay: i * 0.15 }}
               >
-                <Card className="relative p-6 sm:p-8 bg-card border-border/50 h-full hover:border-blue-500/30 transition-colors duration-300">
-                  <div className="text-4xl sm:text-5xl font-bold text-blue-500/10 absolute top-4 right-6">{item.step}</div>
-                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-md bg-gradient-to-br from-blue-500/20 to-violet-500/20 flex items-center justify-center mb-4 sm:mb-5">
-                    <item.icon className="w-5 h-5 sm:w-6 sm:h-6 text-blue-400" />
+                <Card className="relative p-6 sm:p-8 bg-card border-border/50 h-full hover:border-primary/30 transition-colors duration-300">
+                  <div className="text-4xl sm:text-5xl font-bold text-primary/10 absolute top-4 right-6">{item.step}</div>
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-md bg-primary/10 flex items-center justify-center mb-4 sm:mb-5">
+                    <item.icon className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
                   </div>
                   <h3 className="text-lg sm:text-xl font-semibold text-foreground mb-2 sm:mb-3">{t(`home.howItWorks.${item.titleKey}`)}</h3>
                   <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">{t(`home.howItWorks.${item.descKey}`)}</p>
@@ -1044,8 +1047,8 @@ export default function Home() {
 
       <section className="py-16 sm:py-24 relative bg-card/30" data-testid="section-platform-demo">
         <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-[20%] right-[10%] w-[400px] h-[400px] bg-violet-500/5 rounded-full blur-[120px]" />
-          <div className="absolute bottom-[20%] left-[10%] w-[300px] h-[300px] bg-blue-500/5 rounded-full blur-[100px]" />
+          <div className="absolute top-[20%] right-[10%] w-[400px] h-[400px] bg-primary/5 rounded-full blur-[120px]" />
+          <div className="absolute bottom-[20%] left-[10%] w-[300px] h-[300px] bg-primary/5 rounded-full blur-[100px]" />
         </div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <motion.div className="text-center mb-10 sm:mb-16" {...fadeUp}>
@@ -1082,10 +1085,10 @@ export default function Home() {
                   viewport={{ once: true }}
                   transition={{ duration: 0.5, delay: i * 0.08 }}
                 >
-                  <Card className="p-5 sm:p-6 bg-card border-border/50 h-full flex flex-col hover:border-blue-500/30 hover:-translate-y-1 transition-all duration-300" data-testid={`card-agent-${agent.id}`}>
+                  <Card className="p-5 sm:p-6 bg-card border-border/50 h-full flex flex-col hover:border-primary/30 hover:-translate-y-1 transition-all duration-300" data-testid={`card-agent-${agent.id}`}>
                     <div className="flex items-start justify-between gap-3 mb-3 sm:mb-4">
                       <div className="flex items-start gap-3 sm:gap-4">
-                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-md bg-gradient-to-br from-blue-500 to-violet-500 flex items-center justify-center shrink-0">
+                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-md bg-primary flex items-center justify-center shrink-0">
                           <Icon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                         </div>
                         <div className="min-w-0">
@@ -1108,11 +1111,11 @@ export default function Home() {
                       )}
                     </div>
                     {agent.tag && (
-                      <Badge className="self-start mb-3 sm:mb-4 bg-blue-500/10 text-blue-400 border-blue-500/20 text-[10px] sm:text-xs no-default-active-elevate">{agent.tag}</Badge>
+                      <Badge className="self-start mb-3 sm:mb-4 bg-primary/10 text-primary border-primary/20 text-[10px] sm:text-xs no-default-active-elevate">{agent.tag}</Badge>
                     )}
                     <div className="mt-auto flex items-center justify-between gap-2 pt-3 sm:pt-4 border-t border-border/50">
                       <div>
-                        <span className="text-sm sm:text-base font-bold bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent">{agent.priceLabel}</span>
+                        <span className="text-sm sm:text-base font-bold text-primary">{agent.priceLabel}</span>
                       </div>
                       <Link href={`/workers/${agent.slug}`}>
                         <Button size="sm" variant="secondary" className="text-xs sm:text-sm" data-testid={`button-profile-${agent.id}`}>
@@ -1129,7 +1132,7 @@ export default function Home() {
 
           <motion.div className="text-center mt-8 sm:mt-12" {...fadeUp}>
             <Link href="/workers">
-              <Button size="lg" className="bg-gradient-to-r from-blue-500 to-violet-500 text-white border-0 text-sm sm:text-base" data-testid="button-view-all">
+              <Button size="lg" className="bg-primary text-white border-0 text-sm sm:text-base" data-testid="button-view-all">
                 {t("home.catalog.viewAll")}
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
@@ -1140,17 +1143,17 @@ export default function Home() {
 
       <section ref={statsRef} className="py-16 sm:py-24 relative overflow-hidden">
         <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-1/2 left-1/4 w-[400px] h-[400px] bg-blue-500/5 rounded-full blur-[100px]" />
-          <div className="absolute top-1/2 right-1/4 w-[400px] h-[400px] bg-violet-500/5 rounded-full blur-[100px]" />
+          <div className="absolute top-1/2 left-1/4 w-[400px] h-[400px] bg-primary/5 rounded-full blur-[100px]" />
+          <div className="absolute top-1/2 right-1/4 w-[400px] h-[400px] bg-primary/5 rounded-full blur-[100px]" />
         </div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div style={{ y: statsY }}>
             <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-8">
               {[
-                { value: 150, suffix: "+", labelKey: "aiWorkers", color: "text-blue-400" },
-                { value: 500, suffix: "+", labelKey: "businesses", color: "text-violet-400" },
-                { value: 247, suffix: "", labelKey: "uptime", color: "text-blue-400", display: "24/7" },
-                { value: 40, suffix: "%", labelKey: "savings", color: "text-violet-400" },
+                { value: 150, suffix: "+", labelKey: "aiWorkers", color: "text-primary" },
+                { value: 500, suffix: "+", labelKey: "businesses", color: "text-primary" },
+                { value: 247, suffix: "", labelKey: "uptime", color: "text-primary", display: "24/7" },
+                { value: 40, suffix: "%", labelKey: "savings", color: "text-primary" },
               ].map((stat, i) => (
                 <motion.div
                   key={stat.labelKey}
@@ -1188,7 +1191,7 @@ export default function Home() {
                     <h3 className="font-semibold text-muted-foreground text-sm sm:text-base">{t("home.comparison.traditional")}</h3>
                   </div>
                   <div className="px-6 sm:px-8 py-3 sm:py-4 border-b border-border/50 text-center">
-                    <h3 className="font-semibold bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent text-sm sm:text-base">{t("home.comparison.rentai")}</h3>
+                    <h3 className="font-semibold text-primary text-sm sm:text-base">{t("home.comparison.rentai")}</h3>
                   </div>
                   {comparisonKeys.map((k, i) => (
                     <div key={i} className="contents">
@@ -1254,9 +1257,9 @@ export default function Home() {
                   viewport={{ once: true }}
                   transition={{ duration: 0.4, delay: i * 0.06 }}
                 >
-                  <Card className="p-4 sm:p-5 bg-card border-border/50 text-center hover:border-blue-500/30 hover:-translate-y-1 transition-all duration-300" data-testid={`card-industry-${i}`}>
-                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-md bg-gradient-to-br from-blue-500/20 to-violet-500/20 flex items-center justify-center mx-auto mb-2 sm:mb-3">
-                      <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-blue-400" />
+                  <Card className="p-4 sm:p-5 bg-card border-border/50 text-center hover:border-primary/30 hover:-translate-y-1 transition-all duration-300" data-testid={`card-industry-${i}`}>
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-md bg-primary/10 flex items-center justify-center mx-auto mb-2 sm:mb-3">
+                      <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
                     </div>
                     <h3 className="font-medium text-foreground text-[10px] sm:text-xs md:text-sm leading-tight">{ind.name}</h3>
                   </Card>
@@ -1269,8 +1272,8 @@ export default function Home() {
 
       <section className="py-16 sm:py-24 relative bg-card/30 overflow-hidden">
         <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-blue-500/5 rounded-full blur-[100px] -translate-x-1/2 -translate-y-1/2" />
-          <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-violet-500/5 rounded-full blur-[100px] translate-x-1/2 translate-y-1/2" />
+          <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[100px] -translate-x-1/2 -translate-y-1/2" />
+          <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[100px] translate-x-1/2 translate-y-1/2" />
         </div>
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <motion.div className="text-center mb-10 sm:mb-16" {...fadeUp}>
@@ -1294,14 +1297,14 @@ export default function Home() {
                 setDragStartX(null);
               }}
             >
-              <div className="text-blue-500/20 text-5xl sm:text-6xl font-serif absolute top-3 sm:top-4 left-4 sm:left-6">"</div>
+              <div className="text-primary/20 text-5xl sm:text-6xl font-serif absolute top-3 sm:top-4 left-4 sm:left-6">"</div>
               <div className="relative z-10">
                 <p className="text-sm sm:text-lg text-foreground leading-relaxed mb-4 sm:mb-6 italic">
                   {testimonials[testimonialIdx].text}
                 </p>
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-blue-500 to-violet-500 flex items-center justify-center text-white font-bold text-sm sm:text-base">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-primary flex items-center justify-center text-white font-bold text-sm sm:text-base">
                       {testimonials[testimonialIdx].name.charAt(0)}
                     </div>
                     <div>
@@ -1327,7 +1330,7 @@ export default function Home() {
               <div className="flex gap-2">
                 {testimonials.map((_, i) => (
                   <button key={i} onClick={() => setTestimonialIdx(i)} aria-label={`${t("homePage.testimonials.testimonial")} ${i + 1}`}
-                    className={`w-2 h-2 rounded-full transition-all duration-300 ${i === testimonialIdx ? "bg-blue-500 scale-125" : "bg-muted hover:bg-muted-foreground/30"}`}
+                    className={`w-2 h-2 rounded-full transition-all duration-300 ${i === testimonialIdx ? "bg-primary scale-125" : "bg-muted hover:bg-muted-foreground/30"}`}
                     data-testid={`button-testimonial-dot-${i}`}
                   />
                 ))}

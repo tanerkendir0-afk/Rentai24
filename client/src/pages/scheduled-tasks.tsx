@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -48,44 +49,45 @@ interface TaskRun {
   completedAt: string | null;
 }
 
-const AGENT_TYPE_OPTIONS = [
-  { value: "customer-support", label: "Ava (Müşteri Destek)" },
-  { value: "sales-sdr", label: "Rex (Satış)" },
-  { value: "social-media", label: "Maya (Sosyal Medya)" },
-  { value: "bookkeeping", label: "Finn (Muhasebe)" },
-  { value: "scheduling", label: "Cal (Randevu)" },
-  { value: "hr-recruiting", label: "Harper (İK)" },
-  { value: "data-analyst", label: "DataBot (Veri Analiz)" },
-  { value: "ecommerce-ops", label: "ShopBot (E-Ticaret)" },
-  { value: "real-estate", label: "Reno (Gayrimenkul)" },
-  { value: "manager", label: "Manager (Yönetici)" },
+const getAgentTypeOptions = (t: any) => [
+  { value: "customer-support", label: t("scheduledTasks.agentAva") },
+  { value: "sales-sdr", label: t("scheduledTasks.agentRex") },
+  { value: "social-media", label: t("scheduledTasks.agentMaya") },
+  { value: "bookkeeping", label: t("scheduledTasks.agentFinn") },
+  { value: "scheduling", label: t("scheduledTasks.agentCal") },
+  { value: "hr-recruiting", label: t("scheduledTasks.agentHarper") },
+  { value: "data-analyst", label: t("scheduledTasks.agentDataBot") },
+  { value: "ecommerce-ops", label: t("scheduledTasks.agentShopBot") },
+  { value: "real-estate", label: t("scheduledTasks.agentReno") },
+  { value: "manager", label: t("scheduledTasks.agentManager") },
 ];
 
-const SCHEDULE_TYPE_OPTIONS = [
-  { value: "daily", label: "Günlük" },
-  { value: "weekly", label: "Haftalık" },
-  { value: "monthly", label: "Aylık" },
-  { value: "custom", label: "Özel (Cron)" },
+const getScheduleTypeOptions = (t: any) => [
+  { value: "daily", label: t("scheduledTasks.daily") },
+  { value: "weekly", label: t("scheduledTasks.weekly") },
+  { value: "monthly", label: t("scheduledTasks.monthly") },
+  { value: "custom", label: t("scheduledTasks.custom") },
 ];
 
-function getAgentLabel(agentType: string): string {
-  return AGENT_TYPE_OPTIONS.find(o => o.value === agentType)?.label || agentType;
+function getAgentLabel(agentType: string, t: any): string {
+  return getAgentTypeOptions(t).find(o => o.value === agentType)?.label || agentType;
 }
 
-function formatCron(cronExpression: string, scheduleType: string): string {
+function formatCron(cronExpression: string, scheduleType: string, t: any): string {
   const labels: Record<string, string> = {
-    daily: "Günlük",
-    weekly: "Haftalık",
-    monthly: "Aylık",
-    custom: "Özel",
+    daily: t("scheduledTasks.daily"),
+    weekly: t("scheduledTasks.weekly"),
+    monthly: t("scheduledTasks.monthly"),
+    custom: t("scheduledTasks.customShort"),
   };
   return labels[scheduleType] || cronExpression;
 }
 
-function formatDate(dateStr: string | null): string {
+function formatDate(dateStr: string | null, language: string): string {
   if (!dateStr) return "—";
   const date = new Date(dateStr);
-  return date.toLocaleString("tr-TR", { dateStyle: "short", timeStyle: "short" });
+  const locale = language === "tr" ? "tr-TR" : "en-US";
+  return date.toLocaleString(locale, { dateStyle: "short", timeStyle: "short" });
 }
 
 function formatDuration(ms: number | null): string {
@@ -94,10 +96,10 @@ function formatDuration(ms: number | null): string {
   return `${Math.round(ms / 1000)}s`;
 }
 
-function StatusBadge({ status }: { status: string }) {
-  if (status === "completed") return <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-xs">Tamamlandı</Badge>;
-  if (status === "failed") return <Badge className="bg-red-500/20 text-red-400 border-red-500/30 text-xs">Başarısız</Badge>;
-  if (status === "running") return <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30 text-xs animate-pulse">Çalışıyor</Badge>;
+function StatusBadge({ status, t }: { status: string; t: any }) {
+  if (status === "completed") return <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-xs">{t("scheduledTasks.statusCompleted")}</Badge>;
+  if (status === "failed") return <Badge className="bg-red-500/20 text-red-400 border-red-500/30 text-xs">{t("scheduledTasks.statusFailed")}</Badge>;
+  if (status === "running") return <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30 text-xs animate-pulse">{t("scheduledTasks.statusRunning")}</Badge>;
   return <Badge variant="outline" className="text-xs">{status}</Badge>;
 }
 
@@ -115,11 +117,15 @@ const DEFAULT_FORM = {
 };
 
 export default function ScheduledTasksPage() {
+  const { t, i18n } = useTranslation("pages");
   const { toast } = useToast();
   const [showForm, setShowForm] = useState(false);
   const [editingTask, setEditingTask] = useState<ScheduledTask | null>(null);
   const [form, setForm] = useState(DEFAULT_FORM);
   const [historyTask, setHistoryTask] = useState<ScheduledTask | null>(null);
+
+  const agentTypeOptions = getAgentTypeOptions(t);
+  const scheduleTypeOptions = getScheduleTypeOptions(t);
 
   const { data: tasks = [], isLoading } = useQuery<ScheduledTask[]>({
     queryKey: ["/api/scheduled-tasks"],
@@ -136,10 +142,10 @@ export default function ScheduledTasksPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/scheduled-tasks"] });
       setShowForm(false);
       setForm(DEFAULT_FORM);
-      toast({ title: "Zamanlanmış görev oluşturuldu" });
+      toast({ title: t("scheduledTasks.taskCreated") });
     },
     onError: (err: any) => {
-      toast({ title: "Hata", description: err.message, variant: "destructive" });
+      toast({ title: t("scheduledTasks.error"), description: err.message, variant: "destructive" });
     },
   });
 
@@ -150,10 +156,10 @@ export default function ScheduledTasksPage() {
       setEditingTask(null);
       setShowForm(false);
       setForm(DEFAULT_FORM);
-      toast({ title: "Görev güncellendi" });
+      toast({ title: t("scheduledTasks.taskUpdated") });
     },
     onError: (err: any) => {
-      toast({ title: "Hata", description: err.message, variant: "destructive" });
+      toast({ title: t("scheduledTasks.error"), description: err.message, variant: "destructive" });
     },
   });
 
@@ -161,10 +167,10 @@ export default function ScheduledTasksPage() {
     mutationFn: (id: number) => apiRequest("DELETE", `/api/scheduled-tasks/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/scheduled-tasks"] });
-      toast({ title: "Görev silindi" });
+      toast({ title: t("scheduledTasks.taskDeleted") });
     },
     onError: (err: any) => {
-      toast({ title: "Hata", description: err.message, variant: "destructive" });
+      toast({ title: t("scheduledTasks.error"), description: err.message, variant: "destructive" });
     },
   });
 
@@ -179,7 +185,7 @@ export default function ScheduledTasksPage() {
   const runNowMutation = useMutation({
     mutationFn: (id: number) => apiRequest("POST", `/api/scheduled-tasks/${id}/run-now`),
     onSuccess: (_, id) => {
-      toast({ title: "Görev başlatıldı", description: "Sonuç tamamlandığında bildirim alacaksınız." });
+      toast({ title: t("scheduledTasks.taskStarted"), description: t("scheduledTasks.taskStartedDesc") });
       setTimeout(() => {
         queryClient.invalidateQueries({ queryKey: ["/api/scheduled-tasks"] });
         if (historyTask?.id === id) {
@@ -188,7 +194,7 @@ export default function ScheduledTasksPage() {
       }, 3000);
     },
     onError: (err: any) => {
-      toast({ title: "Hata", description: err.message, variant: "destructive" });
+      toast({ title: t("scheduledTasks.error"), description: err.message, variant: "destructive" });
     },
   });
 
@@ -204,11 +210,11 @@ export default function ScheduledTasksPage() {
           cronExpression: data.cronExpression!,
           scheduleType: data.scheduleType || "custom",
         }));
-        toast({ title: "Zamanlama dönüştürüldü", description: data.humanReadable || data.cronExpression });
+        toast({ title: t("scheduledTasks.scheduleConverted"), description: data.humanReadable || data.cronExpression });
       }
     },
     onError: (err: any) => {
-      toast({ title: "Dönüştürme hatası", description: err.message, variant: "destructive" });
+      toast({ title: t("scheduledTasks.conversionError"), description: err.message, variant: "destructive" });
     },
   });
 
@@ -263,10 +269,10 @@ export default function ScheduledTasksPage() {
   const isPending = createMutation.isPending || updateMutation.isPending;
 
   const scheduleExamples = [
-    "her sabah 9'da",
-    "her pazartesi saat 10'da",
-    "her ayın 1'inde",
-    "her cuma 17'de",
+    t("scheduledTasks.exampleMorning9"),
+    t("scheduledTasks.exampleMonday10"),
+    t("scheduledTasks.exampleFirstOfMonth"),
+    t("scheduledTasks.exampleFriday17"),
   ];
 
   return (
@@ -276,9 +282,9 @@ export default function ScheduledTasksPage() {
           <div>
             <h1 className="text-2xl font-bold text-white flex items-center gap-2">
               <Timer className="w-6 h-6 text-blue-400" />
-              Zamanlanmış Görevler
+              {t("scheduledTasks.title")}
             </h1>
-            <p className="text-gray-400 text-sm mt-1">Ajanlarınızı belirli zamanlarda otomatik çalıştırın</p>
+            <p className="text-gray-400 text-sm mt-1">{t("scheduledTasks.subtitle")}</p>
           </div>
           <Button
             onClick={openCreate}
@@ -286,7 +292,7 @@ export default function ScheduledTasksPage() {
             data-testid="button-create-task"
           >
             <Plus className="w-4 h-4 mr-2" />
-            Yeni Görev
+            {t("scheduledTasks.newTask")}
           </Button>
         </div>
 
@@ -297,13 +303,13 @@ export default function ScheduledTasksPage() {
         ) : tasks.length === 0 ? (
           <div className="text-center py-20">
             <Timer className="w-16 h-16 text-gray-700 mx-auto mb-4" />
-            <h2 className="text-xl font-semibold text-gray-400 mb-2">Henüz zamanlanmış görev yok</h2>
+            <h2 className="text-xl font-semibold text-gray-400 mb-2">{t("scheduledTasks.noTasksYet")}</h2>
             <p className="text-gray-500 text-sm mb-6">
-              Ajanlarınızın belirli zamanlarda otomatik çalışması için görev oluşturun
+              {t("scheduledTasks.noTasksDesc")}
             </p>
             <Button onClick={openCreate} className="bg-blue-600 hover:bg-blue-700" data-testid="button-create-first">
               <Plus className="w-4 h-4 mr-2" />
-              İlk Görevimi Oluştur
+              {t("scheduledTasks.createFirstTask")}
             </Button>
           </div>
         ) : (
@@ -321,14 +327,14 @@ export default function ScheduledTasksPage() {
                         <div className={`w-2 h-2 rounded-full flex-shrink-0 ${task.isActive ? "bg-green-400" : "bg-gray-600"}`} />
                         <h3 className="font-semibold text-white truncate" data-testid={`text-task-name-${task.id}`}>{task.name}</h3>
                         <Badge variant="outline" className="text-xs border-blue-500/30 text-blue-400 flex-shrink-0">
-                          {formatCron(task.cronExpression, task.scheduleType)}
+                          {formatCron(task.cronExpression, task.scheduleType, t)}
                         </Badge>
                       </div>
 
                       <div className="flex items-center gap-4 text-sm text-gray-400 mb-3">
                         <div className="flex items-center gap-1">
                           <Bot className="w-3.5 h-3.5 text-gray-500" />
-                          <span>{getAgentLabel(task.agentType)}</span>
+                          <span>{getAgentLabel(task.agentType, t)}</span>
                         </div>
                         <div className="flex items-center gap-1 font-mono text-xs text-gray-500">
                           <Clock className="w-3.5 h-3.5" />
@@ -341,22 +347,22 @@ export default function ScheduledTasksPage() {
                       )}
 
                       <div className="flex items-center gap-4 text-xs text-gray-500 flex-wrap">
-                        <span>Son çalışma: {formatDate(task.lastRunAt)}</span>
-                        {task.nextRunAt && <span>Sonraki: {formatDate(task.nextRunAt)}</span>}
-                        <span>Toplam: {task.runCount} kez</span>
+                        <span>{t("scheduledTasks.lastRun")}: {formatDate(task.lastRunAt, i18n.language)}</span>
+                        {task.nextRunAt && <span>{t("scheduledTasks.nextRun")}: {formatDate(task.nextRunAt, i18n.language)}</span>}
+                        <span>{t("scheduledTasks.totalRuns", { count: task.runCount })}</span>
                         {task.lastRunStatus && (
                           <span className={`font-medium ${task.lastRunStatus === "completed" ? "text-green-600" : task.lastRunStatus === "failed" ? "text-red-600" : "text-yellow-600"}`}>
-                            {task.lastRunStatus === "completed" ? "✓ Başarılı" : task.lastRunStatus === "failed" ? "✗ Başarısız" : "⟳ Çalışıyor"}
+                            {task.lastRunStatus === "completed" ? `✓ ${t("scheduledTasks.successful")}` : task.lastRunStatus === "failed" ? `✗ ${t("scheduledTasks.statusFailed")}` : `⟳ ${t("scheduledTasks.statusRunning")}`}
                           </span>
                         )}
                         {task.notifyInApp && (
                           <span className="flex items-center gap-1">
-                            <Bell className="w-3 h-3" /> Uygulama içi
+                            <Bell className="w-3 h-3" /> {t("scheduledTasks.inAppNotif")}
                           </span>
                         )}
                         {task.notifyEmail && (
                           <span className="flex items-center gap-1">
-                            <Bell className="w-3 h-3" /> E-posta
+                            <Bell className="w-3 h-3" /> {t("scheduledTasks.emailNotif")}
                           </span>
                         )}
                       </div>
@@ -400,7 +406,7 @@ export default function ScheduledTasksPage() {
                         variant="ghost"
                         size="sm"
                         onClick={() => {
-                          if (confirm(`"${task.name}" görevini silmek istediğinizden emin misiniz?`)) {
+                          if (confirm(t("scheduledTasks.confirmDelete", { name: task.name }))) {
                             deleteMutation.mutate(task.id);
                           }
                         }}
@@ -422,35 +428,35 @@ export default function ScheduledTasksPage() {
         <DialogContent className="bg-gray-900 border-gray-800 text-white max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-white">
-              {editingTask ? "Görevi Düzenle" : "Yeni Zamanlanmış Görev"}
+              {editingTask ? t("scheduledTasks.editTask") : t("scheduledTasks.newScheduledTask")}
             </DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4 py-2">
             <div>
-              <label className="text-sm text-gray-400 block mb-1.5">Görev Adı *</label>
+              <label className="text-sm text-gray-400 block mb-1.5">{t("scheduledTasks.taskName")} *</label>
               <Input
                 value={form.name}
                 onChange={(e) => setForm(f => ({ ...f, name: e.target.value }))}
-                placeholder="Haftalık satış raporu"
+                placeholder={t("scheduledTasks.taskNamePlaceholder")}
                 className="bg-gray-800 border-gray-700 text-white"
                 data-testid="input-task-name"
               />
             </div>
 
             <div>
-              <label className="text-sm text-gray-400 block mb-1.5">Açıklama</label>
+              <label className="text-sm text-gray-400 block mb-1.5">{t("scheduledTasks.description")}</label>
               <Input
                 value={form.description}
                 onChange={(e) => setForm(f => ({ ...f, description: e.target.value }))}
-                placeholder="Bu görevin ne yapacağını açıklayın..."
+                placeholder={t("scheduledTasks.descriptionPlaceholder")}
                 className="bg-gray-800 border-gray-700 text-white"
                 data-testid="input-task-description"
               />
             </div>
 
             <div>
-              <label className="text-sm text-gray-400 block mb-1.5">Ajan *</label>
+              <label className="text-sm text-gray-400 block mb-1.5">{t("scheduledTasks.agent")} *</label>
               <Select
                 value={form.agentType}
                 onValueChange={(v) => setForm(f => ({ ...f, agentType: v }))}
@@ -459,7 +465,7 @@ export default function ScheduledTasksPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {AGENT_TYPE_OPTIONS.map((opt) => (
+                  {agentTypeOptions.map((opt) => (
                     <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
                   ))}
                 </SelectContent>
@@ -467,11 +473,11 @@ export default function ScheduledTasksPage() {
             </div>
 
             <div>
-              <label className="text-sm text-gray-400 block mb-1.5">Görev Talimatı *</label>
+              <label className="text-sm text-gray-400 block mb-1.5">{t("scheduledTasks.taskInstruction")} *</label>
               <Textarea
                 value={form.taskPrompt}
                 onChange={(e) => setForm(f => ({ ...f, taskPrompt: e.target.value }))}
-                placeholder="Ajan ne yapmalı? Örn: 'Bu haftaki satış verilerini analiz et ve özet rapor hazırla'"
+                placeholder={t("scheduledTasks.taskInstructionPlaceholder")}
                 className="bg-gray-800 border-gray-700 text-white min-h-[100px]"
                 data-testid="input-task-prompt"
               />
@@ -480,13 +486,13 @@ export default function ScheduledTasksPage() {
             <div className="border border-gray-800 rounded-lg p-4 bg-gray-800/30">
               <div className="flex items-center gap-2 mb-3">
                 <Sparkles className="w-4 h-4 text-purple-400" />
-                <label className="text-sm text-gray-300 font-medium">Doğal Dil ile Zamanlama</label>
+                <label className="text-sm text-gray-300 font-medium">{t("scheduledTasks.naturalLanguageScheduling")}</label>
               </div>
               <div className="flex gap-2">
                 <Input
                   value={form.naturalLanguage}
                   onChange={(e) => setForm(f => ({ ...f, naturalLanguage: e.target.value }))}
-                  placeholder='Örn: "her pazartesi sabah 9da"'
+                  placeholder={t("scheduledTasks.naturalLanguagePlaceholder")}
                   className="bg-gray-800 border-gray-700 text-white"
                   data-testid="input-natural-language"
                 />
@@ -520,7 +526,7 @@ export default function ScheduledTasksPage() {
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-sm text-gray-400 block mb-1.5">Zamanlama Türü</label>
+                <label className="text-sm text-gray-400 block mb-1.5">{t("scheduledTasks.scheduleType")}</label>
                 <Select
                   value={form.scheduleType}
                   onValueChange={(v) => setForm(f => ({ ...f, scheduleType: v }))}
@@ -529,14 +535,14 @@ export default function ScheduledTasksPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {SCHEDULE_TYPE_OPTIONS.map((opt) => (
+                    {scheduleTypeOptions.map((opt) => (
                       <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
               <div>
-                <label className="text-sm text-gray-400 block mb-1.5">Cron İfadesi *</label>
+                <label className="text-sm text-gray-400 block mb-1.5">{t("scheduledTasks.cronExpression")} *</label>
                 <Input
                   value={form.cronExpression}
                   onChange={(e) => setForm(f => ({ ...f, cronExpression: e.target.value }))}
@@ -548,7 +554,7 @@ export default function ScheduledTasksPage() {
             </div>
 
             <div className="text-xs text-gray-500 font-mono bg-gray-800/50 rounded p-2">
-              Format: dakika saat gün_ay ay gün_hafta &nbsp;|&nbsp; Örnek: 0 9 * * 1 = Her pazartesi 09:00
+              {t("scheduledTasks.cronFormatHelp")}
             </div>
 
             <div className="flex items-center gap-6 pt-1">
@@ -558,7 +564,7 @@ export default function ScheduledTasksPage() {
                   onCheckedChange={(checked) => setForm(f => ({ ...f, isActive: checked }))}
                   data-testid="switch-is-active"
                 />
-                <span className="text-sm text-gray-300">Aktif</span>
+                <span className="text-sm text-gray-300">{t("scheduledTasks.active")}</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer">
                 <Switch
@@ -566,7 +572,7 @@ export default function ScheduledTasksPage() {
                   onCheckedChange={(checked) => setForm(f => ({ ...f, notifyInApp: checked }))}
                   data-testid="switch-notify-inapp"
                 />
-                <span className="text-sm text-gray-300">Uygulama içi bildirim</span>
+                <span className="text-sm text-gray-300">{t("scheduledTasks.inAppNotification")}</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer">
                 <Switch
@@ -574,19 +580,19 @@ export default function ScheduledTasksPage() {
                   onCheckedChange={(checked) => setForm(f => ({ ...f, notifyEmail: checked }))}
                   data-testid="switch-notify-email"
                 />
-                <span className="text-sm text-gray-300">E-posta bildirimi</span>
+                <span className="text-sm text-gray-300">{t("scheduledTasks.emailNotification")}</span>
               </label>
             </div>
           </div>
 
-          <DialogFooter className="mt-2">
+          <DialogFooter className="sticky bottom-0 bg-background pt-4 mt-2">
             <Button
               variant="outline"
               onClick={() => { setShowForm(false); setEditingTask(null); setForm(DEFAULT_FORM); }}
               className="border-gray-700 text-gray-300"
               data-testid="button-cancel"
             >
-              İptal
+              {t("scheduledTasks.cancel")}
             </Button>
             <Button
               onClick={handleSubmit}
@@ -595,7 +601,7 @@ export default function ScheduledTasksPage() {
               data-testid="button-submit"
             >
               {isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-              {editingTask ? "Kaydet" : "Oluştur"}
+              {editingTask ? t("scheduledTasks.save") : t("scheduledTasks.create")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -606,7 +612,7 @@ export default function ScheduledTasksPage() {
           <DialogHeader>
             <DialogTitle className="text-white flex items-center gap-2">
               <History className="w-5 h-5 text-blue-400" />
-              Çalışma Geçmişi: {historyTask?.name}
+              {t("scheduledTasks.runHistory")}: {historyTask?.name}
             </DialogTitle>
           </DialogHeader>
 
@@ -617,7 +623,7 @@ export default function ScheduledTasksPage() {
           ) : taskRuns.length === 0 ? (
             <div className="text-center py-10 text-gray-500">
               <Clock className="w-10 h-10 mx-auto mb-3 text-gray-700" />
-              <p>Henüz çalışma kaydı yok</p>
+              <p>{t("scheduledTasks.noRunsYet")}</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -629,14 +635,14 @@ export default function ScheduledTasksPage() {
                 >
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
-                      <StatusBadge status={run.status} />
-                      <span className="text-xs text-gray-400">{formatDate(run.startedAt)}</span>
+                      <StatusBadge status={run.status} t={t} />
+                      <span className="text-xs text-gray-400">{formatDate(run.startedAt, i18n.language)}</span>
                     </div>
                     <span className="text-xs text-gray-500">{formatDuration(run.durationMs)}</span>
                   </div>
                   {run.result && (
                     <div className="mt-2">
-                      <p className="text-xs text-gray-400 mb-1 font-medium">Sonuç:</p>
+                      <p className="text-xs text-gray-400 mb-1 font-medium">{t("scheduledTasks.result")}:</p>
                       <p className="text-xs text-gray-300 bg-gray-900 rounded p-2 max-h-32 overflow-y-auto whitespace-pre-wrap">
                         {run.result}
                       </p>

@@ -105,6 +105,29 @@ const PgStore = connectPgSimple(session);
 
 const isProduction = process.env.NODE_ENV === "production";
 
+// CORS for mobile app (React Native) - must be before session middleware
+const ALLOWED_ORIGINS = [
+  "https://app.rentai24.com",
+  "https://rentai24.com",
+  ...(isProduction ? [] : ["http://localhost:8081", "http://localhost:19006"]),
+];
+
+app.use((req: Request, res: Response, next: NextFunction) => {
+  const origin = req.headers.origin;
+  // Allow requests without origin (same-origin, mobile apps, curl)
+  if (!origin) return next();
+  if (ALLOWED_ORIGINS.includes(origin) || !isProduction) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Access-Control-Allow-Credentials", "true");
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, PATCH, PUT, DELETE, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+    if (req.method === "OPTIONS") {
+      return res.sendStatus(204);
+    }
+  }
+  next();
+});
+
 app.set("trust proxy", 1);
 
 app.use(
@@ -119,7 +142,7 @@ app.use(
     cookie: {
       secure: isProduction,
       httpOnly: true,
-      sameSite: "lax",
+      sameSite: isProduction ? "none" as const : "lax" as const,
       maxAge: 7 * 24 * 60 * 60 * 1000,
     },
   }),
@@ -337,6 +360,131 @@ app.use((req, res, next) => {
         console.warn("v_indirilecek_kdv_ozet view setup:", err instanceof Error ? err.message : String(err))
       );
 
+      // ── New feature tables ──
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS api_keys (
+          id SERIAL PRIMARY KEY,
+          user_id INTEGER NOT NULL REFERENCES users(id),
+          key_prefix TEXT NOT NULL,
+          key_hash TEXT NOT NULL UNIQUE,
+          label TEXT NOT NULL DEFAULT 'Default',
+          permissions JSONB DEFAULT '["chat"]',
+          is_active BOOLEAN NOT NULL DEFAULT true,
+          last_used_at TIMESTAMP,
+          expires_at TIMESTAMP,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+        )
+      `).catch((err: unknown) => console.warn("api_keys table setup:", err instanceof Error ? err.message : String(err)));
+
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS telegram_configs (
+          id SERIAL PRIMARY KEY,
+          user_id INTEGER NOT NULL REFERENCES users(id) UNIQUE,
+          bot_token TEXT NOT NULL,
+          bot_username TEXT,
+          default_chat_id TEXT,
+          webhook_secret TEXT NOT NULL,
+          is_active BOOLEAN NOT NULL DEFAULT true,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+        )
+      `).catch((err: unknown) => console.warn("telegram_configs table setup:", err instanceof Error ? err.message : String(err)));
+
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS telegram_messages (
+          id SERIAL PRIMARY KEY,
+          user_id INTEGER NOT NULL REFERENCES users(id),
+          chat_id TEXT NOT NULL,
+          sender_name TEXT,
+          sender_id TEXT,
+          direction TEXT NOT NULL CHECK (direction IN ('inbound', 'outbound')),
+          content TEXT NOT NULL,
+          telegram_message_id INTEGER,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+        )
+      `).catch((err: unknown) => console.warn("telegram_messages table setup:", err instanceof Error ? err.message : String(err)));
+
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS scheduled_reports (
+          id SERIAL PRIMARY KEY,
+          user_id INTEGER NOT NULL REFERENCES users(id),
+          agent_type TEXT NOT NULL DEFAULT 'all',
+          report_type TEXT NOT NULL,
+          frequency TEXT NOT NULL CHECK (frequency IN ('daily', 'weekly', 'monthly')),
+          day_of_week INTEGER,
+          day_of_month INTEGER,
+          hour INTEGER NOT NULL DEFAULT 9,
+          is_active BOOLEAN NOT NULL DEFAULT true,
+          recipient_email TEXT,
+          last_run_at TIMESTAMP,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+        )
+      `).catch((err: unknown) => console.warn("scheduled_reports table setup:", err instanceof Error ? err.message : String(err)));
+
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS organizations (
+          id SERIAL PRIMARY KEY,
+          name TEXT NOT NULL,
+          slug TEXT NOT NULL UNIQUE,
+          owner_id INTEGER NOT NULL REFERENCES users(id),
+          logo_url TEXT,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+        )
+      `).catch((err: unknown) => console.warn("organizations table setup:", err instanceof Error ? err.message : String(err)));
+
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS organization_members (
+          id SERIAL PRIMARY KEY,
+          organization_id INTEGER NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          role TEXT NOT NULL DEFAULT 'member',
+          joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+        )
+      `).catch((err: unknown) => console.warn("organization_members table setup:", err instanceof Error ? err.message : String(err)));
+
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS organization_invites (
+          id SERIAL PRIMARY KEY,
+          organization_id INTEGER NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+          email TEXT NOT NULL,
+          role TEXT NOT NULL DEFAULT 'member',
+          token TEXT NOT NULL UNIQUE,
+          invited_by_id INTEGER NOT NULL REFERENCES users(id),
+          status TEXT NOT NULL DEFAULT 'pending',
+          expires_at TIMESTAMP NOT NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+        )
+      `).catch((err: unknown) => console.warn("organization_invites table setup:", err instanceof Error ? err.message : String(err)));
+
+      await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS organization_id INTEGER`)
+        .catch((err: unknown) => console.warn("users.organization_id:", err instanceof Error ? err.message : String(err)));
+
+      await pool.query(`ALTER TABLE rentals ADD COLUMN IF NOT EXISTS organization_id INTEGER`)
+        .catch((err: unknown) => console.warn("rentals.organization_id:", err instanceof Error ? err.message : String(err)));
+
+      await pool.query(`ALTER TABLE agent_documents ADD COLUMN IF NOT EXISTS organization_id INTEGER`)
+        .catch((err: unknown) => console.warn("agent_documents.organization_id:", err instanceof Error ? err.message : String(err)));
+
+      await pool.query(`ALTER TABLE conversations ADD COLUMN IF NOT EXISTS organization_id INTEGER`)
+        .catch((err: unknown) => console.warn("conversations.organization_id:", err instanceof Error ? err.message : String(err)));
+
+      await pool.query(`ALTER TABLE rex_contacts ADD COLUMN IF NOT EXISTS organization_id INTEGER`)
+        .catch((err: unknown) => console.warn("rex_contacts.organization_id:", err instanceof Error ? err.message : String(err)));
+
+      await pool.query(`ALTER TABLE email_campaigns ADD COLUMN IF NOT EXISTS organization_id INTEGER`)
+        .catch((err: unknown) => console.warn("email_campaigns.organization_id:", err instanceof Error ? err.message : String(err)));
+
+      await pool.query(`
+        DO $$ BEGIN
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='organizations' AND column_name='slug') THEN
+            ALTER TABLE organizations ADD COLUMN slug TEXT;
+            UPDATE organizations SET slug = 'org-' || id WHERE slug IS NULL;
+            ALTER TABLE organizations ALTER COLUMN slug SET NOT NULL;
+            ALTER TABLE organizations ADD CONSTRAINT organizations_slug_unique UNIQUE (slug);
+          END IF;
+        END $$
+      `).catch((err: unknown) => console.warn("organizations.slug:", err instanceof Error ? err.message : String(err)));
+
       console.log('Initializing Stripe schema...');
       await runMigrations({ databaseUrl });
       console.log('Stripe schema ready');
@@ -381,6 +529,9 @@ app.use((req, res, next) => {
 
   const { startEventMonitor } = await import("./n8n/eventMonitor");
   startEventMonitor();
+
+  const { startReportScheduler } = await import("./services/scheduledReportsService");
+  startReportScheduler();
 
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
     const status = err.status || err.statusCode || 500;

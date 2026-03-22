@@ -5,6 +5,7 @@ import * as cryptoModule from "crypto";
 import { scheduledTasks, scheduledTaskRuns, type ScheduledTask, type InsertScheduledTask, type ScheduledTaskRun, type InsertScheduledTaskRun } from "@shared/schema";
 import { boostSubscriptions, type BoostSubscription, type InsertBoostSubscription } from "@shared/schema";
 import { organizations, organizationMembers, organizationInvites, agentDocuments, type Organization, type InsertOrganization, type OrganizationMember, type InsertOrganizationMember, type OrganizationInvite, type InsertOrganizationInvite, type OrgRole, type AgentDocument } from "@shared/schema";
+import { pushTokens, type PushToken, type InsertPushToken } from "@shared/schema";
 
 export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
@@ -252,7 +253,7 @@ export interface IStorage {
   updateBoostSubscription(id: number, updates: Partial<Pick<BoostSubscription, "status" | "stripeBoostSubId" | "expiresAt" | "boostPlan" | "maxParallelTasks">>): Promise<BoostSubscription | undefined>;
   deactivateBoostSubscription(userId: number): Promise<void>;
   updateConversationBoostStatus(conversationId: number, boostStatus: string): Promise<void>;
-  getActiveBoostConversations(userId: number, agentType?: string): Promise<ConversationRecord[]>;
+  getAllBoostConversations(userId: number, agentType?: string): Promise<ConversationRecord[]>;
 
   createOrganization(data: InsertOrganization): Promise<Organization>;
   getOrganizationById(id: number): Promise<Organization | undefined>;
@@ -1988,20 +1989,20 @@ export class DatabaseStorage implements IStorage {
     await db.update(conversations).set({ boostStatus }).where(eq(conversations.id, conversationId));
   }
 
-  async getActiveBoostConversations(userId: number, agentType?: string): Promise<ConversationRecord[]> {
+  async getAllBoostConversations(userId: number, agentType?: string): Promise<ConversationRecord[]> {
     if (agentType) {
       return db.select().from(conversations).where(
         and(
           eq(conversations.userId, userId),
           eq(conversations.agentType, agentType),
-          eq(conversations.boostStatus, "running")
+          eq(conversations.isBoostTask, true)
         )
       );
     }
     return db.select().from(conversations).where(
       and(
         eq(conversations.userId, userId),
-        eq(conversations.boostStatus, "running")
+        eq(conversations.isBoostTask, true)
       )
     );
   }
@@ -2190,6 +2191,45 @@ export class DatabaseStorage implements IStorage {
 
   async getOrgAgentDocuments(organizationId: number): Promise<AgentDocument[]> {
     return db.select().from(agentDocuments).where(eq(agentDocuments.organizationId, organizationId));
+  }
+
+  // ─── Push Tokens (Mobile App) ──────────────────────────────────────
+
+  async createPushToken(data: InsertPushToken): Promise<PushToken> {
+    // Upsert: if token already exists for this user, update it
+    const existing = await db.select().from(pushTokens)
+      .where(and(eq(pushTokens.userId, data.userId), eq(pushTokens.token, data.token)))
+      .limit(1);
+    if (existing.length > 0) {
+      const [updated] = await db.update(pushTokens)
+        .set({ isActive: true, updatedAt: new Date() })
+        .where(eq(pushTokens.id, existing[0].id))
+        .returning();
+      return updated;
+    }
+    const [created] = await db.insert(pushTokens).values(data).returning();
+    return created;
+  }
+
+  async getPushTokensByUserId(userId: number): Promise<PushToken[]> {
+    return db.select().from(pushTokens)
+      .where(and(eq(pushTokens.userId, userId), eq(pushTokens.isActive, true)));
+  }
+
+  async deletePushTokensByUserId(userId: number): Promise<void> {
+    await db.update(pushTokens)
+      .set({ isActive: false })
+      .where(eq(pushTokens.userId, userId));
+  }
+
+  async deletePushToken(userId: number, token: string): Promise<void> {
+    await db.update(pushTokens)
+      .set({ isActive: false })
+      .where(and(eq(pushTokens.userId, userId), eq(pushTokens.token, token)));
+  }
+
+  async getAllActivePushTokens(): Promise<PushToken[]> {
+    return db.select().from(pushTokens).where(eq(pushTokens.isActive, true));
   }
 }
 

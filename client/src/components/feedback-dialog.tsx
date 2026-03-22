@@ -24,7 +24,7 @@ export function FeedbackButton({ variant = "floating" }: { variant?: "floating" 
             data-testid="button-feedback-open"
           >
             <MessageSquarePlus className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">{t("feedback.general.title")}</span>
+            <span className="hidden xl:inline">{t("feedback.general.title")}</span>
           </Button>
         ) : (
           <button

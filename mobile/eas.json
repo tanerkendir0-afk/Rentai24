@@ -1,0 +1,29 @@
+{
+  "cli": {
+    "version": ">= 12.0.0"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal"
+    },
+    "preview": {
+      "distribution": "internal",
+      "ios": {
+        "simulator": true
+      }
+    },
+    "production": {
+      "autoIncrement": true
+    }
+  },
+  "submit": {
+    "production": {
+      "ios": {
+        "appleId": "tanerkendir@me.com",
+        "ascAppId": "6760941666",
+        "appleTeamId": "5B23V8HLQY"
+      }
+    }
+  }
+}

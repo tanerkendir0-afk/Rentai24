@@ -52,6 +52,11 @@ import {
   FileText,
   Paperclip,
   Square,
+  Copy,
+  Search,
+  FolderOpen,
+  FolderPlus,
+  Pencil,
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
@@ -91,6 +96,7 @@ interface Conversation {
   dbId?: number;
   messages: Message[];
   title: string;
+  project?: string | null;
   createdAt: number;
 }
 
@@ -112,51 +118,180 @@ interface RentalData {
   status: string;
 }
 
-function SplitScreenWrapper({ active, splitPanelCount, allowedAgents, rentedAgentIds, onCloseSplit, onReducePanels, children }: {
-  active: boolean;
-  splitPanelCount: number;
+interface BoostPanelInfo {
+  visibleId: string;
+  agentType: string;
+}
+
+function SplitScreenWrapper({ selectedPanels, allowedAgents, rentedAgentIds, onRemovePanel, children }: {
+  selectedPanels: BoostPanelInfo[];
   allowedAgents: string[] | null;
   rentedAgentIds: Set<string>;
-  onCloseSplit: () => void;
-  onReducePanels: () => void;
+  onRemovePanel: (visibleId: string) => void;
   children: ReactNode;
 }) {
-  if (!active) {
+  if (selectedPanels.length === 0) {
     return <div className="flex-1 flex min-w-0">{children}</div>;
   }
 
-  const extraPanelCount = splitPanelCount - 1;
-  const boostPanels = Array.from({ length: extraPanelCount }).map((_, idx) => (
-    <BoostChatPanel
-      key={`boost-panel-${idx}`}
-      panelId={`split-${idx}`}
-      allowedAgents={allowedAgents}
-      rentedAgentIds={rentedAgentIds}
-      onClose={() => {
-        if (extraPanelCount <= 1) {
-          onCloseSplit();
-        } else {
-          onReducePanels();
-        }
-      }}
-      isOnly={extraPanelCount <= 1}
-    />
-  ));
-
-  const panelSize = Math.floor(100 / splitPanelCount);
+  const totalPanels = selectedPanels.length + 1;
+  const panelSize = Math.floor(100 / totalPanels);
 
   return (
     <ResizablePanelGroup direction="horizontal" className="flex-1 min-w-0" data-testid="boost-split-group">
       <ResizablePanel defaultSize={panelSize} minSize={20}>
         {children}
       </ResizablePanel>
-      {boostPanels.map((panel, idx) => [
+      {selectedPanels.map((panel, idx) => [
         <ResizableHandle key={`handle-${idx}`} withHandle className="bg-amber-500/10 hover:bg-amber-500/20" />,
-        <ResizablePanel key={`panel-${idx}`} defaultSize={panelSize} minSize={20}>
-          {panel}
+        <ResizablePanel key={`panel-${panel.visibleId}`} defaultSize={panelSize} minSize={20}>
+          <BoostChatPanel
+            panelId={`split-${panel.visibleId}`}
+            conversationVisibleId={panel.visibleId}
+            conversationAgentType={panel.agentType}
+            allowedAgents={allowedAgents}
+            rentedAgentIds={rentedAgentIds}
+            onClose={() => onRemovePanel(panel.visibleId)}
+          />
         </ResizablePanel>,
       ])}
     </ResizablePanelGroup>
+  );
+}
+
+function SwipeableConvoItem({ convo, isActive, canDelete, onSelect, onDelete, onSetProject, newChatLabel }: {
+  convo: Conversation;
+  isActive: boolean;
+  canDelete: boolean;
+  onSelect: () => void;
+  onDelete: () => void;
+  onSetProject: (project: string | null) => void;
+  newChatLabel: string;
+}) {
+  const [swipeX, setSwipeX] = useState(0);
+  const [startX, setStartX] = useState<number | null>(null);
+  const [showProjectInput, setShowProjectInput] = useState(false);
+  const [projectValue, setProjectValue] = useState(convo.project || "");
+  const deleteThreshold = -80;
+
+  const handleTouchStart = (e: React.TouchEvent) => { setStartX(e.touches[0].clientX); };
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (startX === null) return;
+    const diff = e.touches[0].clientX - startX;
+    if (diff < 0) setSwipeX(Math.max(diff, -120));
+  };
+  const handleTouchEnd = () => {
+    if (swipeX < deleteThreshold && canDelete) { onDelete(); }
+    setSwipeX(0);
+    setStartX(null);
+  };
+  const handleMouseDown = (e: React.MouseEvent) => { setStartX(e.clientX); };
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (startX === null) return;
+    const diff = e.clientX - startX;
+    if (diff < 0) setSwipeX(Math.max(diff, -120));
+  };
+  const handleMouseUp = () => {
+    if (swipeX < deleteThreshold && canDelete) { onDelete(); }
+    setSwipeX(0);
+    setStartX(null);
+  };
+
+  const handleProjectSubmit = () => {
+    const val = projectValue.trim();
+    onSetProject(val || null);
+    setShowProjectInput(false);
+  };
+
+  return (
+    <div className="relative overflow-hidden rounded-lg mb-0.5" data-testid={`sidebar-convo-${convo.id}`}>
+      <div className="absolute inset-y-0 right-0 flex items-center pr-3 bg-red-500 rounded-lg"
+        style={{ width: Math.abs(swipeX) > 20 ? `${Math.abs(swipeX) + 20}px` : 0, opacity: Math.abs(swipeX) > 20 ? 1 : 0, transition: startX === null ? 'all 0.2s' : 'none' }}
+      >
+        <Trash2 className="w-4 h-4 text-white ml-auto mr-2" />
+      </div>
+
+      <div
+        className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-left transition-all group cursor-pointer relative z-10 ${
+          isActive
+            ? "bg-primary/10 text-foreground border-l-2 border-l-primary border border-primary/20 shadow-sm"
+            : "text-muted-foreground hover:bg-muted/70 hover:text-foreground border border-transparent"
+        }`}
+        style={{ transform: `translateX(${swipeX}px)`, transition: startX === null ? 'transform 0.2s' : 'none', backgroundColor: swipeX < deleteThreshold ? 'rgba(239,68,68,0.1)' : undefined }}
+        onClick={onSelect}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onMouseDown={handleMouseDown}
+        onMouseMove={startX !== null ? handleMouseMove : undefined}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={() => { if (startX !== null) { setSwipeX(0); setStartX(null); } }}
+      >
+        <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${isActive ? "bg-primary/15" : "bg-muted/50"}`}>
+          <MessageCircle className={`w-3.5 h-3.5 ${isActive ? "text-primary" : "text-muted-foreground/50"}`} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <span className={`text-[13px] truncate block leading-snug font-medium ${isActive ? "text-foreground" : ""}`}>
+            {convo.title || newChatLabel}
+          </span>
+          <div className="flex items-center gap-1.5">
+            <span className="text-[10px] text-muted-foreground/50 leading-tight">
+              {new Date(convo.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+            </span>
+            {convo.project && (
+              <span className="text-[9px] bg-primary/10 text-primary/70 px-1.5 rounded-full leading-relaxed">
+                {convo.project}
+              </span>
+            )}
+          </div>
+        </div>
+        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all shrink-0">
+          <button
+            onClick={(e) => { e.stopPropagation(); setShowProjectInput(!showProjectInput); setProjectValue(convo.project || ""); }}
+            className="w-6 h-6 rounded-md flex items-center justify-center hover:bg-primary/20 hover:text-primary transition-all"
+            data-testid={`button-sidebar-project-convo-${convo.id}`}
+          >
+            <FolderPlus className="w-3 h-3" />
+          </button>
+          {canDelete && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onDelete(); }}
+              className="w-6 h-6 rounded-md flex items-center justify-center hover:bg-red-500/20 hover:text-red-400 transition-all"
+              data-testid={`button-sidebar-delete-convo-${convo.id}`}
+            >
+              <X className="w-3 h-3" />
+            </button>
+          )}
+        </div>
+      </div>
+
+      <AnimatePresence>
+        {showProjectInput && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="overflow-hidden"
+          >
+            <div className="px-2 py-1.5 flex gap-1">
+              <input
+                type="text"
+                value={projectValue}
+                onChange={(e) => setProjectValue(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") handleProjectSubmit(); if (e.key === "Escape") setShowProjectInput(false); }}
+                placeholder="Proje adi..."
+                className="flex-1 text-[11px] px-2 py-1 rounded-md bg-muted/50 border border-border/50 focus:outline-none focus:border-primary/50"
+                autoFocus
+                data-testid={`input-project-name-${convo.id}`}
+              />
+              <button onClick={handleProjectSubmit} className="text-[10px] px-2 py-1 rounded-md bg-primary/10 text-primary hover:bg-primary/20" data-testid={`button-project-save-${convo.id}`}>
+                <Check className="w-3 h-3" />
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }
 
@@ -187,6 +322,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
     dbId: c.id,
     messages: localMessages[c.visibleId] || [],
     title: c.title,
+    project: c.project || null,
     createdAt: new Date(c.createdAt).getTime(),
   }));
 
@@ -290,7 +426,31 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
     try {
       await apiRequest("POST", "/api/conversations", { agentType: selectedAgent, visibleId });
       queryClient.invalidateQueries({ queryKey: ['/api/conversations', selectedAgent] });
+      queryClient.invalidateQueries({ queryKey: ["/api/boost/status"] });
       setActiveConvoId(prev => ({ ...prev, [selectedAgent]: visibleId }));
+    } catch {}
+  };
+
+  const startBoostConversation = async () => {
+    const maxP = Math.min(boostIsUnlimited ? 2 : boostMaxSlots, 2);
+    if (selectedBoostPanels.length >= maxP) {
+      toast({
+        title: t("boost.slotsFull"),
+        description: t("boost.slotsFullDesc"),
+        variant: "destructive",
+      });
+      return;
+    }
+    const visibleId = generateVisibleId();
+    try {
+      await apiRequest("POST", "/api/conversations", { agentType: selectedAgent, visibleId });
+      queryClient.invalidateQueries({ queryKey: ['/api/conversations', selectedAgent] });
+      queryClient.invalidateQueries({ queryKey: ["/api/boost/tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/boost/status"] });
+      setSelectedBoostPanels(prev => {
+        if (prev.length >= maxP) return prev;
+        return [...prev, { visibleId, agentType: selectedAgent }];
+      });
     } catch {}
   };
 
@@ -301,6 +461,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
     try {
       await apiRequest("DELETE", `/api/conversations/${convo.dbId}`);
       queryClient.invalidateQueries({ queryKey: ['/api/conversations', selectedAgent] });
+      queryClient.invalidateQueries({ queryKey: ["/api/boost/status"] });
       if (currentConvoId === convoId) {
         const currentIndex = conversations.findIndex(c => c.id === convoId);
         const remaining = conversations.filter(c => c.id !== convoId);
@@ -309,6 +470,14 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
           setActiveConvoId(prev => ({ ...prev, [selectedAgent]: remaining[adjacentIndex].id }));
         }
       }
+    } catch {}
+  };
+
+  const updateConversationProject = async (convo: Conversation, projectName: string | null) => {
+    if (!convo.dbId) return;
+    try {
+      await apiRequest("PATCH", `/api/conversations/${convo.dbId}`, { project: projectName });
+      queryClient.invalidateQueries({ queryKey: ['/api/conversations', selectedAgent] });
     } catch {}
   };
 
@@ -359,8 +528,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
   const [helpDescription, setHelpDescription] = useState("");
   const [helpSending, setHelpSending] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
-  const [splitScreenActive, setSplitScreenActive] = useState(false);
-  const [splitPanelCount, setSplitPanelCount] = useState(2);
+  const [selectedBoostPanels, setSelectedBoostPanels] = useState<BoostPanelInfo[]>([]);
   const dragCounterRef = useRef(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -398,8 +566,8 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
       return res.json();
     },
     enabled: !!user,
-    staleTime: 30000,
-    refetchInterval: 15000,
+    staleTime: 5000,
+    refetchInterval: 5000,
   });
 
   const hasBoost = boostStatus?.active === true;
@@ -407,12 +575,29 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
   const boostActiveCount = boostStatus?.activeTaskCount ?? 0;
   const boostIsUnlimited = boostMaxSlots === -1;
   const boostAllowedAgents: string[] | null = boostStatus?.plan === "boost-accounting" ? ["bookkeeping"] : null;
+
+  const { data: boostTasksForReconcile } = useQuery<{ all: { visibleId: string }[] }>({
+    queryKey: ["/api/boost/tasks"],
+    queryFn: async () => { const res = await fetch("/api/boost/tasks"); return res.json(); },
+    refetchInterval: 5000,
+    enabled: hasBoost && selectedBoostPanels.length > 0,
+  });
+
+  useEffect(() => {
+    if (!boostTasksForReconcile?.all || selectedBoostPanels.length === 0) return;
+    const liveIds = new Set(boostTasksForReconcile.all.map(t => t.visibleId));
+    setSelectedBoostPanels(prev => {
+      const pruned = prev.filter(p => liveIds.has(p.visibleId));
+      return pruned.length === prev.length ? prev : pruned;
+    });
+  }, [boostTasksForReconcile]);
+
   const [isDesktop, setIsDesktop] = useState(() => typeof window !== "undefined" && window.innerWidth >= 1024);
   useEffect(() => {
     const onResize = () => {
       const desktop = window.innerWidth >= 1024;
       setIsDesktop(desktop);
-      if (!desktop) setSplitScreenActive(false);
+      if (!desktop) setSelectedBoostPanels([]);
     };
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
@@ -452,12 +637,16 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
     if (user && hasRentals && !initialAgentSet) {
       const params = new URLSearchParams(window.location.search);
       const agentParam = params.get("agent");
+      const convoParam = params.get("convo");
       if (agentParam === "manager") {
         setSelectedAgent("manager");
       } else if (agentParam && rentedAgentIds.has(agentParam)) {
         setSelectedAgent(agentParam);
       } else {
         setSelectedAgent("manager");
+      }
+      if (convoParam && agentParam) {
+        setActiveConvoId(prev => ({ ...prev, [agentParam]: convoParam }));
       }
       setInitialAgentSet(true);
     }
@@ -638,11 +827,18 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
         const xmlResult = await xmlRes.json();
         if (xmlResult.error) {
           toast({ title: t("demoPage.toast.uploadFailed"), description: xmlResult.error, variant: "destructive" });
+        } else if (xmlResult.hatali > 0 && xmlResult.basarili === 0) {
+          const rawXml = await file.text();
+          const xmlSnippet = rawXml.slice(0, 3000);
+          const errorDetails = xmlResult.detaylar?.map((d: any) => d.errors?.join(", ")).filter(Boolean).join("; ") || "";
+          setUploadedFile({ url: "", name: file.name, type: "document", documentContent: "[e-Fatura XML parse hatası: " + errorDetails + "]\n\nXML içeriği:\n" + xmlSnippet });
+          trackEvent("file_uploaded", "agent", { fileType: "xml", agentType: selectedAgent, error: true });
+          toast({ title: t("demoPage.eInvoiceUploaded"), description: errorDetails, variant: "destructive" });
         } else {
-          const msg = (xmlResult.basarili || 0) + " fatura OK, " + (xmlResult.hatali || 0) + " hata, " + (xmlResult.mukerrer || 0) + " mukerrer";
-          setUploadedFile({ url: "", name: file.name, type: "document", documentContent: "[e-Fatura XML parse edildi: " + msg + "]" });
+          const msg = (xmlResult.basarili || 0) + " " + t("demoPage.invoiceOk") + ", " + (xmlResult.hatali || 0) + " " + t("demoPage.invoiceError") + ", " + (xmlResult.mukerrer || 0) + " " + t("demoPage.invoiceDuplicate");
+          setUploadedFile({ url: "", name: file.name, type: "document", documentContent: "[e-Fatura XML: " + msg + "]" });
           trackEvent("file_uploaded", "agent", { fileType: "xml", agentType: selectedAgent });
-          toast({ title: "e-Fatura Yuklendi", description: msg });
+          toast({ title: t("demoPage.eInvoiceUploaded"), description: msg });
         }
       } else {
         const formData = new FormData();
@@ -663,7 +859,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                 const dataRes = await fetch("/api/files/upload", { method: "POST", body: dataForm, credentials: "include" });
                 const dataResult = await dataRes.json();
                 if (dataResult.id) {
-                  const extra = `\n\n[Dosya analiz sistemine kaydedildi: ID=${dataResult.id}, ${dataResult.rowCount} satır, ${dataResult.columnCount} kolon]`;
+                  const extra = `\n\n[File saved to analysis system: ID=${dataResult.id}, ${dataResult.rowCount} rows, ${dataResult.columnCount} columns]`;
                   setUploadedFile(prev => prev ? { ...prev, documentContent: (prev.documentContent || "") + extra } : prev);
                 }
               } catch {}
@@ -694,11 +890,19 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
         xmlForm.append("donem", String(now.getMonth() + 1).padStart(2, "0") + "/" + now.getFullYear());
         const xmlRes = await fetch("/api/efatura/upload", { method: "POST", body: xmlForm, credentials: "include" });
         const result = await xmlRes.json();
-        const msg = result.basarili + " fatura OK, " + result.hatali + " hata, " + result.mukerrer + " mukerrer";
-        setUploadedFile({ url: "", name: xmlFiles.length + " XML dosya", type: "document", documentContent: "[e-Fatura toplu yukleme: " + msg + "]" });
-        toast({ title: "e-Fatura Yuklendi", description: msg });
+        const msg = result.basarili + " " + t("demoPage.invoiceOk") + ", " + result.hatali + " " + t("demoPage.invoiceError") + ", " + result.mukerrer + " " + t("demoPage.invoiceDuplicate");
+        let docContent = "[e-Fatura: " + msg + "]";
+        if (result.hatali > 0 && result.detaylar) {
+          const failedDetails = result.detaylar.filter((d: any) => d.status === "error");
+          for (const fd of failedDetails) {
+            docContent += "\n\nHatalı dosya: " + fd.file + " — " + (fd.errors?.join(", ") || "Bilinmeyen hata");
+            if (fd.xmlSnippet) docContent += "\nXML içeriği:\n" + fd.xmlSnippet;
+          }
+        }
+        setUploadedFile({ url: "", name: xmlFiles.length + " XML", type: "document", documentContent: docContent });
+        toast({ title: t("demoPage.eInvoiceUploaded"), description: msg });
       } catch (err) {
-        toast({ title: "Yukleme hatasi", variant: "destructive" });
+        toast({ title: t("demoPage.toast.uploadFailed"), variant: "destructive" });
       } finally {
         setUploading(false);
         if (fileInputRef.current) fileInputRef.current.value = "";
@@ -841,7 +1045,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
   ];
 
   return (
-    <div className="fixed inset-0 pt-16 flex bg-background">
+    <div className={`fixed inset-0 pt-16 flex bg-background ${hasBoost ? "pb-7" : ""}`}>
       {sidebarOpen && (
         <div
           className="fixed inset-0 bg-black/50 z-40 lg:hidden"
@@ -967,56 +1171,12 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                 );
               })}
 
-              {user && hasBoost && (
-                <div className="mt-2 mx-1.5 p-2.5 rounded-lg bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/20" data-testid="sidebar-boost-status">
-                  <div className="flex items-center justify-between mb-1.5">
-                    <div className="flex items-center gap-1.5">
-                      <Zap className="w-3.5 h-3.5 text-amber-400" />
-                      <span className="text-[11px] font-semibold text-amber-400">{t("boost.boostMode")}</span>
-                    </div>
-                    <Badge className="h-4 px-1.5 text-[10px] bg-amber-500/20 text-amber-400 border-amber-500/30">
-                      {boostIsUnlimited ? "∞" : `${boostActiveCount}/${boostMaxSlots}`}
-                    </Badge>
-                  </div>
-                  {!boostIsUnlimited && boostMaxSlots > 0 && (
-                    <div className="flex gap-1 mb-1.5">
-                      {Array.from({ length: boostMaxSlots }).map((_, i) => (
-                        <div
-                          key={i}
-                          className={`h-1.5 flex-1 rounded-full transition-all ${
-                            i < boostActiveCount ? "bg-amber-400" : "bg-amber-500/20"
-                          }`}
-                        />
-                      ))}
-                    </div>
-                  )}
-                  <button
-                    onClick={() => {
-                      const canAdd = boostIsUnlimited || boostActiveCount < boostMaxSlots;
-                      if (canAdd) {
-                        startNewConversation();
-                      } else {
-                        toast({
-                          title: t("boost.slotsFull"),
-                          description: t("boost.slotsFullDesc"),
-                          variant: "destructive",
-                        });
-                      }
-                    }}
-                    className="w-full flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-md text-[10px] font-medium text-amber-400 hover:bg-amber-500/10 transition-colors border border-dashed border-amber-500/30"
-                    data-testid="sidebar-boost-new-convo"
-                  >
-                    <Plus className="w-3 h-3" />
-                    {t("boost.newParallelChat")}
-                  </button>
-                </div>
-              )}
 
               {user && (
                 <div className="mt-3 pt-3 border-t border-border/30">
                   <div className="flex items-center justify-between px-2 mb-2">
                     <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/70" data-testid="text-chat-history-title">
-                      {t("demoPage.chats")}
+                      {t("demoPage.projects") || "Projects"}
                     </span>
                   </div>
                   <div className="px-1.5 mb-2">
@@ -1031,50 +1191,68 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                   </div>
                   {conversations.length > 0 && (
                     <div className="space-y-0.5 px-0.5">
-                      {conversations.map((convo) => {
-                        const isActive = convo.id === currentConvoId;
+                      {(() => {
+                        const projectGroups: Record<string, typeof conversations> = {};
+                        const ungrouped: typeof conversations = [];
+                        conversations.forEach(c => {
+                          if (c.project) {
+                            if (!projectGroups[c.project]) projectGroups[c.project] = [];
+                            projectGroups[c.project].push(c);
+                          } else {
+                            ungrouped.push(c);
+                          }
+                        });
+                        const projectNames = Object.keys(projectGroups).sort();
+
                         return (
-                          <div
-                            key={convo.id}
-                            className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-left transition-all group cursor-pointer ${
-                              isActive
-                                ? "bg-primary/10 text-foreground border border-primary/20 shadow-sm"
-                                : "text-muted-foreground hover:bg-muted/50 hover:text-foreground border border-transparent"
-                            }`}
-                            onClick={() => setActiveConvoId(prev => ({ ...prev, [selectedAgent]: convo.id }))}
-                            data-testid={`sidebar-convo-${convo.id}`}
-                          >
-                            <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${
-                              isActive ? "bg-primary/15" : "bg-muted/50"
-                            }`}>
-                              <MessageCircle className={`w-3.5 h-3.5 ${isActive ? "text-primary" : "text-muted-foreground/50"}`} />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <span className={`text-[13px] truncate block leading-snug font-medium ${isActive ? "text-foreground" : ""}`}>
-                                {convo.title || t("demoPage.newChat")}
-                              </span>
-                              <span className="text-[10px] text-muted-foreground/50 leading-tight">
-                                {new Date(convo.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                              </span>
-                            </div>
-                            {conversations.length > 1 && (
-                              <button
-                                onClick={(e) => { e.stopPropagation(); deleteConversation(convo.id); }}
-                                className="w-6 h-6 rounded-md flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-red-500/20 hover:text-red-400 transition-all shrink-0"
-                                data-testid={`button-sidebar-delete-convo-${convo.id}`}
-                              >
-                                <X className="w-3 h-3" />
-                              </button>
+                          <>
+                            {projectNames.map((projName) => (
+                              <div key={projName} className="mb-1">
+                                <div className="px-2 pt-2 pb-1 flex items-center gap-1.5">
+                                  <FolderOpen className="w-3 h-3 text-primary/60" />
+                                  <span className="text-[10px] font-semibold uppercase tracking-wider text-primary/70">{projName}</span>
+                                  <span className="text-[9px] text-muted-foreground/40 ml-auto">{projectGroups[projName].length}</span>
+                                </div>
+                                {projectGroups[projName].map((convo) => (
+                                  <SwipeableConvoItem
+                                    key={convo.id}
+                                    convo={convo}
+                                    isActive={convo.id === currentConvoId}
+                                    canDelete={conversations.length > 1}
+                                    onSelect={() => setActiveConvoId(prev => ({ ...prev, [selectedAgent]: convo.id }))}
+                                    onDelete={() => deleteConversation(convo.id)}
+                                    onSetProject={(proj) => updateConversationProject(convo, proj)}
+                                    newChatLabel={t("demoPage.newChat")}
+                                  />
+                                ))}
+                              </div>
+                            ))}
+                            {ungrouped.length > 0 && projectNames.length > 0 && (
+                              <div className="px-2 pt-2 pb-1">
+                                <span className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground/50">{t("demoPage.chats") || "Chats"}</span>
+                              </div>
                             )}
-                          </div>
+                            {ungrouped.map((convo) => (
+                              <SwipeableConvoItem
+                                key={convo.id}
+                                convo={convo}
+                                isActive={convo.id === currentConvoId}
+                                canDelete={conversations.length > 1}
+                                onSelect={() => setActiveConvoId(prev => ({ ...prev, [selectedAgent]: convo.id }))}
+                                onDelete={() => deleteConversation(convo.id)}
+                                onSetProject={(proj) => updateConversationProject(convo, proj)}
+                                newChatLabel={t("demoPage.newChat")}
+                              />
+                            ))}
+                          </>
                         );
-                      })}
+                      })()}
                     </div>
                   )}
                   {conversations.length === 0 && (
                     <div className="px-3 py-4 text-center">
                       <MessageCircle className="w-6 h-6 text-muted-foreground/20 mx-auto mb-1.5" />
-                      <p className="text-[11px] text-muted-foreground/40">{t("demoPage.noChatsYet") || "Henüz sohbet yok"}</p>
+                      <p className="text-[11px] text-muted-foreground/40">{t("demoPage.noChatsYet")}</p>
                     </div>
                   )}
                 </div>
@@ -1115,15 +1293,13 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
       </AnimatePresence>
 
       <SplitScreenWrapper
-        active={splitScreenActive && hasBoost && isDesktop}
-        splitPanelCount={splitPanelCount}
+        selectedPanels={hasBoost && isDesktop ? selectedBoostPanels : []}
         allowedAgents={boostAllowedAgents}
         rentedAgentIds={rentedAgentIds}
-        onCloseSplit={() => setSplitScreenActive(false)}
-        onReducePanels={() => setSplitPanelCount(p => Math.max(p - 1, 2))}
+        onRemovePanel={(visibleId) => setSelectedBoostPanels(prev => prev.filter(p => p.visibleId !== visibleId))}
       >
        <div className="flex-1 flex flex-col min-w-0 h-full">
-        <div className={`min-h-[3.5rem] border-b border-border/50 flex items-center gap-3 px-4 bg-card/30 backdrop-blur-sm shrink-0 relative z-20`}>
+        <div className={`min-h-[3.5rem] border-b border-border/50 flex items-center gap-2 sm:gap-3 px-2 sm:px-4 bg-card/30 backdrop-blur-sm shrink-0 relative z-20 overflow-hidden`}>
           {!sidebarOpen && (
             <Button
               variant="ghost"
@@ -1136,73 +1312,36 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
             </Button>
           )}
 
-          <div className={`w-9 h-9 rounded-full bg-gradient-to-br ${currentAgent.color} flex items-center justify-center shadow-md`}>
-            <CurrentIcon className="w-4.5 h-4.5 text-white" />
+          <div className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gradient-to-br ${currentAgent.color} flex items-center justify-center shadow-md shrink-0`}>
+            <CurrentIcon className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-white" />
           </div>
-          <div className="flex-1 min-w-0">
+          <div className="flex-1 min-w-0 mr-1">
             <h3 className="font-semibold text-foreground text-sm truncate" data-testid="text-chat-agent-name">
               {currentAgent.persona}
             </h3>
             <div className="flex items-center gap-1.5">
-              <span className="relative flex h-2 w-2">
+              <span className="relative flex h-2 w-2 shrink-0">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
               </span>
-              <span className="text-[11px] text-emerald-400">{t("demoPage.roles." + currentAgent.roleKey)}</span>
+              <span className="text-[11px] text-emerald-400 truncate">{t("demoPage.roles." + currentAgent.roleKey)}</span>
             </div>
           </div>
 
-          <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap">
+          <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
             {user && hasBoost && (
               <div className="flex items-center gap-1" data-testid="boost-header-controls">
-                <button
-                  onClick={() => {
-                    if (!splitScreenActive && isDesktop) {
-                      setSplitScreenActive(true);
-                      setSplitPanelCount(2);
-                    } else {
-                      setSplitScreenActive(false);
-                    }
-                  }}
-                  className={`h-8 px-2.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
-                    splitScreenActive
-                      ? "bg-amber-500/20 text-amber-400 border border-amber-500/40 shadow-[0_0_12px_rgba(245,158,11,0.15)]"
-                      : "bg-amber-500/10 text-amber-400/80 border border-amber-500/20 hover:bg-amber-500/20 hover:text-amber-400"
-                  } hidden lg:flex`}
-                  data-testid="button-boost-split"
-                >
-                  <Zap className={`w-3.5 h-3.5 ${splitScreenActive ? "animate-pulse" : ""}`} />
+                <div className={`h-8 px-2.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 ${
+                  selectedBoostPanels.length > 0
+                    ? "bg-amber-500/20 text-amber-400 border border-amber-500/40"
+                    : "bg-amber-500/10 text-amber-400/80 border border-amber-500/20"
+                } hidden sm:flex`}>
+                  <Zap className={`w-3.5 h-3.5 ${selectedBoostPanels.length > 0 ? "animate-pulse" : ""}`} />
                   <span>⚡ {t("boost.boostMode")}</span>
-                </button>
-                {splitScreenActive && isDesktop && (
-                  <>
-                    {splitPanelCount < (boostIsUnlimited ? 3 : Math.min(boostMaxSlots, 3)) && (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-7 w-7 p-0 text-amber-400 hover:text-amber-300 hover:bg-amber-500/10"
-                        onClick={() => setSplitPanelCount(p => Math.min(p + 1, boostIsUnlimited ? 3 : Math.min(boostMaxSlots, 3)))}
-                        data-testid="button-boost-add-panel"
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                      </Button>
-                    )}
-                    {splitPanelCount > 2 && (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-7 w-7 p-0 text-amber-400 hover:text-amber-300 hover:bg-amber-500/10"
-                        onClick={() => setSplitPanelCount(p => Math.max(p - 1, 2))}
-                        data-testid="button-boost-remove-panel"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </Button>
-                    )}
-                  </>
-                )}
-                <Badge className="h-5 px-1.5 text-[10px] bg-amber-500/10 text-amber-400 border-amber-500/30 hidden sm:flex">
-                  {boostIsUnlimited ? "∞" : `${boostActiveCount}/${boostMaxSlots}`}
-                </Badge>
+                  <Badge className="h-4 px-1.5 text-[10px] bg-amber-500/20 text-amber-400 border-amber-500/30">
+                    {boostIsUnlimited ? "∞" : `${boostActiveCount}/${boostMaxSlots}`}
+                  </Badge>
+                </div>
               </div>
             )}
             {user && !hasBoost && (
@@ -1485,7 +1624,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                 data-testid="button-toggle-tasks"
               >
                 <ListTodo className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">{t("demoPage.tasks")}</span>
+                <span className="hidden xl:inline">{t("demoPage.tasks")}</span>
               </Button>
             )}
             {user && isEcommerceAgent && (
@@ -2066,31 +2205,40 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                         </div>
                       )}
 
-                      <div
-                        className={`rounded-2xl px-4 py-2.5 ${
-                          msg.isLimitWarning
-                            ? "bg-red-500/10 border border-red-500/30 text-red-300"
-                            : isUser
-                              ? "bg-blue-500 text-white rounded-tr-md"
-                              : "bg-muted/70 text-foreground rounded-tl-md border border-border/30"
-                        }`}
-                        data-testid={`chat-message-${i}`}
-                      >
-                        {msg.isLimitWarning && (
-                          <div className="flex items-center gap-2 mb-2 text-red-400 font-medium text-xs">
-                            <AlertTriangle className="w-3.5 h-3.5" />
-                            {t("demoPage.tokenLimitReached")}
-                          </div>
-                        )}
-                        {(() => {
-                          const { data: publishData, cleanText } = !isUser ? parsePublishAssistant(msg.content) : { data: null, cleanText: msg.content };
-                          return (
-                            <>
-                              {publishData && <PublishAssistantCard data={publishData} />}
-                              <ChatMessageContent content={cleanText} isUser={isUser} onSendMessage={sendMessage} isLatest={i === messages.length - 1} />
-                            </>
-                          );
-                        })()}
+                      <div className="group/msg relative">
+                        <div
+                          className={`rounded-2xl px-4 py-2.5 ${
+                            msg.isLimitWarning
+                              ? "bg-red-500/10 border border-red-500/30 text-red-300"
+                              : isUser
+                                ? "bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-tr-md shadow-md shadow-blue-500/20"
+                                : "bg-card/80 backdrop-blur-sm text-foreground rounded-tl-md border border-border/40 shadow-sm"
+                          }`}
+                          data-testid={`chat-message-${i}`}
+                        >
+                          {msg.isLimitWarning && (
+                            <div className="flex items-center gap-2 mb-2 text-red-400 font-medium text-xs">
+                              <AlertTriangle className="w-3.5 h-3.5" />
+                              {t("demoPage.tokenLimitReached")}
+                            </div>
+                          )}
+                          {(() => {
+                            const { data: publishData, cleanText } = !isUser ? parsePublishAssistant(msg.content) : { data: null, cleanText: msg.content };
+                            return (
+                              <>
+                                {publishData && <PublishAssistantCard data={publishData} />}
+                                <ChatMessageContent content={cleanText} isUser={isUser} onSendMessage={sendMessage} isLatest={i === messages.length - 1} />
+                              </>
+                            );
+                          })()}
+                        </div>
+                        <button
+                          onClick={() => navigator.clipboard.writeText(msg.content)}
+                          className={`absolute top-1 ${isUser ? "-left-8" : "-right-8"} opacity-0 group-hover/msg:opacity-100 transition-opacity p-1 rounded-md hover:bg-muted/80 text-muted-foreground hover:text-foreground`}
+                          title={t("demoPage.copyMessage") || "Copy"}
+                        >
+                          <Copy className="w-3.5 h-3.5" />
+                        </button>
                       </div>
                     </div>
                   </motion.div>
@@ -2110,15 +2258,15 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                     <span className={`text-[11px] font-medium px-1 ${currentAgent.accent}`}>
                       {currentAgent.persona}
                     </span>
-                    <div className="bg-muted/70 rounded-2xl rounded-tl-md border border-border/30 px-4 py-3">
+                    <div className="bg-card/80 backdrop-blur-sm rounded-2xl rounded-tl-md border border-border/40 shadow-sm px-4 py-3">
                       <div className="flex items-center gap-1.5">
-                        <span className="w-2 h-2 rounded-full bg-muted-foreground/40 animate-bounce" style={{ animationDelay: "0ms" }} />
-                        <span className="w-2 h-2 rounded-full bg-muted-foreground/40 animate-bounce" style={{ animationDelay: "150ms" }} />
-                        <span className="w-2 h-2 rounded-full bg-muted-foreground/40 animate-bounce" style={{ animationDelay: "300ms" }} />
+                        <span className="w-2 h-2 rounded-full bg-muted-foreground/40 animate-pulse" style={{ animationDelay: "0ms" }} />
+                        <span className="w-2 h-2 rounded-full bg-muted-foreground/40 animate-pulse" style={{ animationDelay: "300ms" }} />
+                        <span className="w-2 h-2 rounded-full bg-muted-foreground/40 animate-pulse" style={{ animationDelay: "600ms" }} />
                       </div>
                       {slowResponseHint && (
                         <p className="text-[11px] text-muted-foreground mt-2">
-                          Yanıt biraz uzun sürebilir, lütfen bekleyin...
+                          {t("demoPage.slowResponseHint")}
                         </p>
                       )}
                     </div>
@@ -2135,8 +2283,8 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
           )}
         </div>
 
-        <div className="border-t border-border/50 bg-card/30 backdrop-blur-sm shrink-0">
-          <div className="max-w-3xl mx-auto w-full px-2 sm:px-4 py-2 sm:py-3">
+        <div className="border-t border-border/30 bg-card/50 backdrop-blur-xl shrink-0">
+          <div className={`w-full py-2 sm:py-3 ${selectedBoostPanels.length === 0 ? "max-w-3xl mx-auto px-2 sm:px-4" : "px-2"}`}>
             {uploadedFile && (
               <div className="flex items-center gap-2 mb-2 p-2 rounded-lg bg-blue-500/10 border border-blue-500/20" data-testid="upload-preview">
                 {uploadedFile.type === "image" ? (
@@ -2257,7 +2405,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                 sendMessage();
               }}
               noValidate
-              className="flex items-center gap-2"
+              className="flex items-end gap-1.5 flex-wrap"
             >
               <input
                 type="file"
@@ -2283,7 +2431,9 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                     }
                   }}
                   disabled={loading}
-                  className={`min-h-[44px] min-w-[44px] h-11 w-11 rounded-full border flex items-center justify-center shrink-0 transition-all touch-manipulation ${
+                  className={`rounded-full border flex items-center justify-center shrink-0 transition-all touch-manipulation ${
+                    selectedBoostPanels.length === 0 ? "min-h-[44px] min-w-[44px] h-11 w-11" : "h-9 w-9"
+                  } ${
                     showQuickTaskForm
                       ? "bg-blue-500/20 border-blue-500/50 text-blue-400"
                       : "bg-muted/50 border-border/50 text-muted-foreground hover:text-foreground hover:bg-muted"
@@ -2292,7 +2442,9 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                   data-testid="button-quick-task"
                 >
                   <ListTodo className="w-4 h-4" />
-                  <span className="hidden sm:inline text-[10px]">{t("demoPage.task")}</span>
+                  {selectedBoostPanels.length === 0 && (
+                    <span className="hidden sm:inline text-[10px]">{t("demoPage.task")}</span>
+                  )}
                 </button>
               )}
               {user && (
@@ -2300,14 +2452,14 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={loading || uploading}
-                  className="min-h-[44px] min-w-[44px] h-11 w-11 rounded-full bg-muted/50 border border-border/50 flex items-center justify-center shrink-0 text-muted-foreground hover:text-foreground hover:bg-muted transition-all disabled:opacity-40 touch-manipulation"
+                  className={`rounded-full bg-muted/50 border border-border/50 flex items-center justify-center shrink-0 text-muted-foreground hover:text-foreground hover:bg-muted transition-all disabled:opacity-40 touch-manipulation ${selectedBoostPanels.length === 0 ? "min-h-[44px] min-w-[44px] h-11 w-11" : "h-9 w-9"}`}
                   title={t("demoPage.attachFile")}
                   data-testid="button-upload-file"
                 >
                   {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Paperclip className="w-4 h-4" />}
                 </button>
               )}
-              <div className="flex-1 relative">
+              <div className="flex-1 min-w-[120px] relative">
                 <textarea
                   ref={inputRef}
                   value={input}
@@ -2321,7 +2473,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                   placeholder={!user ? t("demoPage.askPlaceholder", { agent: currentAgent.persona }) : t("demoPage.messagePlaceholder", { agent: currentAgent.persona })}
                   disabled={loading}
                   rows={2}
-                  className="w-full min-h-[52px] max-h-[120px] px-3 sm:px-4 pr-12 sm:pr-14 py-2.5 pb-3 rounded-xl bg-muted/50 border border-border/50 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 transition-all disabled:opacity-50 resize-none"
+                  className="w-full min-h-[52px] max-h-[120px] px-3 sm:px-4 pr-12 sm:pr-14 py-2.5 pb-3 rounded-xl bg-background/60 border border-border/40 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 transition-all disabled:opacity-50 resize-none"
                   data-testid="input-chat"
                 />
                 {loading ? (
@@ -2338,7 +2490,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                   <button
                     type="submit"
                     disabled={!input.trim() && !uploadedFile}
-                    className="absolute right-1.5 bottom-1.5 w-8 h-8 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 rounded-lg bg-gradient-to-r from-blue-500 to-violet-500 flex items-center justify-center text-white disabled:opacity-30 transition-opacity"
+                    className="absolute right-1.5 bottom-1.5 w-8 h-8 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 rounded-lg bg-gradient-to-r from-blue-500 to-violet-500 flex items-center justify-center text-white disabled:opacity-30 transition-all shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40"
                     data-testid="button-send-chat"
                   >
                     <Send className="w-4 h-4" />
@@ -2376,17 +2528,46 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
           </>
         )}
 
-        {user && hasBoost && (
+        {hasBoost && user && (
           <BoostTaskBar
-            onTaskClick={(task) => {
-              setSelectedAgent(task.agentType);
-              setActiveConvoId(prev => ({ ...prev, [task.agentType]: task.visibleId }));
-              queryClient.invalidateQueries({ queryKey: ['/api/conversations', task.agentType] });
-              if (splitScreenActive) setSplitScreenActive(false);
-              if (window.innerWidth < 1024) setSidebarOpen(false);
+            selectedPanelIds={selectedBoostPanels.map(p => p.visibleId)}
+            maxPanels={Math.min(boostIsUnlimited ? 2 : boostMaxSlots, 2)}
+            onBringToFront={(visibleId, agentType) => {
+              setSelectedAgent(agentType);
+              setActiveConvoId(prev => ({ ...prev, [agentType]: visibleId }));
             }}
+            onTogglePanel={(visibleId, agentType) => {
+              if (!isDesktop) {
+                setSelectedAgent(agentType);
+                setActiveConvoId(prev => ({ ...prev, [agentType]: visibleId }));
+                return;
+              }
+              setSelectedBoostPanels(prev => {
+                const exists = prev.find(p => p.visibleId === visibleId);
+                if (exists) {
+                  return prev.filter(p => p.visibleId !== visibleId);
+                }
+                const maxP = Math.min(boostIsUnlimited ? 2 : boostMaxSlots, 2);
+                if (prev.length >= maxP) return prev;
+                return [...prev, { visibleId, agentType }];
+              });
+            }}
+            onTaskDelete={async (task) => {
+              try {
+                setSelectedBoostPanels(prev => prev.filter(p => p.visibleId !== task.visibleId));
+                await apiRequest("DELETE", `/api/conversations/${task.id}`);
+                queryClient.invalidateQueries({ queryKey: ["/api/boost/tasks"] });
+                queryClient.invalidateQueries({ queryKey: ["/api/boost/status"] });
+                queryClient.invalidateQueries({ queryKey: ['/api/conversations', task.agentType] });
+              } catch {}
+            }}
+            onNewChat={() => {
+              startBoostConversation();
+            }}
+            canAddChat={true}
           />
         )}
+
       </div>
   );
 }

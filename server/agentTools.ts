@@ -1171,6 +1171,116 @@ export const socialMediaTools: OpenAI.ChatCompletionTool[] = [
   {
     type: "function",
     function: {
+      name: "get_account_insights",
+      description: "Fetch real-time statistics and insights from a connected social media account (followers, post count, engagement). Only works for Business/API accounts. For personal accounts, explains how to upgrade.",
+      parameters: {
+        type: "object",
+        properties: {
+          platform: { type: "string", enum: ["instagram", "twitter", "linkedin", "facebook", "tiktok", "youtube"], description: "Which platform to fetch insights for" },
+          include_recent_posts: { type: "boolean", description: "Whether to include recent post performance data (default: false, only works for Instagram Business)" },
+        },
+        required: ["platform"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_special_days",
+      description: "Get upcoming special days, holidays, and observances for a target country (default: Turkey). Returns official holidays, religious holidays (Ramazan/Kurban Bayramı), commercial days (Black Friday, Anneler Günü), and international days with content ideas for each. Use when the user asks about holidays, special days, what to post this month, or needs a content calendar.",
+      parameters: {
+        type: "object",
+        properties: {
+          month: { type: "number", description: "Month number (1-12)" },
+          year: { type: "number", description: "Year (default: current year)" },
+          country: { type: "string", enum: ["TR", "US"], description: "Target country code (default: TR)" },
+        },
+        required: ["month"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "create_monthly_program",
+      description: "Create a comprehensive 30-day social media content program for a specific month. Integrates special days/holidays, suggests daily content types (carousel, reel, story, post), themes, and optimal posting times. Much more detailed than create_content_calendar.",
+      parameters: {
+        type: "object",
+        properties: {
+          month: { type: "number", description: "Month number (1-12)" },
+          year: { type: "number", description: "Year (default: current year)" },
+          platforms: { type: "string", description: "Comma-separated platforms (e.g. 'instagram,twitter')" },
+          industry: { type: "string", description: "Business industry/niche (e.g. 'restaurant', 'fashion', 'tech', 'real estate')" },
+          country: { type: "string", enum: ["TR", "US"], description: "Target country for special days (default: TR)" },
+        },
+        required: ["month"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "analyze_competitor",
+      description: "Start a competitor analysis for a social media profile. Captures the competitor handle and platform, then instructs you to use web_search to research their content strategy, posting frequency, hashtag usage, and provide differentiation recommendations.",
+      parameters: {
+        type: "object",
+        properties: {
+          competitor_handle: { type: "string", description: "Competitor's username/handle (e.g. '@competitor' or 'competitor')" },
+          platform: { type: "string", enum: ["instagram", "twitter", "linkedin", "facebook", "tiktok", "youtube"], description: "Which platform to analyze" },
+        },
+        required: ["competitor_handle", "platform"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_best_posting_times",
+      description: "Get the scientifically-backed best posting times for a specific platform and country. Returns optimal weekday and weekend time slots with engagement data.",
+      parameters: {
+        type: "object",
+        properties: {
+          platform: { type: "string", enum: ["instagram", "twitter", "linkedin", "facebook", "tiktok", "youtube"], description: "Target platform" },
+          country: { type: "string", enum: ["TR", "US"], description: "Target country (default: TR)" },
+        },
+        required: ["platform"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "optimize_profile",
+      description: "Analyze and suggest improvements for a social media profile/bio. Provides SEO-optimized bio suggestions, keyword recommendations, CTA ideas, and emoji usage tips. If a Business account is connected, reads the current bio automatically.",
+      parameters: {
+        type: "object",
+        properties: {
+          platform: { type: "string", enum: ["instagram", "twitter", "linkedin", "facebook", "tiktok", "youtube"], description: "Which platform's profile to optimize" },
+          current_bio: { type: "string", description: "Current bio text (optional — will be auto-fetched for Business accounts)" },
+          industry: { type: "string", description: "Business industry for targeted suggestions" },
+        },
+        required: ["platform"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_trending_topics",
+      description: "Start a trending topics discovery for a specific platform and country. Captures the parameters and then instructs you to use web_search to find real-time trends and viral content ideas.",
+      parameters: {
+        type: "object",
+        properties: {
+          platform: { type: "string", enum: ["instagram", "twitter", "linkedin", "facebook", "tiktok", "youtube"], description: "Target platform" },
+          country: { type: "string", enum: ["TR", "US"], description: "Target country (default: TR)" },
+        },
+        required: [],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "send_campaign_email",
       description: "Send a marketing or campaign-related email — content calendars, performance reports, campaign briefs, or collaboration requests. Use when the user asks to email campaign details or social media reports.",
       parameters: {
@@ -2341,6 +2451,16 @@ export function getToolsForAgent(agentType: string): OpenAI.ChatCompletionTool[]
   return agentToolRegistry[agentType];
 }
 
+function normalizeTurkish(text: string): string {
+  return text
+    .replace(/ö/g, "o").replace(/Ö/g, "o")
+    .replace(/ü/g, "u").replace(/Ü/g, "u")
+    .replace(/ş/g, "s").replace(/Ş/g, "s")
+    .replace(/ç/g, "c").replace(/Ç/g, "c")
+    .replace(/ğ/g, "g").replace(/Ğ/g, "g")
+    .replace(/ı/g, "i").replace(/İ/g, "i");
+}
+
 const TOOL_KEYWORD_MAP: Record<string, string[]> = {
   web_search: ["ara", "bul", "araştır", "search", "find", "research", "look up", "potansiyel", "potential", "müşteri bul", "trend", "piyasa", "market", "analiz", "investigate", "keşfet", "discover", "explore", "nerede", "where", "kimler", "who"],
   check_gmail_status: ["gmail", "email status", "email connection", "mail bağlantı", "e-posta durumu", "connected"],
@@ -2390,6 +2510,13 @@ const TOOL_KEYWORD_MAP: Record<string, string[]> = {
   schedule_post: ["schedule", "zamanla", "later", "sonra", "yarın", "tomorrow", "time", "saat"],
   list_scheduled_posts: ["scheduled", "zamanlı", "pending", "bekleyen", "list"],
   cancel_scheduled_post: ["cancel", "iptal", "remove", "kaldır"],
+  get_account_insights: ["insight", "istatistik", "takipçi", "followers", "gönderi sayısı", "post count", "analytics", "stats", "profil bilgileri", "hesap bilgileri", "kaç gönderi", "kaç takipçi", "metrics", "metrik", "profil", "profile"],
+  get_special_days: ["özel gün", "tatil", "bayram", "holiday", "special day", "resmi tatil", "dini bayram", "ramazan", "kurban", "anneler günü", "babalar günü", "cumhuriyet", "zafer", "öğretmenler", "black friday", "yılbaşı"],
+  create_monthly_program: ["aylık program", "monthly program", "30 gün", "aylık plan", "aylık strateji", "monthly strategy", "içerik programı", "content program"],
+  analyze_competitor: ["rakip", "competitor", "rakip analiz", "competitor analysis", "karşılaştır", "compare", "benchmark"],
+  get_best_posting_times: ["en iyi saat", "best time", "ne zaman paylaş", "when to post", "paylaşım saati", "posting time", "optimal saat", "ideal saat"],
+  optimize_profile: ["bio", "profil optimiz", "profil iyileştir", "bio optimize", "improve profile", "profil düzenle", "biyografi"],
+  get_trending_topics: ["trend", "gündem", "trending", "viral", "popüler", "popular", "trend hashtag", "güncel trend", "trending topic"],
   create_invoice: ["invoice", "fatura", "KDV", "tevkifat"],
   log_expense: ["expense", "gider", "harcama", "masraf"],
   log_income: ["income", "gelir", "satış", "tahsilat", "hasılat"],
@@ -2467,7 +2594,7 @@ export async function getRelevantToolsForMessage(
 
   if (combined.length <= 5) return combined;
 
-  const msgLower = message.toLowerCase();
+  const msgLower = normalizeTurkish(message.toLowerCase());
 
   const skillKeywordMap: Record<string, string[]> = {};
   try {
@@ -2479,16 +2606,19 @@ export async function getRelevantToolsForMessage(
     }
   } catch {}
 
+  const ALWAYS_INCLUDE_TOOLS = ["generate_pdf", "send_email", "create_task", "delegate_task"];
+
   const relevant = combined.filter((tool) => {
     const toolName = (tool as OpenAI.ChatCompletionTool & { function: { name: string } }).function.name;
+    if (ALWAYS_INCLUDE_TOOLS.includes(toolName)) return true;
     if (toolName.startsWith("skill_")) {
       const kws = skillKeywordMap[toolName];
       if (!kws || kws.length === 0) return true;
-      return kws.some((kw) => msgLower.includes(kw.toLowerCase()));
+      return kws.some((kw) => msgLower.includes(normalizeTurkish(kw.toLowerCase())));
     }
     const keywords = TOOL_KEYWORD_MAP[toolName];
     if (!keywords) return true;
-    return keywords.some((kw) => msgLower.includes(kw));
+    return keywords.some((kw) => msgLower.includes(normalizeTurkish(kw)));
   });
 
   if (relevant.length === 0) return combined;
@@ -4695,9 +4825,31 @@ ${activeRentals.map(r => `  ${r.agentType}: ${r.messagesUsed}/${r.messagesLimit}
       const allPlatforms = ["instagram", "twitter", "linkedin", "facebook", "tiktok", "youtube"];
       const connectedPlatforms = accounts.map(a => a.platform);
       const missingPlatforms = allPlatforms.filter(p => !connectedPlatforms.includes(p));
-      const accountList = accounts.map(a =>
-        `- **${a.platform.charAt(0).toUpperCase() + a.platform.slice(1)}**: @${a.username}${a.profileUrl ? ` (${a.profileUrl})` : ""} — ${a.status}`
-      ).join("\n");
+      const accountDetails = await Promise.all(accounts.map(async (a) => {
+        const typeLabel = a.accountType === "business" ? "🔗 Business - API" : "👤 Personal - Manuel";
+        let metricsStr = "";
+        if (a.accountType === "business" && a.status === "connected") {
+          try {
+            if (a.platform === "instagram") {
+              const { fetchInstagramProfile } = await import("./socialPostingService");
+              const pr = await fetchInstagramProfile(a);
+              if (pr.success && pr.data) {
+                metricsStr = ` | 👥 ${pr.data.followersCount.toLocaleString("tr-TR")} takipçi, 📸 ${pr.data.mediaCount.toLocaleString("tr-TR")} gönderi`;
+              }
+            } else if (a.platform === "twitter") {
+              const { fetchTwitterProfile } = await import("./socialPostingService");
+              const pr = await fetchTwitterProfile(a);
+              if (pr.success && pr.data) {
+                metricsStr = ` | 👥 ${pr.data.followersCount.toLocaleString("tr-TR")} takipçi, 🐦 ${pr.data.tweetCount.toLocaleString("tr-TR")} tweet`;
+              }
+            }
+          } catch {
+            metricsStr = " | ⚠️ metrikler alınamadı";
+          }
+        }
+        return `- **${a.platform.charAt(0).toUpperCase() + a.platform.slice(1)}**: @${a.username} (${typeLabel})${metricsStr}${a.profileUrl ? ` — ${a.profileUrl}` : ""} — ${a.status}`;
+      }));
+      const accountList = accountDetails.join("\n");
       let suggestion = "";
       if (missingPlatforms.length > 0) {
         suggestion = `\n\nNot yet connected: ${missingPlatforms.map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(", ")}. The user can add these in Settings > Social Media Accounts.`;
@@ -5049,6 +5201,347 @@ ${activeRentals.map(r => `  ${r.agentType}: ${r.messagesUsed}/${r.messagesLimit}
         result: `🚫 Scheduled post **#${postId}** has been cancelled successfully.`,
         actionType: "post_cancelled",
         actionDescription: `🚫 Post #${postId} cancelled`,
+      };
+    }
+
+    case "get_account_insights": {
+      const platform = String(args.platform).toLowerCase();
+      const includeRecentPosts = args.include_recent_posts === true;
+      const accounts = await storage.getSocialAccounts(userId);
+      const account = accounts.find(a => a.platform === platform && a.status === "connected");
+
+      if (!account) {
+        await storage.createAgentAction({
+          userId, agentType, actionType: "insights_checked",
+          description: `Tried to get ${platform} insights but no account connected`,
+          metadata: { platform },
+        });
+        return {
+          result: `❌ **${platform.charAt(0).toUpperCase() + platform.slice(1)}** hesabı bağlı değil.\n\nKullanıcı **Ayarlar > Sosyal Medya Hesapları** bölümünden bu platformu bağlayabilir.`,
+          actionType: "insights_checked",
+          actionDescription: `📊 ${platform} — hesap bağlı değil`,
+        };
+      }
+
+      if (account.accountType !== "business") {
+        await storage.createAgentAction({
+          userId, agentType, actionType: "insights_checked",
+          description: `${platform} account is Personal — no API access for insights`,
+          metadata: { platform, accountType: account.accountType },
+        });
+        return {
+          result: `📱 **${platform.charAt(0).toUpperCase() + platform.slice(1)}** hesabınız (@${account.username}) **Personal** olarak bağlı.\n\nPersonal hesaplarda API üzerinden istatistik çekme imkânı bulunmuyor. İstatistik ve analiz özelliklerini kullanabilmek için:\n\n1. **Ayarlar > Sosyal Medya Hesapları** bölümüne gidin\n2. Bu hesabı silin ve tekrar **Business/API** türünde ekleyin\n3. İlgili platform API anahtarlarını girin\n\n${platform === "instagram" ? "Instagram için **Meta Business Suite** üzerinden bir Business hesap oluşturmanız ve Access Token almanız gerekir." : ""}`,
+          actionType: "insights_checked",
+          actionDescription: `📊 ${platform} — Personal hesap, API erişimi yok`,
+        };
+      }
+
+      let profileInfo = "";
+      let recentPostsInfo = "";
+
+      if (platform === "instagram") {
+        const { fetchInstagramProfile, fetchInstagramRecentMedia } = await import("./socialPostingService");
+        const profileResult = await fetchInstagramProfile(account);
+        if (profileResult.success && profileResult.data) {
+          const d = profileResult.data;
+          profileInfo = `📊 **Instagram Hesap İstatistikleri** (@${d.username})\n\n` +
+            `👤 **İsim:** ${d.name || "—"}\n` +
+            `📝 **Bio:** ${d.biography || "—"}\n` +
+            `👥 **Takipçi:** ${d.followersCount.toLocaleString("tr-TR")}\n` +
+            `➡️ **Takip Edilen:** ${d.followsCount.toLocaleString("tr-TR")}\n` +
+            `📸 **Toplam Gönderi:** ${d.mediaCount.toLocaleString("tr-TR")}\n` +
+            `🌐 **Web Sitesi:** ${d.website || "—"}`;
+        } else {
+          profileInfo = `⚠️ Instagram profil bilgileri alınamadı: ${profileResult.error}`;
+        }
+
+        if (includeRecentPosts) {
+          const mediaResult = await fetchInstagramRecentMedia(account, 6);
+          if (mediaResult.success && mediaResult.posts && mediaResult.posts.length > 0) {
+            recentPostsInfo = "\n\n📋 **Son Gönderiler:**\n" + mediaResult.posts.map((p, i) => {
+              const date = p.timestamp ? new Date(p.timestamp).toLocaleDateString("tr-TR") : "?";
+              return `${i + 1}. [${p.mediaType}] ${date} — ❤️ ${p.likeCount} 💬 ${p.commentCount}${p.caption ? ` — "${p.caption}"` : ""}`;
+            }).join("\n");
+          }
+        }
+      } else if (platform === "twitter") {
+        const { fetchTwitterProfile } = await import("./socialPostingService");
+        const profileResult = await fetchTwitterProfile(account);
+        if (profileResult.success && profileResult.data) {
+          const d = profileResult.data;
+          profileInfo = `📊 **Twitter/X Hesap İstatistikleri** (@${d.username})\n\n` +
+            `👤 **İsim:** ${d.name || "—"}\n` +
+            `📝 **Bio:** ${d.description || "—"}\n` +
+            `👥 **Takipçi:** ${d.followersCount.toLocaleString("tr-TR")}\n` +
+            `➡️ **Takip Edilen:** ${d.followingCount.toLocaleString("tr-TR")}\n` +
+            `🐦 **Toplam Tweet:** ${d.tweetCount.toLocaleString("tr-TR")}\n` +
+            `📋 **Listelerde:** ${d.listedCount.toLocaleString("tr-TR")}`;
+        } else {
+          profileInfo = `⚠️ Twitter profil bilgileri alınamadı: ${profileResult.error}`;
+        }
+      } else {
+        profileInfo = `📊 **${platform.charAt(0).toUpperCase() + platform.slice(1)}** hesabınız (@${account.username}) Business olarak bağlı.\n\nŞu anda bu platform için detaylı API istatistik çekme desteği Instagram ve Twitter için aktif. Diğer platformlar için yakında eklenecek.`;
+      }
+
+      await storage.createAgentAction({
+        userId, agentType, actionType: "insights_fetched",
+        description: `Fetched ${platform} account insights for @${account.username}`,
+        metadata: { platform, username: account.username },
+      });
+
+      return {
+        result: profileInfo + recentPostsInfo,
+        actionType: "insights_fetched",
+        actionDescription: `📊 ${platform} istatistikleri çekildi`,
+      };
+    }
+
+    case "get_special_days": {
+      const month = Math.min(Math.max(Number(args.month) || 1, 1), 12);
+      const year = Number(args.year) || new Date().getFullYear();
+      const country = String(args.country || "TR");
+
+      const { getSpecialDays, formatSpecialDaysForAgent } = await import("./specialDaysCalendar");
+      const days = getSpecialDays(month, year, country);
+      const formatted = formatSpecialDaysForAgent(days);
+
+      const monthNames: Record<number, string> = {
+        1: "Ocak", 2: "Şubat", 3: "Mart", 4: "Nisan", 5: "Mayıs", 6: "Haziran",
+        7: "Temmuz", 8: "Ağustos", 9: "Eylül", 10: "Ekim", 11: "Kasım", 12: "Aralık",
+      };
+
+      await storage.createAgentAction({
+        userId, agentType, actionType: "special_days_checked",
+        description: `📅 ${monthNames[month]} ${year} özel günleri listelendi (${days.length} gün)`,
+        metadata: { month, year, country, count: days.length },
+      });
+
+      return {
+        result: `📅 **${monthNames[month]} ${year} Özel Günler** (${country === "TR" ? "Türkiye" : country}) — ${days.length} gün\n\n${formatted}`,
+        actionType: "special_days_checked",
+        actionDescription: `📅 ${monthNames[month]} ${year} — ${days.length} özel gün`,
+      };
+    }
+
+    case "create_monthly_program": {
+      const month = Math.min(Math.max(Number(args.month) || 1, 1), 12);
+      const year = Number(args.year) || new Date().getFullYear();
+      const platforms = args.platforms ? String(args.platforms) : "instagram";
+      const industry = args.industry ? String(args.industry) : "genel";
+      const country = String(args.country || "TR");
+
+      const { getSpecialDays, bestPostingTimes } = await import("./specialDaysCalendar");
+      const specialDays = getSpecialDays(month, year, country);
+      const countryTimes = bestPostingTimes[country] || bestPostingTimes["TR"];
+      const primaryPlatform = platforms.split(",")[0].trim();
+      const timesForPlatform = countryTimes[primaryPlatform] || countryTimes["instagram"];
+
+      const monthNames: Record<number, string> = {
+        1: "Ocak", 2: "Şubat", 3: "Mart", 4: "Nisan", 5: "Mayıs", 6: "Haziran",
+        7: "Temmuz", 8: "Ağustos", 9: "Eylül", 10: "Ekim", 11: "Kasım", 12: "Aralık",
+      };
+
+      const daysInMonth = new Date(year, month, 0).getDate();
+      const contentTypes = ["📸 Görsel Post", "🎠 Carousel", "🎬 Reel/Video", "📖 Story", "📝 Metin Post", "🔴 Canlı Yayın"];
+      const weekThemes = ["Tanıtım & Değer", "Eğitim & Bilgi", "Etkileşim & Topluluk", "Satış & Kampanya"];
+
+      let program = `📅 **${monthNames[month]} ${year} — Aylık İçerik Programı**\n`;
+      program += `🏷️ Sektör: ${industry} | 📱 Platformlar: ${platforms}\n`;
+      program += `⏰ Önerilen Saatler: Hafta içi ${timesForPlatform.weekday[0] || "12:00-13:00"}, Hafta sonu ${timesForPlatform.weekend[0] || "10:00-12:00"}\n\n`;
+
+      const specialDayMap = new Map<number, typeof specialDays[0]>();
+      for (const sd of specialDays) {
+        const dayNum = parseInt(sd.date.split("-")[2]);
+        specialDayMap.set(dayNum, sd);
+      }
+
+      for (let d = 1; d <= daysInMonth; d++) {
+        const date = new Date(year, month - 1, d);
+        const dayOfWeek = date.getDay();
+        const dayNames = ["Pazar", "Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi"];
+        const weekNum = Math.ceil(d / 7);
+        const theme = weekThemes[(weekNum - 1) % weekThemes.length];
+        const contentType = contentTypes[d % contentTypes.length];
+        const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+        const timeSlot = isWeekend
+          ? (timesForPlatform.weekend[0] || "10:00-12:00")
+          : (timesForPlatform.weekday[Math.min(d % 3, timesForPlatform.weekday.length - 1)] || "12:00-13:00");
+
+        const sd = specialDayMap.get(d);
+        const dateStr = `${String(d).padStart(2, "0")}.${String(month).padStart(2, "0")}`;
+
+        if (sd) {
+          program += `🌟 **${dateStr} ${dayNames[dayOfWeek]}** — ${sd.nameTR}\n`;
+          program += `   ${contentType} | ⏰ ${timeSlot} | 🎯 ${sd.contentIdeas[0] || theme}\n\n`;
+        } else {
+          program += `📌 **${dateStr} ${dayNames[dayOfWeek]}** — Hafta ${weekNum}: ${theme}\n`;
+          program += `   ${contentType} | ⏰ ${timeSlot}\n\n`;
+        }
+      }
+
+      program += `---\n💡 **Notlar:**\n`;
+      program += `- ${timesForPlatform.notes}\n`;
+      program += `- Özel günlerde (🌟) mutlaka tematik içerik paylaşın\n`;
+      program += `- Haftada en az 1 Reel/Video paylaşımı etkileşimi artırır\n`;
+      program += `- Story'ler günde 3-5 adet paylaşılabilir`;
+
+      await storage.createAgentAction({
+        userId, agentType, actionType: "monthly_program_created",
+        description: `📅 ${monthNames[month]} ${year} aylık program oluşturuldu (${industry}, ${platforms})`,
+        metadata: { month, year, platforms, industry, country, daysInMonth, specialDaysCount: specialDays.length },
+      });
+
+      return {
+        result: program,
+        actionType: "monthly_program_created",
+        actionDescription: `📅 ${monthNames[month]} ${year} aylık program (${daysInMonth} gün)`,
+      };
+    }
+
+    case "analyze_competitor": {
+      const handle = String(args.competitor_handle).replace("@", "");
+      const platform = String(args.platform).toLowerCase();
+
+      await storage.createAgentAction({
+        userId, agentType, actionType: "competitor_analyzed",
+        description: `🔍 Competitor analysis started: @${handle} on ${platform}`,
+        metadata: { handle, platform },
+      });
+
+      return {
+        result: `🔍 **Rakip Analizi Başlatıldı**\n\n` +
+          `Rakip: **@${handle}** (${platform.charAt(0).toUpperCase() + platform.slice(1)})\n\n` +
+          `Bu analizi yapmak için web araştırması yapacağım. Lütfen aşağıdaki bilgileri de paylaşın (varsa):\n\n` +
+          `Şimdi @${handle} hakkında araştırma yaparak şu bilgileri toplamaya çalışacağım:\n` +
+          `- İçerik stratejisi ve paylaşım sıklığı\n` +
+          `- Kullandığı hashtag'ler\n` +
+          `- Takipçi kitlesi ve etkileşim düzeyi\n` +
+          `- Güçlü ve zayıf yönleri\n` +
+          `- Sizin için farklılaşma önerileri\n\n` +
+          `Araştırmayı tamamladıktan sonra detaylı raporu sunacağım. Web araştırması başlatıyorum...`,
+        actionType: "competitor_analyzed",
+        actionDescription: `🔍 Rakip analizi: @${handle} (${platform})`,
+        requiresFollowUp: true,
+      };
+    }
+
+    case "get_best_posting_times": {
+      const platform = String(args.platform).toLowerCase();
+      const country = String(args.country || "TR");
+
+      const { bestPostingTimes } = await import("./specialDaysCalendar");
+      const countryTimes = bestPostingTimes[country] || bestPostingTimes["TR"];
+      const times = countryTimes[platform];
+
+      if (!times) {
+        return {
+          result: `⚠️ **${platform}** platformu için paylaşım saati verisi henüz mevcut değil. Desteklenen platformlar: ${Object.keys(countryTimes).join(", ")}`,
+          actionType: "posting_times_checked",
+          actionDescription: `⏰ ${platform} — veri yok`,
+        };
+      }
+
+      const countryName = country === "TR" ? "Türkiye" : country === "US" ? "ABD" : country;
+      const weekdaySlots = times.weekday.map(t => `  🟢 ${t}`).join("\n");
+      const weekendSlots = times.weekend.length > 0
+        ? times.weekend.map(t => `  🔵 ${t}`).join("\n")
+        : "  ⚪ Hafta sonu bu platform için önerilmiyor";
+
+      await storage.createAgentAction({
+        userId, agentType, actionType: "posting_times_checked",
+        description: `⏰ Best posting times checked for ${platform} in ${countryName}`,
+        metadata: { platform, country },
+      });
+
+      return {
+        result: `⏰ **${platform.charAt(0).toUpperCase() + platform.slice(1)} — En İyi Paylaşım Saatleri** (${countryName})\n\n` +
+          `📅 **Hafta İçi:**\n${weekdaySlots}\n\n` +
+          `📅 **Hafta Sonu:**\n${weekendSlots}\n\n` +
+          `💡 **Not:** ${times.notes}`,
+        actionType: "posting_times_checked",
+        actionDescription: `⏰ ${platform} paylaşım saatleri (${countryName})`,
+      };
+    }
+
+    case "optimize_profile": {
+      const platform = String(args.platform).toLowerCase();
+      const industry = args.industry ? String(args.industry) : "";
+      let currentBio = args.current_bio ? String(args.current_bio) : "";
+
+      const accounts = await storage.getSocialAccounts(userId);
+      const account = accounts.find(a => a.platform === platform && a.status === "connected");
+
+      if (account && account.accountType === "business" && !currentBio) {
+        if (platform === "instagram") {
+          const { fetchInstagramProfile } = await import("./socialPostingService");
+          const profileResult = await fetchInstagramProfile(account);
+          if (profileResult.success && profileResult.data) {
+            currentBio = profileResult.data.biography || "";
+          }
+        } else if (platform === "twitter") {
+          const { fetchTwitterProfile } = await import("./socialPostingService");
+          const profileResult = await fetchTwitterProfile(account);
+          if (profileResult.success && profileResult.data) {
+            currentBio = profileResult.data.description || "";
+          }
+        }
+      }
+
+      await storage.createAgentAction({
+        userId, agentType, actionType: "profile_optimized",
+        description: `✨ Profile optimization suggestions for ${platform}${currentBio ? " (bio fetched)" : ""}`,
+        metadata: { platform, industry, hasBio: !!currentBio },
+      });
+
+      let result = `✨ **${platform.charAt(0).toUpperCase() + platform.slice(1)} Profil Optimizasyonu**\n\n`;
+
+      if (currentBio) {
+        result += `📝 **Mevcut Bio:**\n"${currentBio}"\n\n`;
+      }
+
+      result += `Profil optimizasyonu için şu alanlarda öneriler sunacağım:\n\n` +
+        `1. 📝 **Bio/Biyografi** — SEO uyumlu, keşfet'e uygun anahtar kelimeler\n` +
+        `2. 🎯 **CTA (Harekete Geçirici)** — Link, DM veya web sitesi yönlendirmesi\n` +
+        `3. 😎 **Emoji Kullanımı** — Görsel çekicilik artırma\n` +
+        `4. #️⃣ **Anahtar Kelimeler** — Platform algoritmasına uygun terimler\n` +
+        `5. 🖼️ **Profil Görseli** — Marka tutarlılığı önerileri\n`;
+
+      if (industry) {
+        result += `\n🏷️ Sektörünüz: **${industry}** — Sektöre özel öneriler de dahil edilecek.`;
+      }
+
+      result += `\n\nŞimdi detaylı önerilerimi hazırlıyorum...`;
+
+      return {
+        result,
+        actionType: "profile_optimized",
+        actionDescription: `✨ ${platform} profil optimizasyonu`,
+      };
+    }
+
+    case "get_trending_topics": {
+      const platform = args.platform ? String(args.platform).toLowerCase() : "genel";
+      const country = String(args.country || "TR");
+      const countryName = country === "TR" ? "Türkiye" : country === "US" ? "ABD" : country;
+
+      await storage.createAgentAction({
+        userId, agentType, actionType: "trends_checked",
+        description: `🔥 Trending topics checked for ${platform} in ${countryName}`,
+        metadata: { platform, country },
+      });
+
+      return {
+        result: `🔥 **${countryName} — Güncel Trendler** (${platform !== "genel" ? platform.charAt(0).toUpperCase() + platform.slice(1) : "Tüm Platformlar"})\n\n` +
+          `Güncel trendleri araştırmak için web araması yapacağım. Bu bilgiler gerçek zamanlı verilerden gelecek.\n\n` +
+          `Araştıracaklarım:\n` +
+          `- 📈 Popüler hashtag'ler\n` +
+          `- 🗣️ Gündem konuları\n` +
+          `- 🎵 Viral içerikler\n` +
+          `- 💡 İçerik fırsatları\n\n` +
+          `Web araştırması başlatıyorum...`,
+        actionType: "trends_checked",
+        actionDescription: `🔥 ${countryName} trendleri (${platform})`,
+        requiresFollowUp: true,
       };
     }
 

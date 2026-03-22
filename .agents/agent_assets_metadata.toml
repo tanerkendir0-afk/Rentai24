@@ -42,3 +42,9 @@ id = "kMR6P2qBUx8vUUpuNKAYa"
 uri = "file://RentAI24-Admin-Kullanim-Kilavuzu_19Mart2026.pdf"
 type = "pdf"
 title = "Admin Kılavuzu (PDF) - 19 Mart 2026"
+
+[[outputs]]
+id = "pkTXve1HqBw5wNN4-uMNL"
+uri = "file://shopbot_report.pdf"
+type = "pdf"
+title = "ShopBot — E-Ticaret Operasyonları Ajanı Raporu"

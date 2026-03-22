@@ -287,15 +287,48 @@ export async function publishToSocialMedia(
   }
 }
 
+export interface InstagramProfileData {
+  username: string;
+  name: string;
+  biography: string;
+  followersCount: number;
+  followsCount: number;
+  mediaCount: number;
+  profilePictureUrl: string;
+  website: string;
+}
+
+export interface TwitterProfileData {
+  username: string;
+  name: string;
+  description: string;
+  followersCount: number;
+  followingCount: number;
+  tweetCount: number;
+  listedCount: number;
+  profileImageUrl: string;
+  createdAt: string;
+}
+
+export interface MediaPostData {
+  id: string;
+  caption: string;
+  mediaType: string;
+  timestamp: string;
+  likeCount: number;
+  commentCount: number;
+  permalink: string;
+}
+
 export interface ProfileResult {
   success: boolean;
-  data?: Record<string, any>;
+  data?: InstagramProfileData | TwitterProfileData;
   error?: string;
 }
 
 export interface RecentMediaResult {
   success: boolean;
-  posts?: Array<Record<string, any>>;
+  posts?: MediaPostData[];
   error?: string;
 }
 
@@ -313,22 +346,23 @@ export async function fetchInstagramProfile(account: SocialAccount): Promise<Pro
       const errData = await res.text();
       return { success: false, error: `Instagram API error (${res.status}): ${errData}` };
     }
-    const data = await res.json() as any;
+    const data = await res.json() as Record<string, unknown>;
     return {
       success: true,
       data: {
-        username: data.username || account.username,
-        name: data.name || "",
-        biography: data.biography || "",
-        followersCount: data.followers_count || 0,
-        followsCount: data.follows_count || 0,
-        mediaCount: data.media_count || 0,
-        profilePictureUrl: data.profile_picture_url || "",
-        website: data.website || "",
+        username: String(data.username || account.username),
+        name: String(data.name || ""),
+        biography: String(data.biography || ""),
+        followersCount: Number(data.followers_count) || 0,
+        followsCount: Number(data.follows_count) || 0,
+        mediaCount: Number(data.media_count) || 0,
+        profilePictureUrl: String(data.profile_picture_url || ""),
+        website: String(data.website || ""),
       },
     };
-  } catch (err: any) {
-    return { success: false, error: `Instagram profile fetch failed: ${err.message}` };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return { success: false, error: `Instagram profile fetch failed: ${msg}` };
   }
 }
 
@@ -346,19 +380,21 @@ export async function fetchInstagramRecentMedia(account: SocialAccount, limit: n
       const errData = await res.text();
       return { success: false, error: `Instagram media error (${res.status}): ${errData}` };
     }
-    const data = await res.json() as any;
-    const posts = (data.data || []).map((p: any) => ({
-      id: p.id,
+    interface IGMediaItem { id?: string; caption?: string; media_type?: string; timestamp?: string; like_count?: number; comments_count?: number; permalink?: string }
+    const data = await res.json() as { data?: IGMediaItem[] };
+    const posts: MediaPostData[] = (data.data || []).map((p: IGMediaItem) => ({
+      id: String(p.id || ""),
       caption: p.caption ? p.caption.substring(0, 100) + (p.caption.length > 100 ? "..." : "") : "",
-      mediaType: p.media_type,
-      timestamp: p.timestamp,
-      likeCount: p.like_count || 0,
-      commentCount: p.comments_count || 0,
-      permalink: p.permalink,
+      mediaType: String(p.media_type || ""),
+      timestamp: String(p.timestamp || ""),
+      likeCount: Number(p.like_count) || 0,
+      commentCount: Number(p.comments_count) || 0,
+      permalink: String(p.permalink || ""),
     }));
     return { success: true, posts };
-  } catch (err: any) {
-    return { success: false, error: `Instagram media fetch failed: ${err.message}` };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return { success: false, error: `Instagram media fetch failed: ${msg}` };
   }
 }
 
@@ -387,25 +423,28 @@ export async function fetchTwitterProfile(account: SocialAccount): Promise<Profi
       const errData = await res.text();
       return { success: false, error: `Twitter API error (${res.status}): ${errData}` };
     }
-    const json = await res.json() as any;
+    interface TwitterPublicMetrics { followers_count?: number; following_count?: number; tweet_count?: number; listed_count?: number }
+    interface TwitterUserData { username?: string; name?: string; description?: string; public_metrics?: TwitterPublicMetrics; profile_image_url?: string; created_at?: string }
+    const json = await res.json() as { data?: TwitterUserData };
     const user = json.data || {};
     const pm = user.public_metrics || {};
     return {
       success: true,
       data: {
-        username: user.username || account.username,
-        name: user.name || "",
-        description: user.description || "",
-        followersCount: pm.followers_count || 0,
-        followingCount: pm.following_count || 0,
-        tweetCount: pm.tweet_count || 0,
-        listedCount: pm.listed_count || 0,
-        profileImageUrl: user.profile_image_url || "",
-        createdAt: user.created_at || "",
+        username: String(user.username || account.username),
+        name: String(user.name || ""),
+        description: String(user.description || ""),
+        followersCount: Number(pm.followers_count) || 0,
+        followingCount: Number(pm.following_count) || 0,
+        tweetCount: Number(pm.tweet_count) || 0,
+        listedCount: Number(pm.listed_count) || 0,
+        profileImageUrl: String(user.profile_image_url || ""),
+        createdAt: String(user.created_at || ""),
       },
     };
-  } catch (err: any) {
-    return { success: false, error: `Twitter profile fetch failed: ${err.message}` };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return { success: false, error: `Twitter profile fetch failed: ${msg}` };
   }
 }
 

@@ -1221,7 +1221,7 @@ export const socialMediaTools: OpenAI.ChatCompletionTool[] = [
     type: "function",
     function: {
       name: "analyze_competitor",
-      description: "Analyze a competitor's social media presence. Uses web search to research their profile, content strategy, posting frequency, hashtag usage, and provides differentiation recommendations.",
+      description: "Start a competitor analysis for a social media profile. Captures the competitor handle and platform, then instructs you to use web_search to research their content strategy, posting frequency, hashtag usage, and provide differentiation recommendations.",
       parameters: {
         type: "object",
         properties: {
@@ -1267,7 +1267,7 @@ export const socialMediaTools: OpenAI.ChatCompletionTool[] = [
     type: "function",
     function: {
       name: "get_trending_topics",
-      description: "Discover current trending topics and hashtags for a specific platform and country. Uses web search to find real-time trends and viral content ideas.",
+      description: "Start a trending topics discovery for a specific platform and country. Captures the parameters and then instructs you to use web_search to find real-time trends and viral content ideas.",
       parameters: {
         type: "object",
         properties: {
@@ -4843,7 +4843,9 @@ ${activeRentals.map(r => `  ${r.agentType}: ${r.messagesUsed}/${r.messagesLimit}
                 metricsStr = ` | 👥 ${pr.data.followersCount.toLocaleString("tr-TR")} takipçi, 🐦 ${pr.data.tweetCount.toLocaleString("tr-TR")} tweet`;
               }
             }
-          } catch {}
+          } catch {
+            metricsStr = " | ⚠️ metrikler alınamadı";
+          }
         }
         return `- **${a.platform.charAt(0).toUpperCase() + a.platform.slice(1)}**: @${a.username} (${typeLabel})${metricsStr}${a.profileUrl ? ` — ${a.profileUrl}` : ""} — ${a.status}`;
       }));

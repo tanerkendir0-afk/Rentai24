@@ -2510,7 +2510,7 @@ const TOOL_KEYWORD_MAP: Record<string, string[]> = {
   schedule_post: ["schedule", "zamanla", "later", "sonra", "yarın", "tomorrow", "time", "saat"],
   list_scheduled_posts: ["scheduled", "zamanlı", "pending", "bekleyen", "list"],
   cancel_scheduled_post: ["cancel", "iptal", "remove", "kaldır"],
-  get_account_insights: ["insight", "istatistik", "takipçi", "followers", "gönderi sayısı", "post count", "analytics", "stats", "profil bilgileri", "hesap bilgileri", "kaç gönderi", "kaç takipçi", "metrics", "metrik"],
+  get_account_insights: ["insight", "istatistik", "takipçi", "followers", "gönderi sayısı", "post count", "analytics", "stats", "profil bilgileri", "hesap bilgileri", "kaç gönderi", "kaç takipçi", "metrics", "metrik", "profil", "profile"],
   get_special_days: ["özel gün", "tatil", "bayram", "holiday", "special day", "resmi tatil", "dini bayram", "ramazan", "kurban", "anneler günü", "babalar günü", "cumhuriyet", "zafer", "öğretmenler", "black friday", "yılbaşı"],
   create_monthly_program: ["aylık program", "monthly program", "30 gün", "aylık plan", "aylık strateji", "monthly strategy", "içerik programı", "content program"],
   analyze_competitor: ["rakip", "competitor", "rakip analiz", "competitor analysis", "karşılaştır", "compare", "benchmark"],
@@ -4825,10 +4825,29 @@ ${activeRentals.map(r => `  ${r.agentType}: ${r.messagesUsed}/${r.messagesLimit}
       const allPlatforms = ["instagram", "twitter", "linkedin", "facebook", "tiktok", "youtube"];
       const connectedPlatforms = accounts.map(a => a.platform);
       const missingPlatforms = allPlatforms.filter(p => !connectedPlatforms.includes(p));
-      const accountList = accounts.map(a => {
+      const accountDetails = await Promise.all(accounts.map(async (a) => {
         const typeLabel = a.accountType === "business" ? "🔗 Business - API" : "👤 Personal - Manuel";
-        return `- **${a.platform.charAt(0).toUpperCase() + a.platform.slice(1)}**: @${a.username} (${typeLabel})${a.profileUrl ? ` — ${a.profileUrl}` : ""} — ${a.status}`;
-      }).join("\n");
+        let metricsStr = "";
+        if (a.accountType === "business" && a.status === "connected") {
+          try {
+            if (a.platform === "instagram") {
+              const { fetchInstagramProfile } = await import("./socialPostingService");
+              const pr = await fetchInstagramProfile(a);
+              if (pr.success && pr.data) {
+                metricsStr = ` | 👥 ${pr.data.followersCount.toLocaleString("tr-TR")} takipçi, 📸 ${pr.data.mediaCount.toLocaleString("tr-TR")} gönderi`;
+              }
+            } else if (a.platform === "twitter") {
+              const { fetchTwitterProfile } = await import("./socialPostingService");
+              const pr = await fetchTwitterProfile(a);
+              if (pr.success && pr.data) {
+                metricsStr = ` | 👥 ${pr.data.followersCount.toLocaleString("tr-TR")} takipçi, 🐦 ${pr.data.tweetCount.toLocaleString("tr-TR")} tweet`;
+              }
+            }
+          } catch {}
+        }
+        return `- **${a.platform.charAt(0).toUpperCase() + a.platform.slice(1)}**: @${a.username} (${typeLabel})${metricsStr}${a.profileUrl ? ` — ${a.profileUrl}` : ""} — ${a.status}`;
+      }));
+      const accountList = accountDetails.join("\n");
       let suggestion = "";
       if (missingPlatforms.length > 0) {
         suggestion = `\n\nNot yet connected: ${missingPlatforms.map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(", ")}. The user can add these in Settings > Social Media Accounts.`;

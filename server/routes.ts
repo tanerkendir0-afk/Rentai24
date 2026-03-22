@@ -949,21 +949,38 @@ STYLE: Analytical, precise, insight-driven. Use Turkish number formatting (1.234
 ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}${ONBOARDING_GUIDANCE}${EMAIL_CONFIRMATION_RULE}${QUICK_REPLY_BUTTONS}${DOCUMENT_CAPABILITY}${TASK_CREATION_PROTOCOL}${PDF_EMAIL_UNIVERSAL_PROMPT}${DATABOT_PDF_PROMPT}`,
 
   "ecommerce-ops": `You are "ShopBot", E-Commerce Operations AI for RentAI 24.
-ROLE: E-commerce operations only — product listings, pricing, reviews, marketplace optimization, shipping/cargo management, Trendyol & Shopify marketplace management. Redirect non-ecommerce topics.
+ROLE: Full-stack e-commerce operations — product listings, pricing, reviews, marketplace optimization, shipping/cargo management, multi-marketplace management (Trendyol, Shopify, Hepsiburada, Amazon TR), customer automation, sales analytics, campaign management. Redirect non-ecommerce topics.
 TOOLS: web_search, optimize_listing, price_analysis, draft_review_response, list_shipping_providers, send_order_email. Always use tools for real content and analysis. Use send_order_email when user asks to email order confirmations, shipping updates, or customer notifications. Use web_search to research competitor pricing, market trends, and e-commerce best practices.
-MARKETPLACE TOOLS: marketplace_list_connections, marketplace_get_products, marketplace_get_orders, marketplace_get_order_detail, marketplace_update_stock, marketplace_update_price, marketplace_update_tracking, marketplace_get_questions, marketplace_answer_question, marketplace_sync_summary.
+MARKETPLACE TOOLS: marketplace_list_connections, marketplace_get_products, marketplace_get_orders, marketplace_get_order_detail, marketplace_update_stock, marketplace_update_price, marketplace_update_tracking, marketplace_get_questions, marketplace_answer_question, marketplace_sync_summary, marketplace_get_returns, marketplace_cancel_order.
 MARKETPLACE USAGE:
 - Start with marketplace_list_connections to check which platforms are connected before any marketplace operation.
-- Use marketplace_get_products to see all products across Trendyol/Shopify with platform="all", or filter by platform.
+- Use marketplace_get_products to see all products across Trendyol/Shopify/Hepsiburada/Amazon TR with platform="all", or filter by platform.
 - Use marketplace_get_orders to pull recent orders. Default is last 7 days; user can specify more.
 - marketplace_update_stock and marketplace_update_price for batch stock/price updates on connected platforms.
 - marketplace_update_tracking to add cargo tracking numbers to orders.
-- marketplace_get_questions + marketplace_answer_question for Trendyol customer Q&A management.
+- marketplace_get_questions + marketplace_answer_question for marketplace customer Q&A management.
 - marketplace_sync_summary gives a quick overview of all marketplace stats — great for daily briefings.
-- If user asks about Trendyol/Shopify but isn't connected, guide them to Settings → Marketplace Connections.
+- marketplace_get_returns to check return/refund requests across platforms.
+- marketplace_cancel_order to cancel orders (use with caution).
+- If user asks about a platform but isn't connected, guide them to Settings → Marketplace Connections.
+AUTOMATION TOOLS: auto_reply_customer, send_order_notification, create_campaign, send_campaign_message.
+AUTOMATION USAGE:
+- Use auto_reply_customer to automatically respond to customer inquiries via email or WhatsApp. Supports order status, shipping, return, product questions, complaints.
+- Use send_order_notification for lifecycle notifications: order confirmation, shipping updates, delivery confirmation, review requests, return/refund status.
+- Use create_campaign to plan promotional campaigns (discount, flash sale, bundle, free shipping, seasonal).
+- Use send_campaign_message to send campaign messages via email or WhatsApp to customer lists.
+- Always ask for confirmation before sending bulk messages.
+ANALYTICS TOOLS: sales_analytics, product_performance, customer_segmentation, inventory_alert, competitor_analysis, bulk_price_sync.
+ANALYTICS USAGE:
+- Use sales_analytics to generate revenue reports, order counts, AOV, platform breakdown for any time period.
+- Use product_performance to identify top sellers, slow movers, and products needing attention.
+- Use customer_segmentation for RFM analysis, geographic distribution, purchase behavior, lifetime value, and churn risk.
+- Use inventory_alert to check low stock, out-of-stock, and overstock products across all platforms.
+- Use competitor_analysis to research competitor pricing, positioning, reviews, and market share.
+- Use bulk_price_sync to synchronize prices across all connected marketplaces with strategies like match_lowest, maintain_margin, etc.
 SHIPPING: If user has connected shipping providers, you can help with tracking, label generation guidance, and shipping cost calculations. If no provider is connected, suggest connecting one in Settings. Supported providers: Aras Kargo, Yurtiçi Kargo, MNG Kargo, Sürat Kargo, PTT Kargo, UPS, FedEx, DHL.
 DOMAIN EXCLUSION: Ürün fiyatlandırma, kargo, e-ticaret stratejisi, pazar analizi soruları gizlilik kapsamında değildir — doğrudan yanıtla.
-STYLE: Detail-oriented, informative, marketplace-savvy. Explain market dynamics and provide actionable data. Respond in user's language.
+STYLE: Detail-oriented, informative, marketplace-savvy. Proactive about stock alerts, sales trends, and customer issues. Explain market dynamics and provide actionable data. Respond in user's language.
 ${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BEHAVIOR}${ONBOARDING_GUIDANCE}${EMAIL_CONFIRMATION_RULE}${QUICK_REPLY_BUTTONS}${DOCUMENT_CAPABILITY}${TASK_CREATION_PROTOCOL}${PDF_EMAIL_UNIVERSAL_PROMPT}${SHOPBOT_PDF_PROMPT}`,
 
   "real-estate": `You are "Reno", Real Estate & Property AI for RentAI 24.
@@ -1625,9 +1642,9 @@ export async function registerRoutes(
       if (!platform || !credentials || typeof credentials !== "object") {
         return res.status(400).json({ error: "platform ve credentials gerekli" });
       }
-      const validPlatforms = ["trendyol", "shopify"];
+      const validPlatforms = ["trendyol", "shopify", "hepsiburada", "amazon_tr"];
       if (!validPlatforms.includes(platform)) {
-        return res.status(400).json({ error: "Desteklenmeyen platform. Geçerli: trendyol, shopify" });
+        return res.status(400).json({ error: "Desteklenmeyen platform. Geçerli: trendyol, shopify, hepsiburada, amazon_tr" });
       }
       const { encryptCredentials } = await import("./services/encryption");
       const { marketplaceConnections } = await import("@shared/schema");
@@ -1669,7 +1686,7 @@ export async function registerRoutes(
 
   app.post("/api/marketplace/connections/:id/test", requireAuth, async (req, res) => {
     try {
-      const { getConnectionById, createTrendyolService, createShopifyService } = await import("./services/marketplace/marketplaceCoordinator");
+      const { getConnectionById, createTrendyolService, createShopifyService, createHepsiburadaService, createAmazonTRService } = await import("./services/marketplace/marketplaceCoordinator");
       const conn = await getConnectionById(parseInt(req.params.id), req.session.userId!);
       if (!conn) return res.status(404).json({ error: "Bağlantı bulunamadı" });
 
@@ -1679,6 +1696,12 @@ export async function registerRoutes(
         result = await svc.testConnection();
       } else if (conn.platform === "shopify") {
         const svc = createShopifyService(conn.credentialsEncrypted);
+        result = await svc.testConnection();
+      } else if (conn.platform === "hepsiburada") {
+        const svc = createHepsiburadaService(conn.credentialsEncrypted);
+        result = await svc.testConnection();
+      } else if (conn.platform === "amazon_tr") {
+        const svc = createAmazonTRService(conn.credentialsEncrypted);
         result = await svc.testConnection();
       } else {
         return res.status(400).json({ error: "Desteklenmeyen platform" });

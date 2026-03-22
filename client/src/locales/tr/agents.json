@@ -377,22 +377,24 @@
   },
   "ecommerce-ops": {
     "name": "E-Ticaret Operasyon Ajanı",
-    "role": "Mağaza Operasyon Yöneticisi",
-    "shortDescription": "Ürün listelerini yönetir, envanter uyarıları, fiyat izleme ve yorum yanıtları sağlar.",
-    "fullDescription": "Bu yapay zeka ajanı e-ticaret operasyonlarınızı uçtan uca yönetir. Ürün listeleme optimizasyonu ve envanter uyarılarından rakip fiyat izleme, yorum yanıtları ve sipariş takibine kadar, çevrimiçi mağazanızı 7/24 sorunsuz çalışır durumda tutar.",
+    "role": "Tam Kapsamlı E-Ticaret Yöneticisi",
+    "shortDescription": "Trendyol, Shopify, Hepsiburada ve Amazon TR üzerinden çoklu pazaryeri yönetimi, otomasyon, satış analitiği ve müşteri iletişimi sağlar.",
+    "fullDescription": "Bu yapay zeka ajanı e-ticaret operasyonlarınızı uçtan uca yönetir. Trendyol, Shopify, Hepsiburada ve Amazon TR entegrasyonları ile ürün listeleme, stok-fiyat yönetimi, sipariş takibi, müşteri sorularını otomatik yanıtlama, kampanya yönetimi, satış analitiği, rakip analizi ve toplu fiyat senkronizasyonu yapar. Kargo takibi, iade yönetimi ve stok uyarılarıyla 7/24 mağazanızı optimize eder.",
     "skills": [
-      "Ürün Listeleme",
-      "Envanter Uyarıları",
-      "Fiyat İzleme",
-      "Yorum Yanıtları",
-      "Sipariş Takibi",
-      "Rakip Analizi"
+      "Çoklu Pazaryeri Yönetimi",
+      "Otomatik Müşteri Yanıtlama",
+      "Satış Analitiği",
+      "Kampanya Yönetimi",
+      "Stok & Fiyat Senkronizasyonu",
+      "Sipariş Takibi & İade Yönetimi",
+      "Rakip Analizi",
+      "Müşteri Segmentasyonu"
     ],
     "useCases": [
-      "Birden fazla SKU'ya sahip e-ticaret markaları",
-      "Amazon/Etsy pazaryeri satıcıları",
+      "Trendyol, Hepsiburada ve Amazon'da satış yapan e-ticaret markaları",
+      "Çoklu pazaryeri satıcıları",
       "Operasyonlarını ölçeklendiren D2C markaları",
-      "Tedarikçileri yöneten stoksuz satış işletmeleri"
+      "Müşteri iletişimini otomatize etmek isteyen işletmeler"
     ],
     "metrics": {
       "listingUpdates": {
@@ -400,12 +402,12 @@
         "value": "Gerçek zamanlı"
       },
       "reviewResponse": {
-        "label": "Yorum Yanıtı",
-        "value": "<1 saat"
+        "label": "Otomatik Yanıt",
+        "value": "Anında"
       },
       "priceChecks": {
-        "label": "Fiyat Kontrolleri",
-        "value": "Saatlik"
+        "label": "Pazaryeri Sayısı",
+        "value": "4"
       },
       "languages": {
         "label": "Diller",
@@ -414,16 +416,16 @@
     },
     "priceLabel": "$300/ay'dan (KDV hariç)",
     "integrations": [
+      "Trendyol",
       "Shopify",
-      "WooCommerce",
-      "Amazon Seller",
-      "Etsy",
-      "eBay"
+      "Hepsiburada",
+      "Amazon TR",
+      "WooCommerce"
     ],
     "languages": [
+      "Türkçe",
       "İngilizce",
       "İspanyolca",
-      "Fransızca",
       "Almanca"
     ]
   },

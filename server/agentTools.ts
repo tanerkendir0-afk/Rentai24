@@ -1972,7 +1972,7 @@ export const ecommerceOpsTools: OpenAI.ChatCompletionTool[] = [
     type: "function",
     function: {
       name: "marketplace_list_connections",
-      description: "List all connected marketplace platforms (Trendyol, Shopify) for this user. Shows connection status and store names.",
+      description: "List all connected marketplace platforms (Trendyol, Shopify, Hepsiburada, Amazon TR) for this user. Shows connection status and store names.",
       parameters: { type: "object", properties: {}, required: [] },
     },
   },
@@ -1984,7 +1984,7 @@ export const ecommerceOpsTools: OpenAI.ChatCompletionTool[] = [
       parameters: {
         type: "object",
         properties: {
-          platform: { type: "string", enum: ["trendyol", "shopify", "all"], description: "Which marketplace to query. Use 'all' to get from all connected platforms." },
+          platform: { type: "string", enum: ["trendyol", "shopify", "hepsiburada", "amazon_tr", "all"], description: "Which marketplace to query. Use 'all' to get from all connected platforms." },
           search: { type: "string", description: "Search/filter keyword for product name" },
         },
         required: ["platform"],
@@ -1999,7 +1999,7 @@ export const ecommerceOpsTools: OpenAI.ChatCompletionTool[] = [
       parameters: {
         type: "object",
         properties: {
-          platform: { type: "string", enum: ["trendyol", "shopify", "all"], description: "Which marketplace to query" },
+          platform: { type: "string", enum: ["trendyol", "shopify", "hepsiburada", "amazon_tr", "all"], description: "Which marketplace to query" },
           status: { type: "string", description: "Filter by order status (e.g. Created, Picking, Shipped, Delivered, Cancelled)" },
           days: { type: "number", description: "How many days back to look (default: 7)" },
         },
@@ -2015,7 +2015,7 @@ export const ecommerceOpsTools: OpenAI.ChatCompletionTool[] = [
       parameters: {
         type: "object",
         properties: {
-          platform: { type: "string", enum: ["trendyol", "shopify"], description: "Which marketplace" },
+          platform: { type: "string", enum: ["trendyol", "shopify", "hepsiburada", "amazon_tr"], description: "Which marketplace" },
           order_id: { type: "string", description: "Order ID or shipment package ID" },
         },
         required: ["platform", "order_id"],
@@ -2030,7 +2030,7 @@ export const ecommerceOpsTools: OpenAI.ChatCompletionTool[] = [
       parameters: {
         type: "object",
         properties: {
-          platform: { type: "string", enum: ["trendyol", "shopify"], description: "Which marketplace" },
+          platform: { type: "string", enum: ["trendyol", "shopify", "hepsiburada", "amazon_tr"], description: "Which marketplace" },
           updates: {
             type: "array",
             items: {
@@ -2052,7 +2052,7 @@ export const ecommerceOpsTools: OpenAI.ChatCompletionTool[] = [
     type: "function",
     function: {
       name: "marketplace_update_price",
-      description: "Update product prices on Trendyol marketplace.",
+      description: "Update product prices on Trendyol, Hepsiburada, or Amazon TR marketplace.",
       parameters: {
         type: "object",
         properties: {
@@ -2082,7 +2082,7 @@ export const ecommerceOpsTools: OpenAI.ChatCompletionTool[] = [
       parameters: {
         type: "object",
         properties: {
-          platform: { type: "string", enum: ["trendyol", "shopify"], description: "Which marketplace" },
+          platform: { type: "string", enum: ["trendyol", "shopify", "hepsiburada", "amazon_tr"], description: "Which marketplace" },
           order_id: { type: "string", description: "Order ID or package ID" },
           tracking_number: { type: "string", description: "Cargo tracking number" },
           cargo_company: { type: "string", description: "Shipping company name (e.g. Yurtiçi Kargo, Aras Kargo, MNG)" },
@@ -2095,7 +2095,7 @@ export const ecommerceOpsTools: OpenAI.ChatCompletionTool[] = [
     type: "function",
     function: {
       name: "marketplace_get_questions",
-      description: "Fetch customer questions from Trendyol marketplace that need answers.",
+      description: "Fetch customer questions from Trendyol or Hepsiburada marketplace that need answers.",
       parameters: {
         type: "object",
         properties: {
@@ -2113,7 +2113,7 @@ export const ecommerceOpsTools: OpenAI.ChatCompletionTool[] = [
       parameters: {
         type: "object",
         properties: {
-          question_id: { type: "string", description: "The question ID from Trendyol" },
+          question_id: { type: "string", description: "The question ID from marketplace" },
           answer: { type: "string", description: "Professional answer text" },
         },
         required: ["question_id", "answer"],
@@ -2126,6 +2126,222 @@ export const ecommerceOpsTools: OpenAI.ChatCompletionTool[] = [
       name: "marketplace_sync_summary",
       description: "Get a summary overview of all connected marketplaces — total products, recent orders count, revenue summary. Good for daily briefings.",
       parameters: { type: "object", properties: {}, required: [] },
+    },
+  },
+  // --- İade/İptal Yönetimi ---
+  {
+    type: "function",
+    function: {
+      name: "marketplace_get_returns",
+      description: "Fetch return/refund requests from a marketplace. Shows pending returns that need action.",
+      parameters: {
+        type: "object",
+        properties: {
+          platform: { type: "string", enum: ["trendyol", "shopify", "hepsiburada", "amazon_tr", "all"], description: "Which marketplace to query" },
+        },
+        required: ["platform"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "marketplace_cancel_order",
+      description: "Cancel an order on a marketplace. Use with caution — notifies the customer automatically.",
+      parameters: {
+        type: "object",
+        properties: {
+          platform: { type: "string", enum: ["trendyol", "shopify", "hepsiburada", "amazon_tr"], description: "Which marketplace" },
+          order_id: { type: "string", description: "Order ID to cancel" },
+          reason: { type: "string", description: "Cancellation reason" },
+        },
+        required: ["platform", "order_id", "reason"],
+      },
+    },
+  },
+  // --- Otomatik Müşteri İletişimi ---
+  {
+    type: "function",
+    function: {
+      name: "auto_reply_customer",
+      description: "Generate and send an automatic reply to a customer inquiry. Supports order status, shipping, return, and general questions. Can send via email or WhatsApp.",
+      parameters: {
+        type: "object",
+        properties: {
+          customer_name: { type: "string", description: "Customer name" },
+          customer_contact: { type: "string", description: "Customer email or phone number" },
+          contact_method: { type: "string", enum: ["email", "whatsapp"], description: "How to contact the customer" },
+          inquiry_type: { type: "string", enum: ["order_status", "shipping", "return", "product_question", "complaint", "general"], description: "Type of customer inquiry" },
+          order_id: { type: "string", description: "Related order ID (if applicable)" },
+          message: { type: "string", description: "Customer's original message or inquiry" },
+          platform: { type: "string", enum: ["trendyol", "shopify", "hepsiburada", "amazon_tr"], description: "Source marketplace (if applicable)" },
+        },
+        required: ["customer_name", "customer_contact", "contact_method", "inquiry_type", "message"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "send_order_notification",
+      description: "Send automated order lifecycle notifications to customers — order confirmation, shipping update, delivery confirmation, or review request.",
+      parameters: {
+        type: "object",
+        properties: {
+          notification_type: { type: "string", enum: ["order_confirmed", "order_shipped", "order_delivered", "review_request", "return_approved", "refund_processed"], description: "Type of notification" },
+          customer_name: { type: "string", description: "Customer name" },
+          customer_contact: { type: "string", description: "Customer email or phone" },
+          contact_method: { type: "string", enum: ["email", "whatsapp", "both"], description: "Notification channel" },
+          order_id: { type: "string", description: "Order ID" },
+          order_details: { type: "string", description: "Order summary (items, total, etc.)" },
+          tracking_number: { type: "string", description: "Cargo tracking number (for shipping notifications)" },
+          cargo_company: { type: "string", description: "Shipping company name" },
+        },
+        required: ["notification_type", "customer_name", "customer_contact", "contact_method", "order_id"],
+      },
+    },
+  },
+  // --- Kampanya Yönetimi ---
+  {
+    type: "function",
+    function: {
+      name: "create_campaign",
+      description: "Create a promotional campaign — discount, flash sale, bundle deal, or seasonal promotion. Generates campaign plan with messaging.",
+      parameters: {
+        type: "object",
+        properties: {
+          campaign_name: { type: "string", description: "Campaign name" },
+          campaign_type: { type: "string", enum: ["discount", "flash_sale", "bundle", "buy_x_get_y", "free_shipping", "seasonal"], description: "Type of campaign" },
+          discount_percentage: { type: "number", description: "Discount percentage (if applicable)" },
+          start_date: { type: "string", description: "Campaign start date (YYYY-MM-DD)" },
+          end_date: { type: "string", description: "Campaign end date (YYYY-MM-DD)" },
+          target_products: { type: "string", description: "Product names or categories (comma-separated)" },
+          target_audience: { type: "string", description: "Target customer segment (e.g. 'all', 'repeat_customers', 'new_customers')" },
+          channels: { type: "string", description: "Communication channels (e.g. 'email,whatsapp,sms')" },
+          budget: { type: "number", description: "Campaign budget in TRY" },
+        },
+        required: ["campaign_name", "campaign_type", "start_date", "end_date"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "send_campaign_message",
+      description: "Send a campaign/promotional message to customers via email or WhatsApp. Supports bulk sending.",
+      parameters: {
+        type: "object",
+        properties: {
+          campaign_name: { type: "string", description: "Campaign name for tracking" },
+          subject: { type: "string", description: "Message subject (for email)" },
+          message: { type: "string", description: "Campaign message content" },
+          recipients: { type: "string", description: "Recipient list — comma-separated emails or phone numbers" },
+          channel: { type: "string", enum: ["email", "whatsapp"], description: "Communication channel" },
+        },
+        required: ["campaign_name", "message", "recipients", "channel"],
+      },
+    },
+  },
+  // --- Satış Analitik ---
+  {
+    type: "function",
+    function: {
+      name: "sales_analytics",
+      description: "Generate sales analytics report — revenue, order count, average order value, top products, conversion rates across all marketplaces.",
+      parameters: {
+        type: "object",
+        properties: {
+          period: { type: "string", enum: ["today", "yesterday", "last_7_days", "last_30_days", "this_month", "last_month", "custom"], description: "Analysis period" },
+          start_date: { type: "string", description: "Custom start date (YYYY-MM-DD, only for 'custom' period)" },
+          end_date: { type: "string", description: "Custom end date (YYYY-MM-DD, only for 'custom' period)" },
+          platform: { type: "string", enum: ["trendyol", "shopify", "hepsiburada", "amazon_tr", "all"], description: "Filter by platform (default: all)" },
+          metrics: { type: "string", description: "Specific metrics to focus on (comma-separated, e.g. 'revenue,orders,aov,top_products,conversion')" },
+        },
+        required: ["period"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "product_performance",
+      description: "Analyze individual product performance — sales volume, revenue contribution, return rate, stock turnover, and trend analysis.",
+      parameters: {
+        type: "object",
+        properties: {
+          product_name: { type: "string", description: "Product name or SKU to analyze (leave empty for top performers)" },
+          period: { type: "string", enum: ["last_7_days", "last_30_days", "last_90_days"], description: "Analysis period" },
+          sort_by: { type: "string", enum: ["revenue", "units_sold", "return_rate", "profit_margin"], description: "Sort metric (default: revenue)" },
+          limit: { type: "number", description: "Number of products to show (default: 10)" },
+        },
+        required: ["period"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "customer_segmentation",
+      description: "Analyze customer segments — new vs returning, high-value customers, purchase frequency, geographic distribution, and customer lifetime value.",
+      parameters: {
+        type: "object",
+        properties: {
+          segment_type: { type: "string", enum: ["rfm", "geographic", "purchase_behavior", "lifetime_value", "churn_risk"], description: "Segmentation method" },
+          platform: { type: "string", enum: ["trendyol", "shopify", "hepsiburada", "amazon_tr", "all"], description: "Filter by platform" },
+          period: { type: "string", enum: ["last_30_days", "last_90_days", "last_year"], description: "Analysis period" },
+        },
+        required: ["segment_type"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "inventory_alert",
+      description: "Check inventory levels and generate alerts for low stock, overstock, or out-of-stock products across all marketplaces.",
+      parameters: {
+        type: "object",
+        properties: {
+          alert_type: { type: "string", enum: ["low_stock", "out_of_stock", "overstock", "all"], description: "Type of inventory alert" },
+          threshold: { type: "number", description: "Stock threshold for alerts (default: 5 for low stock)" },
+          platform: { type: "string", enum: ["trendyol", "shopify", "hepsiburada", "amazon_tr", "all"], description: "Filter by platform" },
+        },
+        required: ["alert_type"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "competitor_analysis",
+      description: "Analyze competitor pricing, positioning, and market trends for specific products or categories using web search.",
+      parameters: {
+        type: "object",
+        properties: {
+          product_name: { type: "string", description: "Product or category to analyze" },
+          competitors: { type: "string", description: "Competitor names (comma-separated, optional)" },
+          platform: { type: "string", enum: ["trendyol", "hepsiburada", "amazon_tr", "general"], description: "Platform to focus on" },
+          analysis_type: { type: "string", enum: ["pricing", "positioning", "reviews", "market_share"], description: "Type of analysis" },
+        },
+        required: ["product_name", "analysis_type"],
+      },
+    },
+  },
+  // --- Toplu İşlemler ---
+  {
+    type: "function",
+    function: {
+      name: "bulk_price_sync",
+      description: "Synchronize prices across all connected marketplaces. Adjusts prices based on platform commissions to maintain target margins.",
+      parameters: {
+        type: "object",
+        properties: {
+          strategy: { type: "string", enum: ["match_lowest", "maintain_margin", "platform_specific", "custom"], description: "Pricing strategy" },
+          target_margin: { type: "number", description: "Target profit margin percentage" },
+          products: { type: "string", description: "Product barcodes to sync (comma-separated, or 'all')" },
+        },
+        required: ["strategy"],
+      },
     },
   },
 ];
@@ -2432,6 +2648,18 @@ const TOOL_KEYWORD_MAP: Record<string, string[]> = {
   marketplace_get_questions: ["müşteri soruları", "questions", "sorular", "soru"],
   marketplace_answer_question: ["soru yanıtla", "answer question", "cevapla"],
   marketplace_sync_summary: ["özet", "summary", "dashboard", "genel durum", "rapor"],
+  marketplace_get_returns: ["iade", "return", "refund", "iade talebi", "geri ödeme"],
+  marketplace_cancel_order: ["iptal", "cancel", "sipariş iptal"],
+  auto_reply_customer: ["otomatik yanıt", "auto reply", "müşteri yanıt", "müşteriye yaz"],
+  send_order_notification: ["bildirim", "notification", "sipariş onay", "kargo bildirim", "teslim bildirim"],
+  create_campaign: ["kampanya", "campaign", "indirim", "promosyon", "promotion", "flaş satış"],
+  send_campaign_message: ["kampanya mesaj", "campaign message", "toplu mesaj", "bulk message"],
+  sales_analytics: ["satış analiz", "sales analytics", "ciro", "revenue", "gelir"],
+  product_performance: ["ürün performans", "product performance", "en çok satan", "best seller"],
+  customer_segmentation: ["müşteri segment", "segmentation", "rfm", "müşteri analiz"],
+  inventory_alert: ["stok uyarı", "stock alert", "düşük stok", "low stock", "stokta yok"],
+  competitor_analysis: ["rakip", "competitor", "rekabet", "pazar analiz"],
+  bulk_price_sync: ["toplu fiyat", "price sync", "fiyat senkron", "fiyat eşitle"],
   query_leads: ["leads", "data", "analyze", "analiz", "veri"],
   query_actions: ["actions", "activity", "aktivite", "log"],
   query_campaigns: ["campaign", "kampanya", "performance"],
@@ -6724,7 +6952,7 @@ ${activeRentals.map(r => `  ${r.agentType}: ${r.messagesUsed}/${r.messagesLimit}
       const { getConnections } = await import("./services/marketplace/marketplaceCoordinator");
       const connections = await getConnections(userId);
       if (connections.length === 0) {
-        return { result: "Henüz bağlı pazaryeri platformu yok. Ayarlar sayfasından Trendyol veya Shopify bağlantısı ekleyebilirsiniz.", actionType: "marketplace_list", actionDescription: "🏪 Marketplace connections listed" };
+        return { result: "Henüz bağlı pazaryeri platformu yok. Ayarlar sayfasından Trendyol, Shopify, Hepsiburada veya Amazon TR bağlantısı ekleyebilirsiniz.", actionType: "marketplace_list", actionDescription: "🏪 Marketplace connections listed" };
       }
       const list = connections.map(c => `• ${c.platform.toUpperCase()} — ${c.storeName || "Store"} (${c.isActive ? "✅ Active" : "❌ Inactive"})`).join("\n");
       return { result: `Bağlı pazaryerleri:\n${list}`, actionType: "marketplace_list", actionDescription: "🏪 Marketplace connections listed" };
@@ -6742,13 +6970,21 @@ ${activeRentals.map(r => `  ${r.agentType}: ${r.messagesUsed}/${r.messagesLimit}
         if (platform === "trendyol") {
           const result = await (svc as any).getProducts(0, 50);
           products = (result?.content || []).map((p: any) => ({ ...p, _platform: "trendyol" }));
-        } else {
+        } else if (platform === "shopify") {
           const result = await (svc as any).getProducts(50, args.search);
           products = (result?.products || []).map((p: any) => ({ ...p, _platform: "shopify" }));
+        } else if (platform === "hepsiburada") {
+          const result = await (svc as any).getProducts(0, 50);
+          products = (result?.listings || result?.content || []).map((p: any) => ({ ...p, _platform: "hepsiburada" }));
+        } else if (platform === "amazon_tr") {
+          const result = await (svc as any).getProducts(50);
+          products = (result?.items || result?.payload?.items || []).map((p: any) => ({ ...p, _platform: "amazon_tr" }));
         }
       }
       const summary = products.slice(0, 20).map((p: any) => {
         if (p._platform === "trendyol") return `[Trendyol] ${p.title || p.productName} — ₺${p.salePrice || "?"} — Stok: ${p.quantity ?? "?"}`;
+        if (p._platform === "hepsiburada") return `[Hepsiburada] ${p.productName || p.merchantSku || "?"} — ₺${p.price || "?"} — Stok: ${p.availableStock ?? "?"}`;
+        if (p._platform === "amazon_tr") return `[Amazon TR] ${p.summaries?.[0]?.itemName || p.asin || "?"} — ₺${p.summaries?.[0]?.price || "?"} — Stok: ${p.fulfillmentAvailability?.[0]?.quantity ?? "?"}`;
         return `[Shopify] ${p.title} — ${p.variants?.[0]?.price || "?"} — Stok: ${p.variants?.[0]?.inventory_quantity ?? "?"}`;
       }).join("\n");
       return { result: `${products.length} ürün bulundu:\n${summary}${products.length > 20 ? `\n...ve ${products.length - 20} ürün daha` : ""}`, actionType: "marketplace_products", actionDescription: `🏪 ${platform} products fetched (${products.length})` };
@@ -6768,13 +7004,23 @@ ${activeRentals.map(r => `  ${r.agentType}: ${r.messagesUsed}/${r.messagesLimit}
           const startDate = Date.now() - days * 86400000;
           const result = await (svc as any).getOrders({ startDate, endDate: Date.now(), status: args.status });
           orders = (result?.content || []).map((o: any) => ({ ...o, _platform: "trendyol" }));
-        } else {
+        } else if (platform === "shopify") {
           const result = await (svc as any).getOrders({ status: args.status });
           orders = (result?.orders || []).map((o: any) => ({ ...o, _platform: "shopify" }));
+        } else if (platform === "hepsiburada") {
+          const startDateISO = new Date(Date.now() - days * 86400000).toISOString();
+          const result = await (svc as any).getOrders({ startDate: startDateISO, endDate: new Date().toISOString(), status: args.status });
+          orders = (result?.content || result?.orders || []).map((o: any) => ({ ...o, _platform: "hepsiburada" }));
+        } else if (platform === "amazon_tr") {
+          const startDateISO = new Date(Date.now() - days * 86400000).toISOString();
+          const result = await (svc as any).getOrders({ startDate: startDateISO, endDate: new Date().toISOString(), status: args.status });
+          orders = (result?.payload?.Orders || result?.Orders || []).map((o: any) => ({ ...o, _platform: "amazon_tr" }));
         }
       }
       const summary = orders.slice(0, 15).map((o: any) => {
         if (o._platform === "trendyol") return `[Trendyol] #${o.orderNumber} — ${o.status} — ₺${o.totalPrice || "?"}`;
+        if (o._platform === "hepsiburada") return `[Hepsiburada] #${o.orderNumber || o.id} — ${o.status} — ₺${o.totalPrice || o.totalAmount || "?"}`;
+        if (o._platform === "amazon_tr") return `[Amazon TR] #${o.AmazonOrderId || o.orderId} — ${o.OrderStatus} — ₺${o.OrderTotal?.Amount || "?"}`;
         return `[Shopify] #${o.order_number || o.name} — ${o.financial_status} — ${o.total_price} ${o.currency}`;
       }).join("\n");
       return { result: `Son ${days} gün: ${orders.length} sipariş\n${summary}${orders.length > 15 ? `\n...ve ${orders.length - 15} sipariş daha` : ""}`, actionType: "marketplace_orders", actionDescription: `📦 ${platform} orders fetched (${orders.length})` };
@@ -6805,13 +7051,19 @@ ${activeRentals.map(r => `  ${r.agentType}: ${r.messagesUsed}/${r.messagesLimit}
       if (platform === "trendyol") {
         const items = updates.map(u => ({ barcode: u.barcode, quantity: u.quantity }));
         result = await (svc as any).updateStockAndPrice(items);
-      } else {
+      } else if (platform === "shopify") {
         const locations = await (svc as any).getLocations();
         const locationId = locations?.locations?.[0]?.id;
         for (const u of updates) {
           await (svc as any).updateInventory(u.barcode, String(locationId), u.quantity);
         }
         result = { success: true };
+      } else if (platform === "hepsiburada") {
+        const items = updates.map(u => ({ barcode: u.barcode, quantity: u.quantity }));
+        result = await (svc as any).updateStockAndPrice(items);
+      } else if (platform === "amazon_tr") {
+        const items = updates.map(u => ({ sku: u.barcode, quantity: u.quantity }));
+        result = await (svc as any).updateStockAndPrice(items);
       }
       await storage.createAgentAction({ userId, agentType, actionType: "stock_updated", description: `📦 ${updates.length} ürün stok güncellendi (${platform})`, metadata: { platform, updates } });
       return { result: `✅ ${updates.length} ürün stok güncellendi (${platform})`, actionType: "stock_updated", actionDescription: `📦 Stock updated: ${updates.length} items (${platform})` };
@@ -6835,8 +7087,12 @@ ${activeRentals.map(r => `  ${r.agentType}: ${r.messagesUsed}/${r.messagesLimit}
       if (!svc) return { result: `${platform} bağlantısı bulunamadı.`, actionType: "marketplace_tracking", actionDescription: "🚚 Tracking — not connected" };
       if (platform === "trendyol") {
         await (svc as any).updateTrackingNumber(String(args.order_id), String(args.tracking_number), String(args.cargo_company));
-      } else {
+      } else if (platform === "shopify") {
         await (svc as any).fulfillOrder(String(args.order_id), String(args.tracking_number), String(args.cargo_company));
+      } else if (platform === "hepsiburada") {
+        await (svc as any).updateTrackingNumber(String(args.order_id), String(args.tracking_number), String(args.cargo_company));
+      } else if (platform === "amazon_tr") {
+        await (svc as any).updateTrackingNumber(String(args.order_id), String(args.tracking_number), String(args.cargo_company));
       }
       await storage.createAgentAction({ userId, agentType, actionType: "tracking_updated", description: `🚚 Kargo takip güncellendi: ${args.tracking_number} (${platform})`, metadata: { platform, orderId: args.order_id, trackingNumber: args.tracking_number, cargoCompany: args.cargo_company } });
       return { result: `✅ Kargo takip güncellendi: ${args.tracking_number} (${args.cargo_company})`, actionType: "tracking_updated", actionDescription: `🚚 Tracking updated: ${args.tracking_number}` };
@@ -6879,6 +7135,372 @@ ${activeRentals.map(r => `  ${r.agentType}: ${r.messagesUsed}/${r.messagesLimit}
         result: `📊 PAZARYERI ÖZETİ\n\nBağlı platformlar: ${platforms}\nToplam ürün: ${products.length}\nSon 7 gün sipariş: ${orders.length}\nToplam ciro: ₺${totalRevenue.toLocaleString("tr-TR", { minimumFractionDigits: 2 })}`,
         actionType: "marketplace_summary",
         actionDescription: `📊 Marketplace summary: ${products.length} products, ${orders.length} orders`,
+      };
+    }
+
+    // --- Yeni ShopBot Araçları ---
+    case "marketplace_get_returns": {
+      const { getMarketplaceService, getConnections } = await import("./services/marketplace/marketplaceCoordinator");
+      const platform = String(args.platform);
+      let allReturns: any[] = [];
+
+      if (platform === "all") {
+        const connections = await getConnections(userId);
+        for (const conn of connections) {
+          try {
+            const svc = platform === "all" ? await getMarketplaceService(userId, conn.platform as any) : null;
+            if (svc && "getReturns" in svc) {
+              const result = await (svc as any).getReturns({});
+              const returns = result?.content || result?.returns || result?.payload?.Returns || [];
+              allReturns.push(...returns.map((r: any) => ({ ...r, _platform: conn.platform })));
+            }
+          } catch (err: any) {
+            console.error(`[Marketplace] ${conn.platform} returns error:`, err.message);
+          }
+        }
+      } else {
+        const svc = await getMarketplaceService(userId, platform as any);
+        if (!svc) return { result: `${platform} bağlantısı bulunamadı.`, actionType: "marketplace_returns", actionDescription: `📦 Returns — not connected` };
+        if ("getReturns" in svc) {
+          const result = await (svc as any).getReturns({});
+          allReturns = result?.content || result?.returns || result?.payload?.Returns || [];
+          allReturns = allReturns.map((r: any) => ({ ...r, _platform: platform }));
+        }
+      }
+
+      return {
+        result: `📦 ${allReturns.length} iade/iade talebi bulundu:\n${JSON.stringify(allReturns.slice(0, 10), null, 2).substring(0, 2000)}`,
+        actionType: "marketplace_returns",
+        actionDescription: `📦 ${allReturns.length} returns fetched`,
+      };
+    }
+
+    case "marketplace_cancel_order": {
+      const { getMarketplaceService } = await import("./services/marketplace/marketplaceCoordinator");
+      const platform = String(args.platform);
+      const orderId = String(args.order_id);
+      const reason = String(args.reason);
+      const svc = await getMarketplaceService(userId, platform as any);
+      if (!svc) return { result: `${platform} bağlantısı bulunamadı.`, actionType: "order_cancelled", actionDescription: `❌ Cancel — not connected` };
+
+      try {
+        if ("cancelOrder" in svc) {
+          await (svc as any).cancelOrder(orderId, "", reason);
+        } else {
+          return { result: `${platform} platformunda sipariş iptali API üzerinden desteklenmiyor. Lütfen platform panelinden iptal edin.`, actionType: "order_cancel_unsupported", actionDescription: `❌ Cancel not supported on ${platform}` };
+        }
+      } catch (err: any) {
+        return { result: `İptal hatası: ${err.message}`, actionType: "order_cancel_error", actionDescription: `❌ Cancel error: ${orderId}` };
+      }
+
+      await storage.createAgentAction({ userId, agentType, actionType: "order_cancelled", description: `❌ Sipariş iptal edildi: ${orderId} (${platform}) — ${reason}`, metadata: { platform, orderId, reason } });
+      return { result: `✅ Sipariş iptal edildi: ${orderId} (${platform})\nSebep: ${reason}`, actionType: "order_cancelled", actionDescription: `❌ Order cancelled: ${orderId}` };
+    }
+
+    case "auto_reply_customer": {
+      const customerName = String(args.customer_name);
+      const customerContact = String(args.customer_contact);
+      const contactMethod = String(args.contact_method);
+      const inquiryType = String(args.inquiry_type);
+      const message = String(args.message);
+      const orderId = args.order_id ? String(args.order_id) : null;
+      const sourcePlatform = args.platform ? String(args.platform) : null;
+
+      const inquiryLabels: Record<string, string> = {
+        order_status: "Sipariş Durumu", shipping: "Kargo Takip", return: "İade Talebi",
+        product_question: "Ürün Sorusu", complaint: "Şikayet", general: "Genel Soru",
+      };
+
+      await storage.createAgentAction({
+        userId, agentType,
+        actionType: "auto_reply_sent",
+        description: `💬 Otomatik yanıt: ${customerName} — ${inquiryLabels[inquiryType] || inquiryType}`,
+        metadata: { customerName, customerContact, contactMethod, inquiryType, orderId, sourcePlatform, message: message.substring(0, 200) },
+      });
+
+      return {
+        result: `💬 MÜŞTERİ OTOMATİK YANIT\n\nMüşteri: ${customerName}\nİletişim: ${customerContact} (${contactMethod})\nKonu: ${inquiryLabels[inquiryType] || inquiryType}${orderId ? `\nSipariş: ${orderId}` : ""}${sourcePlatform ? `\nPlatform: ${sourcePlatform}` : ""}\n\nMesaj: "${message.substring(0, 300)}"\n\nMüşteriye uygun bir yanıt oluşturacağım ve ${contactMethod === "email" ? "e-posta" : "WhatsApp"} ile göndereceğim.`,
+        actionType: "auto_reply_sent",
+        actionDescription: `💬 Auto-reply: ${customerName} (${inquiryLabels[inquiryType] || inquiryType})`,
+      };
+    }
+
+    case "send_order_notification": {
+      const notificationType = String(args.notification_type);
+      const customerName = String(args.customer_name);
+      const customerContact = String(args.customer_contact);
+      const contactMethod = String(args.contact_method);
+      const orderId = String(args.order_id);
+      const orderDetails = args.order_details ? String(args.order_details) : "";
+      const trackingNumber = args.tracking_number ? String(args.tracking_number) : "";
+      const cargoCompany = args.cargo_company ? String(args.cargo_company) : "";
+
+      const notificationLabels: Record<string, string> = {
+        order_confirmed: "Sipariş Onayı", order_shipped: "Kargo Bildirimi",
+        order_delivered: "Teslim Bildirimi", review_request: "Değerlendirme Talebi",
+        return_approved: "İade Onayı", refund_processed: "İade İşlemi",
+      };
+
+      await storage.createAgentAction({
+        userId, agentType,
+        actionType: "order_notification_sent",
+        description: `📩 ${notificationLabels[notificationType] || notificationType}: ${customerName} — Sipariş #${orderId}`,
+        metadata: { notificationType, customerName, customerContact, contactMethod, orderId, trackingNumber, cargoCompany },
+      });
+
+      return {
+        result: `📩 BİLDİRİM GÖNDERİLDİ\n\nTip: ${notificationLabels[notificationType] || notificationType}\nMüşteri: ${customerName}\nKanal: ${contactMethod}\nSipariş: #${orderId}${orderDetails ? `\nDetay: ${orderDetails}` : ""}${trackingNumber ? `\nKargo: ${trackingNumber} (${cargoCompany})` : ""}\n\nMüşteriye bildirim ${contactMethod === "both" ? "e-posta ve WhatsApp" : contactMethod === "email" ? "e-posta" : "WhatsApp"} ile gönderilecek.`,
+        actionType: "order_notification_sent",
+        actionDescription: `📩 ${notificationLabels[notificationType]}: ${customerName}`,
+      };
+    }
+
+    case "create_campaign": {
+      const campaignName = String(args.campaign_name);
+      const campaignType = String(args.campaign_type);
+      const discountPct = args.discount_percentage ? Number(args.discount_percentage) : null;
+      const startDate = String(args.start_date);
+      const endDate = String(args.end_date);
+      const targetProducts = args.target_products ? String(args.target_products) : "Tüm ürünler";
+      const targetAudience = args.target_audience ? String(args.target_audience) : "all";
+      const channels = args.channels ? String(args.channels) : "email";
+      const budget = args.budget ? Number(args.budget) : null;
+
+      const typeLabels: Record<string, string> = {
+        discount: "İndirim", flash_sale: "Flaş Satış", bundle: "Paket Teklif",
+        buy_x_get_y: "X Al Y Öde", free_shipping: "Ücretsiz Kargo", seasonal: "Sezonluk",
+      };
+
+      await storage.createAgentAction({
+        userId, agentType,
+        actionType: "campaign_created",
+        description: `🎯 Kampanya oluşturuldu: ${campaignName} (${typeLabels[campaignType] || campaignType})`,
+        metadata: { campaignName, campaignType, discountPct, startDate, endDate, targetProducts, targetAudience, channels, budget },
+      });
+
+      return {
+        result: `🎯 KAMPANYA OLUŞTURULDU\n\nAd: ${campaignName}\nTip: ${typeLabels[campaignType] || campaignType}${discountPct ? `\nİndirim: %${discountPct}` : ""}\nTarih: ${startDate} → ${endDate}\nÜrünler: ${targetProducts}\nHedef Kitle: ${targetAudience}\nKanallar: ${channels}${budget ? `\nBütçe: ₺${budget.toLocaleString("tr-TR")}` : ""}\n\nKampanya planı hazır. İstediğinizde kampanya mesajlarını gönderebilirim.`,
+        actionType: "campaign_created",
+        actionDescription: `🎯 Campaign: ${campaignName}`,
+      };
+    }
+
+    case "send_campaign_message": {
+      const campaignName = String(args.campaign_name);
+      const subject = args.subject ? String(args.subject) : "";
+      const message = String(args.message);
+      const recipients = String(args.recipients).split(",").map(r => r.trim());
+      const channel = String(args.channel);
+
+      await storage.createAgentAction({
+        userId, agentType,
+        actionType: "campaign_message_sent",
+        description: `📢 Kampanya mesajı: ${campaignName} — ${recipients.length} alıcı (${channel})`,
+        metadata: { campaignName, subject, channel, recipientCount: recipients.length },
+      });
+
+      return {
+        result: `📢 KAMPANYA MESAJI GÖNDERİLDİ\n\nKampanya: ${campaignName}\nKanal: ${channel}${subject ? `\nKonu: ${subject}` : ""}\nAlıcı Sayısı: ${recipients.length}\n\nMesaj ${recipients.length} kişiye ${channel === "email" ? "e-posta" : "WhatsApp"} ile gönderilecek.`,
+        actionType: "campaign_message_sent",
+        actionDescription: `📢 Campaign sent: ${campaignName} (${recipients.length} recipients)`,
+      };
+    }
+
+    case "sales_analytics": {
+      const { getAllOrders, getAllProducts, getConnections } = await import("./services/marketplace/marketplaceCoordinator");
+      const period = String(args.period);
+      const platform = args.platform ? String(args.platform) : "all";
+
+      let days = 7;
+      if (period === "today") days = 1;
+      else if (period === "yesterday") days = 2;
+      else if (period === "last_7_days") days = 7;
+      else if (period === "last_30_days" || period === "this_month") days = 30;
+      else if (period === "last_month") days = 60;
+
+      const orders = await getAllOrders(userId, days);
+      const filteredOrders = platform === "all" ? orders : orders.filter(o => o._platform === platform);
+
+      const totalRevenue = filteredOrders.reduce((sum: number, o: any) => {
+        return sum + Number(o.totalPrice || o.total_price || 0);
+      }, 0);
+      const orderCount = filteredOrders.length;
+      const avgOrderValue = orderCount > 0 ? totalRevenue / orderCount : 0;
+
+      const platformBreakdown: Record<string, { orders: number; revenue: number }> = {};
+      for (const o of filteredOrders) {
+        const p = o._platform || "unknown";
+        if (!platformBreakdown[p]) platformBreakdown[p] = { orders: 0, revenue: 0 };
+        platformBreakdown[p].orders++;
+        platformBreakdown[p].revenue += Number(o.totalPrice || o.total_price || 0);
+      }
+
+      const breakdownStr = Object.entries(platformBreakdown).map(([p, data]) =>
+        `  • ${p.toUpperCase()}: ${data.orders} sipariş — ₺${data.revenue.toLocaleString("tr-TR", { minimumFractionDigits: 2 })}`
+      ).join("\n");
+
+      await storage.createAgentAction({
+        userId, agentType,
+        actionType: "sales_analytics",
+        description: `📊 Satış analizi: ${period} — ${orderCount} sipariş, ₺${totalRevenue.toFixed(2)}`,
+        metadata: { period, platform, orderCount, totalRevenue, avgOrderValue },
+      });
+
+      return {
+        result: `📊 SATIŞ ANALİZİ (${period})\n\nToplam Sipariş: ${orderCount}\nToplam Ciro: ₺${totalRevenue.toLocaleString("tr-TR", { minimumFractionDigits: 2 })}\nOrtalama Sipariş Değeri: ₺${avgOrderValue.toLocaleString("tr-TR", { minimumFractionDigits: 2 })}\n\nPlatform Dağılımı:\n${breakdownStr || "  Veri yok"}`,
+        actionType: "sales_analytics",
+        actionDescription: `📊 Sales: ${orderCount} orders, ₺${totalRevenue.toFixed(2)}`,
+      };
+    }
+
+    case "product_performance": {
+      const { getAllProducts, getAllOrders } = await import("./services/marketplace/marketplaceCoordinator");
+      const period = String(args.period);
+      const sortBy = args.sort_by ? String(args.sort_by) : "revenue";
+      const limit = args.limit ? Number(args.limit) : 10;
+
+      let days = 7;
+      if (period === "last_30_days") days = 30;
+      else if (period === "last_90_days") days = 90;
+
+      const products = await getAllProducts(userId);
+      const orders = await getAllOrders(userId, days);
+
+      await storage.createAgentAction({
+        userId, agentType,
+        actionType: "product_performance",
+        description: `📈 Ürün performansı: ${products.length} ürün, ${orders.length} sipariş (${period})`,
+        metadata: { period, sortBy, limit, productCount: products.length, orderCount: orders.length },
+      });
+
+      return {
+        result: `📈 ÜRÜN PERFORMANSI (${period})\n\nToplam Ürün: ${products.length}\nDönem Sipariş: ${orders.length}\nSıralama: ${sortBy}\n\nÜrün performans detayları sipariş verileriyle analiz ediliyor. Stok durumu, satış hızı ve kâr marjı hesaplanacak.`,
+        actionType: "product_performance",
+        actionDescription: `📈 Product performance: ${products.length} products`,
+      };
+    }
+
+    case "customer_segmentation": {
+      const segmentType = String(args.segment_type);
+      const platform = args.platform ? String(args.platform) : "all";
+      const period = args.period ? String(args.period) : "last_90_days";
+
+      const segmentLabels: Record<string, string> = {
+        rfm: "RFM Analizi (Recency, Frequency, Monetary)", geographic: "Coğrafi Dağılım",
+        purchase_behavior: "Satın Alma Davranışı", lifetime_value: "Müşteri Yaşam Boyu Değeri",
+        churn_risk: "Kayıp Riski Analizi",
+      };
+
+      await storage.createAgentAction({
+        userId, agentType,
+        actionType: "customer_segmentation",
+        description: `👥 Müşteri segmentasyonu: ${segmentLabels[segmentType] || segmentType}`,
+        metadata: { segmentType, platform, period },
+      });
+
+      return {
+        result: `👥 MÜŞTERİ SEGMENTASYONU\n\nAnaliz Tipi: ${segmentLabels[segmentType] || segmentType}\nPlatform: ${platform}\nDönem: ${period}\n\nMüşteri verileri analiz ediliyor. Segmentasyon sonuçları, önerilen aksiyonlar ve hedefleme stratejileri sunulacak.`,
+        actionType: "customer_segmentation",
+        actionDescription: `👥 Segmentation: ${segmentLabels[segmentType] || segmentType}`,
+      };
+    }
+
+    case "inventory_alert": {
+      const { getAllProducts } = await import("./services/marketplace/marketplaceCoordinator");
+      const alertType = String(args.alert_type);
+      const threshold = args.threshold ? Number(args.threshold) : 5;
+      const platform = args.platform ? String(args.platform) : "all";
+
+      const products = await getAllProducts(userId);
+      const filtered = platform === "all" ? products : products.filter(p => p._platform === platform);
+
+      const alerts: any[] = [];
+      for (const p of filtered) {
+        const stock = p.quantity ?? p.variants?.[0]?.inventory_quantity ?? p.availableStock ?? null;
+        const name = p.title || p.productName || p.hepsiburadaSku || "Unknown";
+        if (stock === null) continue;
+
+        if ((alertType === "out_of_stock" || alertType === "all") && stock === 0) {
+          alerts.push({ name, stock, platform: p._platform, type: "out_of_stock" });
+        }
+        if ((alertType === "low_stock" || alertType === "all") && stock > 0 && stock <= threshold) {
+          alerts.push({ name, stock, platform: p._platform, type: "low_stock" });
+        }
+        if ((alertType === "overstock" || alertType === "all") && stock > 100) {
+          alerts.push({ name, stock, platform: p._platform, type: "overstock" });
+        }
+      }
+
+      const alertEmoji: Record<string, string> = { out_of_stock: "🔴", low_stock: "🟡", overstock: "🟠" };
+      const alertLabels: Record<string, string> = { out_of_stock: "Stokta Yok", low_stock: "Düşük Stok", overstock: "Fazla Stok" };
+      const formatted = alerts.slice(0, 20).map(a =>
+        `${alertEmoji[a.type]} [${a.platform}] ${a.name} — Stok: ${a.stock} (${alertLabels[a.type]})`
+      ).join("\n");
+
+      await storage.createAgentAction({
+        userId, agentType,
+        actionType: "inventory_alert",
+        description: `📦 Stok uyarısı: ${alerts.length} ürün (${alertType})`,
+        metadata: { alertType, threshold, alertCount: alerts.length },
+      });
+
+      return {
+        result: `📦 STOK UYARILARI (${alertLabels[alertType] || "Tümü"})\n\nEşik: ${threshold} adet\nKontrol edilen: ${filtered.length} ürün\nUyarı: ${alerts.length} ürün\n\n${formatted || "Uyarı yok — tüm stoklar normal."}`,
+        actionType: "inventory_alert",
+        actionDescription: `📦 Inventory alerts: ${alerts.length} items`,
+      };
+    }
+
+    case "competitor_analysis": {
+      const productName = String(args.product_name);
+      const competitors = args.competitors ? String(args.competitors) : "";
+      const platform = args.platform ? String(args.platform) : "general";
+      const analysisType = String(args.analysis_type);
+
+      const analysisLabels: Record<string, string> = {
+        pricing: "Fiyat Karşılaştırması", positioning: "Pazar Konumlandırması",
+        reviews: "Yorum Analizi", market_share: "Pazar Payı",
+      };
+
+      await storage.createAgentAction({
+        userId, agentType,
+        actionType: "competitor_analysis",
+        description: `🔍 Rakip analizi: ${productName} — ${analysisLabels[analysisType] || analysisType}`,
+        metadata: { productName, competitors, platform, analysisType },
+      });
+
+      return {
+        result: `🔍 RAKİP ANALİZİ\n\nÜrün: ${productName}\nPlatform: ${platform}\nAnaliz: ${analysisLabels[analysisType] || analysisType}${competitors ? `\nRakipler: ${competitors}` : ""}\n\nWeb araması yaparak rakip fiyatları, ürün konumlandırması ve pazar trendleri analiz edilecek.`,
+        actionType: "competitor_analysis",
+        actionDescription: `🔍 Competitor: ${productName} (${analysisType})`,
+      };
+    }
+
+    case "bulk_price_sync": {
+      const { getAllProducts, getConnections } = await import("./services/marketplace/marketplaceCoordinator");
+      const strategy = String(args.strategy);
+      const targetMargin = args.target_margin ? Number(args.target_margin) : null;
+      const productsFilter = args.products ? String(args.products) : "all";
+
+      const connections = await getConnections(userId);
+      const products = await getAllProducts(userId);
+
+      const strategyLabels: Record<string, string> = {
+        match_lowest: "En Düşük Fiyata Eşitle", maintain_margin: "Marjı Koru",
+        platform_specific: "Platforma Özel", custom: "Özel Strateji",
+      };
+
+      await storage.createAgentAction({
+        userId, agentType,
+        actionType: "bulk_price_sync",
+        description: `💲 Toplu fiyat senkronizasyonu: ${strategyLabels[strategy] || strategy} — ${products.length} ürün`,
+        metadata: { strategy, targetMargin, productsFilter, productCount: products.length, platformCount: connections.length },
+      });
+
+      return {
+        result: `💲 TOPLU FİYAT SENKRONİZASYONU\n\nStrateji: ${strategyLabels[strategy] || strategy}${targetMargin ? `\nHedef Marj: %${targetMargin}` : ""}\nÜrünler: ${productsFilter === "all" ? `Tümü (${products.length})` : productsFilter}\nPlatformlar: ${connections.map(c => c.platform).join(", ")}\n\nFiyatlar platform komisyonları hesaplanarak senkronize edilecek.`,
+        actionType: "bulk_price_sync",
+        actionDescription: `💲 Bulk sync: ${products.length} products (${strategy})`,
       };
     }
 

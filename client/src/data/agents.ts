@@ -77,8 +77,8 @@ export const agentMetadata: AgentMetadata[] = [
   {
     id: "ecommerce-ops",
     slug: "ecommerce-operations-agent",
-    integrations: ["Shopify", "WooCommerce", "Amazon Seller", "Etsy", "eBay"],
-    languages: ["English", "Spanish", "French", "German"],
+    integrations: ["Trendyol", "Shopify", "Hepsiburada", "Amazon TR", "WooCommerce"],
+    languages: ["English", "Turkish", "Spanish", "German"],
     category: "Operations",
   },
   {

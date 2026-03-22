@@ -377,22 +377,24 @@
   },
   "ecommerce-ops": {
     "name": "E-Commerce Operations Agent",
-    "role": "Store Operations Manager",
-    "shortDescription": "Manages product listings, inventory alerts, price monitoring, and review responses.",
-    "fullDescription": "This AI agent manages your e-commerce operations end to end. From product listing optimization and inventory alerts to competitor price monitoring, review responses, and order tracking, it keeps your online store running smoothly 24/7.",
+    "role": "Full-Stack E-Commerce Manager",
+    "shortDescription": "Multi-marketplace management across Trendyol, Shopify, Hepsiburada & Amazon TR with automation, analytics, and customer communication.",
+    "fullDescription": "This AI agent manages your e-commerce operations end to end across Trendyol, Shopify, Hepsiburada, and Amazon TR. It handles product listing optimization, stock & price synchronization, order tracking, automated customer replies, campaign management, sales analytics, competitor analysis, and bulk price syncing. With return management, inventory alerts, and customer segmentation, it keeps your multi-marketplace business running 24/7.",
     "skills": [
-      "Product Listing",
-      "Inventory Alerts",
-      "Price Monitoring",
-      "Review Responses",
-      "Order Tracking",
-      "Competitor Analysis"
+      "Multi-Marketplace Management",
+      "Automated Customer Replies",
+      "Sales Analytics",
+      "Campaign Management",
+      "Stock & Price Sync",
+      "Order Tracking & Returns",
+      "Competitor Analysis",
+      "Customer Segmentation"
     ],
     "useCases": [
-      "E-commerce brands with multiple SKUs",
-      "Marketplace sellers on Amazon/Etsy",
+      "E-commerce brands selling on Trendyol, Hepsiburada & Amazon",
+      "Multi-marketplace sellers",
       "D2C brands scaling operations",
-      "Dropshipping businesses managing suppliers"
+      "Businesses automating customer communication"
     ],
     "metrics": {
       "listingUpdates": {
@@ -400,12 +402,12 @@
         "value": "Real-time"
       },
       "reviewResponse": {
-        "label": "Review Response",
-        "value": "<1hr"
+        "label": "Auto Reply",
+        "value": "Instant"
       },
       "priceChecks": {
-        "label": "Price Checks",
-        "value": "Hourly"
+        "label": "Marketplaces",
+        "value": "4"
       },
       "languages": {
         "label": "Languages",
@@ -414,16 +416,16 @@
     },
     "priceLabel": "From $300/mo (excl. VAT)",
     "integrations": [
+      "Trendyol",
       "Shopify",
-      "WooCommerce",
-      "Amazon Seller",
-      "Etsy",
-      "eBay"
+      "Hepsiburada",
+      "Amazon TR",
+      "WooCommerce"
     ],
     "languages": [
+      "Turkish",
       "English",
       "Spanish",
-      "French",
       "German"
     ]
   },

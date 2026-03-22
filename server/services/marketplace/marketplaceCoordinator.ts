@@ -4,8 +4,10 @@ import { eq, and } from "drizzle-orm";
 import { decryptCredentials } from "../encryption";
 import { TrendyolService } from "./trendyolService";
 import { ShopifyService } from "./shopifyService";
+import { HepsiburadaService } from "./hepsiburadaService";
+import { AmazonTRService } from "./amazonTRService";
 
-export type Platform = "trendyol" | "shopify";
+export type Platform = "trendyol" | "shopify" | "hepsiburada" | "amazon_tr";
 
 export async function getConnections(userId: number) {
   return db.select().from(marketplaceConnections)
@@ -45,22 +47,51 @@ export function createShopifyService(encryptedCreds: string): ShopifyService {
   });
 }
 
-export async function getMarketplaceService(userId: number, platform: Platform): Promise<TrendyolService | ShopifyService | null> {
+export function createHepsiburadaService(encryptedCreds: string): HepsiburadaService {
+  const creds = decryptCredentials(encryptedCreds);
+  return new HepsiburadaService({
+    merchantId: creds.merchantId || creds.merchant_id || "",
+    apiKey: creds.apiKey || creds.api_key || "",
+    apiSecret: creds.apiSecret || creds.api_secret || "",
+  });
+}
+
+export function createAmazonTRService(encryptedCreds: string): AmazonTRService {
+  const creds = decryptCredentials(encryptedCreds);
+  return new AmazonTRService({
+    sellerId: creds.sellerId || creds.seller_id || "",
+    refreshToken: creds.refreshToken || creds.refresh_token || "",
+    clientId: creds.clientId || creds.client_id || "",
+    clientSecret: creds.clientSecret || creds.client_secret || "",
+    marketplaceId: creds.marketplaceId || creds.marketplace_id,
+  });
+}
+
+export type MarketplaceService = TrendyolService | ShopifyService | HepsiburadaService | AmazonTRService;
+
+export async function getMarketplaceService(userId: number, platform: Platform): Promise<MarketplaceService | null> {
   const conn = await getConnectionByPlatform(userId, platform);
   if (!conn) return null;
 
-  if (platform === "trendyol") {
-    return createTrendyolService(conn.credentialsEncrypted);
-  } else if (platform === "shopify") {
-    return createShopifyService(conn.credentialsEncrypted);
+  switch (platform) {
+    case "trendyol":
+      return createTrendyolService(conn.credentialsEncrypted);
+    case "shopify":
+      return createShopifyService(conn.credentialsEncrypted);
+    case "hepsiburada":
+      return createHepsiburadaService(conn.credentialsEncrypted);
+    case "amazon_tr":
+      return createAmazonTRService(conn.credentialsEncrypted);
+    default:
+      return null;
   }
-  return null;
 }
 
 export async function getAllOrders(userId: number, days: number = 7): Promise<any[]> {
   const connections = await getConnections(userId);
   const allOrders: any[] = [];
   const startDate = Date.now() - days * 24 * 60 * 60 * 1000;
+  const startDateISO = new Date(startDate).toISOString();
 
   for (const conn of connections) {
     try {
@@ -74,6 +105,16 @@ export async function getAllOrders(userId: number, days: number = 7): Promise<an
         const result = await svc.getOrders({});
         const orders = result?.orders || [];
         allOrders.push(...orders.map((o: any) => ({ ...o, _platform: "shopify" })));
+      } else if (conn.platform === "hepsiburada") {
+        const svc = createHepsiburadaService(conn.credentialsEncrypted);
+        const result = await svc.getOrders({ startDate: startDateISO, endDate: new Date().toISOString() });
+        const orders = result?.content || result?.orders || [];
+        allOrders.push(...orders.map((o: any) => ({ ...o, _platform: "hepsiburada" })));
+      } else if (conn.platform === "amazon_tr") {
+        const svc = createAmazonTRService(conn.credentialsEncrypted);
+        const result = await svc.getOrders({ startDate: startDateISO, endDate: new Date().toISOString() });
+        const orders = result?.payload?.Orders || result?.Orders || [];
+        allOrders.push(...orders.map((o: any) => ({ ...o, _platform: "amazon_tr" })));
       }
     } catch (err: any) {
       console.error(`[Marketplace] ${conn.platform} orders error:`, err.message);
@@ -98,6 +139,16 @@ export async function getAllProducts(userId: number): Promise<any[]> {
         const result = await svc.getProducts(100);
         const products = result?.products || [];
         allProducts.push(...products.map((p: any) => ({ ...p, _platform: "shopify" })));
+      } else if (conn.platform === "hepsiburada") {
+        const svc = createHepsiburadaService(conn.credentialsEncrypted);
+        const result = await svc.getProducts(0, 100);
+        const products = result?.listings || result?.content || [];
+        allProducts.push(...products.map((p: any) => ({ ...p, _platform: "hepsiburada" })));
+      } else if (conn.platform === "amazon_tr") {
+        const svc = createAmazonTRService(conn.credentialsEncrypted);
+        const result = await svc.getProducts(100);
+        const products = result?.items || result?.payload?.items || [];
+        allProducts.push(...products.map((p: any) => ({ ...p, _platform: "amazon_tr" })));
       }
     } catch (err: any) {
       console.error(`[Marketplace] ${conn.platform} products error:`, err.message);

@@ -827,6 +827,13 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
         const xmlResult = await xmlRes.json();
         if (xmlResult.error) {
           toast({ title: t("demoPage.toast.uploadFailed"), description: xmlResult.error, variant: "destructive" });
+        } else if (xmlResult.hatali > 0 && xmlResult.basarili === 0) {
+          const rawXml = await file.text();
+          const xmlSnippet = rawXml.slice(0, 3000);
+          const errorDetails = xmlResult.detaylar?.map((d: any) => d.errors?.join(", ")).filter(Boolean).join("; ") || "";
+          setUploadedFile({ url: "", name: file.name, type: "document", documentContent: "[e-Fatura XML parse hatası: " + errorDetails + "]\n\nXML içeriği:\n" + xmlSnippet });
+          trackEvent("file_uploaded", "agent", { fileType: "xml", agentType: selectedAgent, error: true });
+          toast({ title: t("demoPage.eInvoiceUploaded"), description: errorDetails, variant: "destructive" });
         } else {
           const msg = (xmlResult.basarili || 0) + " " + t("demoPage.invoiceOk") + ", " + (xmlResult.hatali || 0) + " " + t("demoPage.invoiceError") + ", " + (xmlResult.mukerrer || 0) + " " + t("demoPage.invoiceDuplicate");
           setUploadedFile({ url: "", name: file.name, type: "document", documentContent: "[e-Fatura XML: " + msg + "]" });
@@ -884,7 +891,15 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
         const xmlRes = await fetch("/api/efatura/upload", { method: "POST", body: xmlForm, credentials: "include" });
         const result = await xmlRes.json();
         const msg = result.basarili + " " + t("demoPage.invoiceOk") + ", " + result.hatali + " " + t("demoPage.invoiceError") + ", " + result.mukerrer + " " + t("demoPage.invoiceDuplicate");
-        setUploadedFile({ url: "", name: xmlFiles.length + " XML", type: "document", documentContent: "[e-Fatura: " + msg + "]" });
+        let docContent = "[e-Fatura: " + msg + "]";
+        if (result.hatali > 0 && result.detaylar) {
+          const failedDetails = result.detaylar.filter((d: any) => d.status === "error");
+          for (const fd of failedDetails) {
+            docContent += "\n\nHatalı dosya: " + fd.file + " — " + (fd.errors?.join(", ") || "Bilinmeyen hata");
+            if (fd.xmlSnippet) docContent += "\nXML içeriği:\n" + fd.xmlSnippet;
+          }
+        }
+        setUploadedFile({ url: "", name: xmlFiles.length + " XML", type: "document", documentContent: docContent });
         toast({ title: t("demoPage.eInvoiceUploaded"), description: msg });
       } catch (err) {
         toast({ title: t("demoPage.toast.uploadFailed"), variant: "destructive" });

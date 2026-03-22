@@ -1837,7 +1837,7 @@ export async function registerRoutes(
             }
           } else {
             results.errors++;
-            results.details.push({ file: file.originalname, status: 'error', errors: parsed.errors });
+            results.details.push({ file: file.originalname, status: 'error', errors: parsed.errors, xmlSnippet: xmlContent.slice(0, 3000) });
           }
         } catch (fileErr: any) {
           results.errors++;

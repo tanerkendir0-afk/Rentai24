@@ -79,6 +79,37 @@ const parserOptions = {
 // PARSER FUNCTIONS  
 // ============================================================
 
+function stripBOM(content: string): string {
+  if (content.charCodeAt(0) === 0xFEFF) return content.slice(1);
+  return content;
+}
+
+function safeNum(val: any): number {
+  if (val == null) return 0;
+  if (typeof val === 'number') return val;
+  if (typeof val === 'object' && val['#text'] != null) return parseFloat(String(val['#text'])) || 0;
+  return parseFloat(String(val)) || 0;
+}
+
+function safeStr(val: any): string {
+  if (val == null) return '';
+  if (typeof val === 'string') return val;
+  if (typeof val === 'number') return String(val);
+  if (typeof val === 'object' && val['#text'] != null) return String(val['#text']);
+  return String(val);
+}
+
+function findInvoiceElement(obj: any, depth = 0): any {
+  if (!obj || typeof obj !== 'object' || depth > 5) return null;
+  if (obj.Invoice) return obj.Invoice;
+  for (const key of Object.keys(obj)) {
+    if (key.startsWith('@_') || key.startsWith('?')) continue;
+    const found = findInvoiceElement(obj[key], depth + 1);
+    if (found) return found;
+  }
+  return null;
+}
+
 /**
  * Tek bir e-Fatura XML dosyasını parse eder
  */
@@ -87,21 +118,24 @@ export function parseEFatura(xmlContent: string): ParseResult {
   const warnings: string[] = [];
 
   try {
+    const cleaned = stripBOM(xmlContent.trim());
     const parser = new XMLParser(parserOptions);
-    const doc = parser.parse(xmlContent);
+    const doc = parser.parse(cleaned);
 
-    // Root element: Invoice (UBL-TR)
-    const inv = doc.Invoice;
+    let inv = doc.Invoice;
+    if (!inv) {
+      inv = findInvoiceElement(doc);
+    }
     if (!inv) {
       return { success: false, errors: ['XML dosyasında Invoice root elementi bulunamadı'], warnings };
     }
 
     // === Belge No ===
-    const belgeNo = inv.ID?.toString() || '';
+    const belgeNo = safeStr(inv.ID);
     if (!belgeNo) errors.push('Belge numarası (ID) bulunamadı');
 
     // === Profil ID ===
-    const profilId = inv.ProfileID?.toString() || '';
+    const profilId = safeStr(inv.ProfileID);
     
     // === Belge Türü Tespiti ===
     let belgeTuru: ParsedInvoice['belgeTuru'] = 'e-Fatura';
@@ -113,10 +147,10 @@ export function parseEFatura(xmlContent: string): ParseResult {
       belgeTuru = 'e-Fatura';
     }
     // InvoiceTypeCode: SATIS, IADE, TEVKIFAT, ISTISNA, OZELMATRAH, IHRACKAYITLI
-    const invoiceTypeCode = inv.InvoiceTypeCode?.toString() || 'SATIS';
+    const invoiceTypeCode = safeStr(inv.InvoiceTypeCode) || 'SATIS';
 
     // === Fatura Tarihi ===
-    const rawDate = inv.IssueDate?.toString() || '';
+    const rawDate = safeStr(inv.IssueDate);
     const faturaTarihi = formatTarih(rawDate);
     if (!faturaTarihi) errors.push(`Geçersiz tarih formatı: ${rawDate}`);
 
@@ -127,9 +161,14 @@ export function parseEFatura(xmlContent: string): ParseResult {
 
     if (supplier) {
       // Unvan
-      saticiUnvani = supplier.PartyName?.Name?.toString()
-        || supplier.PartyLegalEntity?.RegistrationName?.toString()
+      saticiUnvani = safeStr(supplier.PartyName?.Name)
+        || safeStr(supplier.PartyLegalEntity?.RegistrationName)
         || '';
+      if (!saticiUnvani && supplier.Person) {
+        const fn = safeStr(supplier.Person.FirstName);
+        const ln = safeStr(supplier.Person.FamilyName);
+        saticiUnvani = [fn, ln].filter(Boolean).join(' ');
+      }
 
       // VKN/TCKN
       const partyId = supplier.PartyIdentification;
@@ -138,13 +177,13 @@ export function parseEFatura(xmlContent: string): ParseResult {
         for (const id of ids) {
           const schemeId = id.ID?.['@_schemeID'] || '';
           if (schemeId === 'VKN' || schemeId === 'TCKN' || schemeId === 'VKN_TCKN') {
-            saticiVKN = id.ID?.['#text']?.toString() || id.ID?.toString() || '';
+            saticiVKN = safeStr(id.ID);
             break;
           }
         }
         // Fallback: ilk ID'yi al
         if (!saticiVKN && ids.length > 0) {
-          saticiVKN = ids[0].ID?.['#text']?.toString() || ids[0].ID?.toString() || '';
+          saticiVKN = safeStr(ids[0].ID);
         }
       }
     }
@@ -169,14 +208,14 @@ export function parseEFatura(xmlContent: string): ParseResult {
         
         for (const sub of subtotalArr) {
           const taxScheme = sub.TaxCategory?.TaxScheme;
-          const taxName = taxScheme?.Name?.toString() || '';
-          const taxCode = taxScheme?.TaxTypeCode?.toString() || '';
+          const taxName = safeStr(taxScheme?.Name);
+          const taxCode = safeStr(taxScheme?.TaxTypeCode);
           
           // Sadece KDV (0015) işle
           if (taxCode === '0015' || taxName.includes('KDV') || taxName.includes('VAT')) {
-            const subMatrah = parseFloat(sub.TaxableAmount?.toString() || '0');
-            const subKDV = parseFloat(sub.TaxAmount?.toString() || '0');
-            const subOran = parseFloat(sub.Percent?.toString() || '0');
+            const subMatrah = safeNum(sub.TaxableAmount);
+            const subKDV = safeNum(sub.TaxAmount);
+            const subOran = safeNum(sub.Percent);
             
             matrah += subMatrah;
             kdvTutari += subKDV;
@@ -192,8 +231,8 @@ export function parseEFatura(xmlContent: string): ParseResult {
     if (matrah === 0) {
       const lmt = inv.LegalMonetaryTotal;
       if (lmt) {
-        matrah = parseFloat(lmt.TaxExclusiveAmount?.toString() || '0');
-        const payable = parseFloat(lmt.PayableAmount?.toString() || '0');
+        matrah = safeNum(lmt.TaxExclusiveAmount);
+        const payable = safeNum(lmt.PayableAmount);
         if (kdvTutari === 0 && payable > matrah) {
           kdvTutari = payable - matrah;
         }
@@ -222,7 +261,7 @@ export function parseEFatura(xmlContent: string): ParseResult {
     }
 
     // === Para Birimi ===
-    const paraBirimi = inv.DocumentCurrencyCode?.toString() || 'TRY';
+    const paraBirimi = safeStr(inv.DocumentCurrencyCode) || 'TRY';
     if (paraBirimi !== 'TRY') {
       warnings.push(`Yabancı para birimi: ${paraBirimi} - Döviz kuru dönüşümü gerekebilir`);
     }

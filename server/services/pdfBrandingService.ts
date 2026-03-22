@@ -444,6 +444,11 @@ export function generateBrandedReportPDF(data: ReportData, branding?: UserBrandi
         let off = 0;
         for (const w of colWidths) { colOffsets.push(off); off += w; }
 
+        if (y + HEADER_H + 16 > PAGE_BOTTOM) {
+          doc.addPage();
+          y = 50;
+        }
+
         const drawTableHeader = () => {
           doc.rect(marginLeft, y, contentWidth, HEADER_H).fill(theme.primary || DEFAULT_THEME.primary);
           doc.font(FONT_BOLD).fontSize(TABLE_FONT_SIZE).fillColor("white");

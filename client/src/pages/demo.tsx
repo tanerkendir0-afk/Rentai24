@@ -2246,7 +2246,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
         </div>
 
         <div className="border-t border-border/30 bg-card/50 backdrop-blur-xl shrink-0">
-          <div className="max-w-3xl mx-auto w-full px-2 sm:px-4 py-2 sm:py-3">
+          <div className={`w-full py-2 sm:py-3 ${selectedBoostPanels.length === 0 ? "max-w-3xl mx-auto px-2 sm:px-4" : "px-2"}`}>
             {uploadedFile && (
               <div className="flex items-center gap-2 mb-2 p-2 rounded-lg bg-blue-500/10 border border-blue-500/20" data-testid="upload-preview">
                 {uploadedFile.type === "image" ? (
@@ -2367,7 +2367,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                 sendMessage();
               }}
               noValidate
-              className="flex items-center gap-2"
+              className="flex items-end gap-1.5 flex-wrap"
             >
               <input
                 type="file"
@@ -2393,7 +2393,9 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                     }
                   }}
                   disabled={loading}
-                  className={`min-h-[44px] min-w-[44px] h-11 w-11 rounded-full border flex items-center justify-center shrink-0 transition-all touch-manipulation ${
+                  className={`rounded-full border flex items-center justify-center shrink-0 transition-all touch-manipulation ${
+                    selectedBoostPanels.length === 0 ? "min-h-[44px] min-w-[44px] h-11 w-11" : "h-9 w-9"
+                  } ${
                     showQuickTaskForm
                       ? "bg-blue-500/20 border-blue-500/50 text-blue-400"
                       : "bg-muted/50 border-border/50 text-muted-foreground hover:text-foreground hover:bg-muted"
@@ -2402,7 +2404,9 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                   data-testid="button-quick-task"
                 >
                   <ListTodo className="w-4 h-4" />
-                  <span className="hidden sm:inline text-[10px]">{t("demoPage.task")}</span>
+                  {selectedBoostPanels.length === 0 && (
+                    <span className="hidden sm:inline text-[10px]">{t("demoPage.task")}</span>
+                  )}
                 </button>
               )}
               {user && (
@@ -2410,14 +2414,14 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={loading || uploading}
-                  className="min-h-[44px] min-w-[44px] h-11 w-11 rounded-full bg-muted/50 border border-border/50 flex items-center justify-center shrink-0 text-muted-foreground hover:text-foreground hover:bg-muted transition-all disabled:opacity-40 touch-manipulation"
+                  className={`rounded-full bg-muted/50 border border-border/50 flex items-center justify-center shrink-0 text-muted-foreground hover:text-foreground hover:bg-muted transition-all disabled:opacity-40 touch-manipulation ${selectedBoostPanels.length === 0 ? "min-h-[44px] min-w-[44px] h-11 w-11" : "h-9 w-9"}`}
                   title={t("demoPage.attachFile")}
                   data-testid="button-upload-file"
                 >
                   {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Paperclip className="w-4 h-4" />}
                 </button>
               )}
-              <div className="flex-1 relative">
+              <div className="flex-1 min-w-[120px] relative">
                 <textarea
                   ref={inputRef}
                   value={input}

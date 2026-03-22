@@ -395,7 +395,7 @@ export default function BoostChatPanel({ panelId, allowedAgents, rentedAgentIds,
             placeholder={t("demoPage.messagePlaceholder", { agent: agent.persona })}
             disabled={loading}
             rows={1}
-            className="flex-1 min-h-[36px] max-h-[80px] px-3 py-2 rounded-lg bg-muted/50 border border-border/50 text-xs text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-amber-500/30 resize-none"
+            className="flex-1 min-w-0 min-h-[36px] max-h-[80px] px-3 py-2 rounded-lg bg-muted/50 border border-border/50 text-xs text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-amber-500/30 resize-none"
             data-testid={`boost-panel-input-${panelId}`}
           />
           {loading ? (

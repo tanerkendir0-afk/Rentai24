@@ -431,6 +431,29 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
     } catch {}
   };
 
+  const startBoostConversation = async () => {
+    const maxP = Math.min(boostIsUnlimited ? 2 : boostMaxSlots, 2);
+    if (selectedBoostPanels.length >= maxP) {
+      toast({
+        title: t("boost.slotsFull"),
+        description: t("boost.slotsFullDesc"),
+        variant: "destructive",
+      });
+      return;
+    }
+    const visibleId = generateVisibleId();
+    try {
+      await apiRequest("POST", "/api/conversations", { agentType: selectedAgent, visibleId });
+      queryClient.invalidateQueries({ queryKey: ['/api/conversations', selectedAgent] });
+      queryClient.invalidateQueries({ queryKey: ["/api/boost/tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/boost/status"] });
+      setSelectedBoostPanels(prev => {
+        if (prev.length >= maxP) return prev;
+        return [...prev, { visibleId, agentType: selectedAgent }];
+      });
+    } catch {}
+  };
+
   const deleteConversation = async (convoId: string) => {
     if (conversations.length <= 1) return;
     const convo = conversations.find(c => c.id === convoId);
@@ -2493,7 +2516,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
         {hasBoost && user && (
           <BoostTaskBar
             selectedPanelIds={selectedBoostPanels.map(p => p.visibleId)}
-            maxPanels={Math.min(boostIsUnlimited ? 3 : boostMaxSlots, 3)}
+            maxPanels={Math.min(boostIsUnlimited ? 2 : boostMaxSlots, 2)}
             onBringToFront={(visibleId, agentType) => {
               setSelectedAgent(agentType);
               setActiveConvoId(prev => ({ ...prev, [agentType]: visibleId }));
@@ -2509,7 +2532,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                 if (exists) {
                   return prev.filter(p => p.visibleId !== visibleId);
                 }
-                const maxP = Math.min(boostIsUnlimited ? 3 : boostMaxSlots, 3);
+                const maxP = Math.min(boostIsUnlimited ? 2 : boostMaxSlots, 2);
                 if (prev.length >= maxP) return prev;
                 return [...prev, { visibleId, agentType }];
               });
@@ -2524,18 +2547,9 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
               } catch {}
             }}
             onNewChat={() => {
-              const canAdd = boostIsUnlimited || boostActiveCount < boostMaxSlots;
-              if (canAdd) {
-                startNewConversation();
-              } else {
-                toast({
-                  title: t("boost.slotsFull"),
-                  description: t("boost.slotsFullDesc"),
-                  variant: "destructive",
-                });
-              }
+              startBoostConversation();
             }}
-            canAddChat={boostIsUnlimited || boostActiveCount < boostMaxSlots}
+            canAddChat={true}
           />
         )}
 

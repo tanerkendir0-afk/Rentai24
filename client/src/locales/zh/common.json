@@ -1,0 +1,92 @@
+{
+  "nav": {
+    "aiWorkers": "AI 员工",
+    "howItWorks": "工作原理",
+    "pricing": "定价",
+    "about": "关于我们",
+    "contact": "联系我们",
+    "installApp": "安装应用",
+    "guide": "指南",
+    "settings": "设置",
+    "dashboard": "控制台",
+    "admin": "管理员",
+    "signOut": "退出登录",
+    "signIn": "登录",
+    "tryLiveDemo": "体验在线演示",
+    "automations": "自动化"
+  },
+  "install": {
+    "title": "安装 RentAI 24",
+    "description": "在您的设备上获得完整的应用体验：",
+    "nativeApp": "如同原生应用一样运行",
+    "nativeAppDesc": "在独立窗口中打开——无需浏览器标签页。",
+    "fast": "快速且随时可用",
+    "fastDesc": "从主屏幕或桌面即时启动。",
+    "upToDate": "保持更新",
+    "upToDateDesc": "随时快速访问您的 AI 团队。",
+    "installNow": "立即安装",
+    "notNow": "暂不安装",
+    "iosSafari": {
+      "description": "按照以下步骤将 RentAI 24 添加到您的主屏幕：",
+      "step1": "点击工具栏中的<strong>分享</strong>按钮",
+      "step2": "向下滚动并点击<strong>添加到主屏幕</strong>",
+      "step3": "点击右上角的<strong>添加</strong>"
+    },
+    "macosSafari": {
+      "description": "按照以下步骤将 RentAI 24 添加到您的 Dock：",
+      "step1": "点击 Safari 菜单栏中的<strong>文件</strong>",
+      "step2": "选择<strong>添加到 Dock</strong>",
+      "step3": "点击<strong>添加</strong>确认"
+    },
+    "firefox": {
+      "description": "Firefox 对 PWA 的支持有限。您可以尝试：",
+      "step1": "点击地址栏中的<strong>菜单按钮</strong>（三个点）",
+      "step2": "查找<strong>安装</strong>或<strong>添加到主屏幕</strong>选项",
+      "tip": "<strong>提示：</strong>为获得最佳体验，请在 Chrome、Edge 或 Safari 中打开此网站以原生方式安装应用。"
+    },
+    "other": {
+      "description": "要安装此应用，请尝试以下方法：",
+      "lookForInstall": "在浏览器的地址栏或菜单中查找<strong>安装图标</strong>",
+      "openInBrowser": "或在 <strong>Chrome</strong>、<strong>Edge</strong> 或 <strong>Safari</strong> 中打开此网站以获得最佳安装体验"
+    },
+    "addToHomeScreen": "添加到主屏幕",
+    "addToDock": "添加到 Dock",
+    "installRentAI": "安装 RentAI 24",
+    "guideDescription": "您的浏览器不支持自动安装。请按照以下步骤操作：",
+    "gotIt": "知道了"
+  },
+  "footer": {
+    "tagline": "租用 AI，全天候服务。预训练的 AI 智能员工随时准备加入您的团队。",
+    "quickLinks": "快速链接",
+    "liveDemo": "在线演示",
+    "legal": "法律条款",
+    "privacyPolicy": "隐私政策",
+    "termsOfService": "服务条款",
+    "newsletter": "新闻通讯",
+    "newsletterDesc": "获取 AI 劳动力趋势和产品更新的最新信息。",
+    "subscribed": "您已订阅！",
+    "subscribedToast": "订阅成功！",
+    "errorToast": "错误",
+    "errorDesc": "订阅失败，请重试。",
+    "copyright": "© {{year}} RentAI 24. 保留所有权利。",
+    "adminPanel": "管理面板"
+  },
+  "language": {
+    "label": "语言",
+    "english": "English",
+    "turkish": "Türkçe",
+    "chinese": "中文",
+    "switchTo": "切换到 {{lang}}",
+    "preference": "语言偏好",
+    "preferenceDesc": "选择您偏好的界面语言。",
+    "saved": "语言偏好已保存",
+    "savedDesc": "界面语言已更新。"
+  },
+  "cookieConsent": {
+    "title": "Cookie 和隐私声明",
+    "description": "我们使用 Cookie 和类似技术来提升您的体验。继续使用我们的网站即表示您同意我们按照以下政策使用 Cookie。",
+    "privacyLink": "隐私政策",
+    "acceptAll": "全部接受",
+    "rejectAll": "全部拒绝"
+  }
+}

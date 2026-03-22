@@ -1,0 +1,667 @@
+{
+  "customer-support": {
+    "name": "客户支持智能员工",
+    "role": "客户服务代表",
+    "shortDescription": "全天候处理在线聊天、电子邮件、投诉和订单跟踪，高效且富有同理心。",
+    "fullDescription": "我们的客户支持智能员工经过专业训练，可以处理全方位的客户服务任务。从在线聊天和电子邮件回复到投诉处理和订单跟踪，该智能员工提供快速、准确且富有同理心的全天候支持。它学习您的产品、政策和品牌语调，每次都提供一致且符合品牌形象的回复。",
+    "tag": "最受欢迎",
+    "skills": [
+      "在线聊天",
+      "邮件回复",
+      "投诉处理",
+      "订单跟踪",
+      "退款处理",
+      "常见问题处理"
+    ],
+    "useCases": [
+      "需要全天候客户支持的电商企业",
+      "处理技术支持咨询的 SaaS 公司",
+      "管理客户咨询的酒店企业",
+      "处理退货和换货的零售品牌"
+    ],
+    "metrics": {
+      "avgResponseTime": {
+        "label": "平均响应时间",
+        "value": "<5秒"
+      },
+      "resolutionRate": {
+        "label": "解决率",
+        "value": "94%"
+      },
+      "satisfaction": {
+        "label": "客户满意度",
+        "value": "4.8/5"
+      },
+      "languages": {
+        "label": "支持语言",
+        "value": "7"
+      }
+    },
+    "priceLabel": "$300/月起（不含税）",
+    "responseTime": "<5秒",
+    "integrations": [
+      "WhatsApp",
+      "Intercom",
+      "Zendesk",
+      "Freshdesk",
+      "Instagram DM",
+      "Facebook Messenger",
+      "Slack"
+    ],
+    "languages": [
+      "英语",
+      "西班牙语",
+      "法语",
+      "德语",
+      "阿拉伯语",
+      "土耳其语",
+      "葡萄牙语"
+    ]
+  },
+  "sales-sdr": {
+    "name": "销售开发代表",
+    "role": "外呼销售智能员工",
+    "shortDescription": "生成潜在客户、发送冷联系邮件、撰写提案并保持 CRM 更新。",
+    "fullDescription": "这款 AI 销售开发代表自动化了销售流程中最耗时的部分。它研究潜在客户、撰写个性化联系邮件、系统化跟进、更新您的 CRM，并与合格潜在客户安排会议。它就像一个不知疲倦的销售代表，永远不会错过跟进。",
+    "tag": "高投资回报",
+    "skills": [
+      "潜在客户开发",
+      "冷联系",
+      "跟进邮件",
+      "提案撰写",
+      "CRM 更新",
+      "会议安排"
+    ],
+    "useCases": [
+      "扩展外呼销售的 B2B 企业",
+      "建立销售管道的初创企业",
+      "为客户开发潜在客户的代理机构",
+      "寻找新业务的房地产公司"
+    ],
+    "metrics": {
+      "leadsPerMonth": {
+        "label": "月潜在客户",
+        "value": "500+"
+      },
+      "openRate": {
+        "label": "邮件打开率",
+        "value": "42%"
+      },
+      "meetingRate": {
+        "label": "会议预约率",
+        "value": "8%"
+      },
+      "languages": {
+        "label": "支持语言",
+        "value": "5"
+      }
+    },
+    "priceLabel": "$300/月起（不含税）",
+    "integrations": [
+      "HubSpot",
+      "Salesforce",
+      "Pipedrive",
+      "LinkedIn",
+      "Gmail",
+      "WhatsApp",
+      "Calendly"
+    ],
+    "languages": [
+      "英语",
+      "土耳其语",
+      "西班牙语",
+      "法语",
+      "德语"
+    ]
+  },
+  "social-media": {
+    "name": "社交媒体经理",
+    "role": "内容与社群经理",
+    "shortDescription": "规划内容、撰写帖子、管理评论并提供分析报告。",
+    "fullDescription": "您的 AI 社交媒体经理处理从内容规划和帖子创建到评论管理和分析报告的所有工作。它紧跟趋势、优化发布时间，并在所有社交渠道保持一致的互动。",
+    "skills": [
+      "内容规划",
+      "帖子撰写",
+      "评论管理",
+      "话题标签研究",
+      "分析报告",
+      "趋势监测"
+    ],
+    "useCases": [
+      "维护活跃社交媒体形象的品牌",
+      "管理多个客户账户的营销机构",
+      "通过社交引流的电商企业",
+      "与本地受众互动的餐饮企业"
+    ],
+    "metrics": {
+      "postsPerWeek": {
+        "label": "每周发帖",
+        "value": "20+"
+      },
+      "engagementRate": {
+        "label": "互动率",
+        "value": "+35%"
+      },
+      "responseTime": {
+        "label": "响应时间",
+        "value": "<15分钟"
+      },
+      "languages": {
+        "label": "支持语言",
+        "value": "5"
+      }
+    },
+    "priceLabel": "$300/月起（不含税）",
+    "integrations": [
+      "Instagram",
+      "Twitter/X",
+      "Facebook",
+      "LinkedIn",
+      "TikTok",
+      "YouTube",
+      "Buffer",
+      "Hootsuite"
+    ],
+    "languages": [
+      "英语",
+      "土耳其语",
+      "西班牙语",
+      "法语",
+      "葡萄牙语"
+    ]
+  },
+  "bookkeeping": {
+    "name": "会计助理",
+    "role": "财务运营智能员工",
+    "shortDescription": "处理发票、追踪费用、生成报告并发送税务提醒。",
+    "fullDescription": "Finn 是您的 AI 会计和税务顾问，专精于土耳其税法和会计准则。创建含 KDV（增值税）和预扣税计算的发票、计算含 SGK 扣除的工资单、生成 Excel 格式的财务报表、解析电子发票 XML 文件、跟踪税务日历，并提供针对土耳其中小企业的会计指导。",
+    "skills": [
+      "发票创建（KDV + 预扣税）",
+      "工资单和社保计算",
+      "税务截止日期跟踪",
+      "财务报表生成",
+      "电子发票 XML 解析",
+      "TCMB 汇率查询",
+      "现金流预测",
+      "应收应付管理"
+    ],
+    "useCases": [
+      "需要 KDV 计算开发票的土耳其中小企业",
+      "追踪工资单和社保缴纳的企业",
+      "创建形式发票和运输指示的出口企业",
+      "生成财务报告和纳税申报的企业"
+    ],
+    "metrics": {
+      "accuracyRate": {
+        "label": "准确率",
+        "value": "99.2%"
+      },
+      "processingTime": {
+        "label": "处理时间",
+        "value": "<30秒"
+      },
+      "reportsPerMonth": {
+        "label": "月报告数",
+        "value": "无限"
+      },
+      "languages": {
+        "label": "支持语言",
+        "value": "2"
+      }
+    },
+    "priceLabel": "$500/月起（不含税）",
+    "integrations": [
+      "e-Devlet",
+      "GIB（税务局）",
+      "Excel",
+      "电子发票",
+      "TCMB",
+      "土耳其银行"
+    ],
+    "languages": [
+      "土耳其语",
+      "英语"
+    ]
+  },
+  "scheduling": {
+    "name": "预约和排程智能员工",
+    "role": "排程协调员",
+    "shortDescription": "管理预约、发送提醒、处理改期并跟进缺席。",
+    "fullDescription": "这款 AI 排程智能员工管理您的整个预约流程。处理在线预约、发送自动提醒、管理改期和取消、跟进缺席者并维护等候名单。非常适合服务型企业。",
+    "tag": "最佳性价比",
+    "skills": [
+      "在线预约",
+      "提醒",
+      "日历管理",
+      "改期",
+      "缺席跟进",
+      "等候名单管理"
+    ],
+    "useCases": [
+      "诊所和医疗服务机构",
+      "管理预约的美容院和水疗中心",
+      "安排客户通话的咨询师",
+      "处理预订的餐厅"
+    ],
+    "metrics": {
+      "noshowReduction": {
+        "label": "缺席减少",
+        "value": "60%"
+      },
+      "bookingSpeed": {
+        "label": "预约速度",
+        "value": "<10秒"
+      },
+      "reminderRate": {
+        "label": "提醒率",
+        "value": "100%"
+      },
+      "languages": {
+        "label": "支持语言",
+        "value": "6"
+      }
+    },
+    "priceLabel": "$300/月起（不含税）",
+    "integrations": [
+      "Google Calendar",
+      "Calendly",
+      "Acuity",
+      "WhatsApp",
+      "SMS",
+      "Email"
+    ],
+    "languages": [
+      "英语",
+      "西班牙语",
+      "法语",
+      "德语",
+      "阿拉伯语",
+      "土耳其语"
+    ]
+  },
+  "hr-recruiting": {
+    "name": "人力资源与招聘助理",
+    "role": "人才招聘智能员工",
+    "shortDescription": "筛选简历、候选人短名单、安排面试并管理入职。",
+    "fullDescription": "人力资源与招聘助理简化您的整个招聘流程。按照您的标准筛选简历、挑选最佳候选人、协调面试安排、准备入职文件，并在多个平台发布职位。",
+    "skills": [
+      "简历筛选",
+      "候选人短名单",
+      "面试安排",
+      "入职文件",
+      "职位发布"
+    ],
+    "useCases": [
+      "正在扩大团队的成长型企业",
+      "处理大量招聘的人力资源部门",
+      "管理客户需求的招聘机构",
+      "招聘首批员工的初创企业"
+    ],
+    "metrics": {
+      "screeningSpeed": {
+        "label": "筛选速度",
+        "value": "50份简历/小时"
+      },
+      "matchAccuracy": {
+        "label": "匹配准确率",
+        "value": "91%"
+      },
+      "timeToShortlist": {
+        "label": "短名单时间",
+        "value": "<2小时"
+      },
+      "languages": {
+        "label": "支持语言",
+        "value": "4"
+      }
+    },
+    "priceLabel": "$300/月起（不含税）",
+    "integrations": [
+      "LinkedIn",
+      "Indeed",
+      "Kariyer.net",
+      "WhatsApp",
+      "Gmail",
+      "Workable"
+    ],
+    "languages": [
+      "土耳其语",
+      "英语",
+      "西班牙语",
+      "法语"
+    ]
+  },
+  "data-analyst": {
+    "name": "数据分析师智能员工",
+    "role": "商业智能助理",
+    "shortDescription": "清洗数据、生成报告、创建仪表板并自动跟踪 KPI。",
+    "fullDescription": "您的 AI 数据分析师处理数据清洗、报告生成、仪表板创建、趋势分析、KPI 跟踪和异常检测。无需编写任何公式，即可将原始数据转化为可执行的洞察。",
+    "tag": "全新",
+    "skills": [
+      "数据清洗",
+      "报告生成",
+      "仪表板创建",
+      "趋势分析",
+      "KPI 跟踪",
+      "异常检测"
+    ],
+    "useCases": [
+      "分析活动效果的营销团队",
+      "监控业务指标的运营团队",
+      "定期生成报告的财务团队",
+      "跟踪用户行为的产品团队"
+    ],
+    "metrics": {
+      "reportsPerDay": {
+        "label": "每日报告",
+        "value": "无限"
+      },
+      "dataSources": {
+        "label": "数据源",
+        "value": "50+"
+      },
+      "accuracy": {
+        "label": "准确率",
+        "value": "99.5%"
+      },
+      "languages": {
+        "label": "支持语言",
+        "value": "2"
+      }
+    },
+    "priceLabel": "$300/月起（不含税）",
+    "integrations": [
+      "Google Sheets",
+      "Excel",
+      "CSV",
+      "Airtable",
+      "SQL Databases",
+      "PDF"
+    ],
+    "languages": [
+      "土耳其语",
+      "英语"
+    ]
+  },
+  "ecommerce-ops": {
+    "name": "电子商务运营智能员工",
+    "role": "店铺运营经理",
+    "shortDescription": "管理产品列表、库存预警、价格监控和评论回复。",
+    "fullDescription": "这款 AI 智能员工端到端管理您的电商运营。从产品列表优化和库存预警到竞争对手价格监控、评论回复和订单跟踪，全天候保持您的线上店铺顺畅运营。",
+    "skills": [
+      "产品列表",
+      "库存预警",
+      "价格监控",
+      "评论回复",
+      "订单跟踪",
+      "竞争分析"
+    ],
+    "useCases": [
+      "在 Trendyol、Shopify、Amazon 上销售的电商品牌",
+      "管理多平台库存和定价的卖家",
+      "扩展物流和订单运营的 D2C 品牌",
+      "优化产品列表和评论管理的企业"
+    ],
+    "metrics": {
+      "listingUpdates": {
+        "label": "列表更新",
+        "value": "实时"
+      },
+      "reviewResponse": {
+        "label": "评论回复",
+        "value": "<1小时"
+      },
+      "priceChecks": {
+        "label": "价格检查",
+        "value": "每小时"
+      },
+      "languages": {
+        "label": "支持语言",
+        "value": "5"
+      }
+    },
+    "priceLabel": "$300/月起（不含税）",
+    "integrations": [
+      "Trendyol",
+      "Shopify",
+      "Hepsiburada",
+      "Amazon",
+      "WooCommerce",
+      "Aras Kargo",
+      "DHL"
+    ],
+    "languages": [
+      "土耳其语",
+      "英语",
+      "西班牙语",
+      "法语",
+      "德语"
+    ]
+  },
+  "real-estate": {
+    "name": "房地产智能员工",
+    "role": "物业运营专家",
+    "shortDescription": "搜索房源、评估列表、分析社区、审查租约并管理物业运营。",
+    "fullDescription": "Reno 是您的 AI 房地产顾问，专精于土耳其房地产市场。在 Sahibinden、Hepsiemlak 和 Emlakjet 上搜索房源，提供产权证（tapu）和使用许可（iskan）指导，就租赁法律（土耳其债法 6098）提供建议，进行社区分析和房产估值。计算包括 DASK 地震保险、产权费和中介佣金在内的土耳其房地产成本。",
+    "skills": [
+      "房源搜索（m²）",
+      "房产估值",
+      "社区分析",
+      "租约审查",
+      "产权和许可信息",
+      "成本计算",
+      "欺诈检测",
+      "DASK 保险信息"
+    ],
+    "useCases": [
+      "在土耳其房地产市场搜索的租客和买家",
+      "需要租赁合同和租金涨幅建议的房东",
+      "进行房产估值和社区分析的投资者",
+      "需要产权证和 DASK 信息的房产专业人士"
+    ],
+    "metrics": {
+      "listingsScanned": {
+        "label": "扫描房源",
+        "value": "1000+/天"
+      },
+      "scamDetection": {
+        "label": "欺诈检测",
+        "value": "99.2%"
+      },
+      "marketCoverage": {
+        "label": "市场覆盖",
+        "value": "50+ 城市"
+      },
+      "languages": {
+        "label": "支持语言",
+        "value": "4"
+      }
+    },
+    "priceLabel": "$300/月起（不含税）",
+    "integrations": [
+      "Sahibinden.com",
+      "Hepsiemlak.com",
+      "Emlakjet.com",
+      "Google Maps",
+      "DASK"
+    ],
+    "languages": [
+      "土耳其语",
+      "英语",
+      "西班牙语",
+      "德语"
+    ]
+  },
+  "categories": {
+    "All": "全部",
+    "Customer Support": "客户支持",
+    "Sales": "销售",
+    "Marketing": "营销",
+    "Finance": "财务",
+    "HR": "人力资源",
+    "Operations": "运营"
+  },
+  "industries": [
+    {
+      "name": "电商与零售",
+      "icon": "ShoppingCart"
+    },
+    {
+      "name": "餐饮与酒店",
+      "icon": "UtensilsCrossed"
+    },
+    {
+      "name": "医疗与诊所",
+      "icon": "Heart"
+    },
+    {
+      "name": "法律与律所",
+      "icon": "Scale"
+    },
+    {
+      "name": "会计与财务",
+      "icon": "Calculator"
+    },
+    {
+      "name": "房地产",
+      "icon": "Building2"
+    },
+    {
+      "name": "教育与在线学习",
+      "icon": "GraduationCap"
+    },
+    {
+      "name": "旅游与观光",
+      "icon": "Plane"
+    },
+    {
+      "name": "SaaS 与科技创业",
+      "icon": "Code"
+    },
+    {
+      "name": "营销机构",
+      "icon": "Megaphone"
+    }
+  ],
+  "testimonials": [
+    {
+      "text": "我们用一个 RentAI 员工替代了3名客服代表。响应时间下降了80%，客户满意度上升了。",
+      "name": "Sarah K.",
+      "company": "NexaShop",
+      "role": "首席运营官"
+    },
+    {
+      "text": "SDR 智能员工在第一周产生的合格潜在客户比我们团队一个月的还多。真正的变革者。",
+      "name": "Marcus T.",
+      "company": "GrowthBase",
+      "role": "销售总监"
+    },
+    {
+      "text": "我们的排程智能员工几乎完全消除了缺席现象。它处理预约、提醒和跟进，完全无需我们操心。",
+      "name": "Priya S.",
+      "company": "Bloom Wellness",
+      "role": "创始人"
+    },
+    {
+      "text": "社交媒体经理 AI 让我们12个客户账户全部保持活跃和互动。我们在不增加人手的情况下实现了扩展。",
+      "name": "David L.",
+      "company": "PixelCraft Agency",
+      "role": "创意总监"
+    }
+  ],
+  "faqItems": [
+    {
+      "question": "什么是 AI 智能员工？",
+      "answer": "AI 智能员工是经过预训练的人工智能代理，旨在自主执行特定的业务任务。可以将其视为专注于特定角色的数字团队成员——客户支持、销售、会计等——全天候不间断工作。"
+    },
+    {
+      "question": "这与 ChatGPT 或其他 AI 工具有何不同？",
+      "answer": "与通用 AI 工具不同，我们的 AI 智能员工针对特定业务角色进行了预训练和微调。它们直接与您现有的工具（CRM、客服系统等）集成，跨对话保持上下文，并且设计用于端到端处理真实业务流程——而不仅仅是回答问题。"
+    },
+    {
+      "question": "AI 智能员工会取代我的员工吗？",
+      "answer": "不会。我们的 AI 智能员工旨在增强您的团队，而非取代它。它们处理重复性、耗时的任务，让您的员工专注于战略、创意和客户关系——这些是人类最擅长的事情。"
+    },
+    {
+      "question": "如何与我现有的系统集成？",
+      "answer": "我们支持与50多种流行工具的集成，包括 CRM（HubSpot、Salesforce）、客服系统（Zendesk、Intercom）、通信工具（WhatsApp、Slack）等。我们的团队为您处理整个集成过程。"
+    },
+    {
+      "question": "我的数据安全吗？",
+      "answer": "绝对安全。我们使用企业级加密（AES-256）保护静态数据，使用 TLS 1.3 保护传输中的数据。我们符合 SOC 2 标准、GDPR 合规，您的数据永远不会用于训练我们的模型。您始终拥有您的数据。"
+    },
+    {
+      "question": "如果 AI 犯了错误怎么办？",
+      "answer": "我们的 AI 智能员工内置了置信度阈值。当它们不确定时，会升级到人工团队成员。您可以设置自定义升级规则，我们的团队会监控性能以持续降低错误率。"
+    },
+    {
+      "question": "我可以根据特定需求自定义 AI 智能员工吗？",
+      "answer": "可以！专业版和企业版包含自定义微调。我们可以根据您的特定产品、品牌语调、政策和工作流程训练 AI，确保它准确代表您的企业。"
+    },
+    {
+      "question": "你们的退款政策是什么？",
+      "answer": "我们提供14天免费试用，无需信用卡。如果您在订阅后不满意，我们在前30天内提供全额退款，无需任何理由。"
+    }
+  ],
+  "heroRoles": {
+    "customerSupport": "客户支持",
+    "salesDevRep": "销售代表",
+    "socialMedia": "社交媒体",
+    "bookkeeping": "会计",
+    "scheduling": "排程",
+    "hrRecruiting": "人力资源",
+    "dataAnalyst": "数据分析",
+    "ecommerceOps": "电商运营",
+    "realEstate": "房地产",
+    "ready": "就绪"
+  },
+  "regionInfo": {
+    "title": "中国市场本地化信息",
+    "description": "我们的 AI 智能员工已针对国际和土耳其市场优化。以下是各智能员工在中国市场的适用场景。",
+    "customer-support": {
+      "marketNote": "支持微信客服、企业微信和钉钉集成场景",
+      "localPlatforms": ["微信", "企业微信", "钉钉", "飞书"],
+      "tip": "适合跨境电商企业的多语言客户服务需求"
+    },
+    "sales-sdr": {
+      "marketNote": "B2B 销售场景支持阿里巴巴国际站、中国制造网等平台",
+      "localPlatforms": ["阿里巴巴", "中国制造网", "环球资源", "LinkedIn"],
+      "tip": "特别适合中土贸易和一带一路沿线市场的 B2B 业务"
+    },
+    "social-media": {
+      "marketNote": "内容策略适用于国际社交平台，支持中文内容创作",
+      "localPlatforms": ["微博", "小红书", "抖音", "微信公众号", "B站"],
+      "tip": "适合面向海外华人社区或国际市场的品牌内容运营"
+    },
+    "bookkeeping": {
+      "marketNote": "目前专注于土耳其税务和会计准则（KDV、SGK 等）",
+      "localPlatforms": ["e-Devlet", "GIB", "TCMB"],
+      "tip": "适合在土耳其开展业务的中国企业进行税务和发票管理"
+    },
+    "scheduling": {
+      "marketNote": "日历管理支持多时区，适合跨国团队协调",
+      "localPlatforms": ["Google Calendar", "Calendly", "WhatsApp"],
+      "tip": "适合中土两国团队之间的会议安排和时差管理（UTC+8 vs UTC+3）"
+    },
+    "hr-recruiting": {
+      "marketNote": "招聘流程支持国际和土耳其人才市场",
+      "localPlatforms": ["LinkedIn", "Indeed", "Kariyer.net"],
+      "tip": "适合在土耳其招聘本地员工或管理跨国团队的中国企业"
+    },
+    "data-analyst": {
+      "marketNote": "数据分析支持 Excel、CSV 等通用格式，图表支持中文",
+      "localPlatforms": ["Excel", "Google Sheets", "CSV", "PDF"],
+      "tip": "适合分析跨境电商数据、市场趋势和业务 KPI"
+    },
+    "ecommerce-ops": {
+      "marketNote": "支持 Trendyol、Shopify 等平台的店铺运营管理",
+      "localPlatforms": ["Trendyol", "Shopify", "Hepsiburada", "Amazon"],
+      "tip": "适合在土耳其和国际平台上运营的跨境电商卖家"
+    },
+    "real-estate": {
+      "marketNote": "专注于土耳其房地产市场分析和物业搜索",
+      "localPlatforms": ["Sahibinden.com", "Hepsiemlak.com", "Emlakjet.com"],
+      "tip": "适合在土耳其投资房产的中国投资者，提供产权、DASK 保险和租赁法律指导"
+    }
+  }
+}

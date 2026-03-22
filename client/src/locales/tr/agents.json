@@ -93,7 +93,7 @@
       },
       "languages": {
         "label": "Diller",
-        "value": "4"
+        "value": "5"
       }
     },
     "priceLabel": "$300/ay'dan (KDV hariç)",
@@ -103,10 +103,12 @@
       "Pipedrive",
       "LinkedIn",
       "Gmail",
+      "WhatsApp",
       "Calendly"
     ],
     "languages": [
       "İngilizce",
+      "Türkçe",
       "İspanyolca",
       "Fransızca",
       "Almanca"
@@ -146,7 +148,7 @@
       },
       "languages": {
         "label": "Diller",
-        "value": "4"
+        "value": "5"
       }
     },
     "priceLabel": "$300/ay'dan (KDV hariç)",
@@ -156,11 +158,13 @@
       "Facebook",
       "LinkedIn",
       "TikTok",
+      "YouTube",
       "Buffer",
       "Hootsuite"
     ],
     "languages": [
       "İngilizce",
+      "Türkçe",
       "İspanyolca",
       "Fransızca",
       "Portekizce"
@@ -170,20 +174,22 @@
     "name": "Muhasebe Asistanı",
     "role": "Mali Operasyon Ajanı",
     "shortDescription": "Faturaları işler, giderleri takip eder, raporlar oluşturur ve vergi hatırlatıcıları gönderir.",
-    "fullDescription": "Muhasebe Asistanı mali operasyonlarınızı otomatikleştirir. Faturaları işler, giderleri kategorize eder, hesapları uzlaştırır, mali raporlar oluşturur ve vergi son tarihlerini asla kaçırmamanızı sağlar. Doğru, uyumlu ve her zaman güncel.",
+    "fullDescription": "Finn, Türk vergi mevzuatı ve muhasebe standartlarında uzmanlaşmış AI muhasebe danışmanınızdır. KDV, stopaj, bordro hesaplama, fatura oluşturma, mali tablo hazırlama, e-Fatura parse etme ve vergi takvimi takibi yapır. Türk KOBİ'leri için tam donanımlı bir sanal mali müşavir asistanıdır.",
     "skills": [
-      "Fatura İşleme",
-      "Gider Takibi",
-      "Mali Raporlama",
-      "Vergi Hatırlatıcıları",
-      "Makbuz Tarama",
-      "Uzlaştırma"
+      "Fatura Oluşturma (KDV + Tevkifat)",
+      "Bordro ve SGK Hesaplama",
+      "Vergi Beyanname Takibi",
+      "Mali Tablo Hazırlama",
+      "e-Fatura XML Parse",
+      "TCMB Kur Sorgulama",
+      "Nakit Akışı Tahmini",
+      "Borç-Alacak Takibi"
     ],
     "useCases": [
-      "Kendi defterlerini yöneten küçük işletmeler",
-      "Gelir ve giderlerini takip eden serbest çalışanlar",
-      "Birden fazla müşteriyi yöneten muhasebe firmaları",
-      "Temiz mali kayıt tutan girişimler"
+      "Fatura ve KDV hesaplaması yapan KOBİ'ler",
+      "Bordro ve SGK işlemlerini takip eden şirketler",
+      "İhracat faturası ve proforma hazırlayan firmalar",
+      "Mali tabloları ve vergi beyannamelerini düzenli hazırlayan işletmeler"
     ],
     "metrics": {
       "accuracyRate": {
@@ -205,16 +211,16 @@
     },
     "priceLabel": "$500/ay'dan (KDV hariç)",
     "integrations": [
-      "QuickBooks",
-      "Xero",
-      "FreshBooks",
+      "e-Devlet",
+      "GİB (Gelir İdaresi)",
       "Excel",
-      "Stripe",
-      "PayPal"
+      "e-Fatura",
+      "TCMB",
+      "Türk Bankaları"
     ],
     "languages": [
-      "İngilizce",
-      "İspanyolca"
+      "Türkçe",
+      "İngilizce"
     ]
   },
   "scheduling": {
@@ -306,19 +312,20 @@
       },
       "languages": {
         "label": "Diller",
-        "value": "3"
+        "value": "4"
       }
     },
     "priceLabel": "$300/ay'dan (KDV hariç)",
     "integrations": [
       "LinkedIn",
-      "Indeed",
-      "Greenhouse",
-      "Lever",
-      "Workable",
-      "BambooHR"
+      "Kariyer.net",
+      "Indeed TR",
+      "İŞKUR",
+      "WhatsApp",
+      "Gmail"
     ],
     "languages": [
+      "Türkçe",
       "İngilizce",
       "İspanyolca",
       "Fransızca"
@@ -359,19 +366,20 @@
       },
       "languages": {
         "label": "Diller",
-        "value": "1"
+        "value": "2"
       }
     },
     "priceLabel": "$300/ay'dan (KDV hariç)",
     "integrations": [
       "Google Sheets",
       "Excel",
-      "Tableau",
-      "Looker",
+      "CSV",
+      "Airtable",
       "SQL Databases",
-      "Airtable"
+      "PDF"
     ],
     "languages": [
+      "Türkçe",
       "İngilizce"
     ]
   },
@@ -389,10 +397,10 @@
       "Rakip Analizi"
     ],
     "useCases": [
-      "Birden fazla SKU'ya sahip e-ticaret markaları",
-      "Amazon/Etsy pazaryeri satıcıları",
-      "Operasyonlarını ölçeklendiren D2C markaları",
-      "Tedarikçileri yöneten stoksuz satış işletmeleri"
+      "Trendyol ve Hepsiburada'da satan e-ticaret markaları",
+      "Çoklu pazaryerinde stok ve fiyat yöneten satıcılar",
+      "Kargo ve sipariş takibi yapan D2C markaları",
+      "Ürün listeleme ve fiyat optimizasyonu yapan KOBİ'ler"
     ],
     "metrics": {
       "listingUpdates": {
@@ -414,13 +422,16 @@
     },
     "priceLabel": "$300/ay'dan (KDV hariç)",
     "integrations": [
+      "Trendyol",
       "Shopify",
-      "WooCommerce",
-      "Amazon Seller",
-      "Etsy",
-      "eBay"
+      "Hepsiburada",
+      "N11",
+      "Amazon TR",
+      "Aras Kargo",
+      "Yurtiçi Kargo"
     ],
     "languages": [
+      "Türkçe",
       "İngilizce",
       "İspanyolca",
       "Fransızca",
@@ -431,21 +442,22 @@
     "name": "Emlak ve Mülk Ajanı",
     "role": "Mülk Operasyon Uzmanı",
     "shortDescription": "Daire bulur, listeleri değerlendirir, mahalleleri analiz eder, kira sözleşmelerini inceler ve mülk operasyonlarını yönetir.",
-    "fullDescription": "Bu yapay zeka ajanı tüm emlak ve mülk ihtiyaçlarınızı karşılar. Kiralık ilanları araştırmaktan mülkleri değerlendirmeye, mahalleleri analiz etmekten kira koşullarını incelemeye ve gerçek yaşam maliyetlerini hesaplamaya kadar, Reno 7/24 çalışan özel mülk uzmanınızdır.",
+    "fullDescription": "Reno, Türk emlak piyasasında uzmanlaşmış AI gayrimenkul danışmanınızdır. Sahibinden, Hepsiemlak ve Emlakjet üzerinden mülk arar, tapu ve iskan bilgisi verir, kira hukuku (6098 Borçlar Kanunu) konusunda danışmanlık yapar, mahalle analizi ve gayrimenkul değerleme yapar. DASK, tapu harcı, emlakçı komisyonu gibi Türk emlak maliyetlerini hesaplar.",
     "skills": [
-      "Mülk Arama",
-      "İlan Değerlendirme",
+      "Mülk Arama (m²)",
+      "Gayrimenkul Değerleme",
       "Mahalle Analizi",
-      "Kira İncelemesi",
-      "Piyasa Raporları",
-      "Maliyet Hesaplayıcı",
-      "Dolandırıcılık Tespiti"
+      "Kira Sözleşmesi İnceleme",
+      "Tapu ve İskan Bilgisi",
+      "Maliyet Hesaplama",
+      "Dolandırıcılık Tespiti",
+      "DASK Bilgisi"
     ],
     "useCases": [
-      "Birden fazla ilan yöneten emlak ajansları",
-      "Kiralık portföylere sahip mülk yöneticileri",
-      "Daire veya ev arayan kiracılar",
-      "Kira fiyatlandırmasını optimize eden ev sahipleri"
+      "Türk emlak piyasasında mülk arayan kiracı ve alıcılar",
+      "Kira sözleşmesi ve artış oranı danışmanlığı alan ev sahipleri",
+      "Gayrimenkul değerleme ve mahalle analizi yapan yatırımcılar",
+      "Tapu, iskan ve DASK bilgisi gereken emlak profesyonelleri"
     ],
     "metrics": {
       "listingsScanned": {
@@ -467,16 +479,16 @@
     },
     "priceLabel": "$300/ay'dan (KDV hariç)",
     "integrations": [
-      "Zillow",
-      "Apartments.com",
-      "Redfin",
-      "Craigslist",
-      "Google Maps"
+      "Sahibinden.com",
+      "Hepsiemlak.com",
+      "Emlakjet.com",
+      "Google Maps",
+      "DASK"
     ],
     "languages": [
+      "Türkçe",
       "İngilizce",
       "İspanyolca",
-      "Türkçe",
       "Almanca"
     ]
   },
@@ -602,5 +614,54 @@
     "ecommerceOps": "E-Ticaret Ops",
     "realEstate": "Emlak",
     "ready": "Hazır"
+  },
+  "regionInfo": {
+    "title": "Çin Pazarı Lokalizasyon Bilgileri",
+    "description": "AI çalışanlarımız uluslararası ve Türk pazarları için optimize edilmiştir. Aşağıda her çalışanın Çin pazarındaki kullanım senaryoları yer almaktadır.",
+    "customer-support": {
+      "marketNote": "WeChat, WeCom ve DingTalk entegrasyon senaryolarını destekler",
+      "localPlatforms": ["WeChat", "WeCom", "DingTalk", "Feishu"],
+      "tip": "Sınır ötesi e-ticaret işletmelerinin çok dilli müşteri hizmeti ihtiyaçları için ideal"
+    },
+    "sales-sdr": {
+      "marketNote": "B2B satış Alibaba.com, Made-in-China.com platformlarını destekler",
+      "localPlatforms": ["Alibaba", "Made-in-China", "Global Sources", "LinkedIn"],
+      "tip": "Özellikle Çin-Türkiye ticareti ve Kuşak ve Yol pazarı B2B işleri için uygun"
+    },
+    "social-media": {
+      "marketNote": "Uluslararası platformlar için içerik stratejisi, Çince içerik oluşturma desteği",
+      "localPlatforms": ["Weibo", "Xiaohongshu", "Douyin", "WeChat Resmi Hesap", "Bilibili"],
+      "tip": "Yurtdışındaki Çin topluluklarını veya uluslararası pazarları hedefleyen marka içerikleri için harika"
+    },
+    "bookkeeping": {
+      "marketNote": "Şu anda Türk vergi ve muhasebe standartlarına (KDV, SGK vb.) odaklanmaktadır",
+      "localPlatforms": ["e-Devlet", "GİB", "TCMB"],
+      "tip": "Türkiye'de iş yapan Çinli şirketler için vergi ve fatura yönetimi konusunda ideal"
+    },
+    "scheduling": {
+      "marketNote": "Takvim yönetimi, sınır ötesi ekip koordinasyonu için çoklu saat dilimini destekler",
+      "localPlatforms": ["Google Calendar", "Calendly", "WhatsApp"],
+      "tip": "Çin ve Türkiye arasındaki toplantı planlaması ve saat farkı yönetimi için mükemmel (UTC+8 vs UTC+3)"
+    },
+    "hr-recruiting": {
+      "marketNote": "İşe alım süreci uluslararası ve Türk yetenek pazarlarını destekler",
+      "localPlatforms": ["LinkedIn", "Indeed", "Kariyer.net"],
+      "tip": "Türkiye'de yerel personel işe alan veya sınır ötesi ekipleri yöneten Çinli şirketler için uygun"
+    },
+    "data-analyst": {
+      "marketNote": "Veri analizi Excel ve CSV gibi evrensel formatları destekler, Çince grafik etiketleri",
+      "localPlatforms": ["Excel", "Google Sheets", "CSV", "PDF"],
+      "tip": "Sınır ötesi e-ticaret verileri, pazar trendleri ve iş KPI'larını analiz etmek için harika"
+    },
+    "ecommerce-ops": {
+      "marketNote": "Trendyol, Shopify ve diğer platform mağaza operasyonlarını destekler",
+      "localPlatforms": ["Trendyol", "Shopify", "Hepsiburada", "Amazon"],
+      "tip": "Türk ve uluslararası platformlarda faaliyet gösteren sınır ötesi e-ticaret satıcıları için ideal"
+    },
+    "real-estate": {
+      "marketNote": "Türk emlak piyasası analizi ve mülk aramasına odaklanır",
+      "localPlatforms": ["Sahibinden.com", "Hepsiemlak.com", "Emlakjet.com"],
+      "tip": "Türkiye'de gayrimenkul yatırımı yapan Çinli yatırımcılar için — tapu, DASK sigortası ve kira hukuku bilgisi"
+    }
   }
 }

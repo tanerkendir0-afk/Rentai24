@@ -2144,7 +2144,7 @@ export const realEstateTools: OpenAI.ChatCompletionTool[] = [
           city: { type: "string", description: "City or neighborhood to search in" },
           bedrooms: { type: "number", description: "Number of bedrooms (1-5)" },
           max_budget: { type: "number", description: "Maximum monthly rent budget" },
-          property_type: { type: "string", enum: ["apartment", "condo", "townhouse", "house", "studio", "any"], description: "Type of property (default: any)" },
+          property_type: { type: "string", enum: ["daire", "mustakil", "villa", "rezidans", "isyeri", "dukkan", "arsa", "any"], description: "Mülk tipi: daire, müstakil ev, villa, rezidans, işyeri, dükkan, arsa veya any (default: any)" },
           preferences: { type: "string", description: "Additional preferences (e.g. parking, pets, furnished, waterfront)" },
         },
         required: ["city"],

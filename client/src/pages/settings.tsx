@@ -382,6 +382,14 @@ function LanguagePreferenceCard() {
         >
           {t("language.turkish")}
         </Button>
+        <Button
+          variant={language === "zh" ? "default" : "outline"}
+          className={language === "zh" ? "bg-gradient-to-r from-blue-500 to-violet-500 text-white border-0" : ""}
+          onClick={() => handleLanguageChange("zh")}
+          data-testid="button-language-zh"
+        >
+          {t("language.chinese")}
+        </Button>
       </div>
     </Card>
   );

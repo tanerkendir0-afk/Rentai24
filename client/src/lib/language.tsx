@@ -3,13 +3,16 @@ import { useTranslation } from "react-i18next";
 import { useAuth } from "@/lib/auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 
-function normalizeLanguage(lng: string): "en" | "tr" {
+type SupportedLanguage = "en" | "tr" | "zh";
+
+function normalizeLanguage(lng: string): SupportedLanguage {
   if (lng.startsWith("tr")) return "tr";
+  if (lng.startsWith("zh")) return "zh";
   return "en";
 }
 
 interface LanguageContextType {
-  language: "en" | "tr";
+  language: SupportedLanguage;
   changeLanguage: (lng: string) => Promise<void>;
   isRtl: boolean;
 }

@@ -75,6 +75,7 @@
     "label": "Language",
     "english": "English",
     "turkish": "Türkçe",
+    "chinese": "中文",
     "switchTo": "Switch to {{lang}}",
     "preference": "Language Preference",
     "preferenceDesc": "Choose your preferred language for the interface.",

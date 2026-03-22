@@ -75,6 +75,7 @@
     "label": "Dil",
     "english": "English",
     "turkish": "Türkçe",
+    "chinese": "中文",
     "switchTo": "{{lang}} diline geç",
     "preference": "Dil Tercihi",
     "preferenceDesc": "Arayüz için tercih ettiğiniz dili seçin.",

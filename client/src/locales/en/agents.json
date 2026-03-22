@@ -93,7 +93,7 @@
       },
       "languages": {
         "label": "Languages",
-        "value": "4"
+        "value": "5"
       }
     },
     "priceLabel": "From $300/mo (excl. VAT)",
@@ -103,10 +103,12 @@
       "Pipedrive",
       "LinkedIn",
       "Gmail",
+      "WhatsApp",
       "Calendly"
     ],
     "languages": [
       "English",
+      "Turkish",
       "Spanish",
       "French",
       "German"
@@ -146,7 +148,7 @@
       },
       "languages": {
         "label": "Languages",
-        "value": "4"
+        "value": "5"
       }
     },
     "priceLabel": "From $300/mo (excl. VAT)",
@@ -156,11 +158,13 @@
       "Facebook",
       "LinkedIn",
       "TikTok",
+      "YouTube",
       "Buffer",
       "Hootsuite"
     ],
     "languages": [
       "English",
+      "Turkish",
       "Spanish",
       "French",
       "Portuguese"
@@ -170,20 +174,22 @@
     "name": "Bookkeeping Assistant",
     "role": "Financial Operations Agent",
     "shortDescription": "Processes invoices, tracks expenses, generates reports, and sends tax reminders.",
-    "fullDescription": "The Bookkeeping Assistant automates your financial operations. It processes invoices, categorizes expenses, reconciles accounts, generates financial reports, and ensures you never miss a tax deadline. Accurate, compliant, and always up to date.",
+    "fullDescription": "Finn is your AI accounting and tax consultant specialized in Turkish tax law and accounting standards. Creates invoices with KDV (VAT) and withholding calculations, computes payroll with SGK deductions, generates financial statements in Excel, parses e-Invoice XML files, tracks the tax calendar, and provides Turkish SME-focused accounting guidance.",
     "skills": [
-      "Invoice Processing",
-      "Expense Tracking",
-      "Financial Reporting",
-      "Tax Reminders",
-      "Receipt Scanning",
-      "Reconciliation"
+      "Invoice Creation (KDV + Withholding)",
+      "Payroll & SGK Calculation",
+      "Tax Deadline Tracking",
+      "Financial Statement Generation",
+      "e-Invoice XML Parsing",
+      "TCMB Exchange Rates",
+      "Cash Flow Forecasting",
+      "Debt & Receivables Tracking"
     ],
     "useCases": [
-      "Small businesses managing their own books",
-      "Freelancers tracking income and expenses",
-      "Accounting firms handling multiple clients",
-      "Startups keeping clean financial records"
+      "Turkish SMEs creating invoices with KDV calculations",
+      "Companies tracking payroll and SGK contributions",
+      "Export businesses creating proforma and shipping instructions",
+      "Businesses generating financial reports and tax returns"
     ],
     "metrics": {
       "accuracyRate": {
@@ -205,16 +211,16 @@
     },
     "priceLabel": "From $500/mo (excl. VAT)",
     "integrations": [
-      "QuickBooks",
-      "Xero",
-      "FreshBooks",
+      "e-Devlet",
+      "GIB (Revenue Admin)",
       "Excel",
-      "Stripe",
-      "PayPal"
+      "e-Invoice",
+      "TCMB",
+      "Turkish Banks"
     ],
     "languages": [
-      "English",
-      "Spanish"
+      "Turkish",
+      "English"
     ]
   },
   "scheduling": {
@@ -306,19 +312,20 @@
       },
       "languages": {
         "label": "Languages",
-        "value": "3"
+        "value": "4"
       }
     },
     "priceLabel": "From $300/mo (excl. VAT)",
     "integrations": [
       "LinkedIn",
       "Indeed",
-      "Greenhouse",
-      "Lever",
-      "Workable",
-      "BambooHR"
+      "Kariyer.net",
+      "WhatsApp",
+      "Gmail",
+      "Workable"
     ],
     "languages": [
+      "Turkish",
       "English",
       "Spanish",
       "French"
@@ -359,19 +366,20 @@
       },
       "languages": {
         "label": "Languages",
-        "value": "1"
+        "value": "2"
       }
     },
     "priceLabel": "From $300/mo (excl. VAT)",
     "integrations": [
       "Google Sheets",
       "Excel",
-      "Tableau",
-      "Looker",
+      "CSV",
+      "Airtable",
       "SQL Databases",
-      "Airtable"
+      "PDF"
     ],
     "languages": [
+      "Turkish",
       "English"
     ]
   },
@@ -389,10 +397,10 @@
       "Competitor Analysis"
     ],
     "useCases": [
-      "E-commerce brands with multiple SKUs",
-      "Marketplace sellers on Amazon/Etsy",
-      "D2C brands scaling operations",
-      "Dropshipping businesses managing suppliers"
+      "E-commerce brands selling on Trendyol, Shopify, Amazon",
+      "Marketplace sellers managing multi-platform stock & pricing",
+      "D2C brands scaling shipping and order operations",
+      "Businesses optimizing product listings and review management"
     ],
     "metrics": {
       "listingUpdates": {
@@ -414,13 +422,16 @@
     },
     "priceLabel": "From $300/mo (excl. VAT)",
     "integrations": [
+      "Trendyol",
       "Shopify",
+      "Hepsiburada",
+      "Amazon",
       "WooCommerce",
-      "Amazon Seller",
-      "Etsy",
-      "eBay"
+      "Aras Kargo",
+      "DHL"
     ],
     "languages": [
+      "Turkish",
       "English",
       "Spanish",
       "French",
@@ -431,21 +442,22 @@
     "name": "Real Estate & Property Agent",
     "role": "Property Operations Specialist",
     "shortDescription": "Finds apartments, evaluates listings, analyzes neighborhoods, reviews leases, and manages property operations.",
-    "fullDescription": "This AI agent handles all your real estate and property needs. From searching rental listings and evaluating properties to analyzing neighborhoods, reviewing lease terms, and calculating true costs of living, Reno is your dedicated property specialist working around the clock.",
+    "fullDescription": "Reno is your AI real estate consultant specialized in the Turkish property market. Searches Sahibinden, Hepsiemlak and Emlakjet, provides title deed (tapu) and occupancy permit (iskan) guidance, advises on rental law (Turkish Code of Obligations 6098), performs neighborhood analysis and property valuation. Calculates Turkish real estate costs including DASK earthquake insurance, title fees, and agent commissions.",
     "skills": [
-      "Property Search",
-      "Listing Evaluation",
+      "Property Search (m²)",
+      "Property Valuation",
       "Neighborhood Analysis",
       "Lease Review",
-      "Market Reports",
+      "Title & Occupancy Info",
       "Cost Calculator",
-      "Scam Detection"
+      "Scam Detection",
+      "DASK Insurance Info"
     ],
     "useCases": [
-      "Real estate agencies managing multiple listings",
-      "Property managers with rental portfolios",
-      "Tenants searching for apartments or homes",
-      "Landlords optimizing rental pricing"
+      "Tenants and buyers searching the Turkish real estate market",
+      "Landlords needing rental contract and increase rate advice",
+      "Investors performing property valuation and neighborhood analysis",
+      "Real estate professionals needing title deed and DASK information"
     ],
     "metrics": {
       "listingsScanned": {
@@ -467,16 +479,16 @@
     },
     "priceLabel": "From $300/mo (excl. VAT)",
     "integrations": [
-      "Zillow",
-      "Apartments.com",
-      "Redfin",
-      "Craigslist",
-      "Google Maps"
+      "Sahibinden.com",
+      "Hepsiemlak.com",
+      "Emlakjet.com",
+      "Google Maps",
+      "DASK"
     ],
     "languages": [
+      "Turkish",
       "English",
       "Spanish",
-      "Turkish",
       "German"
     ]
   },
@@ -602,5 +614,54 @@
     "ecommerceOps": "E-Commerce Ops",
     "realEstate": "Real Estate",
     "ready": "Ready"
+  },
+  "regionInfo": {
+    "title": "China Market Localization",
+    "description": "Our AI workers are optimized for international and Turkish markets. Below is how each worker applies to the Chinese market.",
+    "customer-support": {
+      "marketNote": "Supports WeChat, WeCom, and DingTalk integration scenarios",
+      "localPlatforms": ["WeChat", "WeCom", "DingTalk", "Feishu"],
+      "tip": "Ideal for multilingual customer service needs of cross-border e-commerce businesses"
+    },
+    "sales-sdr": {
+      "marketNote": "B2B sales supports Alibaba.com, Made-in-China.com platforms",
+      "localPlatforms": ["Alibaba", "Made-in-China", "Global Sources", "LinkedIn"],
+      "tip": "Especially suited for China-Turkey trade and Belt & Road market B2B business"
+    },
+    "social-media": {
+      "marketNote": "Content strategy for international platforms with Chinese content creation",
+      "localPlatforms": ["Weibo", "Xiaohongshu", "Douyin", "WeChat Official", "Bilibili"],
+      "tip": "Great for brand content targeting overseas Chinese communities or international markets"
+    },
+    "bookkeeping": {
+      "marketNote": "Currently focused on Turkish tax and accounting standards (KDV, SGK, etc.)",
+      "localPlatforms": ["e-Devlet", "GIB", "TCMB"],
+      "tip": "Ideal for Chinese companies doing business in Turkey for tax and invoice management"
+    },
+    "scheduling": {
+      "marketNote": "Calendar management supports multi-timezone for cross-border team coordination",
+      "localPlatforms": ["Google Calendar", "Calendly", "WhatsApp"],
+      "tip": "Perfect for meeting scheduling and timezone management between China and Turkey (UTC+8 vs UTC+3)"
+    },
+    "hr-recruiting": {
+      "marketNote": "Recruitment pipeline supports international and Turkish talent markets",
+      "localPlatforms": ["LinkedIn", "Indeed", "Kariyer.net"],
+      "tip": "Suitable for Chinese companies hiring local staff in Turkey or managing cross-border teams"
+    },
+    "data-analyst": {
+      "marketNote": "Data analysis supports universal formats like Excel and CSV with Chinese chart labels",
+      "localPlatforms": ["Excel", "Google Sheets", "CSV", "PDF"],
+      "tip": "Great for analyzing cross-border e-commerce data, market trends, and business KPIs"
+    },
+    "ecommerce-ops": {
+      "marketNote": "Supports Trendyol, Shopify and other platform store operations",
+      "localPlatforms": ["Trendyol", "Shopify", "Hepsiburada", "Amazon"],
+      "tip": "Ideal for cross-border e-commerce sellers operating on Turkish and international platforms"
+    },
+    "real-estate": {
+      "marketNote": "Focused on Turkish real estate market analysis and property search",
+      "localPlatforms": ["Sahibinden.com", "Hepsiemlak.com", "Emlakjet.com"],
+      "tip": "Suitable for Chinese investors buying property in Turkey — covers title deeds, DASK insurance, and rental law"
+    }
   }
 }

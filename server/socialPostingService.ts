@@ -320,11 +320,19 @@ export interface MediaPostData {
   permalink: string;
 }
 
-export interface ProfileResult {
+export interface InstagramProfileResult {
   success: boolean;
-  data?: InstagramProfileData | TwitterProfileData;
+  data?: InstagramProfileData;
   error?: string;
 }
+
+export interface TwitterProfileResult {
+  success: boolean;
+  data?: TwitterProfileData;
+  error?: string;
+}
+
+export type ProfileResult = InstagramProfileResult | TwitterProfileResult;
 
 export interface RecentMediaResult {
   success: boolean;
@@ -332,7 +340,7 @@ export interface RecentMediaResult {
   error?: string;
 }
 
-export async function fetchInstagramProfile(account: SocialAccount): Promise<ProfileResult> {
+export async function fetchInstagramProfile(account: SocialAccount): Promise<InstagramProfileResult> {
   const { accessToken, businessAccountId } = account;
   if (!accessToken || !businessAccountId) {
     return { success: false, error: "Instagram Business credentials incomplete. Need Meta Access Token and Business Account ID." };
@@ -398,7 +406,7 @@ export async function fetchInstagramRecentMedia(account: SocialAccount, limit: n
   }
 }
 
-export async function fetchTwitterProfile(account: SocialAccount): Promise<ProfileResult> {
+export async function fetchTwitterProfile(account: SocialAccount): Promise<TwitterProfileResult> {
   const { apiKey, apiSecret, accessToken, accessTokenSecret } = account;
   if (!apiKey || !apiSecret || !accessToken || !accessTokenSecret) {
     return { success: false, error: "Twitter API credentials incomplete." };

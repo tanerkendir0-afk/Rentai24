@@ -59,3 +59,16 @@ The RentAI 24 platform utilizes a modern web stack: React, TypeScript, and Tailw
 *   **Resend:** Email delivery
 *   **Pinecone:** Vector database
 *   **Meta WhatsApp Business Cloud API**
+*   **Meta Graph API (Instagram Business):** Profile insights, media fetching
+*   **Twitter API v2:** User profile metrics (OAuth 1.0a)
+
+## Maya Social Media Agent — Enhanced Tools
+Maya now has 7 additional tools beyond basic posting:
+- `get_account_insights` — Fetches real-time stats from connected Business accounts (Instagram Graph API, Twitter API v2)
+- `get_special_days` — Turkish/US special days calendar with content ideas (official holidays, religious holidays including Ramazan/Kurban 2025-2030, commercial days, international days)
+- `create_monthly_program` — 30-day content program integrated with special days, posting times, and content type recommendations
+- `analyze_competitor` — Competitor research using web search
+- `get_best_posting_times` — Platform + country specific optimal posting time data
+- `optimize_profile` — Bio/profile optimization with auto-fetch from Business APIs
+- `get_trending_topics` — Real-time trend discovery via web search
+Key files: `server/specialDaysCalendar.ts`, `server/socialPostingService.ts` (profile fetching), `server/agentTools.ts` (tool definitions + handlers)

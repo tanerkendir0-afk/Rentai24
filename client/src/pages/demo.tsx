@@ -1130,7 +1130,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
         onCloseSplit={() => setSplitScreenActive(false)}
         onReducePanels={() => setSplitPanelCount(p => Math.max(p - 1, 2))}
       >
-       <div className="flex-1 flex flex-col min-w-0 h-full">
+       <div className={`flex-1 flex flex-col min-w-0 h-full ${hasBoost ? "pb-14" : ""}`}>
         <div className={`min-h-[3.5rem] border-b border-border/50 flex items-center gap-3 px-4 bg-card/30 backdrop-blur-sm shrink-0 relative z-20`}>
           {!sidebarOpen && (
             <Button
@@ -2427,14 +2427,20 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
       </SplitScreenWrapper>
 
         {user && (
-          <button
+          <motion.button
+            drag
+            dragMomentum={false}
+            dragElastic={0.1}
+            whileDrag={{ scale: 1.15, boxShadow: "0 8px 30px rgba(139,92,246,0.5)" }}
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.95 }}
             onClick={startNewConversation}
-            className={`fixed left-4 z-40 w-11 h-11 rounded-full bg-gradient-to-r from-blue-500 to-violet-500 text-white shadow-xl shadow-blue-500/25 flex items-center justify-center hover:scale-110 hover:shadow-blue-500/40 transition-all duration-200 ring-2 ring-white/10 ${hasBoost ? "bottom-24" : "bottom-20"}`}
+            className={`fixed left-4 z-40 w-11 h-11 rounded-full bg-gradient-to-r from-blue-500 to-violet-500 text-white shadow-xl shadow-blue-500/25 flex items-center justify-center transition-all duration-200 ring-2 ring-white/10 cursor-grab active:cursor-grabbing ${hasBoost ? "bottom-24" : "bottom-20"}`}
             title={t("demoPage.newChat")}
             data-testid="button-floating-new-chat"
           >
             <MessageSquarePlus className="w-5 h-5" />
-          </button>
+          </motion.button>
         )}
 
         {showTasksPanel && user && (

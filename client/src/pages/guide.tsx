@@ -285,7 +285,7 @@ function LoggedInGuide() {
   return (
     <div className="pt-16 overflow-x-hidden">
       <section className="py-12 sm:py-20 relative">
-        <div className="absolute inset-0 bg-gradient-to-b from-blue-950/20 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-b from-blue-100/50 to-transparent" />
         <div className="absolute top-[20%] left-[10%] w-[400px] h-[400px] bg-blue-600/10 rounded-full blur-[120px]" />
         <div className="absolute bottom-[10%] right-[10%] w-[400px] h-[400px] bg-violet-600/10 rounded-full blur-[120px]" />
 
@@ -548,7 +548,7 @@ export default function GuidePage() {
   return (
     <div className="pt-16 overflow-x-hidden">
       <section className="py-12 sm:py-20 relative">
-        <div className="absolute inset-0 bg-gradient-to-b from-blue-950/20 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-b from-blue-100/50 to-transparent" />
         <div className="absolute top-[20%] left-[10%] w-[400px] h-[400px] bg-blue-600/10 rounded-full blur-[120px]" />
         <div className="absolute bottom-[10%] right-[10%] w-[400px] h-[400px] bg-violet-600/10 rounded-full blur-[120px]" />
 

@@ -130,6 +130,7 @@ function SplitScreenWrapper({ active, splitPanelCount, allowedAgents, rentedAgen
     <BoostChatPanel
       key={`boost-panel-${idx}`}
       panelId={`split-${idx}`}
+      panelIndex={idx}
       allowedAgents={allowedAgents}
       rentedAgentIds={rentedAgentIds}
       onClose={() => {
@@ -150,12 +151,15 @@ function SplitScreenWrapper({ active, splitPanelCount, allowedAgents, rentedAgen
       <ResizablePanel defaultSize={panelSize} minSize={20}>
         {children}
       </ResizablePanel>
-      {boostPanels.map((panel, idx) => [
-        <ResizableHandle key={`handle-${idx}`} withHandle className="bg-amber-500/10 hover:bg-amber-500/20" />,
+      {boostPanels.map((panel, idx) => {
+        const handleColors = ["bg-blue-500/10 hover:bg-blue-500/20", "bg-violet-500/10 hover:bg-violet-500/20", "bg-emerald-500/10 hover:bg-emerald-500/20"];
+        return [
+        <ResizableHandle key={`handle-${idx}`} withHandle className={handleColors[idx % handleColors.length]} />,
         <ResizablePanel key={`panel-${idx}`} defaultSize={panelSize} minSize={20}>
           {panel}
         </ResizablePanel>,
-      ])}
+      ];
+      })}
     </ResizablePanelGroup>
   );
 }
@@ -322,6 +326,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
 
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isResearching, setIsResearching] = useState(false);
   const [slowResponseHint, setSlowResponseHint] = useState(false);
   const slowResponseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -767,6 +772,8 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
     setMessages((prev) => [...prev, { role: "user", content: displayContent }]);
     setLoading(true);
     setSlowResponseHint(false);
+    const searchKeywords = /\b(ara|bul|araştır|search|find|research|look up|analiz|analyze|investigate|keşfet|discover|explore|rapor|report|trend|piyasa|market|müşteri bul|lead|potansiyel|competitor|rakip|fiyat|price|compare|karşılaştır|incele|examine|tarihç|history|haber|news)\b/i;
+    setIsResearching(searchKeywords.test(messageToSend));
     trackEvent("chat_message_sent", "agent", { agentType: selectedAgent });
 
     const controller = new AbortController();
@@ -822,6 +829,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
     } finally {
       abortControllerRef.current = null;
       setLoading(false);
+      setIsResearching(false);
       setSlowResponseHint(false);
       if (slowResponseTimerRef.current) {
         clearTimeout(slowResponseTimerRef.current);
@@ -1946,8 +1954,8 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                 </p>
 
                 {!isWorkspace && !user && (
-                  <div className="mb-4 p-3 rounded-xl bg-gradient-to-r from-blue-500/10 to-violet-500/10 border border-blue-500/20">
-                    <p className="text-xs text-blue-300 text-center">
+                  <div className="mb-4 p-3 rounded-xl bg-gradient-to-r from-blue-50 to-violet-50 border border-blue-200/50">
+                    <p className="text-xs text-blue-600 text-center">
                       {t("demoPage.demoPreviewText")} <Link href="/login"><span className="font-semibold underline cursor-pointer">{t("demoPage.createAnAccount")}</span></Link> {t("demoPage.andRentAgent")}
                     </p>
                   </div>
@@ -1982,12 +1990,12 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                     >
                       <div className={`rounded-xl px-4 py-3 max-w-[85%] text-center text-sm border ${
                         msg.isEscalation
-                          ? "bg-orange-500/10 border-orange-500/30 text-orange-300"
+                          ? "bg-orange-50 border-orange-200 text-orange-600"
                           : msg.isAdminJoined
-                            ? "bg-green-500/10 border-green-500/30 text-green-300"
+                            ? "bg-green-50 border-green-200 text-green-600"
                             : msg.isResolved
-                              ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
-                              : "bg-blue-500/10 border-blue-500/30 text-blue-300"
+                              ? "bg-emerald-50 border-emerald-200 text-emerald-600"
+                              : "bg-blue-50 border-blue-200 text-blue-600"
                       }`} data-testid={`system-message-${i}`}>
                         {msg.content}
                       </div>
@@ -2069,15 +2077,15 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                       <div
                         className={`rounded-2xl px-4 py-2.5 ${
                           msg.isLimitWarning
-                            ? "bg-red-500/10 border border-red-500/30 text-red-300"
+                            ? "bg-red-50 border border-red-200 text-red-600"
                             : isUser
-                              ? "bg-blue-500 text-white rounded-tr-md"
-                              : "bg-muted/70 text-foreground rounded-tl-md border border-border/30"
+                              ? "bg-gradient-to-br from-blue-500 to-indigo-500 text-white rounded-tr-md shadow-md shadow-blue-500/15"
+                              : "bg-white/80 text-foreground rounded-tl-md border border-slate-200/60 shadow-sm"
                         }`}
                         data-testid={`chat-message-${i}`}
                       >
                         {msg.isLimitWarning && (
-                          <div className="flex items-center gap-2 mb-2 text-red-400 font-medium text-xs">
+                          <div className="flex items-center gap-2 mb-2 text-red-500 font-medium text-xs">
                             <AlertTriangle className="w-3.5 h-3.5" />
                             {t("demoPage.tokenLimitReached")}
                           </div>
@@ -2104,24 +2112,91 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
                   className="flex gap-2 mt-4"
                 >
                   <div className={`w-8 h-8 rounded-full bg-gradient-to-br ${currentAgent.color} flex items-center justify-center shrink-0 shadow-md`}>
-                    <CurrentIcon className="w-4 h-4 text-white" />
+                    {isResearching ? (
+                      <motion.div animate={{ rotate: 360 }} transition={{ duration: 2, repeat: Infinity, ease: "linear" }}>
+                        <Globe className="w-4 h-4 text-white" />
+                      </motion.div>
+                    ) : (
+                      <CurrentIcon className="w-4 h-4 text-white" />
+                    )}
                   </div>
                   <div className="flex flex-col gap-1.5">
                     <span className={`text-[11px] font-medium px-1 ${currentAgent.accent}`}>
                       {currentAgent.persona}
                     </span>
-                    <div className="bg-muted/70 rounded-2xl rounded-tl-md border border-border/30 px-4 py-3">
-                      <div className="flex items-center gap-1.5">
-                        <span className="w-2 h-2 rounded-full bg-muted-foreground/40 animate-bounce" style={{ animationDelay: "0ms" }} />
-                        <span className="w-2 h-2 rounded-full bg-muted-foreground/40 animate-bounce" style={{ animationDelay: "150ms" }} />
-                        <span className="w-2 h-2 rounded-full bg-muted-foreground/40 animate-bounce" style={{ animationDelay: "300ms" }} />
+                    {isResearching ? (
+                      <motion.div
+                        className="bg-gradient-to-r from-white/90 to-blue-50/90 rounded-2xl rounded-tl-md border border-blue-200/50 shadow-sm px-4 py-3 max-w-[320px]"
+                        animate={{ borderColor: ["rgba(147,197,253,0.5)", "rgba(196,181,253,0.5)", "rgba(147,197,253,0.5)"] }}
+                        transition={{ duration: 2, repeat: Infinity }}
+                      >
+                        <div className="flex items-center gap-2 mb-2">
+                          <motion.div
+                            animate={{ scale: [1, 1.2, 1], opacity: [0.7, 1, 0.7] }}
+                            transition={{ duration: 1.5, repeat: Infinity }}
+                          >
+                            <Search className="w-3.5 h-3.5 text-blue-500" />
+                          </motion.div>
+                          <motion.span
+                            className="text-xs font-medium text-blue-600"
+                            animate={{ opacity: [0.6, 1, 0.6] }}
+                            transition={{ duration: 1.5, repeat: Infinity }}
+                          >
+                            {t("demoPage.researching") || "Araştırılıyor..."}
+                          </motion.span>
+                        </div>
+                        <div className="space-y-1.5">
+                          {[0, 1, 2].map((i) => (
+                            <motion.div
+                              key={i}
+                              className="flex items-center gap-2"
+                              initial={{ opacity: 0, x: -10 }}
+                              animate={{ opacity: [0, 1, 1, 0], x: [-10, 0, 0, 10] }}
+                              transition={{ duration: 2.5, repeat: Infinity, delay: i * 0.8, ease: "easeInOut" }}
+                            >
+                              <motion.div
+                                className="w-1.5 h-1.5 rounded-full bg-blue-400"
+                                animate={{ scale: [0.8, 1.2, 0.8] }}
+                                transition={{ duration: 1, repeat: Infinity, delay: i * 0.3 }}
+                              />
+                              <div className={`h-2 rounded-full bg-gradient-to-r ${
+                                i === 0 ? "from-blue-200/60 to-blue-100/30 w-32" :
+                                i === 1 ? "from-violet-200/60 to-violet-100/30 w-24" :
+                                "from-indigo-200/60 to-indigo-100/30 w-28"
+                              }`} />
+                            </motion.div>
+                          ))}
+                        </div>
+                        <motion.div
+                          className="mt-2 h-1 rounded-full bg-slate-100 overflow-hidden"
+                        >
+                          <motion.div
+                            className="h-full rounded-full bg-gradient-to-r from-blue-400 via-violet-400 to-blue-400"
+                            animate={{ x: ["-100%", "100%"] }}
+                            transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                            style={{ width: "50%" }}
+                          />
+                        </motion.div>
+                        {slowResponseHint && (
+                          <p className="text-[11px] text-muted-foreground mt-2">
+                            {t("demoPage.deepResearch") || "Detaylı araştırma yapılıyor..."}
+                          </p>
+                        )}
+                      </motion.div>
+                    ) : (
+                      <div className="bg-white/80 rounded-2xl rounded-tl-md border border-slate-200/60 shadow-sm px-4 py-3">
+                        <div className="flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full bg-blue-400/60 animate-bounce" style={{ animationDelay: "0ms" }} />
+                          <span className="w-2 h-2 rounded-full bg-indigo-400/60 animate-bounce" style={{ animationDelay: "150ms" }} />
+                          <span className="w-2 h-2 rounded-full bg-violet-400/60 animate-bounce" style={{ animationDelay: "300ms" }} />
+                        </div>
+                        {slowResponseHint && (
+                          <p className="text-[11px] text-muted-foreground mt-2">
+                            Yanıt biraz uzun sürebilir, lütfen bekleyin...
+                          </p>
+                        )}
                       </div>
-                      {slowResponseHint && (
-                        <p className="text-[11px] text-muted-foreground mt-2">
-                          Yanıt biraz uzun sürebilir, lütfen bekleyin...
-                        </p>
-                      )}
-                    </div>
+                    )}
                   </div>
                 </motion.div>
               )}
@@ -2164,8 +2239,8 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
               </div>
             )}
             {!user && messages.length >= 4 && (
-              <div className="mb-2 p-3 rounded-xl bg-gradient-to-r from-blue-500/10 to-violet-500/10 border border-blue-500/20 text-center" data-testid="demo-signup-banner">
-                <p className="text-xs text-blue-300 mb-2">{t("demoPage.unlockCapabilities")}</p>
+              <div className="mb-2 p-3 rounded-xl bg-gradient-to-r from-blue-50 to-violet-50 border border-blue-200/50 text-center" data-testid="demo-signup-banner">
+                <p className="text-xs text-blue-600 mb-2">{t("demoPage.unlockCapabilities")}</p>
                 <Link href="/login">
                   <Button size="sm" className="bg-gradient-to-r from-blue-500 to-violet-500 text-white text-xs h-8 px-4" data-testid="button-demo-signup">
                     {t("demoPage.getStarted")}

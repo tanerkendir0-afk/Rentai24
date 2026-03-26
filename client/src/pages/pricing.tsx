@@ -93,7 +93,7 @@ export default function Pricing() {
   return (
     <div className="pt-16">
       <section className="py-12 sm:py-20 relative">
-        <div className="absolute inset-0 bg-gradient-to-b from-blue-950/20 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-b from-blue-100/50 to-transparent" />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <motion.div
             className="text-center mb-10 sm:mb-16"

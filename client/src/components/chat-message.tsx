@@ -100,7 +100,7 @@ function ChatImage({ src, alt, isUser }: { src?: string; alt?: string; isUser: b
         <a
           href={getDownloadUrl(src)}
           download
-          className={`inline-flex items-center gap-1 mt-1.5 text-xs ${isUser ? "text-blue-100 hover:text-white" : "text-blue-400 hover:text-blue-300"}`}
+          className={`inline-flex items-center gap-1 mt-1.5 text-xs ${isUser ? "text-white/80 hover:text-white" : "text-blue-500 hover:text-blue-600"}`}
           data-testid="image-download-link"
         >
           <Download className="w-3 h-3" /> {t("chatMessage.download")}
@@ -128,19 +128,19 @@ function DocumentCard({ filename, sizeInfo, isUser }: { filename: string; sizeIn
     <div
       className={`my-2 inline-flex items-center gap-3 px-3 py-2.5 rounded-lg border ${
         isUser
-          ? "bg-white/10 border-white/15"
-          : "bg-muted/40 border-border/30"
+          ? "bg-white/15 border-white/15"
+          : "bg-slate-50 border-slate-200/60"
       }`}
       data-testid="document-card"
     >
       <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
-        isUser ? "bg-white/10" : "bg-blue-500/10"
+        isUser ? "bg-white/15" : "bg-blue-500/10"
       }`}>
-        <Icon className={`w-4 h-4 ${isUser ? "text-blue-200" : "text-blue-400"}`} />
+        <Icon className={`w-4 h-4 ${isUser ? "text-white/80" : "text-blue-500"}`} />
       </div>
       <div className="min-w-0">
         <p className="text-xs font-medium truncate max-w-[200px]">{filename}</p>
-        <p className={`text-[10px] ${isUser ? "text-blue-200/60" : "text-muted-foreground"}`}>
+        <p className={`text-[10px] ${isUser ? "text-white/60" : "text-muted-foreground"}`}>
           {t("chatMessage.fileType", { ext })}{sizeInfo ? ` · ${sizeInfo}` : ""}
         </p>
       </div>
@@ -176,13 +176,13 @@ const createComponents = (isUser: boolean, showToast?: (msg: string) => void): C
     const isBlock = className?.includes("language-");
     if (isBlock) {
       return (
-        <pre className={`my-2 rounded-lg overflow-x-auto ${isUser ? "bg-white/10 border border-white/10" : "bg-black/20 border border-white/5"}`}>
+        <pre className={`my-2 rounded-lg overflow-x-auto ${isUser ? "bg-white/15 border border-white/10" : "bg-slate-100 border border-slate-200/60"}`}>
           <code className="block px-3 py-2.5 text-xs font-mono leading-relaxed">{children}</code>
         </pre>
       );
     }
     return (
-      <code className={`px-1.5 py-0.5 rounded text-[0.85em] font-mono ${isUser ? "bg-white/15" : "bg-black/10"}`}>{children}</code>
+      <code className={`px-1.5 py-0.5 rounded text-[0.85em] font-mono ${isUser ? "bg-white/15" : "bg-slate-100"}`}>{children}</code>
     );
   },
   pre: ({ children }) => <>{children}</>,
@@ -238,23 +238,23 @@ const createComponents = (isUser: boolean, showToast?: (msg: string) => void): C
           }}
           className={`my-2 flex items-center gap-3 px-4 py-3 rounded-xl border cursor-pointer transition-all hover:scale-[1.01] active:scale-[0.99] ${
             isUser
-              ? "bg-white/10 border-white/20 hover:bg-white/15"
-              : "bg-gradient-to-r from-blue-500/10 to-indigo-500/10 border-blue-500/20 hover:border-blue-500/30"
+              ? "bg-white/15 border-white/20 hover:bg-white/25"
+              : "bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200/50 hover:border-blue-300/60"
           }`}
           data-testid="button-download-file"
         >
           <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${
             isUser ? "bg-white/15" : "bg-blue-500/15"
           }`}>
-            <FileIcon className={`w-5 h-5 ${isUser ? "text-blue-200" : "text-blue-400"}`} />
+            <FileIcon className={`w-5 h-5 ${isUser ? "text-white/80" : "text-blue-500"}`} />
           </div>
           <div className="min-w-0 text-left flex-1">
             <p className="text-sm font-medium truncate max-w-[220px]">{displayName}</p>
-            <p className={`text-[11px] ${isUser ? "text-blue-200/60" : "text-muted-foreground"}`}>
+            <p className={`text-[11px] ${isUser ? "text-white/60" : "text-muted-foreground"}`}>
               {fileExt} dosyasi
             </p>
           </div>
-          <Download className={`w-4 h-4 shrink-0 ${isUser ? "text-blue-200/80" : "text-blue-400/80"}`} />
+          <Download className={`w-4 h-4 shrink-0 ${isUser ? "text-white/70" : "text-blue-500/70"}`} />
         </button>
       );
     }
@@ -263,7 +263,7 @@ const createComponents = (isUser: boolean, showToast?: (msg: string) => void): C
         href={href}
         target="_blank"
         rel="noopener noreferrer"
-        className={`underline underline-offset-2 decoration-1 ${isUser ? "text-blue-100 hover:text-white" : "text-blue-400 hover:text-blue-300"}`}
+        className={`underline underline-offset-2 decoration-1 ${isUser ? "text-white/90 hover:text-white" : "text-blue-500 hover:text-blue-600"}`}
       >
         {children}
       </a>
@@ -271,13 +271,13 @@ const createComponents = (isUser: boolean, showToast?: (msg: string) => void): C
   },
   img: ({ src, alt }) => <ChatImage src={src} alt={alt} isUser={isUser} />,
   table: ({ children }) => (
-    <div className={`my-2 overflow-x-auto rounded-lg border ${isUser ? "border-white/15" : "border-border/30"}`}>
+    <div className={`my-2 overflow-x-auto rounded-lg border ${isUser ? "border-white/15" : "border-slate-200/60"}`}>
       <table className="w-full text-xs">{children}</table>
     </div>
   ),
-  thead: ({ children }) => <thead className={isUser ? "bg-white/10" : "bg-muted/50"}>{children}</thead>,
-  th: ({ children }) => <th className={`px-3 py-2 text-left font-semibold border-b ${isUser ? "border-white/15" : "border-border/30"}`}>{children}</th>,
-  td: ({ children }) => <td className={`px-3 py-1.5 border-b ${isUser ? "border-white/10" : "border-border/20"}`}>{children}</td>,
+  thead: ({ children }) => <thead className={isUser ? "bg-white/10" : "bg-slate-50"}>{children}</thead>,
+  th: ({ children }) => <th className={`px-3 py-2 text-left font-semibold border-b ${isUser ? "border-white/15" : "border-slate-200/60"}`}>{children}</th>,
+  td: ({ children }) => <td className={`px-3 py-1.5 border-b ${isUser ? "border-white/10" : "border-slate-100"}`}>{children}</td>,
   tr: ({ children }) => <tr>{children}</tr>,
 });
 

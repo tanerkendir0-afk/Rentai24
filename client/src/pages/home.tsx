@@ -159,12 +159,12 @@ function HeroCarousel() {
 
   return (
     <div className="relative">
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3/4 h-3/4 bg-blue-500/10 rounded-full blur-[120px] pointer-events-none z-0" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3/4 h-3/4 bg-blue-400/8 rounded-full blur-[120px] pointer-events-none z-0" />
 
       {canScrollLeft && (
         <button
           onClick={() => scroll("left")}
-          className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-2 z-20 w-10 h-10 rounded-full bg-black/60 backdrop-blur-sm border border-white/10 flex items-center justify-center text-white/80 hover:text-white hover:bg-black/80 transition-all shadow-lg hidden sm:flex"
+          className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-2 z-20 w-10 h-10 rounded-full bg-white/80 backdrop-blur-sm border border-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-700 hover:bg-white transition-all shadow-lg hidden sm:flex"
           data-testid="button-carousel-left"
         >
           <ChevronLeft className="w-5 h-5" />
@@ -173,7 +173,7 @@ function HeroCarousel() {
       {canScrollRight && (
         <button
           onClick={() => scroll("right")}
-          className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-2 z-20 w-10 h-10 rounded-full bg-black/60 backdrop-blur-sm border border-white/10 flex items-center justify-center text-white/80 hover:text-white hover:bg-black/80 transition-all shadow-lg hidden sm:flex"
+          className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-2 z-20 w-10 h-10 rounded-full bg-white/80 backdrop-blur-sm border border-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-700 hover:bg-white transition-all shadow-lg hidden sm:flex"
           data-testid="button-carousel-right"
         >
           <ChevronRight className="w-5 h-5" />
@@ -191,37 +191,37 @@ function HeroCarousel() {
             <motion.div
               key={worker.name}
               data-card
-              className="group relative p-[1px] rounded-[1.25rem] bg-gradient-to-b from-white/10 to-white/0 hover:from-blue-500/50 hover:to-violet-500/50 transition-all duration-500 z-10 snap-center shrink-0 w-[180px] sm:w-[200px]"
+              className="group relative p-[1px] rounded-[1.25rem] bg-gradient-to-b from-slate-200/60 to-slate-100/30 hover:from-blue-500/40 hover:to-violet-500/40 transition-all duration-500 z-10 snap-center shrink-0 w-[180px] sm:w-[200px]"
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.3 + worker.delay }}
               data-testid={`card-hero-worker-${worker.name.toLowerCase()}`}
             >
-              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-violet-500/20 rounded-[1.25rem] blur-xl transition-opacity duration-500 opacity-0 group-hover:opacity-100" />
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-400/15 to-violet-400/15 rounded-[1.25rem] blur-xl transition-opacity duration-500 opacity-0 group-hover:opacity-100" />
 
-              <div className="relative h-full bg-[#0E1332] hover:bg-[#12183A] backdrop-blur-xl rounded-2xl p-4 sm:p-5 flex flex-col items-center text-center overflow-hidden transition-all duration-500 group-hover:-translate-y-2 shadow-lg group-hover:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.5)]">
-                <div className="absolute top-3 right-3 flex items-center gap-1.5 bg-black/20 px-1.5 py-0.5 rounded-full border border-white/5">
+              <div className="relative h-full bg-white/80 hover:bg-white/95 backdrop-blur-xl rounded-2xl p-4 sm:p-5 flex flex-col items-center text-center overflow-hidden transition-all duration-500 group-hover:-translate-y-2 shadow-md group-hover:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.12)]">
+                <div className="absolute top-3 right-3 flex items-center gap-1.5 bg-emerald-50 px-1.5 py-0.5 rounded-full border border-emerald-200/50">
                   <div className="relative flex h-1.5 w-1.5">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500 shadow-[0_0_5px_rgba(16,185,129,0.8)]" />
+                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500 shadow-[0_0_5px_rgba(16,185,129,0.6)]" />
                   </div>
-                  <span className="text-[8px] uppercase tracking-wider font-bold text-emerald-400/90">{t("home.online")}</span>
+                  <span className="text-[8px] uppercase tracking-wider font-bold text-emerald-600">{t("home.online")}</span>
                 </div>
 
                 <div className="relative w-16 h-16 sm:w-20 sm:h-20 mt-4 mb-4 flex items-center justify-center group-hover:scale-110 transition-transform duration-500 ease-out">
-                  <div className={`absolute inset-0 bg-gradient-to-br ${worker.color} rounded-full opacity-10 group-hover:opacity-30 blur-lg transition-opacity duration-500`} />
-                  <div className={`absolute inset-1 bg-gradient-to-br ${worker.color} rounded-full opacity-20 group-hover:opacity-40 blur-md transition-opacity duration-500`} />
-                  <div className={`absolute inset-3 bg-gradient-to-br ${worker.color} rounded-full opacity-30 group-hover:opacity-50 blur-sm transition-opacity duration-500`} />
-                  <div className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gradient-to-b from-[#1A2250] to-[#0A0E27] border border-white/10 flex items-center justify-center shadow-inner z-10">
-                    <Icon className="w-5 h-5 sm:w-6 sm:h-6 text-white/90 drop-shadow-md" strokeWidth={1.5} />
+                  <div className={`absolute inset-0 bg-gradient-to-br ${worker.color} rounded-full opacity-10 group-hover:opacity-25 blur-lg transition-opacity duration-500`} />
+                  <div className={`absolute inset-1 bg-gradient-to-br ${worker.color} rounded-full opacity-15 group-hover:opacity-30 blur-md transition-opacity duration-500`} />
+                  <div className={`absolute inset-3 bg-gradient-to-br ${worker.color} rounded-full opacity-20 group-hover:opacity-40 blur-sm transition-opacity duration-500`} />
+                  <div className={`relative w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gradient-to-br ${worker.color} flex items-center justify-center shadow-lg z-10`}>
+                    <Icon className="w-5 h-5 sm:w-6 sm:h-6 text-white drop-shadow-md" strokeWidth={1.5} />
                   </div>
                 </div>
 
-                <h3 className="text-base sm:text-lg font-bold text-white mb-1 tracking-tight">{worker.name}</h3>
-                <p className="text-[11px] sm:text-xs text-blue-200/60 font-medium leading-relaxed">{ta(`heroRoles.${worker.roleKey}`)}</p>
+                <h3 className="text-base sm:text-lg font-bold text-slate-800 mb-1 tracking-tight">{worker.name}</h3>
+                <p className="text-[11px] sm:text-xs text-slate-400 font-medium leading-relaxed">{ta(`heroRoles.${worker.roleKey}`)}</p>
 
-                <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                <div className="absolute bottom-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-blue-500/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                <div className="absolute bottom-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-blue-400/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
               </div>
             </motion.div>
           );
@@ -230,7 +230,7 @@ function HeroCarousel() {
 
       <div className="flex justify-center gap-1.5 mt-3 sm:hidden">
         {heroWorkers.map((w, i) => (
-          <div key={i} className="w-1.5 h-1.5 rounded-full bg-white/20" />
+          <div key={i} className="w-1.5 h-1.5 rounded-full bg-slate-300" />
         ))}
       </div>
     </div>
@@ -643,13 +643,13 @@ function LoggedInHome({ userName }: { userName: string }) {
 
   return (
     <div className="overflow-x-hidden">
-      <section className="relative min-h-[60vh] flex items-center overflow-hidden pt-16" data-testid="section-welcome">
+      <section className="relative min-h-[60vh] flex items-center overflow-hidden pt-16 bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50" data-testid="section-welcome">
         <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
-          <div className="absolute top-[10%] left-[20%] w-[300px] sm:w-[500px] h-[300px] sm:h-[500px] bg-blue-600/15 rounded-full blur-[120px] mix-blend-screen" />
-          <div className="absolute bottom-[10%] right-[10%] w-[400px] sm:w-[600px] h-[400px] sm:h-[600px] bg-violet-600/15 rounded-full blur-[120px] mix-blend-screen" />
+          <div className="absolute top-[10%] left-[20%] w-[300px] sm:w-[500px] h-[300px] sm:h-[500px] bg-blue-400/15 rounded-full blur-[120px]" />
+          <div className="absolute bottom-[10%] right-[10%] w-[400px] sm:w-[600px] h-[400px] sm:h-[600px] bg-violet-400/15 rounded-full blur-[120px]" />
         </div>
 
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:3rem_3rem] [mask-image:radial-gradient(ellipse_80%_80%_at_50%_50%,#000_20%,transparent_100%)] pointer-events-none" />
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.03)_1px,transparent_1px)] bg-[size:3rem_3rem] [mask-image:radial-gradient(ellipse_80%_80%_at_50%_50%,#000_20%,transparent_100%)] pointer-events-none" />
 
         <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 relative z-10 py-12 sm:py-20">
           <motion.div
@@ -659,20 +659,20 @@ function LoggedInHome({ userName }: { userName: string }) {
             transition={{ duration: 0.7 }}
           >
             <motion.div
-              className="inline-flex items-center space-x-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 backdrop-blur-sm"
+              className="inline-flex items-center space-x-2 px-4 py-2 rounded-full bg-blue-500/10 border border-blue-500/20 backdrop-blur-sm"
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.2 }}
             >
-              <span className="flex h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)] animate-pulse" />
-              <span className="text-sm font-medium text-white/90">{t("home.loggedIn.teamOnline")}</span>
+              <span className="flex h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)] animate-pulse" />
+              <span className="text-sm font-medium text-slate-700">{t("home.loggedIn.teamOnline")}</span>
             </motion.div>
 
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight" data-testid="text-welcome-title">
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-slate-900" data-testid="text-welcome-title">
               {t("home.loggedIn.welcomeBack", { name: firstName })}
             </h1>
 
-            <p className="text-base sm:text-lg text-white/50 max-w-lg mx-auto" data-testid="text-welcome-subtitle">
+            <p className="text-base sm:text-lg text-slate-500 max-w-lg mx-auto" data-testid="text-welcome-subtitle">
               {t("home.loggedIn.subtitle")}
             </p>
           </motion.div>
@@ -910,23 +910,23 @@ export default function Home() {
 
   return (
     <div className="overflow-x-hidden">
-      <section ref={heroRef} className="relative min-h-screen flex items-center overflow-hidden pt-16" data-testid="section-hero">
+      <section ref={heroRef} className="relative min-h-screen flex items-center overflow-hidden pt-16 bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50" data-testid="section-hero">
         <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
           <motion.div
-            className="absolute top-[10%] left-[20%] w-[300px] sm:w-[500px] h-[300px] sm:h-[500px] bg-blue-600/20 rounded-full blur-[120px] mix-blend-screen"
+            className="absolute top-[10%] left-[20%] w-[300px] sm:w-[500px] h-[300px] sm:h-[500px] bg-blue-400/15 rounded-full blur-[120px]"
             style={{ y: heroBlob1Y }}
           />
           <motion.div
-            className="absolute bottom-[10%] right-[10%] w-[400px] sm:w-[600px] h-[400px] sm:h-[600px] bg-violet-600/20 rounded-full blur-[150px] mix-blend-screen"
+            className="absolute bottom-[10%] right-[10%] w-[400px] sm:w-[600px] h-[400px] sm:h-[600px] bg-violet-400/15 rounded-full blur-[150px]"
             style={{ y: heroBlob2Y }}
           />
           <motion.div
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] sm:w-[800px] h-[250px] sm:h-[400px] bg-indigo-500/10 rounded-full blur-[100px] mix-blend-screen"
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] sm:w-[800px] h-[250px] sm:h-[400px] bg-indigo-300/10 rounded-full blur-[100px]"
             style={{ y: heroBlob3Y }}
           />
         </div>
 
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:3rem_3rem] [mask-image:radial-gradient(ellipse_80%_80%_at_50%_50%,#000_20%,transparent_100%)] pointer-events-none" />
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.03)_1px,transparent_1px)] bg-[size:3rem_3rem] [mask-image:radial-gradient(ellipse_80%_80%_at_50%_50%,#000_20%,transparent_100%)] pointer-events-none" />
 
         <div className="max-w-[1400px] mx-auto w-full px-4 sm:px-6 lg:px-12 relative z-10 py-12 sm:py-20">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-8 items-center">
@@ -936,23 +936,23 @@ export default function Home() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.8 }}
             >
-              <div className="inline-flex items-center space-x-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 backdrop-blur-sm shadow-[0_0_15px_rgba(255,255,255,0.05)]">
-                <span className="flex h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)] animate-pulse" />
-                <span className="text-sm font-medium text-white/90 tracking-wide">{t("home.hero.agentsStandingBy")}</span>
+              <div className="inline-flex items-center space-x-2 px-3 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 backdrop-blur-sm shadow-sm">
+                <span className="flex h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)] animate-pulse" />
+                <span className="text-sm font-medium text-slate-700 tracking-wide">{t("home.hero.agentsStandingBy")}</span>
               </div>
 
               <h1
-                className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.15]"
+                className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.15] text-slate-900"
                 data-testid="text-hero-title"
               >
                 {t("home.hero.titleLine1")} <br className="hidden sm:block" />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-400 to-violet-400 drop-shadow-sm">
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600">
                   {t("home.hero.titleLine2")}
                 </span>
               </h1>
 
               <p
-                className="text-base sm:text-lg text-white/60 leading-relaxed max-w-md font-medium"
+                className="text-base sm:text-lg text-slate-500 leading-relaxed max-w-md font-medium"
                 data-testid="text-hero-subtitle"
               >
                 {t("home.hero.subtitle")}
@@ -961,7 +961,7 @@ export default function Home() {
               <div className="pt-2 flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
                 <Link href="/workers">
                   <button
-                    className="group relative w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-4 bg-gradient-to-r from-blue-500 to-violet-500 rounded-xl font-bold text-white overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_30px_-5px_rgba(139,92,246,0.6)] active:scale-[0.98]"
+                    className="group relative w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-4 bg-gradient-to-r from-blue-600 to-violet-600 rounded-xl font-bold text-white overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_30px_-5px_rgba(139,92,246,0.4)] active:scale-[0.98]"
                     data-testid="button-hero-browse"
                   >
                     <div className="absolute inset-0 bg-white/20 translate-y-[100%] group-hover:translate-y-0 transition-transform duration-300 ease-out" />
@@ -974,10 +974,10 @@ export default function Home() {
 
                 <Link href="/workers">
                   <button
-                    className="w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-4 bg-[#12183A] hover:bg-[#1A2250] border border-white/10 hover:border-white/20 rounded-xl font-semibold text-white transition-all duration-300 flex items-center justify-center gap-2 text-sm sm:text-base shadow-sm"
+                    className="w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-4 bg-white/70 hover:bg-white/90 border border-slate-200 hover:border-slate-300 rounded-xl font-semibold text-slate-700 transition-all duration-300 flex items-center justify-center gap-2 text-sm sm:text-base shadow-sm backdrop-blur-sm"
                     data-testid="button-hero-demo"
                   >
-                    <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-violet-400" />
+                    <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-violet-500" />
                     {t("home.hero.viewRoster")}
                   </button>
                 </Link>

@@ -20,6 +20,8 @@ import {
   BrainCircuit,
   Square,
   Zap,
+  Search,
+  Globe,
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/lib/auth";
@@ -54,15 +56,62 @@ interface Message {
   isLimitWarning?: boolean;
 }
 
+const panelThemes = [
+  {
+    name: "ocean",
+    headerBg: "bg-gradient-to-r from-blue-50 to-cyan-50",
+    headerBorder: "border-blue-200/40",
+    userBubble: "bg-gradient-to-br from-blue-500 to-cyan-500 text-white rounded-tr-sm shadow-md shadow-blue-500/15",
+    assistantBubble: "bg-white/80 text-foreground rounded-tl-sm border border-blue-100/60 shadow-sm",
+    sendBtn: "bg-gradient-to-r from-blue-500 to-cyan-500",
+    stopBtn: "bg-gradient-to-r from-red-500 to-pink-500",
+    inputRing: "focus:ring-blue-400/30",
+    accentDot: "bg-blue-400",
+    typingDots: ["bg-blue-400/60", "bg-cyan-400/60", "bg-teal-400/60"],
+    panelBg: "bg-blue-50/20",
+    handleColor: "bg-blue-500/10 hover:bg-blue-500/20",
+  },
+  {
+    name: "violet",
+    headerBg: "bg-gradient-to-r from-violet-50 to-fuchsia-50",
+    headerBorder: "border-violet-200/40",
+    userBubble: "bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white rounded-tr-sm shadow-md shadow-violet-500/15",
+    assistantBubble: "bg-white/80 text-foreground rounded-tl-sm border border-violet-100/60 shadow-sm",
+    sendBtn: "bg-gradient-to-r from-violet-500 to-fuchsia-500",
+    stopBtn: "bg-gradient-to-r from-red-500 to-orange-500",
+    inputRing: "focus:ring-violet-400/30",
+    accentDot: "bg-violet-400",
+    typingDots: ["bg-violet-400/60", "bg-fuchsia-400/60", "bg-purple-400/60"],
+    panelBg: "bg-violet-50/20",
+    handleColor: "bg-violet-500/10 hover:bg-violet-500/20",
+  },
+  {
+    name: "emerald",
+    headerBg: "bg-gradient-to-r from-emerald-50 to-teal-50",
+    headerBorder: "border-emerald-200/40",
+    userBubble: "bg-gradient-to-br from-emerald-500 to-teal-500 text-white rounded-tr-sm shadow-md shadow-emerald-500/15",
+    assistantBubble: "bg-white/80 text-foreground rounded-tl-sm border border-emerald-100/60 shadow-sm",
+    sendBtn: "bg-gradient-to-r from-emerald-500 to-teal-500",
+    stopBtn: "bg-gradient-to-r from-red-500 to-orange-500",
+    inputRing: "focus:ring-emerald-400/30",
+    accentDot: "bg-emerald-400",
+    typingDots: ["bg-emerald-400/60", "bg-teal-400/60", "bg-green-400/60"],
+    panelBg: "bg-emerald-50/20",
+    handleColor: "bg-emerald-500/10 hover:bg-emerald-500/20",
+  },
+];
+
 interface BoostChatPanelProps {
   panelId: string;
+  panelIndex?: number;
   allowedAgents: string[] | null;
   rentedAgentIds: Set<string>;
   onClose?: () => void;
   isOnly?: boolean;
 }
 
-export default function BoostChatPanel({ panelId, allowedAgents, rentedAgentIds, onClose, isOnly }: BoostChatPanelProps) {
+export default function BoostChatPanel({ panelId, panelIndex = 0, allowedAgents, rentedAgentIds, onClose, isOnly }: BoostChatPanelProps) {
+  const theme = panelThemes[panelIndex % panelThemes.length];
   const { user } = useAuth();
   const { t } = useTranslation("pages");
   const [selectedAgent, setSelectedAgent] = useState(() => {
@@ -77,6 +126,7 @@ export default function BoostChatPanel({ panelId, allowedAgents, rentedAgentIds,
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isResearching, setIsResearching] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -104,6 +154,8 @@ export default function BoostChatPanel({ panelId, allowedAgents, rentedAgentIds,
 
     setMessages(prev => [...prev, { role: "user", content: userMessage }]);
     setLoading(true);
+    const searchKeywords = /\b(ara|bul|araştır|search|find|research|look up|analiz|analyze|investigate|keşfet|discover|explore|rapor|report|trend|piyasa|market|müşteri bul|lead|potansiyel|competitor|rakip|fiyat|price|compare|karşılaştır|incele|haber|news)\b/i;
+    setIsResearching(searchKeywords.test(userMessage));
 
     const controller = new AbortController();
     abortControllerRef.current = controller;
@@ -138,6 +190,7 @@ export default function BoostChatPanel({ panelId, allowedAgents, rentedAgentIds,
     } finally {
       abortControllerRef.current = null;
       setLoading(false);
+      setIsResearching(false);
     }
   };
 
@@ -149,8 +202,8 @@ export default function BoostChatPanel({ panelId, allowedAgents, rentedAgentIds,
     : agentOptions.filter(a => rentedAgentIds.has(a.id));
 
   return (
-    <div className="flex flex-col h-full bg-background border-r border-border/30 last:border-r-0" data-testid={`boost-panel-${panelId}`}>
-      <div className="flex items-center gap-2 px-3 py-2 border-b border-border/50 bg-card/30 shrink-0">
+    <div className={`flex flex-col h-full ${theme.panelBg} border-r border-border/30 last:border-r-0`} data-testid={`boost-panel-${panelId}`}>
+      <div className={`flex items-center gap-2 px-3 py-2 border-b ${theme.headerBorder} ${theme.headerBg} shrink-0`}>
         <div className="relative">
           <button
             onClick={() => setShowAgentPicker(!showAgentPicker)}
@@ -278,13 +331,13 @@ export default function BoostChatPanel({ panelId, allowedAgents, rentedAgentIds,
                     )}
                     <div className={`rounded-xl px-3 py-2 text-xs ${
                       msg.isLimitWarning
-                        ? "bg-red-500/10 border border-red-500/30 text-red-300"
+                        ? "bg-red-50 border border-red-200 text-red-600"
                         : isUser
-                          ? "bg-blue-500 text-white rounded-tr-sm"
-                          : "bg-muted/70 text-foreground rounded-tl-sm border border-border/30"
+                          ? theme.userBubble
+                          : theme.assistantBubble
                     }`}>
                       {msg.isLimitWarning && (
-                        <div className="flex items-center gap-1.5 mb-1 text-red-400 font-medium text-[10px]">
+                        <div className="flex items-center gap-1.5 mb-1 text-red-500 font-medium text-[10px]">
                           <AlertTriangle className="w-3 h-3" />
                           {t("demoPage.tokenLimitReached")}
                         </div>
@@ -312,20 +365,60 @@ export default function BoostChatPanel({ panelId, allowedAgents, rentedAgentIds,
         {loading && (
           <div className="flex gap-1.5 mt-3">
             <div className={`w-6 h-6 rounded-full bg-gradient-to-br ${agent.color} flex items-center justify-center`}>
-              <AgentIcon className="w-3 h-3 text-white" />
+              {isResearching ? (
+                <motion.div animate={{ rotate: 360 }} transition={{ duration: 2, repeat: Infinity, ease: "linear" }}>
+                  <Globe className="w-3 h-3 text-white" />
+                </motion.div>
+              ) : (
+                <AgentIcon className="w-3 h-3 text-white" />
+              )}
             </div>
-            <div className="bg-muted/70 rounded-xl px-3 py-2 border border-border/30">
-              <div className="flex gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50 animate-bounce" style={{ animationDelay: "0ms" }} />
-                <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50 animate-bounce" style={{ animationDelay: "150ms" }} />
-                <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50 animate-bounce" style={{ animationDelay: "300ms" }} />
+            {isResearching ? (
+              <motion.div
+                className={`${theme.assistantBubble} rounded-xl px-3 py-2 max-w-[220px]`}
+                animate={{ borderColor: ["rgba(147,197,253,0.5)", "rgba(196,181,253,0.5)", "rgba(147,197,253,0.5)"] }}
+                transition={{ duration: 2, repeat: Infinity }}
+              >
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 1.5, repeat: Infinity }}>
+                    <Search className="w-3 h-3 text-blue-500" />
+                  </motion.div>
+                  <motion.span className="text-[10px] font-medium text-blue-600" animate={{ opacity: [0.6, 1, 0.6] }} transition={{ duration: 1.5, repeat: Infinity }}>
+                    {t("demoPage.researching") || "Araştırılıyor..."}
+                  </motion.span>
+                </div>
+                <div className="space-y-1">
+                  {[0, 1].map((i) => (
+                    <motion.div
+                      key={i}
+                      className="flex items-center gap-1.5"
+                      initial={{ opacity: 0, x: -8 }}
+                      animate={{ opacity: [0, 1, 1, 0], x: [-8, 0, 0, 8] }}
+                      transition={{ duration: 2.5, repeat: Infinity, delay: i * 0.7 }}
+                    >
+                      <motion.div className={`w-1 h-1 rounded-full ${theme.typingDots[i]}`} animate={{ scale: [0.8, 1.2, 0.8] }} transition={{ duration: 1, repeat: Infinity, delay: i * 0.3 }} />
+                      <div className={`h-1.5 rounded-full bg-gradient-to-r ${i === 0 ? "from-blue-200/50 to-blue-100/20 w-20" : "from-violet-200/50 to-violet-100/20 w-16"}`} />
+                    </motion.div>
+                  ))}
+                </div>
+                <motion.div className="mt-1.5 h-0.5 rounded-full bg-slate-100 overflow-hidden">
+                  <motion.div className="h-full rounded-full bg-gradient-to-r from-blue-400 via-violet-400 to-blue-400" animate={{ x: ["-100%", "100%"] }} transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }} style={{ width: "50%" }} />
+                </motion.div>
+              </motion.div>
+            ) : (
+              <div className={`${theme.assistantBubble} rounded-xl px-3 py-2`}>
+                <div className="flex gap-1">
+                  <span className={`w-1.5 h-1.5 rounded-full ${theme.typingDots[0]} animate-bounce`} style={{ animationDelay: "0ms" }} />
+                  <span className={`w-1.5 h-1.5 rounded-full ${theme.typingDots[1]} animate-bounce`} style={{ animationDelay: "150ms" }} />
+                  <span className={`w-1.5 h-1.5 rounded-full ${theme.typingDots[2]} animate-bounce`} style={{ animationDelay: "300ms" }} />
+                </div>
               </div>
-            </div>
+            )}
           </div>
         )}
       </div>
 
-      <div className="p-2 border-t border-border/50 bg-card/30 shrink-0">
+      <div className={`p-2 border-t ${theme.headerBorder} ${theme.headerBg} shrink-0`}>
         <form
           onSubmit={(e) => { e.preventDefault(); sendMessage(); }}
           className="flex gap-1.5"
@@ -343,14 +436,14 @@ export default function BoostChatPanel({ panelId, allowedAgents, rentedAgentIds,
             placeholder={t("demoPage.messagePlaceholder", { agent: agent.persona })}
             disabled={loading}
             rows={1}
-            className="flex-1 min-h-[36px] max-h-[80px] px-3 py-2 rounded-lg bg-muted/50 border border-border/50 text-xs text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-amber-500/30 resize-none"
+            className={`flex-1 min-h-[36px] max-h-[80px] px-3 py-2 rounded-lg bg-white/70 border border-slate-200/60 text-xs text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 ${theme.inputRing} resize-none`}
             data-testid={`boost-panel-input-${panelId}`}
           />
           {loading ? (
             <button
               type="button"
               onClick={() => abortControllerRef.current?.abort()}
-              className="w-9 h-9 rounded-lg bg-gradient-to-r from-red-500 to-orange-500 flex items-center justify-center text-white shrink-0 animate-pulse"
+              className={`w-9 h-9 rounded-lg ${theme.stopBtn} flex items-center justify-center text-white shrink-0 animate-pulse`}
               data-testid={`boost-panel-stop-${panelId}`}
             >
               <Square className="w-3 h-3 fill-current" />
@@ -359,7 +452,7 @@ export default function BoostChatPanel({ panelId, allowedAgents, rentedAgentIds,
             <button
               type="submit"
               disabled={!input.trim()}
-              className="w-9 h-9 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 flex items-center justify-center text-white disabled:opacity-30 shrink-0 transition-opacity"
+              className={`w-9 h-9 rounded-lg ${theme.sendBtn} flex items-center justify-center text-white disabled:opacity-30 shrink-0 transition-opacity`}
               data-testid={`boost-panel-send-${panelId}`}
             >
               <Send className="w-3.5 h-3.5" />

@@ -2789,26 +2789,29 @@ export async function registerRoutes(
       const userId = req.session.userId;
       if (!userId) return res.status(401).json({ error: "Giriş gerekli" });
 
-      // 1) Normal plan kontrolü (accounting veya all-in-one)
-      const user = await storage.getUserById(userId);
-      const userPlan = (user as any)?.plan || (user as any)?.subscriptionPlan || '';
-      const planCfg = PLAN_CONFIG[userPlan];
-      if (planCfg && !planCfg.excludedAgents?.includes("bookkeeping")) {
-        return next(); // accounting veya all-in-one planı — Finn erişimi var
+      // 1) Kiralanan ajanlar kontrolü (rentals tablosu) — en güvenilir kaynak
+      const userRentals = await storage.getRentalsByUser(userId);
+      if (userRentals && userRentals.some((r: any) => r.agentType === "bookkeeping" && r.status === "active")) {
+        return next();
       }
 
-      // 2) Boost plan kontrolü
+      // 2) Stripe subscription plan kontrolü
+      const user = await storage.getUserById(userId);
+      if (user?.stripeSubscriptionId) {
+        const subscription = await storage.getSubscription(user.stripeSubscriptionId);
+        const planMeta = (subscription?.metadata as Record<string, string> | null)?.plan || '';
+        const planCfg = PLAN_CONFIG[planMeta];
+        if (planCfg && !planCfg.excludedAgents?.includes("bookkeeping")) {
+          return next(); // accounting veya all-in-one planı — Finn erişimi var
+        }
+      }
+
+      // 3) Boost plan kontrolü
       const boost = await storage.getActiveBoostSubscription(userId);
       if (boost) {
         const boostCfg = BOOST_CONFIG[boost.boostPlan];
         const hasBoostAccess = !boostCfg?.allowedAgents || boostCfg.allowedAgents.includes("bookkeeping") || boost.boostPlan === "boost-pro";
         if (hasBoostAccess) return next();
-      }
-
-      // 3) Kiralanan ajanlar kontrolü (rentals tablosu)
-      const rentals = await storage.getRentalsByUser(userId);
-      if (rentals && rentals.some((r: any) => r.agentType === "bookkeeping" && r.active)) {
-        return next();
       }
 
       return res.status(403).json({ error: "e-Fatura modülü için Finn (Muhasebe) planı gereklidir", requirePlan: "accounting" });

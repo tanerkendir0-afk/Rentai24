@@ -329,6 +329,8 @@ app.use((req, res, next) => {
       ]) {
         await pool.query(`ALTER TABLE indirilecek_kdv_faturalar ADD COLUMN IF NOT EXISTS ${col}`).catch(() => {});
       }
+      // hesap_kodu sütununu genişlet (eski 10 → 20)
+      await pool.query(`ALTER TABLE indirilecek_kdv_faturalar ALTER COLUMN hesap_kodu TYPE VARCHAR(20)`).catch(() => {});
 
       await pool.query(`
         CREATE OR REPLACE VIEW v_indirilecek_kdv_ozet AS

@@ -451,10 +451,13 @@ function formatTarih(isoDate: string): string | null {
 
 function kdvOraniToHesapKodu(oran: number): string {
   switch (oran) {
+    case 0: return '191.00';
     case 1: return '191.01';
+    case 8: return '191.02';
     case 10: return '191.02';
+    case 18: return '191.03';
     case 20: return '191.03';
-    default: return `191.XX (${oran}%)`;
+    default: return '191.99';
   }
 }
 

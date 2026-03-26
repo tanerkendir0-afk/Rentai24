@@ -321,9 +321,6 @@ export default function WorkerProfile() {
                   const res = await apiRequest("POST", "/api/test-checkout", {
                     plan: selectedPlan,
                     agentType: agent!.id,
-                    cardNumber: "4242424242424242",
-                    expiry: "12/28",
-                    cvc: "123",
                   });
                   const data = await res.json();
                   if (data.success) {

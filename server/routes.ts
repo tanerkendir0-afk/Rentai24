@@ -5492,30 +5492,7 @@ ${TURKISH_BUSINESS_STYLE}${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BE
         return res.status(400).json({ error: msg("invalidPlan", req.lang!) });
       }
 
-      const cleanCard = (cardNumber || "").replace(/\s/g, "");
-      const validTestCards = [
-        "4242424242424242",
-        "4000000000000077",
-        "5555555555554444",
-        "378282246310005",
-      ];
-      const declinedCards = [
-        "4000000000000002",
-        "4000000000009995",
-        "4000000000000069",
-      ];
-
-      if (declinedCards.includes(cleanCard)) {
-        return res.status(402).json({ error: msg("cardDeclined", req.lang!) });
-      }
-
-      if (!validTestCards.includes(cleanCard)) {
-        return res.status(400).json({ error: msg("invalidTestCard", req.lang!) });
-      }
-
-      if (!expiry || !cvc) {
-        return res.status(400).json({ error: msg("cardIncomplete", req.lang!) });
-      }
+      // Test/demo mode: skip card validation, allow free usage
 
       const user = await storage.getUserById(req.session.userId!);
       if (!user) {
@@ -5859,16 +5836,8 @@ ${TURKISH_BUSINESS_STYLE}${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BE
 
   app.post("/api/test-checkout/credits", requireAuth, async (req, res) => {
     try {
-      const { packageId, cardNumber, expiry, cvc } = req.body;
-      if (!packageId || !cardNumber || !expiry || !cvc) {
-        return res.status(400).json({ error: msg("paymentFieldsRequired", req.lang!) });
-      }
-
-      const validCards = ["4242424242424242", "4000000000000077", "5555555555554444", "378282246310005"];
-      const cleanCard = cardNumber.replace(/\s/g, "");
-      if (!validCards.includes(cleanCard)) {
-        return res.status(400).json({ error: msg("invalidTestCardShort", req.lang!) });
-      }
+      const { packageId } = req.body;
+      // Test/demo mode: skip card validation
 
       const packages: Record<string, { credits: number; price: number; label: string }> = {
         "credits-5": { credits: 5, price: 10, label: "5 Credits" },

@@ -167,9 +167,6 @@ export default function Dashboard() {
       const res = await apiRequest("POST", "/api/test-checkout", {
         plan: userPlan,
         agentType: agentId,
-        cardNumber: "4242424242424242",
-        expiry: "12/28",
-        cvc: "123",
       });
       const data = await res.json();
       if (data.success) {

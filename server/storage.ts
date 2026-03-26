@@ -336,18 +336,23 @@ export class DatabaseStorage implements IStorage {
       const needsDailyReset = now.toDateString() !== resetAt.toDateString();
 
       // Monthly period reset: reset messagesUsed when a new billing month starts
-      const periodReset = rental.periodResetAt ? new Date(rental.periodResetAt) : new Date(rental.startedAt);
+      const periodReset = (rental as any).periodResetAt ? new Date((rental as any).periodResetAt) : new Date(rental.startedAt);
       const monthsSincePeriodReset = (now.getFullYear() - periodReset.getFullYear()) * 12 + (now.getMonth() - periodReset.getMonth());
       const needsMonthlyReset = monthsSincePeriodReset >= 1;
 
+      const updateData: any = {
+        messagesUsed: needsMonthlyReset ? 1 : rental.messagesUsed + 1,
+        dailyMessagesUsed: needsDailyReset ? 1 : (rental.dailyMessagesUsed || 0) + 1,
+        dailyResetAt: needsDailyReset ? now : rental.dailyResetAt,
+      };
+      // Only set periodResetAt if the column exists in the DB
+      try {
+        if (needsMonthlyReset) updateData.periodResetAt = now;
+      } catch {}
+
       await db
         .update(rentals)
-        .set({
-          messagesUsed: needsMonthlyReset ? 1 : rental.messagesUsed + 1,
-          periodResetAt: needsMonthlyReset ? now : rental.periodResetAt,
-          dailyMessagesUsed: needsDailyReset ? 1 : (rental.dailyMessagesUsed || 0) + 1,
-          dailyResetAt: needsDailyReset ? now : rental.dailyResetAt,
-        })
+        .set(updateData)
         .where(eq(rentals.id, rentalId));
     }
   }

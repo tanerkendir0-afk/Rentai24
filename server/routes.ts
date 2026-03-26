@@ -4066,11 +4066,12 @@ export async function registerRoutes(
     const planConfig = PLAN_CONFIG[planMeta] || PLAN_CONFIG.standard;
 
     // Plans with fewer than 9 agents get limited swaps (1 per week)
-    if (planConfig.maxAgents < 9 && rental.lastSwapAt) {
+    const swapAt = (rental as any).lastSwapAt;
+    if (planConfig.maxAgents < 9 && swapAt) {
       const weekAgo = new Date();
       weekAgo.setDate(weekAgo.getDate() - 7);
-      if (new Date(rental.lastSwapAt) > weekAgo) {
-        return res.status(429).json({ error: "Haftada sadece 1 ajan değişikliği yapabilirsiniz. Bir sonraki değişiklik hakkınız: " + new Date(new Date(rental.lastSwapAt).getTime() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString() });
+      if (new Date(swapAt) > weekAgo) {
+        return res.status(429).json({ error: "Haftada sadece 1 ajan değişikliği yapabilirsiniz." });
       }
     }
 

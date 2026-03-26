@@ -280,17 +280,30 @@ export default function Navbar() {
           </nav>
 
           <div className="flex items-center gap-1 shrink-0">
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => changeLanguage(language === "en" ? "tr" : language === "tr" ? "zh" : "en")}
-              className="text-muted-foreground hover:text-foreground whitespace-nowrap"
-              data-testid="button-language-switch"
-              title={t("language.switchTo", { lang: language === "en" ? t("language.turkish") : language === "tr" ? t("language.chinese") : t("language.english") })}
-            >
-              <Languages className="w-4 h-4 mr-1" />
-              {language === "en" ? "TR" : language === "tr" ? "中文" : "EN"}
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="text-muted-foreground hover:text-foreground whitespace-nowrap"
+                  data-testid="button-language-switch"
+                >
+                  <Languages className="w-4 h-4 mr-1" />
+                  {language === "tr" ? "TR" : language === "zh" ? "中文" : "EN"}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="min-w-[120px]">
+                <DropdownMenuItem onClick={() => changeLanguage("tr")} className={language === "tr" ? "bg-accent" : ""} data-testid="lang-tr">
+                  🇹🇷 Türkçe
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => changeLanguage("en")} className={language === "en" ? "bg-accent" : ""} data-testid="lang-en">
+                  🇬🇧 English
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => changeLanguage("zh")} className={language === "zh" ? "bg-accent" : ""} data-testid="lang-zh">
+                  🇨🇳 中文
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             {showInstallButton && !user && (
               <Button
                 size="sm"

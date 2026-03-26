@@ -2363,7 +2363,7 @@ export async function registerRoutes(
   app.patch("/api/auth/language", requireAuth, async (req, res) => {
     const lang = await resolveUserLang(req);
     const { language } = req.body;
-    if (!language || !["en", "tr"].includes(language)) {
+    if (!language || !["en", "tr", "zh"].includes(language)) {
       return res.status(400).json({ error: msg("invalidLanguage", lang) });
     }
     const updated = await storage.updateUserLanguage(req.session.userId!, language);

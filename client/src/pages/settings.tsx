@@ -352,7 +352,7 @@ function LanguagePreferenceCard() {
     } catch {
       toast({
         title: t("footer.errorToast"),
-        description: t("language.savedDesc"),
+        description: t("language.saveFailed", { defaultValue: "Dil değiştirilemedi" }),
         variant: "destructive",
       });
     }

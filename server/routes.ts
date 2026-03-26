@@ -2781,16 +2781,37 @@ export async function registerRoutes(
     },
   });
   // Finn (bookkeeping) erişim kontrolü middleware
+  // Finn'in olduğu TÜM üyeliklerde e-Fatura modülüne erişim var:
+  // Normal planlar: accounting, all-in-one
+  // Boost planlar: boost-accounting, boost-pro
   const requireFinnAccess = async (req: any, res: any, next: any) => {
     try {
       const userId = req.session.userId;
       if (!userId) return res.status(401).json({ error: "Giriş gerekli" });
+
+      // 1) Normal plan kontrolü (accounting veya all-in-one)
+      const user = await storage.getUserById(userId);
+      const userPlan = (user as any)?.plan || (user as any)?.subscriptionPlan || '';
+      const planCfg = PLAN_CONFIG[userPlan];
+      if (planCfg && !planCfg.excludedAgents?.includes("bookkeeping")) {
+        return next(); // accounting veya all-in-one planı — Finn erişimi var
+      }
+
+      // 2) Boost plan kontrolü
       const boost = await storage.getActiveBoostSubscription(userId);
-      if (!boost) return res.status(403).json({ error: "e-Fatura modülü için Finn (Muhasebe) planı gereklidir", requirePlan: "boost-accounting" });
-      const cfg = BOOST_CONFIG[boost.boostPlan];
-      const hasAccess = !cfg?.allowedAgents || cfg.allowedAgents.includes("bookkeeping") || boost.boostPlan === "boost-pro";
-      if (!hasAccess) return res.status(403).json({ error: "e-Fatura modülü için Finn (Muhasebe) planı gereklidir", requirePlan: "boost-accounting" });
-      next();
+      if (boost) {
+        const boostCfg = BOOST_CONFIG[boost.boostPlan];
+        const hasBoostAccess = !boostCfg?.allowedAgents || boostCfg.allowedAgents.includes("bookkeeping") || boost.boostPlan === "boost-pro";
+        if (hasBoostAccess) return next();
+      }
+
+      // 3) Kiralanan ajanlar kontrolü (rentals tablosu)
+      const rentals = await storage.getRentalsByUser(userId);
+      if (rentals && rentals.some((r: any) => r.agentType === "bookkeeping" && r.active)) {
+        return next();
+      }
+
+      return res.status(403).json({ error: "e-Fatura modülü için Finn (Muhasebe) planı gereklidir", requirePlan: "accounting" });
     } catch { next(); }
   };
 

@@ -308,6 +308,10 @@ app.use((req, res, next) => {
           hesap_kodu VARCHAR(10) NOT NULL DEFAULT '191.03',
           para_birimi VARCHAR(3) DEFAULT 'TRY',
           profil_id VARCHAR(50),
+          fatura_tipi_kodu VARCHAR(20) DEFAULT 'SATIS',
+          tevkifat_orani DECIMAL(5,2),
+          tevkifat_tutari DECIMAL(15,2),
+          tevkifat_kodu VARCHAR(10),
           xml_hash VARCHAR(64),
           created_at TIMESTAMPTZ DEFAULT NOW(),
           UNIQUE(user_id, belge_no)
@@ -315,6 +319,16 @@ app.use((req, res, next) => {
       `).catch((err: unknown) =>
         console.warn("indirilecek_kdv_faturalar table setup:", err instanceof Error ? err.message : String(err))
       );
+
+      // Tevkifat sütunlarını mevcut tabloya ekle (ALTER TABLE - varsa ignore)
+      for (const col of [
+        "fatura_tipi_kodu VARCHAR(20) DEFAULT 'SATIS'",
+        "tevkifat_orani DECIMAL(5,2)",
+        "tevkifat_tutari DECIMAL(15,2)",
+        "tevkifat_kodu VARCHAR(10)",
+      ]) {
+        await pool.query(`ALTER TABLE indirilecek_kdv_faturalar ADD COLUMN IF NOT EXISTS ${col}`).catch(() => {});
+      }
 
       await pool.query(`
         CREATE OR REPLACE VIEW v_indirilecek_kdv_ozet AS

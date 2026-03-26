@@ -424,3 +424,119 @@ export async function generateKdvOzet(data: {
   const buf = await wb.xlsx.writeBuffer();
   return Buffer.from(buf);
 }
+
+// ============================================================
+// İNDİRİLECEK KDV LİSTESİ EXCEL
+// ============================================================
+
+interface KdvFaturaRow {
+  sira_no: number;
+  fatura_tarihi: string;
+  belge_no: string;
+  satici_unvani: string;
+  satici_vkn: string;
+  belge_turu: string;
+  matrah: string | number;
+  kdv_orani: string | number;
+  kdv_tutari: string | number;
+  hesap_kodu: string;
+}
+
+interface KdvOzetRow {
+  kdv_orani: number;
+  adet: number;
+  matrah: string | number;
+  kdv: string | number;
+}
+
+export async function generateKdvListesiExcel(data: {
+  donem: string;
+  faturalar: KdvFaturaRow[];
+  ozet: KdvOzetRow[];
+}): Promise<Buffer> {
+  const wb = new ExcelJS.Workbook();
+  wb.creator = "RentAI 24 — Finn";
+
+  // --- Sheet 1: Fatura Listesi ---
+  const ws = wb.addWorksheet("İndirilecek KDV Listesi", {
+    pageSetup: { paperSize: 9, orientation: "landscape", fitToPage: true },
+  });
+
+  ws.columns = [
+    { width: 6 },   // Sıra
+    { width: 13 },  // Tarih
+    { width: 22 },  // Belge No
+    { width: 38 },  // Satıcı Unvanı
+    { width: 14 },  // VKN
+    { width: 14 },  // Belge Türü
+    { width: 16 },  // Matrah
+    { width: 10 },  // KDV %
+    { width: 16 },  // KDV Tutarı
+    { width: 10 },  // Hesap Kodu
+  ];
+
+  addTitle(ws, "İNDİRİLECEK KDV LİSTESİ", `Dönem: ${data.donem}`, 10);
+  ws.addRow([]);
+
+  const header = ws.addRow(["#", "Fatura Tarihi", "Belge No", "Satıcı Unvanı", "VKN/TCKN", "Belge Türü", "Matrah (₺)", "KDV %", "KDV Tutarı (₺)", "Hesap Kodu"]);
+  applyHeaderStyle(header);
+
+  let toplamMatrah = 0;
+  let toplamKdv = 0;
+
+  data.faturalar.forEach((f, i) => {
+    const matrah = Number(f.matrah);
+    const kdv = Number(f.kdv_tutari);
+    toplamMatrah += matrah;
+    toplamKdv += kdv;
+
+    const tarih = f.fatura_tarihi ? new Date(f.fatura_tarihi).toLocaleDateString("tr-TR") : "";
+    const row = ws.addRow([f.sira_no, tarih, f.belge_no, f.satici_unvani, f.satici_vkn, f.belge_turu, matrah, Number(f.kdv_orani), kdv, f.hesap_kodu]);
+    row.getCell(7).numFmt = MONEY_FMT;
+    row.getCell(9).numFmt = MONEY_FMT;
+    row.getCell(8).alignment = { horizontal: "center" };
+    zebraRow(row, i);
+  });
+
+  ws.addRow([]);
+  const totalRow = ws.addRow(["", "", "", "", "", "TOPLAM:", toplamMatrah, "", toplamKdv, ""]);
+  totalRow.getCell(6).font = { bold: true, size: 11 };
+  totalRow.getCell(7).numFmt = MONEY_FMT;
+  totalRow.getCell(7).font = { bold: true, size: 11 };
+  totalRow.getCell(9).numFmt = MONEY_FMT;
+  totalRow.getCell(9).font = { bold: true, size: 11, color: { argb: "10B981" } };
+
+  // --- Sheet 2: Oran Özet ---
+  const ws2 = wb.addWorksheet("KDV Oran Özeti", {
+    pageSetup: { paperSize: 9, orientation: "portrait", fitToPage: true },
+  });
+
+  ws2.columns = [{ width: 14 }, { width: 12 }, { width: 12 }, { width: 18 }, { width: 18 }];
+
+  addTitle(ws2, "KDV ORAN ÖZETİ", `Dönem: ${data.donem}`, 5);
+  ws2.addRow([]);
+
+  const ozetHeader = ws2.addRow(["KDV Oranı", "Hesap Kodu", "Fatura Adedi", "Matrah (₺)", "KDV Tutarı (₺)"]);
+  applyHeaderStyle(ozetHeader);
+
+  data.ozet.forEach((o, i) => {
+    const hesapKodu = Number(o.kdv_orani) === 1 ? "191.01" : Number(o.kdv_orani) === 10 ? "191.02" : Number(o.kdv_orani) === 20 ? "191.03" : "191.XX";
+    const row = ws2.addRow([`%${o.kdv_orani}`, hesapKodu, o.adet, Number(o.matrah), Number(o.kdv)]);
+    row.getCell(4).numFmt = MONEY_FMT;
+    row.getCell(5).numFmt = MONEY_FMT;
+    row.getCell(3).alignment = { horizontal: "center" };
+    zebraRow(row, i);
+  });
+
+  ws2.addRow([]);
+  const ozetTotal = ws2.addRow(["TOPLAM", "", data.faturalar.length, toplamMatrah, toplamKdv]);
+  ozetTotal.eachCell(c => {
+    c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: BLUE } };
+    c.font = { bold: true, color: { argb: "FFFFFF" }, size: 11 };
+  });
+  ozetTotal.getCell(4).numFmt = MONEY_FMT;
+  ozetTotal.getCell(5).numFmt = MONEY_FMT;
+
+  const buf2 = await wb.xlsx.writeBuffer();
+  return Buffer.from(buf2);
+}

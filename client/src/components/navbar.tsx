@@ -16,7 +16,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Menu, Bot, User, LayoutDashboard, Download, Smartphone, Wifi, Bell, Settings, LogOut, BookOpen, Share, Plus, MoreHorizontal, Monitor, Globe, ExternalLink, Shield, Languages, Zap, Timer, Building2 } from "lucide-react";
+import { Menu, Bot, User, LayoutDashboard, Download, Smartphone, Wifi, Bell, Settings, LogOut, BookOpen, Share, Plus, MoreHorizontal, Monitor, Globe, ExternalLink, Shield, Languages, Zap, Timer, Building2, FileText } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useLanguage } from "@/lib/language";
 import { useTranslation } from "react-i18next";
@@ -256,7 +256,7 @@ export default function Navbar() {
                 <Bot className="w-5 h-5 text-white" />
               </div>
               <span className="font-bold text-lg text-foreground whitespace-nowrap">
-                Rent<span className="bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent">AI</span>{" "}
+                Rent<span className="bg-gradient-to-r from-blue-600 to-violet-600 bg-clip-text text-transparent">AI</span>{" "}
                 <span className="text-foreground">24</span>
               </span>
             </div>
@@ -329,6 +329,12 @@ export default function Navbar() {
                       <Link href="/automations" className="flex items-center gap-2 cursor-pointer" data-testid="dropdown-item-automations">
                         <Zap className="w-4 h-4" />
                         {t("nav.automations")}
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/efatura" className="flex items-center gap-2 cursor-pointer" data-testid="dropdown-item-efatura">
+                        <FileText className="w-4 h-4" />
+                        e-Fatura & KDV
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
@@ -455,6 +461,17 @@ export default function Navbar() {
                           >
                             <BookOpen className="w-4 h-4 mr-1" />
                             {t("nav.guide")}
+                          </Button>
+                        </Link>
+                        <Link href="/efatura">
+                          <Button
+                            variant="outline"
+                            className="w-full min-h-[44px]"
+                            onClick={() => setOpen(false)}
+                            data-testid="button-mobile-efatura"
+                          >
+                            <FileText className="w-4 h-4 mr-1" />
+                            e-Fatura & KDV
                           </Button>
                         </Link>
                         <Link href="/automations">

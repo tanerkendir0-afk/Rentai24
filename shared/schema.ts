@@ -190,6 +190,11 @@ export const chatMessageSchema = z.object({
     content: z.string().max(16000),
   })).max(50).optional(),
   sessionId: z.string().max(100).optional(),
+  attachedFiles: z.array(z.object({
+    filename: z.string(),
+    fileType: z.string(),
+    fileUrl: z.string(),
+  })).max(200).optional(),
 });
 
 export type ChatMessageInput = z.infer<typeof chatMessageSchema>;

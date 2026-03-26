@@ -27,6 +27,13 @@ interface ParsedInvoice {
   hesapKodu: string;          // 191.01 | 191.02 | 191.03
   paraBirimi: string;
   profilId: string;           // TICARIFATURA, TEMELFATURA, EARSIVFATURA
+  faturaTipiKodu: string;     // SATIS, IADE, TEVKIFAT, ISTISNA, OZELMATRAH, IHRACKAYITLI
+  tevkifatOrani?: number;     // ör: 90 (9/10 = %90 tevkifat)
+  tevkifatTutari?: number;    // Tevkifat yoluyla kesilen KDV tutarı
+  tevkifatKodu?: string;      // Tevkifat sebebi kodu (ör: 601, 602...)
+  dovizKuru?: number;         // PricingExchangeRate/CalculationRate
+  matrahTL?: number;          // Döviz faturasında TL karşılığı matrah
+  kdvTutariTL?: number;       // Döviz faturasında TL karşılığı KDV
   rawXmlHash?: string;        // Mükerrer kontrolü için
 }
 
@@ -68,7 +75,7 @@ const parserOptions = {
   removeNSPrefix: true,        // UBL namespace'leri kaldır
   isArray: (name: string) => {
     // Birden fazla olabilecek elemanlar
-    return ['InvoiceLine', 'TaxSubtotal', 'TaxTotal', 
+    return ['InvoiceLine', 'TaxSubtotal', 'TaxTotal', 'WithholdingTaxTotal',
             'AllowanceCharge', 'AdditionalDocumentReference'].includes(name);
   },
   parseTagValue: true,
@@ -214,6 +221,40 @@ export function parseEFatura(xmlContent: string): ParseResult {
     // === Hesap Kodu ===
     const hesapKodu = kdvOraniToHesapKodu(kdvOrani);
 
+    // === Tevkifat (Withholding Tax) ===
+    let tevkifatOrani: number | undefined;
+    let tevkifatTutari: number | undefined;
+    let tevkifatKodu: string | undefined;
+
+    const withholdingTotals = inv.WithholdingTaxTotal;
+    if (withholdingTotals) {
+      const whArr = Array.isArray(withholdingTotals) ? withholdingTotals : [withholdingTotals];
+      for (const wh of whArr) {
+        const subtotals = wh.TaxSubtotal;
+        if (!subtotals) continue;
+        const subArr = Array.isArray(subtotals) ? subtotals : [subtotals];
+        for (const sub of subArr) {
+          const taxScheme = sub.TaxCategory?.TaxScheme;
+          const taxCode = taxScheme?.TaxTypeCode?.toString() || '';
+          // Tevkifat kodları: 6xx (KDV tevkifat) veya 4xx (ÖTV tevkifat)
+          if (taxCode.startsWith('6') || taxCode.startsWith('4') || taxCode === '9015') {
+            tevkifatTutari = (tevkifatTutari || 0) + parseFloat(sub.TaxAmount?.toString() || '0');
+            tevkifatOrani = parseFloat(sub.Percent?.toString() || '0');
+            tevkifatKodu = taxCode;
+          }
+        }
+      }
+    }
+
+    // InvoiceTypeCode = TEVKIFAT ise tevkifatlı fatura
+    if (invoiceTypeCode === 'TEVKIFAT' && !tevkifatTutari) {
+      warnings.push('Fatura tipi TEVKIFAT ancak WithholdingTaxTotal bulunamadı');
+    }
+
+    if (tevkifatTutari) {
+      tevkifatTutari = Math.round(tevkifatTutari * 100) / 100;
+    }
+
     // === Doğrulama ===
     const expectedKDV = Math.round(matrah * kdvOrani / 100 * 100) / 100;
     const kdvFarki = Math.abs(kdvTutari - expectedKDV);
@@ -221,10 +262,25 @@ export function parseEFatura(xmlContent: string): ParseResult {
       warnings.push(`KDV tutarı doğrulanamadı: Beklenen ${expectedKDV}, Bulunan ${kdvTutari} (Fark: ${kdvFarki.toFixed(2)})`);
     }
 
-    // === Para Birimi ===
+    // === Para Birimi & Döviz Kuru ===
     const paraBirimi = inv.DocumentCurrencyCode?.toString() || 'TRY';
+    let dovizKuru: number | undefined;
+    let matrahTL: number | undefined;
+    let kdvTutariTL: number | undefined;
+
     if (paraBirimi !== 'TRY') {
-      warnings.push(`Yabancı para birimi: ${paraBirimi} - Döviz kuru dönüşümü gerekebilir`);
+      // PricingExchangeRate > CalculationRate
+      const exchangeRate = inv.PricingExchangeRate;
+      if (exchangeRate) {
+        dovizKuru = parseFloat(exchangeRate.CalculationRate?.toString() || '0');
+        if (dovizKuru > 0) {
+          matrahTL = Math.round(matrah * dovizKuru * 100) / 100;
+          kdvTutariTL = Math.round(kdvTutari * dovizKuru * 100) / 100;
+        }
+      }
+      if (!dovizKuru || dovizKuru === 0) {
+        warnings.push(`Yabancı para birimi: ${paraBirimi} — XML'de kur bilgisi yok, TCMB kuru ile dönüştürülmeli`);
+      }
     }
 
     if (errors.length > 0) {
@@ -243,6 +299,13 @@ export function parseEFatura(xmlContent: string): ParseResult {
       hesapKodu,
       paraBirimi,
       profilId,
+      faturaTipiKodu: invoiceTypeCode,
+      tevkifatOrani,
+      tevkifatTutari,
+      tevkifatKodu,
+      dovizKuru,
+      matrahTL,
+      kdvTutariTL,
     };
 
     return { success: true, invoice, errors, warnings };

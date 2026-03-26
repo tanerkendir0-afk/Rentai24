@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node -e \"JSON.parse\\(require\\(''fs''\\).readFileSync\\(''client/src/locales/tr/agents.json'',''utf8''\\)\\); console.log\\(''TR: OK''\\)\")",
+      "Bash(node -e \"JSON.parse\\(require\\(''fs''\\).readFileSync\\(''client/src/locales/en/agents.json'',''utf8''\\)\\); console.log\\(''EN: OK''\\)\")",
+      "Bash(grep -r \"supportedLngs\\\\|fallbackLng\\\\|defaultNS\" /c/Users/User/Desktop/rental24/Rentai24/client/src --include=*.ts --include=*.tsx)",
+      "Bash(node -e \":*)",
+      "Bash(wc -l c:/Users/User/Desktop/rental24/Rentai24/client/src/locales/*/pages.json)",
+      "Bash(wc -l c:/Users/User/Desktop/rental24/Rentai24/client/src/locales/*/common.json)",
+      "Bash(node -e \"JSON.parse\\(require\\(''fs''\\).readFileSync\\(''client/src/locales/en/agents.json'',''utf8''\\)\\); console.log\\(''EN agents: OK''\\)\")",
+      "Bash(node -e \"JSON.parse\\(require\\(''fs''\\).readFileSync\\(''client/src/locales/tr/agents.json'',''utf8''\\)\\); console.log\\(''TR agents: OK''\\)\")",
+      "Bash(node -e \"JSON.parse\\(require\\(''fs''\\).readFileSync\\(''client/src/locales/zh/pages.json'',''utf8''\\)\\); console.log\\(''ZH pages: OK''\\)\")",
+      "Bash(git status:*)"
+    ]
+  }
+}

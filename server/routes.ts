@@ -1122,11 +1122,17 @@ Fatura (KDV + tevkifat), gider, gelir takibi, bordro, vergi hesaplama, mali tabl
 
 TOOLS: web_search, create_invoice (KDV + tevkifat destekli, PDF/Excel indirme linkli), log_expense, log_income, financial_summary, send_invoice_email, get_exchange_rate (TCMB), add_receivable, add_payable, list_debts, cash_flow_forecast, generate_balance_sheet (Excel bilanço — entries_aktif_donen, entries_aktif_duran, entries_kisa_vadeli, entries_uzun_vadeli, entries_ozkaynak parametrelerini pipe-separated formatında gönder: HesapKodu|HesapAdı|Tutar, ; ile ayrılmış), generate_income_statement (Excel gelir tablosu), calculate_payroll (2026 SGK + vergi dilimleri), calculate_withholding (stopaj), generate_mizan (Excel), generate_bordro (Excel), generate_gelir_tablosu (Excel), generate_kdv_ozet (Excel), list_inbox, read_email, reply_email, parse_efatura_xml (e-Fatura XML parse — satıcı, matrah, KDV çıkarır), generate_kdv_listesi (İndirilecek KDV Listesi oluşturur — Excel/PDF/JSON). Always use tools for real operations. Tüm mali tablolar (bilanço, mizan, gelir tablosu, bordro) Excel dosyası olarak üretilir. Rapor/fatura oluşturduğunda indirme linkini mutlaka paylaş. Bilanço veya mali tablo oluştururken ASLA uzun tablo metni yazma — her zaman generate_balance_sheet veya ilgili tool'u kullan, kısa özet + indirme linki ver.
 
+## e-FATURA MODÜLÜ YÖNLENDİRME
+Kullanıcı "fatura yükle", "XML yükle", "e-fatura", "KDV listesi", "indirilecek KDV", "GİB fatura" gibi ifadeler kullandığında, onları e-Fatura Dashboard sayfasına yönlendir:
+"e-Fatura XML dosyalarınızı yüklemek ve İndirilecek KDV Listesi oluşturmak için **[e-Fatura & KDV Yönetimi](/efatura)** sayfasını kullanabilirsiniz. Bu sayfada toplu XML yükleme, otomatik parse, oran bazlı özet ve Excel export özellikleri bulunuyor."
+Eğer kullanıcı tek bir fatura hakkında soru sorarsa (parse sonucu hakkında, KDV oranı nedir gibi), parse_efatura_xml tool'unu kullanabilirsin. Toplu işlemler için /efatura sayfasına yönlendir.
+
 ## İLK ETKİLEŞİM
 İlk mesajda kendini tanıt ve şu butonları sun:
 "Merhaba! Ben Finn, muhasebe ve vergi danışmanınız. Size nasıl yardımcı olabilirim?"
 [BUTTONS]
 Fatura Oluştur
+e-Fatura & KDV
 Bordro Hesapla
 Mali Rapor
 Vergi Sorusu
@@ -2774,7 +2780,21 @@ export async function registerRoutes(
       else cb(new Error('Sadece XML dosyaları kabul edilir'));
     },
   });
-  app.post('/api/efatura/upload', requireAuth, xmlUpload.array('files', 200), async (req, res) => {
+  // Finn (bookkeeping) erişim kontrolü middleware
+  const requireFinnAccess = async (req: any, res: any, next: any) => {
+    try {
+      const userId = req.session.userId;
+      if (!userId) return res.status(401).json({ error: "Giriş gerekli" });
+      const boost = await storage.getActiveBoostSubscription(userId);
+      if (!boost) return res.status(403).json({ error: "e-Fatura modülü için Finn (Muhasebe) planı gereklidir", requirePlan: "boost-accounting" });
+      const cfg = BOOST_CONFIG[boost.boostPlan];
+      const hasAccess = !cfg?.allowedAgents || cfg.allowedAgents.includes("bookkeeping") || boost.boostPlan === "boost-pro";
+      if (!hasAccess) return res.status(403).json({ error: "e-Fatura modülü için Finn (Muhasebe) planı gereklidir", requirePlan: "boost-accounting" });
+      next();
+    } catch { next(); }
+  };
+
+  app.post('/api/efatura/upload', requireAuth, requireFinnAccess, xmlUpload.array('files', 200), async (req, res) => {
     try {
       const files = req.files as Express.Multer.File[];
       const { parseEFatura } = await import('./efatura-kdv-parser');
@@ -2790,8 +2810,8 @@ export async function registerRoutes(
               const inv = parsed.invoice;
               const faturaTarihiFormatted = inv.faturaTarihi.split('.').reverse().join('-');
               const xmlHash = crypto.createHash('md5').update(xmlContent).digest('hex');
-              await db.execute(sql`INSERT INTO indirilecek_kdv_faturalar (user_id, donem, sira_no, fatura_tarihi, belge_no, satici_unvani, satici_vkn, belge_turu, matrah, kdv_orani, kdv_tutari, hesap_kodu, para_birimi, profil_id, xml_hash)
-                 VALUES (${userId}, ${donem}, ${0}, ${faturaTarihiFormatted}, ${inv.belgeNo}, ${inv.saticiUnvani}, ${inv.saticiVKN}, ${inv.belgeTuru}, ${inv.matrah}, ${inv.kdvOrani}, ${inv.kdvTutari}, ${inv.hesapKodu}, ${inv.paraBirimi}, ${inv.profilId}, ${xmlHash})
+              await db.execute(sql`INSERT INTO indirilecek_kdv_faturalar (user_id, donem, sira_no, fatura_tarihi, belge_no, satici_unvani, satici_vkn, belge_turu, matrah, kdv_orani, kdv_tutari, hesap_kodu, para_birimi, profil_id, fatura_tipi_kodu, tevkifat_orani, tevkifat_tutari, tevkifat_kodu, xml_hash)
+                 VALUES (${userId}, ${donem}, ${0}, ${faturaTarihiFormatted}, ${inv.belgeNo}, ${inv.saticiUnvani}, ${inv.saticiVKN}, ${inv.belgeTuru}, ${inv.matrah}, ${inv.kdvOrani}, ${inv.kdvTutari}, ${inv.hesapKodu}, ${inv.paraBirimi}, ${inv.profilId}, ${inv.faturaTipiKodu}, ${inv.tevkifatOrani || null}, ${inv.tevkifatTutari || null}, ${inv.tevkifatKodu || null}, ${xmlHash})
                  ON CONFLICT (user_id, belge_no) DO NOTHING`);
               results.success++;
               results.details.push({ file: file.originalname, status: 'ok', belgeNo: parsed.invoice.belgeNo, kdv: parsed.invoice.kdvTutari });
@@ -2826,7 +2846,7 @@ export async function registerRoutes(
       res.status(500).json({ error: err.message });
     }
   });
-  app.get('/api/efatura/kdv-listesi/:donem', requireAuth, async (req, res) => {
+  app.get('/api/efatura/kdv-listesi/:donem', requireAuth, requireFinnAccess, async (req, res) => {
     try {
       const userId = req.session.userId!;
       const donem = req.params.donem;
@@ -2836,6 +2856,195 @@ export async function registerRoutes(
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }
+  });
+
+  app.get('/api/efatura/kdv-listesi/:donem/excel', requireAuth, requireFinnAccess, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const donem = req.params.donem;
+      const faturalar = await db.execute(sql`SELECT * FROM indirilecek_kdv_faturalar WHERE user_id = ${userId} AND donem = ${donem} ORDER BY fatura_tarihi, sira_no`);
+      const ozet = await db.execute(sql`SELECT * FROM v_indirilecek_kdv_ozet WHERE user_id = ${userId} AND donem = ${donem}`);
+      const { generateKdvListesiExcel } = await import('./services/reportGenerator');
+      const buf = await generateKdvListesiExcel({ donem, faturalar: faturalar.rows as any[], ozet: ozet.rows as any[] });
+      const safeDonem = donem.replace(/\//g, '-');
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', `attachment; filename="KDV_Listesi_${safeDonem}.xlsx"`);
+      res.send(buf);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get('/api/efatura/kdv-listesi/:donem/pdf', requireAuth, requireFinnAccess, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const donem = req.params.donem;
+      const faturalar = await db.execute(sql`SELECT * FROM indirilecek_kdv_faturalar WHERE user_id = ${userId} AND donem = ${donem} ORDER BY fatura_tarihi, sira_no`);
+      const ozet = await db.execute(sql`SELECT * FROM v_indirilecek_kdv_ozet WHERE user_id = ${userId} AND donem = ${donem}`);
+      const { generateKdvListesiPdf } = await import('./services/kdvListesiPdfGenerator');
+      const buf = await generateKdvListesiPdf({ donem, faturalar: faturalar.rows as any[], ozet: ozet.rows as any[] });
+      const safeDonem = donem.replace(/\//g, '-');
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="KDV_Listesi_${safeDonem}.pdf"`);
+      res.send(buf);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Tek fatura sil
+  app.delete('/api/efatura/fatura/:id', requireAuth, requireFinnAccess, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const id = parseInt(req.params.id);
+      await db.execute(sql`DELETE FROM indirilecek_kdv_faturalar WHERE id = ${id} AND user_id = ${userId}`);
+      res.json({ success: true });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Toplu fatura sil (dönem bazlı)
+  app.delete('/api/efatura/donem/:donem', requireAuth, requireFinnAccess, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const donem = req.params.donem;
+      const result = await db.execute(sql`DELETE FROM indirilecek_kdv_faturalar WHERE user_id = ${userId} AND donem = ${donem}`);
+      res.json({ success: true, deleted: result.rowCount });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // KDV Beyanname Hazırlık Raporu
+  app.get('/api/efatura/beyanname/:donem', requireAuth, requireFinnAccess, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const donem = req.params.donem;
+
+      // İndirilecek KDV (alış faturaları)
+      const indirilecek = await db.execute(sql`
+        SELECT kdv_orani, COUNT(*) as fatura_adedi, SUM(matrah) as toplam_matrah, SUM(kdv_tutari) as toplam_kdv
+        FROM indirilecek_kdv_faturalar WHERE user_id = ${userId} AND donem = ${donem}
+        GROUP BY kdv_orani ORDER BY kdv_orani
+      `);
+
+      // Tevkifat toplam
+      const tevkifat = await db.execute(sql`
+        SELECT COALESCE(SUM(tevkifat_tutari), 0) as toplam_tevkifat,
+               COUNT(*) FILTER (WHERE tevkifat_tutari > 0) as tevkifatli_fatura_adedi
+        FROM indirilecek_kdv_faturalar WHERE user_id = ${userId} AND donem = ${donem}
+      `);
+
+      // Genel toplamlar
+      const genel = await db.execute(sql`
+        SELECT COUNT(*) as toplam_fatura, SUM(matrah) as toplam_matrah, SUM(kdv_tutari) as toplam_indirilecek_kdv
+        FROM indirilecek_kdv_faturalar WHERE user_id = ${userId} AND donem = ${donem}
+      `);
+
+      const genelRow = genel.rows[0] as any || {};
+      const tevkifatRow = tevkifat.rows[0] as any || {};
+      const toplamIndirilecekKdv = parseFloat(genelRow.toplam_indirilecek_kdv || '0');
+      const toplamTevkifat = parseFloat(tevkifatRow.toplam_tevkifat || '0');
+
+      // Yevmiye kayıt önerileri
+      const yevmiyeOnerileri = [
+        {
+          aciklama: `${donem} Dönemi İndirilecek KDV Kaydı`,
+          satirlar: [
+            { hesapKodu: "191", hesapAdi: "İndirilecek KDV", borc: toplamIndirilecekKdv, alacak: 0 },
+            { hesapKodu: "320", hesapAdi: "Satıcılar", borc: 0, alacak: parseFloat(genelRow.toplam_matrah || '0') + toplamIndirilecekKdv },
+            { hesapKodu: "153", hesapAdi: "Ticari Mallar / Stoklar", borc: parseFloat(genelRow.toplam_matrah || '0'), alacak: 0 },
+          ],
+        },
+      ];
+
+      if (toplamTevkifat > 0) {
+        yevmiyeOnerileri.push({
+          aciklama: `${donem} Dönemi Tevkifat KDV Kaydı`,
+          satirlar: [
+            { hesapKodu: "360", hesapAdi: "Ödenecek Vergi ve Fonlar (Tevkifat KDV)", borc: 0, alacak: toplamTevkifat },
+            { hesapKodu: "191", hesapAdi: "İndirilecek KDV (Tevkifat)", borc: toplamTevkifat, alacak: 0 },
+          ],
+        });
+      }
+
+      res.json({
+        donem,
+        indirilecekKdvOzet: indirilecek.rows,
+        toplamFatura: parseInt(genelRow.toplam_fatura || '0'),
+        toplamMatrah: parseFloat(genelRow.toplam_matrah || '0'),
+        toplamIndirilecekKdv,
+        toplamTevkifat,
+        tevkifatliFaturaAdedi: parseInt(tevkifatRow.tevkifatli_fatura_adedi || '0'),
+        yevmiyeOnerileri,
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Mevcut dönemleri listele
+  app.get('/api/efatura/donemler', requireAuth, requireFinnAccess, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const result = await db.execute(sql`SELECT donem, COUNT(*) as fatura_adedi, SUM(kdv_tutari) as toplam_kdv FROM indirilecek_kdv_faturalar WHERE user_id = ${userId} GROUP BY donem ORDER BY donem DESC`);
+      res.json({ donemler: result.rows });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // GİB Entegratör - Bağlantı testi
+  app.post('/api/efatura/gib/test', requireAuth, requireFinnAccess, async (req, res) => {
+    try {
+      const { getGibAdapter } = await import('./services/gibIntegrationService');
+      const { provider, apiUrl, apiKey } = req.body;
+      const adapter = getGibAdapter(provider);
+      const result = await adapter.testConnection({ provider, apiUrl, apiKey });
+      res.json(result);
+    } catch (err: any) {
+      res.json({ success: false, message: err.message });
+    }
+  });
+
+  // GİB Entegratör - Senkronizasyon
+  app.post('/api/efatura/gib/sync', requireAuth, requireFinnAccess, async (req, res) => {
+    try {
+      const { syncInvoicesFromGib } = await import('./services/gibIntegrationService');
+      const { parseEFatura } = await import('./efatura-kdv-parser');
+      const userId = req.session.userId!;
+      const { provider, apiUrl, apiKey, startDate, endDate, donem } = req.body;
+
+      const result = await syncInvoicesFromGib(
+        { provider, apiUrl, apiKey },
+        { startDate, endDate, direction: "inbound" },
+        async (xmlContent, filename) => {
+          const parsed = parseEFatura(xmlContent);
+          if (parsed.success && parsed.invoice) {
+            const inv = parsed.invoice;
+            const fDate = inv.faturaTarihi.split('.').reverse().join('-');
+            try {
+              await db.execute(sql`INSERT INTO indirilecek_kdv_faturalar (user_id, donem, sira_no, fatura_tarihi, belge_no, satici_unvani, satici_vkn, belge_turu, matrah, kdv_orani, kdv_tutari, hesap_kodu, para_birimi, profil_id, fatura_tipi_kodu, tevkifat_orani, tevkifat_tutari, tevkifat_kodu)
+                 VALUES (${userId}, ${donem}, ${0}, ${fDate}, ${inv.belgeNo}, ${inv.saticiUnvani}, ${inv.saticiVKN}, ${inv.belgeTuru}, ${inv.matrah}, ${inv.kdvOrani}, ${inv.kdvTutari}, ${inv.hesapKodu}, ${inv.paraBirimi}, ${inv.profilId}, ${inv.faturaTipiKodu}, ${inv.tevkifatOrani || null}, ${inv.tevkifatTutari || null}, ${inv.tevkifatKodu || null})
+                 ON CONFLICT (user_id, belge_no) DO NOTHING`);
+              return { success: true, belgeNo: inv.belgeNo };
+            } catch { return { success: false }; }
+          }
+          return { success: false };
+        }
+      );
+
+      res.json(result);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // GİB Entegratör - Desteklenen sağlayıcılar
+  app.get('/api/efatura/gib/providers', requireAuth, async (req, res) => {
+    const { PROVIDER_DEFAULTS } = await import('./services/gibIntegrationService');
+    res.json({ providers: PROVIDER_DEFAULTS });
   });
 
   app.get("/api/files", requireAuth, async (req, res) => {

@@ -3068,6 +3068,52 @@ export async function registerRoutes(
     res.json({ providers: PROVIDER_DEFAULTS });
   });
 
+  // ERP Entegrasyon - Sağlayıcı listesi
+  app.get('/api/efatura/erp/providers', requireAuth, async (req, res) => {
+    const { ERP_PROVIDERS } = await import('./services/erpIntegrationService');
+    res.json({ providers: ERP_PROVIDERS });
+  });
+
+  // ERP Entegrasyon - Bağlantı testi
+  app.post('/api/efatura/erp/test', requireAuth, requireFinnAccess, async (req, res) => {
+    try {
+      const { getErpAdapter } = await import('./services/erpIntegrationService');
+      const adapter = getErpAdapter(req.body.provider);
+      const result = await adapter.testConnection(req.body);
+      res.json(result);
+    } catch (err: any) {
+      res.json({ success: false, message: err.message });
+    }
+  });
+
+  // ERP Entegrasyon - Fatura çekme
+  app.post('/api/efatura/erp/sync', requireAuth, requireFinnAccess, async (req, res) => {
+    try {
+      const { syncFromErp } = await import('./services/erpIntegrationService');
+      const userId = req.session.userId!;
+      const { provider, startDate, endDate, donem, ...creds } = req.body;
+
+      const result = await syncFromErp(
+        { provider, ...creds },
+        startDate, endDate,
+        async (inv) => {
+          try {
+            const fDate = inv.issueDate.includes('.') ? inv.issueDate.split('.').reverse().join('-') : inv.issueDate;
+            const kdvOrani = inv.vatRate || (inv.netAmount > 0 ? Math.round(inv.vatAmount / inv.netAmount * 100) : 0);
+            const hesapKodu = kdvOrani === 1 ? '191.01' : kdvOrani === 10 ? '191.02' : kdvOrani === 20 ? '191.03' : '191.99';
+            await db.execute(sql`INSERT INTO indirilecek_kdv_faturalar (user_id, donem, sira_no, fatura_tarihi, belge_no, satici_unvani, satici_vkn, belge_turu, matrah, kdv_orani, kdv_tutari, hesap_kodu, para_birimi, fatura_tipi_kodu)
+               VALUES (${userId}, ${donem}, 0, ${fDate}, ${inv.invoiceNo}, ${inv.vendorName}, ${inv.vendorVkn}, ${'ERP-' + provider}, ${inv.netAmount}, ${kdvOrani}, ${inv.vatAmount}, ${hesapKodu}, ${inv.currency}, ${inv.invoiceType})
+               ON CONFLICT (user_id, belge_no) DO NOTHING`);
+            return true;
+          } catch { return false; }
+        }
+      );
+      res.json(result);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   app.get("/api/files", requireAuth, async (req, res) => {
     try {
       const { uploadedFiles } = await import("@shared/schema");

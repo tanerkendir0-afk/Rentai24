@@ -1130,7 +1130,7 @@ export default function Demo({ isWorkspace = false }: { isWorkspace?: boolean })
         onCloseSplit={() => setSplitScreenActive(false)}
         onReducePanels={() => setSplitPanelCount(p => Math.max(p - 1, 2))}
       >
-       <div className={`flex-1 flex flex-col min-w-0 h-full ${hasBoost ? "pb-14" : ""}`}>
+       <div className={`flex-1 flex flex-col min-w-0 h-full ${hasBoost ? "pb-[4.5rem]" : ""}`}>
         <div className={`min-h-[3.5rem] border-b border-border/50 flex items-center gap-3 px-4 bg-card/30 backdrop-blur-sm shrink-0 relative z-20`}>
           {!sidebarOpen && (
             <Button

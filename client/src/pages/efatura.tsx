@@ -103,6 +103,7 @@ export default function EFatura() {
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [showDetails, setShowDetails] = useState(false);
   const [detailFatura, setDetailFatura] = useState<Fatura | null>(null);
+  const [activeTab, setActiveTab] = useState<"faturalar" | "entegrasyonlar">("faturalar");
 
   const [noAccess, setNoAccess] = useState(false);
   const [showDonemler, setShowDonemler] = useState(false);
@@ -321,6 +322,25 @@ export default function EFatura() {
           </div>
         </div>
 
+        {/* Tab Navigation */}
+        <div className="flex gap-1 mb-4 border-b">
+          <button
+            onClick={() => setActiveTab("faturalar")}
+            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === "faturalar" ? "border-emerald-500 text-emerald-700" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+          >
+            <FileText className="w-3.5 h-3.5 inline mr-1.5" />
+            Faturalar & KDV
+          </button>
+          <button
+            onClick={() => setActiveTab("entegrasyonlar")}
+            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === "entegrasyonlar" ? "border-blue-500 text-blue-700" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+          >
+            <Plug className="w-3.5 h-3.5 inline mr-1.5" />
+            Entegrasyonlar
+          </button>
+        </div>
+
+        {activeTab === "faturalar" && (<>
         {/* Upload Zone */}
         <Card className="mb-6 overflow-hidden">
           <div
@@ -730,9 +750,17 @@ export default function EFatura() {
 
         {/* Beyanname Hazırlık Raporu */}
         <BeyannameRaporu donem={donem} faturalar={faturalar} />
+        </>)}
 
-        {/* GİB Entegrasyon Ayarları */}
-        <GibEntegrasyonPanel donem={donem} onSyncComplete={() => refetch()} />
+        {activeTab === "entegrasyonlar" && (
+          <div className="space-y-6">
+            {/* GİB Entegrasyon */}
+            <GibEntegrasyonPanel donem={donem} onSyncComplete={() => { setActiveTab("faturalar"); refetch(); }} />
+
+            {/* ERP Entegrasyon */}
+            <ErpEntegrasyonPanel donem={donem} onSyncComplete={() => { setActiveTab("faturalar"); refetch(); }} />
+          </div>
+        )}
 
         {/* Footer Info */}
         <div className="mt-6 flex items-center justify-between text-xs text-muted-foreground">
@@ -1091,6 +1119,105 @@ function GibEntegrasyonPanel({ donem, onSyncComplete }: { donem: string; onSyncC
           </motion.div>
         )}
       </AnimatePresence>
+    </Card>
+  );
+}
+
+// ============================================================
+// ERP ENTEGRASYON PANELİ
+// ============================================================
+
+function ErpEntegrasyonPanel({ donem, onSyncComplete }: { donem: string; onSyncComplete: () => void }) {
+  const [provider, setProvider] = useState("parasut");
+  const [apiUrl, setApiUrl] = useState("");
+  const [apiKey, setApiKey] = useState("");
+  const [clientId, setClientId] = useState("");
+  const [clientSecret, setClientSecret] = useState("");
+  const [companyId, setCompanyId] = useState("");
+  const [username, setUsername] = useState("");
+  const [pw, setPw] = useState("");
+  const [dbHost, setDbHost] = useState("");
+  const [dbPort, setDbPort] = useState("5432");
+  const [dbName, setDbName] = useState("");
+  const [dbUser, setDbUser] = useState("");
+  const [dbPw, setDbPw] = useState("");
+  const [dbQuery, setDbQuery] = useState("SELECT invoice_no, issue_date, vendor_name, vendor_vkn, net_amount as matrah, vat_rate as kdv_orani, vat_amount as kdv_tutari FROM invoices WHERE issue_date BETWEEN $1 AND $2");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState<{success:boolean;message:string}|null>(null);
+  const [syncing, setSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState<any>(null);
+  const { toast } = useToast();
+
+  const { data: providers } = useQuery({
+    queryKey: ["/api/efatura/erp/providers"],
+    queryFn: async () => { const r = await fetch("/api/efatura/erp/providers",{credentials:"include"}); return r.ok ? r.json() : {providers:{}}; },
+  });
+  const providerList: Record<string,any> = providers?.providers || {};
+  const cp = providerList[provider] || {};
+  const fields: string[] = cp.fields || [];
+  const creds = () => ({provider,apiUrl,apiKey,clientId,clientSecret,companyId,username,password:pw,dbType:"postgresql",dbHost,dbPort:parseInt(dbPort),dbName,dbUser,dbPassword:dbPw,dbQuery});
+
+  const handleTest = async () => {
+    setTesting(true); setTestResult(null);
+    try { const r = await fetch("/api/efatura/erp/test",{method:"POST",headers:{"Content-Type":"application/json"},credentials:"include",body:JSON.stringify(creds())}); setTestResult(await r.json()); }
+    catch { setTestResult({success:false,message:"Bağlantı hatası"}); }
+    finally { setTesting(false); }
+  };
+  const handleSync = async () => {
+    setSyncing(true); setSyncResult(null);
+    try { const r = await fetch("/api/efatura/erp/sync",{method:"POST",headers:{"Content-Type":"application/json"},credentials:"include",body:JSON.stringify({...creds(),startDate,endDate,donem})}); const d = await r.json(); setSyncResult(d); if(d.imported>0) onSyncComplete(); toast({title:"ERP Sync",description:`${d.fetched} fatura, ${d.imported} eklendi`}); }
+    catch { toast({title:"Hata",description:"Sync başarısız",variant:"destructive"}); }
+    finally { setSyncing(false); }
+  };
+
+  return (
+    <Card className="overflow-hidden">
+      <div className="px-4 py-3 border-b bg-slate-50">
+        <div className="flex items-center gap-2"><Settings className="w-4 h-4 text-violet-600" /><span className="text-sm font-semibold">ERP / Muhasebe Yazılımı & Veritabanı Bağlantısı</span></div>
+        <p className="text-xs text-muted-foreground mt-1">Muhasebe yazılımınızdan veya kendi veritabanınızdan fatura verilerini çekin</p>
+      </div>
+      <div className="p-4 space-y-4">
+        <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
+          {Object.entries(providerList).map(([k,v]:[string,any]) => (
+            <button key={k} onClick={() => {setProvider(k);setTestResult(null);setSyncResult(null);}} className={`p-2.5 rounded-lg border text-xs font-medium text-center transition-all ${provider===k?"border-violet-500 bg-violet-50 text-violet-700":"border-slate-200 hover:border-slate-300"}`}>
+              <span className="text-lg block mb-0.5">{v.icon}</span>{v.name}
+            </button>
+          ))}
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {fields.includes("apiUrl") && <div><label className="text-xs font-medium text-muted-foreground">API URL</label><Input value={apiUrl} onChange={e=>setApiUrl(e.target.value)} placeholder="https://..." className="mt-1 text-sm font-mono" /></div>}
+          {fields.includes("apiKey") && <div><label className="text-xs font-medium text-muted-foreground">API Key</label><Input type="password" value={apiKey} onChange={e=>setApiKey(e.target.value)} className="mt-1 text-sm" /></div>}
+          {fields.includes("clientId") && <div><label className="text-xs font-medium text-muted-foreground">Client ID</label><Input value={clientId} onChange={e=>setClientId(e.target.value)} className="mt-1 text-sm" /></div>}
+          {fields.includes("clientSecret") && <div><label className="text-xs font-medium text-muted-foreground">Client Secret</label><Input type="password" value={clientSecret} onChange={e=>setClientSecret(e.target.value)} className="mt-1 text-sm" /></div>}
+          {fields.includes("companyId") && <div><label className="text-xs font-medium text-muted-foreground">Company ID</label><Input value={companyId} onChange={e=>setCompanyId(e.target.value)} className="mt-1 text-sm" /></div>}
+          {fields.includes("username") && <div><label className="text-xs font-medium text-muted-foreground">Kullanıcı Adı</label><Input value={username} onChange={e=>setUsername(e.target.value)} className="mt-1 text-sm" /></div>}
+          {fields.includes("password") && <div><label className="text-xs font-medium text-muted-foreground">Şifre</label><Input type="password" value={pw} onChange={e=>setPw(e.target.value)} className="mt-1 text-sm" /></div>}
+          {fields.includes("dbHost") && (<>
+            <div><label className="text-xs font-medium text-muted-foreground">DB Host</label><Input value={dbHost} onChange={e=>setDbHost(e.target.value)} placeholder="localhost" className="mt-1 text-sm font-mono" /></div>
+            <div><label className="text-xs font-medium text-muted-foreground">DB Port</label><Input value={dbPort} onChange={e=>setDbPort(e.target.value)} className="mt-1 text-sm font-mono" /></div>
+            <div><label className="text-xs font-medium text-muted-foreground">DB Adı</label><Input value={dbName} onChange={e=>setDbName(e.target.value)} className="mt-1 text-sm font-mono" /></div>
+            <div><label className="text-xs font-medium text-muted-foreground">DB Kullanıcı</label><Input value={dbUser} onChange={e=>setDbUser(e.target.value)} className="mt-1 text-sm" /></div>
+            <div><label className="text-xs font-medium text-muted-foreground">DB Şifre</label><Input type="password" value={dbPw} onChange={e=>setDbPw(e.target.value)} className="mt-1 text-sm" /></div>
+          </>)}
+          {fields.includes("dbQuery") && (
+            <div className="md:col-span-2"><label className="text-xs font-medium text-muted-foreground">SQL Sorgusu ($1=başlangıç, $2=bitiş)</label>
+              <textarea value={dbQuery} onChange={e=>setDbQuery(e.target.value)} rows={3} className="mt-1 w-full text-xs font-mono p-2 border rounded-lg bg-slate-50 focus:outline-none focus:ring-1 focus:ring-violet-400" /></div>
+          )}
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div><label className="text-xs font-medium text-muted-foreground">Başlangıç</label><Input type="date" value={startDate} onChange={e=>setStartDate(e.target.value)} className="mt-1 text-sm" /></div>
+          <div><label className="text-xs font-medium text-muted-foreground">Bitiş</label><Input type="date" value={endDate} onChange={e=>setEndDate(e.target.value)} className="mt-1 text-sm" /></div>
+        </div>
+        {cp.docs && <p className="text-[10px] text-muted-foreground bg-violet-50 rounded p-2"><Info className="w-3 h-3 inline mr-1" />{cp.docs}</p>}
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={handleTest} disabled={testing}>{testing ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Settings className="w-3.5 h-3.5 mr-1" />} Test Et</Button>
+          <Button size="sm" className="bg-violet-600 hover:bg-violet-700" onClick={handleSync} disabled={syncing}>{syncing ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Play className="w-3.5 h-3.5 mr-1" />} Faturaları Çek</Button>
+        </div>
+        {testResult && <div className={`flex items-center gap-2 text-xs p-2 rounded ${testResult.success?"bg-emerald-50 text-emerald-700":"bg-red-50 text-red-700"}`}>{testResult.success ? <CheckCircle className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5" />} {testResult.message}</div>}
+        {syncResult && <div className="bg-slate-50 rounded-lg p-3 text-xs space-y-1"><p><strong>Çekilen:</strong> {syncResult.fetched}</p><p><strong>Eklenen:</strong> {syncResult.imported}</p>{syncResult.errors?.length>0 && <p className="text-red-600">{syncResult.errors.join(", ")}</p>}</div>}
+      </div>
     </Card>
   );
 }

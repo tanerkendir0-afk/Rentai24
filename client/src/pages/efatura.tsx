@@ -282,7 +282,7 @@ export default function EFatura() {
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
-            <Link href="/demo">
+            <Link href={user ? "/chat?agent=bookkeeping" : "/demo"}>
               <Button variant="ghost" size="sm"><ArrowLeft className="w-4 h-4 mr-1" /> Finn'e Dön</Button>
             </Link>
             <div>

@@ -139,9 +139,9 @@ export default function WorkerProfile() {
                   <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>
               )}
-              <Link href={`/demo?agent=${agent.id}`}>
+              <Link href={user ? `/chat?agent=${agent.id}` : `/demo?agent=${agent.id}`}>
                 <Button size="lg" variant="outline" data-testid="button-try-demo">
-                  {t("workerProfile.tryDemo")}
+                  {user ? t("dashboard.chat", { defaultValue: "Sohbet" }) : t("workerProfile.tryDemo")}
                 </Button>
               </Link>
             </div>

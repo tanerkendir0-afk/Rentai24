@@ -58,7 +58,7 @@ export default function Footer() {
                 { href: "/pricing", label: t("nav.pricing") },
                 { href: "/about", label: t("nav.about") },
                 { href: "/contact", label: t("nav.contact") },
-                { href: "/demo", label: t("footer.liveDemo") },
+                ...(!user ? [{ href: "/demo", label: t("footer.liveDemo") }] : []),
               ].map((link) => (
                 <li key={link.href}>
                   <Link href={link.href}>

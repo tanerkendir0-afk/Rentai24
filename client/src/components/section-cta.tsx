@@ -3,9 +3,11 @@ import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { useAuth } from "@/lib/auth";
 
 export default function SectionCTA() {
   const { t } = useTranslation("pages");
+  const { user } = useAuth();
   return (
     <section className="relative py-16 sm:py-24 overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-violet-600/20" />
@@ -39,11 +41,13 @@ export default function SectionCTA() {
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
             </Link>
-            <Link href="/demo">
-              <Button size="lg" variant="outline" data-testid="button-cta-demo">
-                {t("sectionCta.bookDemo")}
-              </Button>
-            </Link>
+            {!user && (
+              <Link href="/demo">
+                <Button size="lg" variant="outline" data-testid="button-cta-demo">
+                  {t("sectionCta.bookDemo")}
+                </Button>
+              </Link>
+            )}
           </div>
         </motion.div>
       </div>

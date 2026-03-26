@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useAuth } from "@/lib/auth";
 import { motion } from "framer-motion";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -37,6 +38,7 @@ const fadeUp = {
 };
 
 export default function Contact() {
+  const { user } = useAuth();
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
@@ -226,9 +228,11 @@ export default function Contact() {
               <Card className="p-6 bg-card border-border/50">
                 <h3 className="font-semibold text-foreground mb-4">{t("contact.quickLinks.title")}</h3>
                 <div className="space-y-3">
-                  <a href="/demo" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid="contact-link-demo">
-                    {t("contact.quickLinks.liveDemo")}
-                  </a>
+                  {!user && (
+                    <a href="/demo" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid="contact-link-demo">
+                      {t("contact.quickLinks.liveDemo")}
+                    </a>
+                  )}
                   <a href="/pricing" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid="contact-link-pricing">
                     {t("contact.quickLinks.viewPricing")}
                   </a>

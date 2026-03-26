@@ -25,6 +25,10 @@ import {
   FileDown,
   Calendar,
   History,
+  Settings,
+  Plug,
+  Play,
+  CheckCircle,
 } from "lucide-react";
 import { Link } from "wouter";
 import { useAuth } from "@/lib/auth";
@@ -580,7 +584,7 @@ export default function EFatura() {
                 ) : (
                   faturalar.map((f, i) => (
                     <tr key={f.id} onClick={() => setDetailFatura(f)} className={`border-b hover:bg-slate-50/50 transition-colors cursor-pointer ${i % 2 === 0 ? "bg-white" : "bg-slate-50/30"} ${detailFatura?.id === f.id ? "ring-1 ring-emerald-400 bg-emerald-50/30" : ""}`}>
-                      <td className="px-2 py-2">
+                      <td className="px-2 py-2" onClick={e => e.stopPropagation()}>
                         <input type="checkbox" className="rounded"
                           checked={selectedRows.has(f.id)}
                           onChange={e => {
@@ -611,7 +615,7 @@ export default function EFatura() {
                       </td>
                       <td className="px-3 py-2 text-xs text-right font-mono font-semibold text-emerald-700">{formatTL(f.kdv_tutari)}</td>
                       <td className="px-3 py-2 text-xs font-mono text-muted-foreground">{f.hesap_kodu}</td>
-                      <td className="px-2 py-2">
+                      <td className="px-2 py-2" onClick={e => e.stopPropagation()}>
                         <button onClick={() => deleteFatura(f.id)} className="text-muted-foreground hover:text-red-500 transition-colors" title="Sil">
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -726,6 +730,9 @@ export default function EFatura() {
 
         {/* Beyanname Hazırlık Raporu */}
         <BeyannameRaporu donem={donem} faturalar={faturalar} />
+
+        {/* GİB Entegrasyon Ayarları */}
+        <GibEntegrasyonPanel donem={donem} onSyncComplete={() => refetch()} />
 
         {/* Footer Info */}
         <div className="mt-6 flex items-center justify-between text-xs text-muted-foreground">
@@ -871,6 +878,216 @@ function BeyannameRaporu({ donem, faturalar }: { donem: string; faturalar: Fatur
                 </p>
               </div>
             ) : null}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </Card>
+  );
+}
+
+// ============================================================
+// GİB ENTEGRASYON PANELİ
+// ============================================================
+
+function GibEntegrasyonPanel({ donem, onSyncComplete }: { donem: string; onSyncComplete: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [provider, setProvider] = useState("orkestra");
+  const [apiUrl, setApiUrl] = useState("");
+  const [apiKey, setApiKey] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [syncing, setSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState<any>(null);
+  const { toast } = useToast();
+
+  const { data: providers } = useQuery({
+    queryKey: ["/api/efatura/gib/providers"],
+    queryFn: async () => {
+      const res = await fetch("/api/efatura/gib/providers", { credentials: "include" });
+      if (!res.ok) return { providers: {} };
+      return res.json();
+    },
+    enabled: open,
+  });
+
+  const providerList = providers?.providers || {};
+  const currentProvider = providerList[provider] || {};
+
+  // Dönemden tarih aralığı oluştur
+  useState(() => {
+    const parts = donem.split("/");
+    if (parts.length === 2) {
+      const m = parts[0];
+      const y = parts[1];
+      setStartDate(`${y}-${m}-01`);
+      const lastDay = new Date(Number(y), Number(m), 0).getDate();
+      setEndDate(`${y}-${m}-${String(lastDay).padStart(2, "0")}`);
+    }
+  });
+
+  const handleTest = async () => {
+    setTesting(true);
+    setTestResult(null);
+    try {
+      const res = await fetch("/api/efatura/gib/test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ provider, apiUrl, apiKey }),
+      });
+      const data = await res.json();
+      setTestResult(data);
+    } catch {
+      setTestResult({ success: false, message: "Bağlantı hatası" });
+    } finally {
+      setTesting(false);
+    }
+  };
+
+  const handleSync = async () => {
+    if (!apiUrl || !apiKey) {
+      toast({ title: "Eksik Bilgi", description: "API URL ve API Key gerekli", variant: "destructive" });
+      return;
+    }
+    setSyncing(true);
+    setSyncResult(null);
+    try {
+      const res = await fetch("/api/efatura/gib/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ provider, apiUrl, apiKey, startDate, endDate, donem }),
+      });
+      const data = await res.json();
+      setSyncResult(data);
+      if (data.newInvoices > 0) onSyncComplete();
+      toast({ title: "Senkronizasyon Tamamlandı", description: `${data.fetched} fatura çekildi, ${data.newInvoices} yeni eklendi` });
+    } catch {
+      toast({ title: "Hata", description: "Senkronizasyon başarısız", variant: "destructive" });
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  return (
+    <Card className="mt-6 overflow-hidden">
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between px-4 py-3 hover:bg-slate-50 transition-colors"
+      >
+        <div className="flex items-center gap-2">
+          <Plug className="w-4 h-4 text-blue-600" />
+          <span className="text-sm font-semibold">GİB Entegrasyon Ayarları</span>
+          <Badge variant="outline" className="text-[10px]">Orkestra / Foriba / QNB</Badge>
+        </div>
+        {open ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+      </button>
+
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="border-t overflow-hidden"
+          >
+            <div className="p-4 space-y-4">
+              <p className="text-xs text-muted-foreground">
+                e-Fatura entegratörünüzün API bilgilerini girerek faturalarınızı otomatik çekebilirsiniz.
+                Manuel XML yüklemeye gerek kalmaz.
+              </p>
+
+              {/* Provider Seçimi */}
+              <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
+                {Object.entries(providerList).map(([key, val]: [string, any]) => (
+                  <button
+                    key={key}
+                    onClick={() => { setProvider(key); setApiUrl(val.defaultUrl || ""); setTestResult(null); }}
+                    className={`p-2 rounded-lg border text-xs font-medium text-center transition-all ${
+                      provider === key ? "border-blue-500 bg-blue-50 text-blue-700" : "border-slate-200 hover:border-slate-300"
+                    }`}
+                  >
+                    {val.name}
+                  </button>
+                ))}
+              </div>
+
+              {/* API Bilgileri */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">API URL</label>
+                  <Input
+                    value={apiUrl}
+                    onChange={e => setApiUrl(e.target.value)}
+                    placeholder={currentProvider.defaultUrl || "https://api.example.com"}
+                    className="mt-1 text-sm font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">API Key / Token</label>
+                  <Input
+                    type="password"
+                    value={apiKey}
+                    onChange={e => setApiKey(e.target.value)}
+                    placeholder="API anahtarınız"
+                    className="mt-1 text-sm"
+                  />
+                </div>
+              </div>
+
+              {/* Tarih Aralığı */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">Başlangıç Tarihi</label>
+                  <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="mt-1 text-sm" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">Bitiş Tarihi</label>
+                  <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="mt-1 text-sm" />
+                </div>
+              </div>
+
+              {currentProvider.docs && (
+                <p className="text-[10px] text-muted-foreground bg-blue-50 rounded p-2">
+                  <Info className="w-3 h-3 inline mr-1" />
+                  {currentProvider.docs}
+                </p>
+              )}
+
+              {/* Butonlar */}
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={handleTest} disabled={testing || !apiUrl}>
+                  {testing ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Settings className="w-3.5 h-3.5 mr-1" />}
+                  Bağlantı Test Et
+                </Button>
+                <Button size="sm" className="bg-blue-600 hover:bg-blue-700" onClick={handleSync} disabled={syncing || !apiUrl || !apiKey}>
+                  {syncing ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Play className="w-3.5 h-3.5 mr-1" />}
+                  Faturaları Çek
+                </Button>
+              </div>
+
+              {/* Test Sonucu */}
+              {testResult && (
+                <div className={`flex items-center gap-2 text-xs p-2 rounded ${testResult.success ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700"}`}>
+                  {testResult.success ? <CheckCircle className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5" />}
+                  {testResult.message}
+                </div>
+              )}
+
+              {/* Sync Sonucu */}
+              {syncResult && (
+                <div className="bg-slate-50 rounded-lg p-3 text-xs space-y-1">
+                  <p><strong>Çekilen:</strong> {syncResult.fetched} fatura</p>
+                  <p><strong>Yeni eklenen:</strong> {syncResult.newInvoices}</p>
+                  <p><strong>Mükerrer:</strong> {syncResult.duplicates}</p>
+                  {syncResult.errors?.length > 0 && (
+                    <p className="text-red-600"><strong>Hatalar:</strong> {syncResult.errors.join(", ")}</p>
+                  )}
+                </div>
+              )}
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

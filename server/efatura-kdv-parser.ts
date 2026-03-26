@@ -180,28 +180,35 @@ export function parseEFatura(xmlContent: string): ParseResult {
     const taxTotals = inv.TaxTotal;
     if (taxTotals) {
       const taxTotalArr = Array.isArray(taxTotals) ? taxTotals : [taxTotals];
-      
+
       for (const taxTotal of taxTotalArr) {
         const subtotals = taxTotal.TaxSubtotal;
-        if (!subtotals) continue;
-        
+        if (!subtotals) {
+          // TaxSubtotal yoksa TaxTotal'dan direkt al (bazı e-Arşiv faturaları)
+          const directKDV = xmlNum(taxTotal.TaxAmount);
+          if (directKDV > 0) kdvTutari += directKDV;
+          continue;
+        }
+
         const subtotalArr = Array.isArray(subtotals) ? subtotals : [subtotals];
-        
+
         for (const sub of subtotalArr) {
           const taxScheme = sub.TaxCategory?.TaxScheme;
           const taxName = xmlStr(taxScheme?.Name);
           const taxCode = xmlStr(taxScheme?.TaxTypeCode);
 
-          // Sadece KDV (0015) işle
-          if (taxCode === '0015' || taxName.includes('KDV') || taxName.includes('VAT')) {
+          // KDV: kod 0015, veya ismi KDV/VAT içeriyor, veya hiç kod yoksa da KDV kabul et
+          const isKDV = taxCode === '0015' || taxName.includes('KDV') || taxName.includes('VAT')
+            || (!taxCode && !taxName); // e-Arşiv bazen TaxScheme boş bırakır
+
+          if (isKDV) {
             const subMatrah = xmlNum(sub.TaxableAmount);
             const subKDV = xmlNum(sub.TaxAmount);
             const subOran = xmlNum(sub.Percent);
-            
+
             matrah += subMatrah;
             kdvTutari += subKDV;
-            
-            // En yüksek oranı ana oran olarak belirle (mixed rate durumu için)
+
             if (subOran > kdvOrani) kdvOrani = subOran;
           }
         }
@@ -212,11 +219,26 @@ export function parseEFatura(xmlContent: string): ParseResult {
     if (matrah === 0) {
       const lmt = inv.LegalMonetaryTotal;
       if (lmt) {
-        matrah = xmlNum(lmt.TaxExclusiveAmount);
+        // LineExtensionAmount = satır toplamı (KDV hariç net tutar)
+        matrah = xmlNum(lmt.LineExtensionAmount) || xmlNum(lmt.TaxExclusiveAmount);
         const payable = xmlNum(lmt.PayableAmount);
-        if (kdvTutari === 0 && payable > matrah) {
-          kdvTutari = payable - matrah;
+        const taxInclusive = xmlNum(lmt.TaxInclusiveAmount);
+        if (kdvTutari === 0) {
+          // TaxInclusiveAmount - LineExtensionAmount = KDV
+          if (taxInclusive > matrah) {
+            kdvTutari = Math.round((taxInclusive - matrah) * 100) / 100;
+          } else if (payable > matrah) {
+            kdvTutari = Math.round((payable - matrah) * 100) / 100;
+          }
         }
+      }
+    }
+
+    // InvoiceLine fallback: satır bazlı matrah topla
+    if (matrah === 0 && inv.InvoiceLine) {
+      const lines = Array.isArray(inv.InvoiceLine) ? inv.InvoiceLine : [inv.InvoiceLine];
+      for (const line of lines) {
+        matrah += xmlNum(line.LineExtensionAmount);
       }
     }
 

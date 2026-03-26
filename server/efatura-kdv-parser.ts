@@ -104,11 +104,11 @@ export function parseEFatura(xmlContent: string): ParseResult {
     }
 
     // === Belge No ===
-    const belgeNo = inv.ID?.toString() || '';
+    const belgeNo = xmlStr(inv.ID);
     if (!belgeNo) errors.push('Belge numarası (ID) bulunamadı');
 
     // === Profil ID ===
-    const profilId = inv.ProfileID?.toString() || '';
+    const profilId = xmlStr(inv.ProfileID);
     
     // === Belge Türü Tespiti ===
     let belgeTuru: ParsedInvoice['belgeTuru'] = 'e-Fatura';
@@ -120,10 +120,10 @@ export function parseEFatura(xmlContent: string): ParseResult {
       belgeTuru = 'e-Fatura';
     }
     // InvoiceTypeCode: SATIS, IADE, TEVKIFAT, ISTISNA, OZELMATRAH, IHRACKAYITLI
-    const invoiceTypeCode = inv.InvoiceTypeCode?.toString() || 'SATIS';
+    const invoiceTypeCode = xmlStr(inv.InvoiceTypeCode) || 'SATIS';
 
     // === Fatura Tarihi ===
-    const rawDate = inv.IssueDate?.toString() || '';
+    const rawDate = xmlStr(inv.IssueDate);
     const faturaTarihi = formatTarih(rawDate);
     if (!faturaTarihi) errors.push(`Geçersiz tarih formatı: ${rawDate}`);
 
@@ -134,8 +134,8 @@ export function parseEFatura(xmlContent: string): ParseResult {
 
     if (supplier) {
       // Unvan
-      saticiUnvani = supplier.PartyName?.Name?.toString()
-        || supplier.PartyLegalEntity?.RegistrationName?.toString()
+      saticiUnvani = xmlStr(supplier.PartyName?.Name)
+        || xmlStr(supplier.PartyLegalEntity?.RegistrationName)
         || '';
 
       // VKN/TCKN
@@ -145,13 +145,13 @@ export function parseEFatura(xmlContent: string): ParseResult {
         for (const id of ids) {
           const schemeId = id.ID?.['@_schemeID'] || '';
           if (schemeId === 'VKN' || schemeId === 'TCKN' || schemeId === 'VKN_TCKN') {
-            saticiVKN = id.ID?.['#text']?.toString() || id.ID?.toString() || '';
+            saticiVKN = xmlStr(id.ID);
             break;
           }
         }
         // Fallback: ilk ID'yi al
         if (!saticiVKN && ids.length > 0) {
-          saticiVKN = ids[0].ID?.['#text']?.toString() || ids[0].ID?.toString() || '';
+          saticiVKN = xmlStr(ids[0].ID);
         }
       }
     }
@@ -176,14 +176,14 @@ export function parseEFatura(xmlContent: string): ParseResult {
         
         for (const sub of subtotalArr) {
           const taxScheme = sub.TaxCategory?.TaxScheme;
-          const taxName = taxScheme?.Name?.toString() || '';
-          const taxCode = taxScheme?.TaxTypeCode?.toString() || '';
-          
+          const taxName = xmlStr(taxScheme?.Name);
+          const taxCode = xmlStr(taxScheme?.TaxTypeCode);
+
           // Sadece KDV (0015) işle
           if (taxCode === '0015' || taxName.includes('KDV') || taxName.includes('VAT')) {
-            const subMatrah = parseFloat(sub.TaxableAmount?.toString() || '0');
-            const subKDV = parseFloat(sub.TaxAmount?.toString() || '0');
-            const subOran = parseFloat(sub.Percent?.toString() || '0');
+            const subMatrah = xmlNum(sub.TaxableAmount);
+            const subKDV = xmlNum(sub.TaxAmount);
+            const subOran = xmlNum(sub.Percent);
             
             matrah += subMatrah;
             kdvTutari += subKDV;
@@ -199,8 +199,8 @@ export function parseEFatura(xmlContent: string): ParseResult {
     if (matrah === 0) {
       const lmt = inv.LegalMonetaryTotal;
       if (lmt) {
-        matrah = parseFloat(lmt.TaxExclusiveAmount?.toString() || '0');
-        const payable = parseFloat(lmt.PayableAmount?.toString() || '0');
+        matrah = xmlNum(lmt.TaxExclusiveAmount);
+        const payable = xmlNum(lmt.PayableAmount);
         if (kdvTutari === 0 && payable > matrah) {
           kdvTutari = payable - matrah;
         }
@@ -235,11 +235,11 @@ export function parseEFatura(xmlContent: string): ParseResult {
         const subArr = Array.isArray(subtotals) ? subtotals : [subtotals];
         for (const sub of subArr) {
           const taxScheme = sub.TaxCategory?.TaxScheme;
-          const taxCode = taxScheme?.TaxTypeCode?.toString() || '';
+          const taxCode = xmlStr(taxScheme?.TaxTypeCode);
           // Tevkifat kodları: 6xx (KDV tevkifat) veya 4xx (ÖTV tevkifat)
           if (taxCode.startsWith('6') || taxCode.startsWith('4') || taxCode === '9015') {
-            tevkifatTutari = (tevkifatTutari || 0) + parseFloat(sub.TaxAmount?.toString() || '0');
-            tevkifatOrani = parseFloat(sub.Percent?.toString() || '0');
+            tevkifatTutari = (tevkifatTutari || 0) + xmlNum(sub.TaxAmount);
+            tevkifatOrani = xmlNum(sub.Percent);
             tevkifatKodu = taxCode;
           }
         }
@@ -263,7 +263,7 @@ export function parseEFatura(xmlContent: string): ParseResult {
     }
 
     // === Para Birimi & Döviz Kuru ===
-    const paraBirimi = inv.DocumentCurrencyCode?.toString() || 'TRY';
+    const paraBirimi = xmlStr(inv.DocumentCurrencyCode) || 'TRY';
     let dovizKuru: number | undefined;
     let matrahTL: number | undefined;
     let kdvTutariTL: number | undefined;
@@ -272,7 +272,7 @@ export function parseEFatura(xmlContent: string): ParseResult {
       // PricingExchangeRate > CalculationRate
       const exchangeRate = inv.PricingExchangeRate;
       if (exchangeRate) {
-        dovizKuru = parseFloat(exchangeRate.CalculationRate?.toString() || '0');
+        dovizKuru = xmlNum(exchangeRate.CalculationRate);
         if (dovizKuru > 0) {
           matrahTL = Math.round(matrah * dovizKuru * 100) / 100;
           kdvTutariTL = Math.round(kdvTutari * dovizKuru * 100) / 100;
@@ -405,6 +405,42 @@ export function generateKDVListesi(
 // ============================================================
 // HELPER FUNCTIONS
 // ============================================================
+
+/**
+ * XML elemanından sayısal değer çıkar.
+ * fast-xml-parser attribute'lu elemanları obje olarak döndürür:
+ *   <cbc:TaxableAmount currencyID="TRY">144.73</cbc:TaxableAmount>
+ *   → { "#text": "144.73", "@_currencyID": "TRY" }
+ * Bu fonksiyon her iki durumu da handle eder.
+ */
+function xmlNum(val: any): number {
+  if (val == null) return 0;
+  if (typeof val === 'number') return val;
+  if (typeof val === 'string') return parseFloat(val) || 0;
+  if (typeof val === 'object') {
+    // fast-xml-parser #text key'inde asıl değeri tutar
+    const text = val['#text'] ?? val['_text'] ?? val['__text'];
+    if (text != null) return parseFloat(String(text)) || 0;
+    // Bazı durumlarda direkt toString çalışabilir
+    const str = String(val);
+    if (str !== '[object Object]') return parseFloat(str) || 0;
+  }
+  return 0;
+}
+
+/** XML elemanından string değer çıkar (attribute'lu elemanlar için) */
+function xmlStr(val: any): string {
+  if (val == null) return '';
+  if (typeof val === 'string') return val;
+  if (typeof val === 'number') return String(val);
+  if (typeof val === 'object') {
+    const text = val['#text'] ?? val['_text'] ?? val['__text'];
+    if (text != null) return String(text);
+    const str = String(val);
+    if (str !== '[object Object]') return str;
+  }
+  return '';
+}
 
 function formatTarih(isoDate: string): string | null {
   // Input: 2025-01-15 veya 2025-01-15T00:00:00

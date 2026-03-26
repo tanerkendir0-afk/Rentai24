@@ -3249,7 +3249,11 @@ export async function registerRoutes(
   });
 
   app.get("/api/agent-actions", requireAuth, async (req, res) => {
-    const userActions = await storage.getActionsByUser(req.session.userId!);
+    const daysParam = req.query.days ? parseInt(req.query.days as string) : 2;
+    const days = Math.min(Math.max(daysParam, 1), 30); // clamp 1-30
+    const since = new Date();
+    since.setDate(since.getDate() - days);
+    const userActions = await storage.getActionsByUser(req.session.userId!, since);
     res.json(userActions);
   });
 
@@ -3975,10 +3979,18 @@ export async function registerRoutes(
 
   app.get("/api/rentals", requireAuth, async (req, res) => {
     const rentals = await storage.getRentalsByUser(req.session.userId!);
-    const enriched = rentals.map((r) => ({
-      ...r,
-      agentName: agentNameMap[r.agentType] || r.agentType,
-    }));
+    const now = new Date();
+    const enriched = rentals.map((r) => {
+      // Check if monthly period reset is needed (show 0 usage for new billing period)
+      const periodReset = r.periodResetAt ? new Date(r.periodResetAt) : new Date(r.startedAt);
+      const monthsSince = (now.getFullYear() - periodReset.getFullYear()) * 12 + (now.getMonth() - periodReset.getMonth());
+      const needsReset = monthsSince >= 1;
+      return {
+        ...r,
+        agentName: agentNameMap[r.agentType] || r.agentType,
+        messagesUsed: needsReset ? 0 : r.messagesUsed,
+      };
+    });
     res.json(enriched);
   });
 
@@ -4033,6 +4045,52 @@ export async function registerRoutes(
     });
 
     res.json({ ...rental, agentName: agentNameMap[agentType] });
+  });
+
+  // Deactivate (fire) an agent rental
+  app.post("/api/rentals/:id/deactivate", requireAuth, async (req, res) => {
+    const rentalId = parseInt(req.params.id);
+    const userRentals = await storage.getRentalsByUser(req.session.userId!);
+    const rental = userRentals.find(r => r.id === rentalId && r.status === "active");
+    if (!rental) {
+      return res.status(404).json({ error: msg("rentalNotFound", req.lang!) });
+    }
+
+    // Check weekly swap limit for non-unlimited plans
+    const user = await storage.getUserById(req.session.userId!);
+    const subscription = user?.stripeSubscriptionId ? await storage.getSubscription(user.stripeSubscriptionId) : null;
+    const planMeta = (subscription?.metadata as Record<string, string> | null)?.plan || 'standard';
+    const planConfig = PLAN_CONFIG[planMeta] || PLAN_CONFIG.standard;
+
+    // Plans with fewer than 9 agents get limited swaps (1 per week)
+    if (planConfig.maxAgents < 9 && rental.lastSwapAt) {
+      const weekAgo = new Date();
+      weekAgo.setDate(weekAgo.getDate() - 7);
+      if (new Date(rental.lastSwapAt) > weekAgo) {
+        return res.status(429).json({ error: "Haftada sadece 1 ajan değişikliği yapabilirsiniz. Bir sonraki değişiklik hakkınız: " + new Date(new Date(rental.lastSwapAt).getTime() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString() });
+      }
+    }
+
+    await db.update(rentals).set({ status: "inactive" }).where(eq(rentals.id, rentalId));
+    res.json({ success: true, message: "Agent deactivated" });
+  });
+
+  // Get plan info for current user
+  app.get("/api/plan-info", requireAuth, async (req, res) => {
+    const user = await storage.getUserById(req.session.userId!);
+    const subscription = user?.stripeSubscriptionId ? await storage.getSubscription(user.stripeSubscriptionId) : null;
+    const planMeta = (subscription?.metadata as Record<string, string> | null)?.plan || 'standard';
+    const planConfig = PLAN_CONFIG[planMeta] || PLAN_CONFIG.standard;
+    const userRentals = await storage.getRentalsByUser(req.session.userId!);
+    const activeRentals = userRentals.filter(r => r.status === "active");
+
+    res.json({
+      plan: planMeta,
+      maxAgents: planConfig.maxAgents,
+      activeAgents: activeRentals.length,
+      dailyMessagesPerAgent: planConfig.dailyMessagesPerAgent,
+      canSwap: planConfig.maxAgents < 9,
+    });
   });
 
   app.get("/api/images/:filename", (req, res) => {

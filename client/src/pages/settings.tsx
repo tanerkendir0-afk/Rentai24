@@ -1164,6 +1164,20 @@ export default function Settings() {
     }
   }, [authLoading, user, setLocation]);
 
+  // Auto-scroll to section from URL param (e.g., /settings?tab=organization)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tab = params.get("tab");
+    if (tab) {
+      const sectionMap: Record<string, string> = { organization: "team-members", team: "team-members" };
+      const sectionId = sectionMap[tab] || tab;
+      setTimeout(() => {
+        const el = document.querySelector(`[data-testid="card-${sectionId}"]`);
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 500);
+    }
+  }, []);
+
   const { data: rentals } = useQuery<Rental[]>({
     queryKey: ["/api/rentals"],
     enabled: !!user,

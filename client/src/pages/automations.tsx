@@ -268,7 +268,7 @@ function VisualWorkflowEditor({ nodes, onChange, executionResults }: {
 
   return (
     <div
-      className="relative bg-gray-950/50 border border-gray-800 rounded-lg overflow-auto"
+      className="relative bg-card/50 border border-border rounded-lg overflow-auto"
       style={{ minHeight: maxY + 80 }}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
@@ -351,12 +351,12 @@ function VisualWorkflowEditor({ nodes, onChange, executionResults }: {
             data-testid={`node-${node.id}`}
           >
             <div className="flex items-center gap-2">
-              {onChange && <GripVertical className="w-3 h-3 text-gray-600 flex-shrink-0" />}
+              {onChange && <GripVertical className="w-3 h-3 text-muted-foreground/70 flex-shrink-0" />}
               <NodeIcon className={`w-4 h-4 flex-shrink-0 ${getNodeIconColor(node)}`} />
-              <span className="text-xs font-medium text-white truncate">{node.label}</span>
+              <span className="text-xs font-medium text-foreground truncate">{node.label}</span>
             </div>
             <div className="flex items-center gap-1 mt-1">
-              <span className="text-[10px] text-gray-500">
+              <span className="text-[10px] text-muted-foreground">
                 {node.type === "trigger" ? "Tetikleyici" :
                  node.type === "condition" ? "Koşul" :
                  node.type === "delay" ? "Bekleme" :
@@ -365,7 +365,7 @@ function VisualWorkflowEditor({ nodes, onChange, executionResults }: {
                  actionTypeLabels[node.actionType] || node.actionType || "Aksiyon"}
               </span>
               {node.maxRetries && node.maxRetries > 0 && (
-                <Badge variant="outline" className="text-[9px] border-gray-700 text-gray-500 px-1 py-0">
+                <Badge variant="outline" className="text-[9px] border-border text-muted-foreground px-1 py-0">
                   <RotateCcw className="w-2 h-2 mr-0.5" />{node.maxRetries}
                 </Badge>
               )}
@@ -408,20 +408,20 @@ function NodeDetailPanel({ node, result, onClose, onChange, allNodes }: {
 
   return (
     <div
-      className="absolute right-0 top-0 w-80 h-full bg-gray-900 border-l border-gray-800 p-4 overflow-y-auto z-10"
+      className="absolute right-0 top-0 w-80 h-full bg-card border-l border-border p-4 overflow-y-auto z-10"
       data-testid="node-detail-panel"
     >
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-semibold text-white">{node.label}</h3>
+        <h3 className="text-sm font-semibold text-foreground">{node.label}</h3>
         <Button variant="ghost" size="sm" onClick={onClose} data-testid="button-close-panel">
-          <XCircle className="w-4 h-4 text-gray-400" />
+          <XCircle className="w-4 h-4 text-muted-foreground" />
         </Button>
       </div>
 
       <div className="space-y-3">
         <div>
-          <label className="text-xs text-gray-400 block mb-1">Tür</label>
-          <p className="text-sm text-white capitalize">
+          <label className="text-xs text-muted-foreground block mb-1">Tür</label>
+          <p className="text-sm text-foreground capitalize">
             {node.type === "trigger" ? "Tetikleyici" :
              node.type === "condition" ? "Koşul" :
              node.type === "delay" ? "Bekleme" : "Aksiyon"}
@@ -430,31 +430,31 @@ function NodeDetailPanel({ node, result, onClose, onChange, allNodes }: {
 
         {node.actionType && (
           <div>
-            <label className="text-xs text-gray-400 block mb-1">Aksiyon</label>
-            <p className="text-sm text-white">{actionTypeLabels[node.actionType] || node.actionType}</p>
+            <label className="text-xs text-muted-foreground block mb-1">Aksiyon</label>
+            <p className="text-sm text-foreground">{actionTypeLabels[node.actionType] || node.actionType}</p>
           </div>
         )}
 
         {onChange && (
           <>
             <div>
-              <label className="text-xs text-gray-400 block mb-1">Etiket</label>
+              <label className="text-xs text-muted-foreground block mb-1">Etiket</label>
               <Input
                 value={node.label}
                 onChange={(e) => onChange({ ...node, label: e.target.value })}
-                className="bg-gray-800 border-gray-700 text-white text-xs h-8"
+                className="bg-muted border-border text-foreground text-xs h-8"
                 data-testid="input-node-label"
               />
             </div>
             {node.type === "action" && node.actionType !== "integration" && node.actionType !== "run_skill" && (actionConfigFields[node.actionType] || Object.keys(node.config || {})).map((key: string) => (
               <div key={key}>
-                <label className="text-xs text-gray-400 block mb-1">{configFieldLabels[key] || key}</label>
+                <label className="text-xs text-muted-foreground block mb-1">{configFieldLabels[key] || key}</label>
                 {key === "agentType" ? (
                   <Select
                     value={node.config?.[key] || ""}
                     onValueChange={(v) => onChange({ ...node, config: { ...node.config, [key]: v } })}
                   >
-                    <SelectTrigger className="bg-gray-800 border-gray-700 text-white text-xs h-8" data-testid={`select-config-${key}`}>
+                    <SelectTrigger className="bg-muted border-border text-foreground text-xs h-8" data-testid={`select-config-${key}`}>
                       <SelectValue placeholder="Ajan seçin..." />
                     </SelectTrigger>
                     <SelectContent>
@@ -468,7 +468,7 @@ function NodeDetailPanel({ node, result, onClose, onChange, allNodes }: {
                     value={node.config?.[key] || ""}
                     onValueChange={(v) => onChange({ ...node, config: { ...node.config, [key]: v } })}
                   >
-                    <SelectTrigger className="bg-gray-800 border-gray-700 text-white text-xs h-8" data-testid={`select-config-${key}`}>
+                    <SelectTrigger className="bg-muted border-border text-foreground text-xs h-8" data-testid={`select-config-${key}`}>
                       <SelectValue placeholder="Öncelik seçin..." />
                     </SelectTrigger>
                     <SelectContent>
@@ -481,7 +481,7 @@ function NodeDetailPanel({ node, result, onClose, onChange, allNodes }: {
                   <Textarea
                     value={String(node.config?.[key] || "")}
                     onChange={(e) => onChange({ ...node, config: { ...node.config, [key]: e.target.value } })}
-                    className="bg-gray-800 border-gray-700 text-white text-xs min-h-[60px]"
+                    className="bg-muted border-border text-foreground text-xs min-h-[60px]"
                     placeholder={configFieldPlaceholders[key] || ""}
                     data-testid={`input-config-${key}`}
                   />
@@ -489,7 +489,7 @@ function NodeDetailPanel({ node, result, onClose, onChange, allNodes }: {
                   <Input
                     value={String(node.config?.[key] || "")}
                     onChange={(e) => onChange({ ...node, config: { ...node.config, [key]: e.target.value } })}
-                    className="bg-gray-800 border-gray-700 text-white text-xs h-8"
+                    className="bg-muted border-border text-foreground text-xs h-8"
                     placeholder={configFieldPlaceholders[key] || ""}
                     data-testid={`input-config-${key}`}
                   />
@@ -510,13 +510,13 @@ function NodeDetailPanel({ node, result, onClose, onChange, allNodes }: {
             )}
             {node.type === "delay" && (
               <div>
-                <label className="text-xs text-gray-400 block mb-1">Bekleme Süresi (saniye)</label>
+                <label className="text-xs text-muted-foreground block mb-1">Bekleme Süresi (saniye)</label>
                 <Input
                   type="number"
                   min="1"
                   value={node.config?.delaySeconds || 5}
                   onChange={(e) => onChange({ ...node, config: { ...node.config, delaySeconds: parseInt(e.target.value) || 5 } })}
-                  className="bg-gray-800 border-gray-700 text-white text-xs h-8"
+                  className="bg-muted border-border text-foreground text-xs h-8"
                   data-testid="input-config-delay"
                 />
               </div>
@@ -525,16 +525,16 @@ function NodeDetailPanel({ node, result, onClose, onChange, allNodes }: {
         )}
 
         {onChange && node.type === "condition" && (
-          <div className="border-t border-gray-800 pt-3">
-            <h4 className="text-xs text-gray-400 mb-2">Koşul Ayarları</h4>
+          <div className="border-t border-border pt-3">
+            <h4 className="text-xs text-muted-foreground mb-2">Koşul Ayarları</h4>
             <div className="space-y-2">
               <div className="flex items-center gap-2 mb-2">
-                <label className="text-xs text-gray-500">Mantık:</label>
+                <label className="text-xs text-muted-foreground">Mantık:</label>
                 <Select
                   value={node.conditionLogic || "and"}
                   onValueChange={(val) => onChange({ ...node, conditionLogic: val })}
                 >
-                  <SelectTrigger className="bg-gray-800 border-gray-700 text-white text-xs h-7 w-20" data-testid="select-condition-logic">
+                  <SelectTrigger className="bg-muted border-border text-foreground text-xs h-7 w-20" data-testid="select-condition-logic">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -544,9 +544,9 @@ function NodeDetailPanel({ node, result, onClose, onChange, allNodes }: {
                 </Select>
               </div>
               {(node.conditions && node.conditions.length > 0 ? node.conditions : [{ field: node.config?.field || "", operator: node.config?.operator || "equals", value: node.config?.value || "" }]).map((cond: any, idx: number) => (
-                <div key={idx} className="bg-gray-800/50 rounded p-2 space-y-1.5">
+                <div key={idx} className="bg-muted/50 rounded p-2 space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] text-gray-500">Kural {idx + 1}</span>
+                    <span className="text-[10px] text-muted-foreground">Kural {idx + 1}</span>
                     {(node.conditions?.length || 1) > 1 && (
                       <button
                         className="text-[10px] text-red-400 hover:text-red-300"
@@ -568,7 +568,7 @@ function NodeDetailPanel({ node, result, onClose, onChange, allNodes }: {
                       conds[idx] = { ...conds[idx], field: e.target.value };
                       onChange({ ...node, conditions: conds, config: { ...node.config, field: conds[0]?.field, operator: conds[0]?.operator, value: conds[0]?.value } });
                     }}
-                    className="bg-gray-800 border-gray-700 text-white text-xs h-7"
+                    className="bg-muted border-border text-foreground text-xs h-7"
                     placeholder="Alan adı"
                     data-testid={`input-condition-field-${idx}`}
                   />
@@ -580,7 +580,7 @@ function NodeDetailPanel({ node, result, onClose, onChange, allNodes }: {
                       onChange({ ...node, conditions: conds, config: { ...node.config, field: conds[0]?.field, operator: conds[0]?.operator, value: conds[0]?.value } });
                     }}
                   >
-                    <SelectTrigger className="bg-gray-800 border-gray-700 text-white text-xs h-7" data-testid={`select-condition-operator-${idx}`}>
+                    <SelectTrigger className="bg-muted border-border text-foreground text-xs h-7" data-testid={`select-condition-operator-${idx}`}>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -596,7 +596,7 @@ function NodeDetailPanel({ node, result, onClose, onChange, allNodes }: {
                       conds[idx] = { ...conds[idx], value: e.target.value };
                       onChange({ ...node, conditions: conds, config: { ...node.config, field: conds[0]?.field, operator: conds[0]?.operator, value: conds[0]?.value } });
                     }}
-                    className="bg-gray-800 border-gray-700 text-white text-xs h-7"
+                    className="bg-muted border-border text-foreground text-xs h-7"
                     placeholder="Değer"
                     data-testid={`input-condition-value-${idx}`}
                   />
@@ -605,7 +605,7 @@ function NodeDetailPanel({ node, result, onClose, onChange, allNodes }: {
               <Button
                 size="sm"
                 variant="outline"
-                className="text-[10px] border-gray-700 text-gray-400 w-full h-7"
+                className="text-[10px] border-border text-muted-foreground w-full h-7"
                 onClick={() => {
                   const existing = node.conditions || [{ field: node.config?.field || "", operator: node.config?.operator || "equals", value: node.config?.value || "" }];
                   onChange({ ...node, conditions: [...existing, { field: "", operator: "equals", value: "" }] });
@@ -619,14 +619,14 @@ function NodeDetailPanel({ node, result, onClose, onChange, allNodes }: {
         )}
 
         {onChange && otherNodes.length > 0 && (
-          <div className="border-t border-gray-800 pt-3">
-            <h4 className="text-xs text-gray-400 mb-2">Bağlantılar</h4>
+          <div className="border-t border-border pt-3">
+            <h4 className="text-xs text-muted-foreground mb-2">Bağlantılar</h4>
             <div className="space-y-2">
               {node.type !== "condition" && (
                 <div>
-                  <label className="text-xs text-gray-500 block mb-1">Sonraki Düğüm</label>
+                  <label className="text-xs text-muted-foreground block mb-1">Sonraki Düğüm</label>
                   <Select value={node.nextNodeId || "__none__"} onValueChange={(val) => onChange({ ...node, nextNodeId: val === "__none__" ? null : val })}>
-                    <SelectTrigger className="bg-gray-800 border-gray-700 text-white text-xs h-8" data-testid="select-next-node">
+                    <SelectTrigger className="bg-muted border-border text-foreground text-xs h-8" data-testid="select-next-node">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -639,9 +639,9 @@ function NodeDetailPanel({ node, result, onClose, onChange, allNodes }: {
               {node.type === "condition" && (
                 <>
                   <div>
-                    <label className="text-xs text-gray-500 block mb-1">Evet → Düğüm</label>
+                    <label className="text-xs text-muted-foreground block mb-1">Evet → Düğüm</label>
                     <Select value={node.conditionTrueNodeId || "__none__"} onValueChange={(val) => onChange({ ...node, conditionTrueNodeId: val === "__none__" ? null : val })}>
-                      <SelectTrigger className="bg-gray-800 border-gray-700 text-white text-xs h-8" data-testid="select-true-node">
+                      <SelectTrigger className="bg-muted border-border text-foreground text-xs h-8" data-testid="select-true-node">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -651,9 +651,9 @@ function NodeDetailPanel({ node, result, onClose, onChange, allNodes }: {
                     </Select>
                   </div>
                   <div>
-                    <label className="text-xs text-gray-500 block mb-1">Hayır → Düğüm</label>
+                    <label className="text-xs text-muted-foreground block mb-1">Hayır → Düğüm</label>
                     <Select value={node.conditionFalseNodeId || "__none__"} onValueChange={(val) => onChange({ ...node, conditionFalseNodeId: val === "__none__" ? null : val })}>
-                      <SelectTrigger className="bg-gray-800 border-gray-700 text-white text-xs h-8" data-testid="select-false-node">
+                      <SelectTrigger className="bg-muted border-border text-foreground text-xs h-8" data-testid="select-false-node">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -665,9 +665,9 @@ function NodeDetailPanel({ node, result, onClose, onChange, allNodes }: {
                 </>
               )}
               <div>
-                <label className="text-xs text-gray-500 block mb-1">Hata → Düğüm</label>
+                <label className="text-xs text-muted-foreground block mb-1">Hata → Düğüm</label>
                 <Select value={node.onErrorNodeId || "__none__"} onValueChange={(val) => onChange({ ...node, onErrorNodeId: val === "__none__" ? null : val })}>
-                  <SelectTrigger className="bg-gray-800 border-gray-700 text-white text-xs h-8" data-testid="select-error-node">
+                  <SelectTrigger className="bg-muted border-border text-foreground text-xs h-8" data-testid="select-error-node">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -681,41 +681,41 @@ function NodeDetailPanel({ node, result, onClose, onChange, allNodes }: {
         )}
 
         {onChange && (
-          <div className="border-t border-gray-800 pt-3">
-            <h4 className="text-xs text-gray-400 mb-2">Hata Yönetimi</h4>
+          <div className="border-t border-border pt-3">
+            <h4 className="text-xs text-muted-foreground mb-2">Hata Yönetimi</h4>
             <div className="space-y-2">
               <div>
-                <label className="text-xs text-gray-500 block mb-1">Tekrar Deneme Sayısı</label>
+                <label className="text-xs text-muted-foreground block mb-1">Tekrar Deneme Sayısı</label>
                 <Input
                   type="number"
                   min="0"
                   max="5"
                   value={node.maxRetries || 0}
                   onChange={(e) => onChange({ ...node, maxRetries: parseInt(e.target.value) || 0 })}
-                  className="bg-gray-800 border-gray-700 text-white text-xs h-8"
+                  className="bg-muted border-border text-foreground text-xs h-8"
                   data-testid="input-max-retries"
                 />
               </div>
               <div>
-                <label className="text-xs text-gray-500 block mb-1">Tekrar Aralığı (ms)</label>
+                <label className="text-xs text-muted-foreground block mb-1">Tekrar Aralığı (ms)</label>
                 <Input
                   type="number"
                   min="0"
                   value={node.retryDelayMs || 1000}
                   onChange={(e) => onChange({ ...node, retryDelayMs: parseInt(e.target.value) || 1000 })}
-                  className="bg-gray-800 border-gray-700 text-white text-xs h-8"
+                  className="bg-muted border-border text-foreground text-xs h-8"
                   data-testid="input-retry-delay"
                 />
               </div>
               <div>
-                <label className="text-xs text-gray-500 block mb-1">Zaman Aşımı (ms)</label>
+                <label className="text-xs text-muted-foreground block mb-1">Zaman Aşımı (ms)</label>
                 <Input
                   type="number"
                   min="0"
                   max="60000"
                   value={node.timeoutMs || 0}
                   onChange={(e) => onChange({ ...node, timeoutMs: parseInt(e.target.value) || 0 })}
-                  className="bg-gray-800 border-gray-700 text-white text-xs h-8"
+                  className="bg-muted border-border text-foreground text-xs h-8"
                   placeholder="0 = sınırsız"
                   data-testid="input-timeout"
                 />
@@ -725,8 +725,8 @@ function NodeDetailPanel({ node, result, onClose, onChange, allNodes }: {
         )}
 
         {result && (
-          <div className="border-t border-gray-800 pt-3">
-            <h4 className="text-xs text-gray-400 mb-2">Çalışma Sonucu</h4>
+          <div className="border-t border-border pt-3">
+            <h4 className="text-xs text-muted-foreground mb-2">Çalışma Sonucu</h4>
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 {result.status === "success" ? (
@@ -738,7 +738,7 @@ function NodeDetailPanel({ node, result, onClose, onChange, allNodes }: {
                   {result.status === "success" ? "Başarılı" : "Başarısız"}
                 </span>
                 {result.duration && (
-                  <span className="text-xs text-gray-500 ml-auto">{result.duration}ms</span>
+                  <span className="text-xs text-muted-foreground ml-auto">{result.duration}ms</span>
                 )}
               </div>
               {result.error && (
@@ -748,16 +748,16 @@ function NodeDetailPanel({ node, result, onClose, onChange, allNodes }: {
               )}
               {result.input && (
                 <div>
-                  <label className="text-xs text-gray-500 block mb-1">Girdi</label>
-                  <pre className="text-[10px] text-gray-400 bg-gray-800 rounded p-2 max-h-24 overflow-auto">
+                  <label className="text-xs text-muted-foreground block mb-1">Girdi</label>
+                  <pre className="text-[10px] text-muted-foreground bg-muted rounded p-2 max-h-24 overflow-auto">
                     {JSON.stringify(result.input, null, 2).substring(0, 500)}
                   </pre>
                 </div>
               )}
               {result.output && (
                 <div>
-                  <label className="text-xs text-gray-500 block mb-1">Çıktı</label>
-                  <pre className="text-[10px] text-gray-400 bg-gray-800 rounded p-2 max-h-24 overflow-auto">
+                  <label className="text-xs text-muted-foreground block mb-1">Çıktı</label>
+                  <pre className="text-[10px] text-muted-foreground bg-muted rounded p-2 max-h-24 overflow-auto">
                     {JSON.stringify(result.output, null, 2).substring(0, 500)}
                   </pre>
                 </div>
@@ -775,7 +775,7 @@ function ExecutionTimeline({ execution }: { execution: Execution }) {
   const results = execution.nodeResults || [];
 
   return (
-    <div className="bg-gray-800/50 rounded-lg border border-gray-700/50" data-testid={`execution-timeline-${execution.id}`}>
+    <div className="bg-muted/50 rounded-lg border border-border/50" data-testid={`execution-timeline-${execution.id}`}>
       <div
         className="flex items-center gap-3 p-3 cursor-pointer"
         onClick={() => setExpanded(!expanded)}
@@ -790,35 +790,35 @@ function ExecutionTimeline({ execution }: { execution: Execution }) {
         )}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span className="text-sm text-white font-medium">
+            <span className="text-sm text-foreground font-medium">
               {execution.status === "completed" ? "Başarılı" : execution.status === "failed" ? "Başarısız" : "Çalışıyor"}
             </span>
-            <Badge variant="outline" className="text-[10px] border-gray-700 text-gray-500">
+            <Badge variant="outline" className="text-[10px] border-border text-muted-foreground">
               {results.length} adım
             </Badge>
           </div>
           {execution.error && <p className="text-xs text-red-400 mt-0.5 truncate">{execution.error}</p>}
         </div>
-        <p className="text-xs text-gray-500 flex-shrink-0">{new Date(execution.startedAt).toLocaleString("tr-TR")}</p>
-        {expanded ? <ChevronDown className="w-4 h-4 text-gray-500" /> : <ChevronRight className="w-4 h-4 text-gray-500" />}
+        <p className="text-xs text-muted-foreground flex-shrink-0">{new Date(execution.startedAt).toLocaleString("tr-TR")}</p>
+        {expanded ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />}
       </div>
 
       {expanded && results.length > 0 && (
         <div className="px-3 pb-3">
-          <div className="border-l-2 border-gray-700 ml-2 pl-4 space-y-3">
+          <div className="border-l-2 border-border ml-2 pl-4 space-y-3">
             {results.map((result: any, i: number) => (
               <div key={i} className="relative" data-testid={`execution-step-${i}`}>
                 <div className={`absolute -left-[21px] top-1 w-3 h-3 rounded-full border-2 ${
                   result.status === "success" ? "bg-green-500 border-green-400" :
                   result.status === "error" ? "bg-red-500 border-red-400" :
-                  "bg-gray-500 border-gray-400"
+                  "bg-muted-foreground border-muted-foreground"
                 }`} />
-                <div className="bg-gray-900/50 rounded-lg p-3">
+                <div className="bg-card/50 rounded-lg p-3">
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs font-medium text-white">{result.label}</span>
+                    <span className="text-xs font-medium text-foreground">{result.label}</span>
                     <div className="flex items-center gap-2">
                       {result.duration != null && (
-                        <span className="text-[10px] text-gray-500">{result.duration}ms</span>
+                        <span className="text-[10px] text-muted-foreground">{result.duration}ms</span>
                       )}
                       <span className={`text-[10px] ${result.status === "success" ? "text-green-400" : "text-red-400"}`}>
                         {result.status === "success" ? "✓" : "✗"}
@@ -830,16 +830,16 @@ function ExecutionTimeline({ execution }: { execution: Execution }) {
                   )}
                   {result.input && (
                     <div className="mt-1">
-                      <span className="text-[9px] text-gray-600 font-medium">Girdi:</span>
-                      <pre className="text-[10px] text-gray-500 max-h-12 overflow-auto">
+                      <span className="text-[9px] text-muted-foreground/70 font-medium">Girdi:</span>
+                      <pre className="text-[10px] text-muted-foreground max-h-12 overflow-auto">
                         {JSON.stringify(result.input, null, 2).substring(0, 200)}
                       </pre>
                     </div>
                   )}
                   {result.output && (
                     <div className="mt-1">
-                      <span className="text-[9px] text-gray-600 font-medium">Çıktı:</span>
-                      <pre className="text-[10px] text-gray-500 max-h-12 overflow-auto">
+                      <span className="text-[9px] text-muted-foreground/70 font-medium">Çıktı:</span>
+                      <pre className="text-[10px] text-muted-foreground max-h-12 overflow-auto">
                         {JSON.stringify(result.output, null, 2).substring(0, 200)}
                       </pre>
                     </div>
@@ -863,7 +863,7 @@ function SkillConfigPanel({ config, onChange }: { config: Record<string, any>; o
 
   return (
     <div className="space-y-2" data-testid="skill-config-panel">
-      <label className="text-xs text-gray-400 block">Beceri Seçin</label>
+      <label className="text-xs text-muted-foreground block">Beceri Seçin</label>
       <Select
         value={config.skillName || ""}
         onValueChange={(val) => {
@@ -878,7 +878,7 @@ function SkillConfigPanel({ config, onChange }: { config: Record<string, any>; o
           }
         }}
       >
-        <SelectTrigger className="bg-gray-800 border-gray-700 text-white text-xs" data-testid="select-skill">
+        <SelectTrigger className="bg-muted border-border text-foreground text-xs" data-testid="select-skill">
           <SelectValue placeholder="Beceri seçin..." />
         </SelectTrigger>
         <SelectContent>
@@ -896,20 +896,20 @@ function SkillConfigPanel({ config, onChange }: { config: Record<string, any>; o
 
       {selectedSkill && (
         <div className="space-y-2">
-          <p className="text-[10px] text-gray-500">{selectedSkill.descriptionTr || selectedSkill.description}</p>
+          <p className="text-[10px] text-muted-foreground">{selectedSkill.descriptionTr || selectedSkill.description}</p>
           {selectedSkill.parameters && selectedSkill.parameters.length > 0 && (
             <>
               <label className="text-xs text-emerald-400 block mt-2">Parametreler</label>
               {selectedSkill.parameters.map((p: any) => (
                 <div key={p.name}>
-                  <label className="text-[10px] text-gray-400 block mb-0.5">
-                    {p.name}{p.required ? " *" : ""} <span className="text-gray-600">({p.type})</span>
+                  <label className="text-[10px] text-muted-foreground block mb-0.5">
+                    {p.name}{p.required ? " *" : ""} <span className="text-muted-foreground/70">({p.type})</span>
                   </label>
                   <Input
                     value={String(config[p.name] || "")}
                     onChange={(e) => onChange({ ...config, [p.name]: e.target.value })}
                     placeholder={p.description || p.name}
-                    className="bg-gray-800 border-gray-700 text-white text-xs h-7"
+                    className="bg-muted border-border text-foreground text-xs h-7"
                     data-testid={`skill-param-${p.name}`}
                   />
                 </div>
@@ -943,44 +943,44 @@ function IntegrationConfigPanel({ config, onChange }: { config: Record<string, a
 
     return (
       <div className="space-y-2" data-testid="integration-picker">
-        <label className="text-xs text-gray-400 block">Entegrasyon Seç</label>
+        <label className="text-xs text-muted-foreground block">Entegrasyon Seç</label>
         <div className="relative">
-          <Search className="absolute left-2 top-1.5 w-3 h-3 text-gray-500" />
+          <Search className="absolute left-2 top-1.5 w-3 h-3 text-muted-foreground" />
           <Input
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Ara... (Slack, Telegram, vb.)"
-            className="bg-gray-800 border-gray-700 text-white text-xs h-7 pl-7"
+            className="bg-muted border-border text-foreground text-xs h-7 pl-7"
             data-testid="input-integration-search"
           />
         </div>
         <div className="max-h-64 overflow-y-auto space-y-2">
           {Object.entries(byCategory).map(([cat, items]) => (
             <div key={cat}>
-              <p className="text-[10px] text-gray-500 uppercase font-semibold mb-1">{categoryLabels[cat] || cat}</p>
+              <p className="text-[10px] text-muted-foreground uppercase font-semibold mb-1">{categoryLabels[cat] || cat}</p>
               {(items as any[]).map((integration: any) => (
                 <button
                   key={integration.id}
                   onClick={() => onChange({ ...config, integrationId: integration.id, integrationAction: "", _integrationLabel: integration.nameTr })}
-                  className="w-full flex items-center gap-2 p-1.5 rounded hover:bg-gray-800 text-left"
+                  className="w-full flex items-center gap-2 p-1.5 rounded hover:bg-muted text-left"
                   data-testid={`btn-integration-${integration.id}`}
                 >
-                  <div className="w-5 h-5 rounded flex items-center justify-center text-[10px] font-bold text-white" style={{ backgroundColor: integration.color }}>
+                  <div className="w-5 h-5 rounded flex items-center justify-center text-[10px] font-bold text-foreground" style={{ backgroundColor: integration.color }}>
                     {integration.name.charAt(0)}
                   </div>
                   <div>
-                    <p className="text-xs text-white">{integration.nameTr}</p>
-                    <p className="text-[10px] text-gray-500">{integration.actions?.length || 0} aksiyon</p>
+                    <p className="text-xs text-foreground">{integration.nameTr}</p>
+                    <p className="text-[10px] text-muted-foreground">{integration.actions?.length || 0} aksiyon</p>
                   </div>
                 </button>
               ))}
             </div>
           ))}
           {Object.keys(byCategory).length === 0 && (
-            <p className="text-xs text-gray-500 py-2 text-center">Sonuç bulunamadı</p>
+            <p className="text-xs text-muted-foreground py-2 text-center">Sonuç bulunamadı</p>
           )}
         </div>
-        <p className="text-[10px] text-gray-600 text-center">{integrations.length} entegrasyon • {catalogData?.totalActions || 0} aksiyon</p>
+        <p className="text-[10px] text-muted-foreground/70 text-center">{integrations.length} entegrasyon • {catalogData?.totalActions || 0} aksiyon</p>
       </div>
     );
   }
@@ -990,25 +990,25 @@ function IntegrationConfigPanel({ config, onChange }: { config: Record<string, a
       <div className="space-y-2" data-testid="integration-action-picker">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-5 h-5 rounded flex items-center justify-center text-[10px] font-bold text-white" style={{ backgroundColor: selectedIntegration.color }}>
+            <div className="w-5 h-5 rounded flex items-center justify-center text-[10px] font-bold text-foreground" style={{ backgroundColor: selectedIntegration.color }}>
               {selectedIntegration.name.charAt(0)}
             </div>
-            <span className="text-xs text-white font-medium">{selectedIntegration.nameTr}</span>
+            <span className="text-xs text-foreground font-medium">{selectedIntegration.nameTr}</span>
           </div>
-          <button onClick={() => onChange({ ...config, integrationId: "", integrationAction: "" })} className="text-gray-500 hover:text-white">
+          <button onClick={() => onChange({ ...config, integrationId: "", integrationAction: "" })} className="text-muted-foreground hover:text-foreground">
             <X className="w-3 h-3" />
           </button>
         </div>
-        <label className="text-xs text-gray-400 block">Aksiyon Seç</label>
+        <label className="text-xs text-muted-foreground block">Aksiyon Seç</label>
         {selectedIntegration.actions.map((action: any) => (
           <button
             key={action.id}
             onClick={() => onChange({ ...config, integrationAction: action.id, _integrationLabel: `${selectedIntegration.nameTr}: ${action.labelTr}` })}
-            className="w-full p-2 rounded bg-gray-800 hover:bg-gray-700 text-left"
+            className="w-full p-2 rounded bg-muted hover:bg-muted text-left"
             data-testid={`btn-action-${action.id}`}
           >
-            <p className="text-xs text-white">{action.labelTr}</p>
-            <p className="text-[10px] text-gray-500">{action.method} {action.pathTemplate.substring(0, 40)}</p>
+            <p className="text-xs text-foreground">{action.labelTr}</p>
+            <p className="text-[10px] text-muted-foreground">{action.method} {action.pathTemplate.substring(0, 40)}</p>
           </button>
         ))}
       </div>
@@ -1020,34 +1020,34 @@ function IntegrationConfigPanel({ config, onChange }: { config: Record<string, a
       <div className="space-y-2" data-testid="integration-config-fields">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-5 h-5 rounded flex items-center justify-center text-[10px] font-bold text-white" style={{ backgroundColor: selectedIntegration.color }}>
+            <div className="w-5 h-5 rounded flex items-center justify-center text-[10px] font-bold text-foreground" style={{ backgroundColor: selectedIntegration.color }}>
               {selectedIntegration.name.charAt(0)}
             </div>
             <div>
-              <p className="text-xs text-white">{selectedIntegration.nameTr}</p>
-              <p className="text-[10px] text-gray-500">{selectedAction.labelTr}</p>
+              <p className="text-xs text-foreground">{selectedIntegration.nameTr}</p>
+              <p className="text-[10px] text-muted-foreground">{selectedAction.labelTr}</p>
             </div>
           </div>
-          <button onClick={() => onChange({ ...config, integrationAction: "" })} className="text-gray-500 hover:text-white">
+          <button onClick={() => onChange({ ...config, integrationAction: "" })} className="text-muted-foreground hover:text-foreground">
             <X className="w-3 h-3" />
           </button>
         </div>
 
         <div>
-          <label className="text-xs text-gray-400 block mb-1">{selectedIntegration.authLabel}</label>
+          <label className="text-xs text-muted-foreground block mb-1">{selectedIntegration.authLabel}</label>
           <Input
             type="password"
             value={config.apiKey || ""}
             onChange={(e) => onChange({ ...config, apiKey: e.target.value })}
             placeholder={selectedIntegration.authPlaceholder}
-            className="bg-gray-800 border-gray-700 text-white text-xs h-7"
+            className="bg-muted border-border text-foreground text-xs h-7"
             data-testid="input-integration-apikey"
           />
         </div>
 
         {Object.keys(selectedAction.fieldLabels || {}).map((field: string) => (
           <div key={field}>
-            <label className="text-xs text-gray-400 block mb-1">
+            <label className="text-xs text-muted-foreground block mb-1">
               {selectedAction.fieldLabels[field]}
               {selectedAction.requiredFields?.includes(field) && <span className="text-red-400 ml-0.5">*</span>}
             </label>
@@ -1056,7 +1056,7 @@ function IntegrationConfigPanel({ config, onChange }: { config: Record<string, a
                 value={config[field] || ""}
                 onChange={(e) => onChange({ ...config, [field]: e.target.value })}
                 placeholder={selectedAction.fieldPlaceholders?.[field] || ""}
-                className="bg-gray-800 border-gray-700 text-white text-xs min-h-[50px]"
+                className="bg-muted border-border text-foreground text-xs min-h-[50px]"
                 data-testid={`input-integration-${field}`}
               />
             ) : (
@@ -1064,7 +1064,7 @@ function IntegrationConfigPanel({ config, onChange }: { config: Record<string, a
                 value={config[field] || ""}
                 onChange={(e) => onChange({ ...config, [field]: e.target.value })}
                 placeholder={selectedAction.fieldPlaceholders?.[field] || ""}
-                className="bg-gray-800 border-gray-700 text-white text-xs h-7"
+                className="bg-muted border-border text-foreground text-xs h-7"
                 data-testid={`input-integration-${field}`}
               />
             )}
@@ -1111,17 +1111,17 @@ function EventMonitorPanel({ workflowId: _workflowId }: { workflowId: number }) 
   const monitors = status?.activeMonitors || [];
 
   return (
-    <Card className="bg-gray-900/50 border-gray-800 mb-6" data-testid="event-monitor-panel">
+    <Card className="bg-card/50 border-border mb-6" data-testid="event-monitor-panel">
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle className="text-white text-lg flex items-center gap-2">
+          <CardTitle className="text-foreground text-lg flex items-center gap-2">
             <Activity className="w-5 h-5 text-blue-400" />
             Olay İzleyici
           </CardTitle>
           <Button
             size="sm"
             variant="outline"
-            className="border-gray-700 text-gray-300 text-xs"
+            className="border-border text-muted-foreground text-xs"
             onClick={() => checkMutation.mutate()}
             disabled={checkMutation.isPending}
             data-testid="button-run-event-check"
@@ -1136,12 +1136,12 @@ function EventMonitorPanel({ workflowId: _workflowId }: { workflowId: number }) 
         </div>
       </CardHeader>
       <CardContent>
-        <p className="text-xs text-gray-500 mb-3">
+        <p className="text-xs text-muted-foreground mb-3">
           Bu workflow, belirli koşullar karşılandığında otomatik olarak tetiklenir. Manuel kontrol yapabilir veya otomatik çalışmasını bekleyebilirsiniz.
         </p>
         {monitors.length === 0 ? (
           <div className="text-center py-3">
-            <p className="text-xs text-gray-500">Aktif olay izleyicisi bulunamadı.</p>
+            <p className="text-xs text-muted-foreground">Aktif olay izleyicisi bulunamadı.</p>
           </div>
         ) : (
           <div className="space-y-2">
@@ -1149,8 +1149,8 @@ function EventMonitorPanel({ workflowId: _workflowId }: { workflowId: number }) 
               <div key={i} className="flex items-start gap-3 p-3 bg-blue-500/5 border border-blue-500/10 rounded-lg">
                 <div className="w-2 h-2 bg-blue-400 rounded-full mt-1.5 flex-shrink-0" />
                 <div>
-                  <p className="text-sm text-white">{monitor.label}</p>
-                  <p className="text-xs text-gray-400">{monitor.description}</p>
+                  <p className="text-sm text-foreground">{monitor.label}</p>
+                  <p className="text-xs text-muted-foreground">{monitor.description}</p>
                 </div>
               </div>
             ))}
@@ -1159,9 +1159,9 @@ function EventMonitorPanel({ workflowId: _workflowId }: { workflowId: number }) 
 
         {checkMutation.data?.results && (
           <div className="mt-3 space-y-2">
-            <p className="text-xs font-medium text-gray-400">Son Kontrol Sonuçları:</p>
+            <p className="text-xs font-medium text-muted-foreground">Son Kontrol Sonuçları:</p>
             {checkMutation.data.results.map((r: any, i: number) => (
-              <div key={i} className={`p-2 rounded text-xs ${r.triggeredWorkflows > 0 ? "bg-green-500/10 text-green-400" : "bg-gray-800/50 text-gray-500"}`}>
+              <div key={i} className={`p-2 rounded text-xs ${r.triggeredWorkflows > 0 ? "bg-green-500/10 text-green-400" : "bg-muted/50 text-muted-foreground"}`}>
                 <span className="font-medium">{r.description}</span>
                 {r.triggeredWorkflows > 0 && ` — ${r.triggeredWorkflows} tetiklendi`}
                 {r.errors?.length > 0 && <span className="text-red-400 ml-2">{r.errors[0]}</span>}
@@ -1228,7 +1228,7 @@ function NaturalLanguageRuleBuilder({ onWorkflowCreated, onClose }: {
 
   return (
     <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" data-testid="nl-rule-builder-modal">
-      <div className="bg-gray-900 border border-gray-700 rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+      <div className="bg-card border border-border rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
@@ -1236,36 +1236,36 @@ function NaturalLanguageRuleBuilder({ onWorkflowCreated, onClose }: {
                 <Sparkles className="w-5 h-5 text-purple-400" />
               </div>
               <div>
-                <h2 className="text-lg font-bold text-white">AI Kural Oluşturucu</h2>
-                <p className="text-gray-400 text-xs">Doğal dilde kuralınızı tarif edin</p>
+                <h2 className="text-lg font-bold text-foreground">AI Kural Oluşturucu</h2>
+                <p className="text-muted-foreground text-xs">Doğal dilde kuralınızı tarif edin</p>
               </div>
             </div>
             <Button variant="ghost" size="sm" onClick={onClose} data-testid="button-close-nl-builder">
-              <X className="w-4 h-4 text-gray-400" />
+              <X className="w-4 h-4 text-muted-foreground" />
             </Button>
           </div>
 
           {step === "input" && (
             <div className="space-y-4">
               <div>
-                <label className="text-sm text-gray-300 block mb-2">Kuralınızı Türkçe veya İngilizce olarak tarif edin</label>
+                <label className="text-sm text-muted-foreground block mb-2">Kuralınızı Türkçe veya İngilizce olarak tarif edin</label>
                 <Textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Örnek: Müşteri 3 gündür yanıt vermediyse Rex hatırlatma e-postası atsın..."
-                  className="bg-gray-800 border-gray-700 text-white min-h-[100px]"
+                  className="bg-muted border-border text-foreground min-h-[100px]"
                   data-testid="input-nl-description"
                 />
               </div>
 
               <div>
-                <p className="text-xs text-gray-500 mb-2">Örnekler (tıklayarak seçin):</p>
+                <p className="text-xs text-muted-foreground mb-2">Örnekler (tıklayarak seçin):</p>
                 <div className="space-y-1">
                   {EXAMPLES.map((ex, i) => (
                     <button
                       key={i}
                       onClick={() => setDescription(ex)}
-                      className="w-full text-left text-xs text-gray-400 hover:text-white hover:bg-gray-800 px-3 py-2 rounded border border-gray-800 hover:border-gray-700 transition-colors"
+                      className="w-full text-left text-xs text-muted-foreground hover:text-foreground hover:bg-muted px-3 py-2 rounded border border-border hover:border-border transition-colors"
                       data-testid={`button-nl-example-${i}`}
                     >
                       💡 {ex}
@@ -1287,7 +1287,7 @@ function NaturalLanguageRuleBuilder({ onWorkflowCreated, onClose }: {
                     <><Sparkles className="w-4 h-4 mr-2" />Kural Oluştur</>
                   )}
                 </Button>
-                <Button variant="outline" className="border-gray-700 text-gray-300" onClick={onClose}>
+                <Button variant="outline" className="border-border text-muted-foreground" onClick={onClose}>
                   İptal
                 </Button>
               </div>
@@ -1298,25 +1298,25 @@ function NaturalLanguageRuleBuilder({ onWorkflowCreated, onClose }: {
             <div className="space-y-4">
               <div className="bg-purple-500/10 border border-purple-500/20 rounded-lg p-4">
                 <p className="text-xs text-purple-400 font-medium mb-2">AI tarafından oluşturuldu</p>
-                <h3 className="text-white font-semibold">{generatedWorkflow.name}</h3>
+                <h3 className="text-foreground font-semibold">{generatedWorkflow.name}</h3>
                 {generatedWorkflow.description && (
-                  <p className="text-gray-400 text-sm mt-1">{generatedWorkflow.description}</p>
+                  <p className="text-muted-foreground text-sm mt-1">{generatedWorkflow.description}</p>
                 )}
                 <div className="flex gap-2 mt-2">
                   <Badge variant="outline" className="text-xs border-purple-500/30 text-purple-400">
                     {triggerTypeLabels[generatedWorkflow.triggerType] || generatedWorkflow.triggerType}
                   </Badge>
-                  <Badge variant="outline" className="text-xs border-gray-700 text-gray-400">
+                  <Badge variant="outline" className="text-xs border-border text-muted-foreground">
                     {generatedWorkflow.nodes?.length || 0} adım
                   </Badge>
                 </div>
               </div>
 
               <div>
-                <p className="text-xs text-gray-400 font-medium mb-2">Adımlar:</p>
+                <p className="text-xs text-muted-foreground font-medium mb-2">Adımlar:</p>
                 <div className="space-y-2">
                   {(generatedWorkflow.nodes || []).map((node: any, i: number) => (
-                    <div key={i} className="flex items-center gap-3 px-3 py-2 bg-gray-800/50 rounded-lg">
+                    <div key={i} className="flex items-center gap-3 px-3 py-2 bg-muted/50 rounded-lg">
                       <div className={`w-6 h-6 rounded flex items-center justify-center text-[10px] font-bold ${
                         node.type === "trigger" ? "bg-yellow-500/20 text-yellow-400" :
                         node.type === "condition" ? "bg-purple-500/20 text-purple-400" :
@@ -1325,8 +1325,8 @@ function NaturalLanguageRuleBuilder({ onWorkflowCreated, onClose }: {
                         {i + 1}
                       </div>
                       <div>
-                        <p className="text-sm text-white">{node.label}</p>
-                        <p className="text-[10px] text-gray-500">
+                        <p className="text-sm text-foreground">{node.label}</p>
+                        <p className="text-[10px] text-muted-foreground">
                           {node.type === "trigger" ? "Tetikleyici" :
                            node.type === "condition" ? "Koşul" :
                            actionTypeLabels[node.actionType] || "Aksiyon"}
@@ -1349,7 +1349,7 @@ function NaturalLanguageRuleBuilder({ onWorkflowCreated, onClose }: {
                 </Button>
                 <Button
                   variant="outline"
-                  className="border-gray-700 text-gray-300"
+                  className="border-border text-muted-foreground"
                   onClick={() => { setStep("input"); setGeneratedWorkflow(null); }}
                   data-testid="button-nl-back"
                 >
@@ -1490,36 +1490,36 @@ function RuleWizard({ onComplete, onClose }: {
 
   return (
     <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" data-testid="rule-wizard-modal">
-      <div className="bg-gray-900 border border-gray-700 rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+      <div className="bg-card border border-border rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           <div className="flex items-center justify-between mb-2">
-            <h2 className="text-lg font-bold text-white">Kural Sihirbazı</h2>
+            <h2 className="text-lg font-bold text-foreground">Kural Sihirbazı</h2>
             <Button variant="ghost" size="sm" onClick={onClose} data-testid="button-close-wizard">
-              <X className="w-4 h-4 text-gray-400" />
+              <X className="w-4 h-4 text-muted-foreground" />
             </Button>
           </div>
 
           <div className="flex items-center gap-1 mb-6">
             {stepTitles.map((title, i) => (
               <div key={i} className="flex items-center gap-1 flex-1">
-                <div className={`flex items-center gap-1.5 ${i + 1 <= step ? "text-blue-400" : "text-gray-600"}`}>
+                <div className={`flex items-center gap-1.5 ${i + 1 <= step ? "text-blue-400" : "text-muted-foreground/70"}`}>
                   <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-                    i + 1 < step ? "bg-green-500 text-white" :
-                    i + 1 === step ? "bg-blue-500 text-white" :
-                    "bg-gray-700 text-gray-500"
+                    i + 1 < step ? "bg-green-500 text-foreground" :
+                    i + 1 === step ? "bg-blue-500 text-foreground" :
+                    "bg-muted text-muted-foreground"
                   }`}>
                     {i + 1 < step ? "✓" : i + 1}
                   </div>
                   <span className="text-[10px] hidden md:block">{title}</span>
                 </div>
-                {i < stepTitles.length - 1 && <div className={`flex-1 h-px ${i + 1 < step ? "bg-green-500" : "bg-gray-700"}`} />}
+                {i < stepTitles.length - 1 && <div className={`flex-1 h-px ${i + 1 < step ? "bg-green-500" : "bg-muted"}`} />}
               </div>
             ))}
           </div>
 
           {step === 1 && (
             <div className="space-y-3">
-              <p className="text-sm text-gray-400">Bu kural ne zaman tetiklensin?</p>
+              <p className="text-sm text-muted-foreground">Bu kural ne zaman tetiklensin?</p>
               <div className="grid grid-cols-1 gap-2">
                 {TRIGGER_OPTIONS.map((opt) => (
                   <button
@@ -1536,28 +1536,28 @@ function RuleWizard({ onComplete, onClose }: {
                     }}
                     className={`flex items-center gap-3 p-3 rounded-lg border transition-all text-left ${
                       triggerType === opt.value
-                        ? "border-blue-500 bg-blue-500/10 text-white"
-                        : "border-gray-700 hover:border-gray-600 text-gray-400 hover:text-white"
+                        ? "border-blue-500 bg-blue-500/10 text-foreground"
+                        : "border-border hover:border-border/80 text-muted-foreground hover:text-foreground"
                     }`}
                     data-testid={`button-trigger-option-${opt.value}`}
                   >
                     <span className="text-xl">{opt.icon}</span>
                     <div>
                       <p className="text-sm font-medium">{opt.label}</p>
-                      <p className="text-xs text-gray-500">{opt.description}</p>
+                      <p className="text-xs text-muted-foreground">{opt.description}</p>
                     </div>
                   </button>
                 ))}
               </div>
 
               {triggerType === "event_monitor" && (
-                <div className="mt-3 space-y-2 bg-gray-800/50 rounded-lg p-3">
-                  <p className="text-xs text-gray-400 font-medium">Olay Ayarları</p>
+                <div className="mt-3 space-y-2 bg-muted/50 rounded-lg p-3">
+                  <p className="text-xs text-muted-foreground font-medium">Olay Ayarları</p>
                   <Select
                     value={triggerConfig.eventType || "lead_inactivity"}
                     onValueChange={(v) => setTriggerConfig({ ...triggerConfig, eventType: v })}
                   >
-                    <SelectTrigger className="bg-gray-800 border-gray-700 text-white text-xs h-8" data-testid="select-wizard-event-type">
+                    <SelectTrigger className="bg-muted border-border text-foreground text-xs h-8" data-testid="select-wizard-event-type">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -1567,34 +1567,34 @@ function RuleWizard({ onComplete, onClose }: {
                     </SelectContent>
                   </Select>
                   <div className="flex items-center gap-2">
-                    <label className="text-xs text-gray-500 whitespace-nowrap">Gün eşiği:</label>
+                    <label className="text-xs text-muted-foreground whitespace-nowrap">Gün eşiği:</label>
                     <Input
                       type="number"
                       min="1"
                       value={triggerConfig.daysThreshold || 3}
                       onChange={(e) => setTriggerConfig({ ...triggerConfig, daysThreshold: parseInt(e.target.value) || 3 })}
-                      className="bg-gray-800 border-gray-700 text-white text-xs h-8 flex-1"
+                      className="bg-muted border-border text-foreground text-xs h-8 flex-1"
                       data-testid="input-wizard-days"
                     />
-                    <span className="text-xs text-gray-500">gün</span>
+                    <span className="text-xs text-muted-foreground">gün</span>
                   </div>
                 </div>
               )}
 
               {triggerType === "email_received" && (
-                <div className="mt-3 space-y-2 bg-gray-800/50 rounded-lg p-3">
-                  <p className="text-xs text-gray-400 font-medium">E-posta Filtresi (İsteğe Bağlı)</p>
+                <div className="mt-3 space-y-2 bg-muted/50 rounded-lg p-3">
+                  <p className="text-xs text-muted-foreground font-medium">E-posta Filtresi (İsteğe Bağlı)</p>
                   <Input
                     value={triggerConfig.senderFilter || ""}
                     onChange={(e) => setTriggerConfig({ ...triggerConfig, senderFilter: e.target.value })}
                     placeholder="Gönderen filtresi: @example.com"
-                    className="bg-gray-800 border-gray-700 text-white text-xs h-8"
+                    className="bg-muted border-border text-foreground text-xs h-8"
                   />
                   <Input
                     value={triggerConfig.subjectFilter || ""}
                     onChange={(e) => setTriggerConfig({ ...triggerConfig, subjectFilter: e.target.value })}
                     placeholder="Konu filtresi: Fatura, Sipariş..."
-                    className="bg-gray-800 border-gray-700 text-white text-xs h-8"
+                    className="bg-muted border-border text-foreground text-xs h-8"
                   />
                 </div>
               )}
@@ -1604,11 +1604,11 @@ function RuleWizard({ onComplete, onClose }: {
           {step === 2 && (
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <p className="text-sm text-gray-400">Koşullar ekleyin (isteğe bağlı)</p>
+                <p className="text-sm text-muted-foreground">Koşullar ekleyin (isteğe bağlı)</p>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-gray-500">Mantık:</span>
+                  <span className="text-xs text-muted-foreground">Mantık:</span>
                   <Select value={conditionLogic} onValueChange={(v) => setConditionLogic(v as "and" | "or")}>
-                    <SelectTrigger className="bg-gray-800 border-gray-700 text-white text-xs h-7 w-20" data-testid="select-wizard-logic">
+                    <SelectTrigger className="bg-muted border-border text-foreground text-xs h-7 w-20" data-testid="select-wizard-logic">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -1620,9 +1620,9 @@ function RuleWizard({ onComplete, onClose }: {
               </div>
 
               {conditions.map((cond, idx) => (
-                <div key={idx} className="bg-gray-800/50 rounded-lg p-3 space-y-2">
+                <div key={idx} className="bg-muted/50 rounded-lg p-3 space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-400">Kural {idx + 1}</span>
+                    <span className="text-xs text-muted-foreground">Kural {idx + 1}</span>
                     <button
                       onClick={() => setConditions(conditions.filter((_, i) => i !== idx))}
                       className="text-xs text-red-400 hover:text-red-300"
@@ -1639,7 +1639,7 @@ function RuleWizard({ onComplete, onClose }: {
                       setConditions(next);
                     }}
                     placeholder="Alan adı (örn: status, amount)"
-                    className="bg-gray-800 border-gray-700 text-white text-xs h-7"
+                    className="bg-muted border-border text-foreground text-xs h-7"
                     data-testid={`input-wizard-field-${idx}`}
                   />
                   <Select
@@ -1650,7 +1650,7 @@ function RuleWizard({ onComplete, onClose }: {
                       setConditions(next);
                     }}
                   >
-                    <SelectTrigger className="bg-gray-800 border-gray-700 text-white text-xs h-7" data-testid={`select-wizard-op-${idx}`}>
+                    <SelectTrigger className="bg-muted border-border text-foreground text-xs h-7" data-testid={`select-wizard-op-${idx}`}>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -1667,7 +1667,7 @@ function RuleWizard({ onComplete, onClose }: {
                       setConditions(next);
                     }}
                     placeholder="Değer"
-                    className="bg-gray-800 border-gray-700 text-white text-xs h-7"
+                    className="bg-muted border-border text-foreground text-xs h-7"
                     data-testid={`input-wizard-value-${idx}`}
                   />
                 </div>
@@ -1676,7 +1676,7 @@ function RuleWizard({ onComplete, onClose }: {
               <Button
                 variant="outline"
                 size="sm"
-                className="w-full border-dashed border-gray-700 text-gray-400 hover:text-white text-xs"
+                className="w-full border-dashed border-border text-muted-foreground hover:text-foreground text-xs"
                 onClick={() => setConditions([...conditions, { field: "", operator: "equals", value: "" }])}
                 data-testid="button-wizard-add-condition"
               >
@@ -1685,8 +1685,8 @@ function RuleWizard({ onComplete, onClose }: {
 
               {conditions.length === 0 && (
                 <div className="text-center py-4">
-                  <p className="text-xs text-gray-500">Koşul eklemeden devam edebilirsiniz.</p>
-                  <p className="text-xs text-gray-600">Tüm olaylar için aksiyonu tetikleyecek.</p>
+                  <p className="text-xs text-muted-foreground">Koşul eklemeden devam edebilirsiniz.</p>
+                  <p className="text-xs text-muted-foreground/70">Tüm olaylar için aksiyonu tetikleyecek.</p>
                 </div>
               )}
             </div>
@@ -1694,7 +1694,7 @@ function RuleWizard({ onComplete, onClose }: {
 
           {step === 3 && (
             <div className="space-y-3">
-              <p className="text-sm text-gray-400">Bu kural tetiklendiğinde ne yapılsın?</p>
+              <p className="text-sm text-muted-foreground">Bu kural tetiklendiğinde ne yapılsın?</p>
               <div className="grid grid-cols-1 gap-2">
                 {ACTION_OPTIONS.map((opt) => (
                   <button
@@ -1702,59 +1702,59 @@ function RuleWizard({ onComplete, onClose }: {
                     onClick={() => setActionType(opt.value)}
                     className={`flex items-center gap-3 p-3 rounded-lg border transition-all text-left ${
                       actionType === opt.value
-                        ? "border-green-500 bg-green-500/10 text-white"
-                        : "border-gray-700 hover:border-gray-600 text-gray-400 hover:text-white"
+                        ? "border-green-500 bg-green-500/10 text-foreground"
+                        : "border-border hover:border-border/80 text-muted-foreground hover:text-foreground"
                     }`}
                     data-testid={`button-action-option-${opt.value}`}
                   >
                     <span className="text-xl">{opt.icon}</span>
                     <div>
                       <p className="text-sm font-medium">{opt.label}</p>
-                      <p className="text-xs text-gray-500">{opt.description}</p>
+                      <p className="text-xs text-muted-foreground">{opt.description}</p>
                     </div>
                   </button>
                 ))}
               </div>
 
               {actionType === "send_email" && (
-                <div className="mt-3 space-y-2 bg-gray-800/50 rounded-lg p-3">
+                <div className="mt-3 space-y-2 bg-muted/50 rounded-lg p-3">
                   <Input
                     value={actionConfig.to || ""}
                     onChange={(e) => setActionConfig({ ...actionConfig, to: e.target.value })}
                     placeholder="Alıcı e-posta adresi"
-                    className="bg-gray-800 border-gray-700 text-white text-xs h-8"
+                    className="bg-muted border-border text-foreground text-xs h-8"
                   />
                   <Input
                     value={actionConfig.subject || ""}
                     onChange={(e) => setActionConfig({ ...actionConfig, subject: e.target.value })}
                     placeholder="E-posta konusu"
-                    className="bg-gray-800 border-gray-700 text-white text-xs h-8"
+                    className="bg-muted border-border text-foreground text-xs h-8"
                   />
                 </div>
               )}
               {actionType === "notify_owner" && (
-                <div className="mt-3 bg-gray-800/50 rounded-lg p-3">
+                <div className="mt-3 bg-muted/50 rounded-lg p-3">
                   <Input
                     value={actionConfig.summary || ""}
                     onChange={(e) => setActionConfig({ ...actionConfig, summary: e.target.value })}
                     placeholder="Bildirim özeti (varsayılan: otomatik)"
-                    className="bg-gray-800 border-gray-700 text-white text-xs h-8"
+                    className="bg-muted border-border text-foreground text-xs h-8"
                   />
                 </div>
               )}
               {actionType === "create_task" && (
-                <div className="mt-3 space-y-2 bg-gray-800/50 rounded-lg p-3">
+                <div className="mt-3 space-y-2 bg-muted/50 rounded-lg p-3">
                   <Input
                     value={actionConfig.title || ""}
                     onChange={(e) => setActionConfig({ ...actionConfig, title: e.target.value })}
                     placeholder="Görev başlığı"
-                    className="bg-gray-800 border-gray-700 text-white text-xs h-8"
+                    className="bg-muted border-border text-foreground text-xs h-8"
                   />
                   <Select
                     value={actionConfig.agentType || "data-analyst"}
                     onValueChange={(v) => setActionConfig({ ...actionConfig, agentType: v })}
                   >
-                    <SelectTrigger className="bg-gray-800 border-gray-700 text-white text-xs h-8">
+                    <SelectTrigger className="bg-muted border-border text-foreground text-xs h-8">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -1771,49 +1771,49 @@ function RuleWizard({ onComplete, onClose }: {
           {step === 4 && (
             <div className="space-y-4">
               <div>
-                <label className="text-sm text-gray-300 block mb-1">Kural Adı</label>
+                <label className="text-sm text-muted-foreground block mb-1">Kural Adı</label>
                 <Input
                   value={workflowName}
                   onChange={(e) => setWorkflowName(e.target.value)}
                   placeholder={`${TRIGGER_OPTIONS.find(t => t.value === triggerType)?.label || "Kural"} → ${ACTION_OPTIONS.find(a => a.value === actionType)?.label || "Aksiyon"}`}
-                  className="bg-gray-800 border-gray-700 text-white"
+                  className="bg-muted border-border text-foreground"
                   data-testid="input-wizard-workflow-name"
                 />
               </div>
-              <div className="bg-gray-800/50 rounded-lg p-4 space-y-3">
-                <h4 className="text-sm font-medium text-white">Özet</h4>
+              <div className="bg-muted/50 rounded-lg p-4 space-y-3">
+                <h4 className="text-sm font-medium text-foreground">Özet</h4>
                 <div className="space-y-2">
                   <div className="flex gap-2 items-start">
-                    <span className="text-gray-500 text-xs w-20 flex-shrink-0">Tetikleyici:</span>
-                    <span className="text-white text-xs">
+                    <span className="text-muted-foreground text-xs w-20 flex-shrink-0">Tetikleyici:</span>
+                    <span className="text-foreground text-xs">
                       {TRIGGER_OPTIONS.find(t => t.value === triggerType)?.label}
                       {triggerType === "event_monitor" && ` — ${EVENT_TYPE_LABELS[triggerConfig.eventType] || ""} (${triggerConfig.daysThreshold || 3} gün)`}
                     </span>
                   </div>
                   <div className="flex gap-2 items-start">
-                    <span className="text-gray-500 text-xs w-20 flex-shrink-0">Koşullar:</span>
-                    <span className="text-white text-xs">
+                    <span className="text-muted-foreground text-xs w-20 flex-shrink-0">Koşullar:</span>
+                    <span className="text-foreground text-xs">
                       {conditions.length === 0 ? "Yok (her zaman)" : `${conditions.length} koşul (${conditionLogic.toUpperCase()})`}
                     </span>
                   </div>
                   <div className="flex gap-2 items-start">
-                    <span className="text-gray-500 text-xs w-20 flex-shrink-0">Aksiyon:</span>
-                    <span className="text-white text-xs">{ACTION_OPTIONS.find(a => a.value === actionType)?.label}</span>
+                    <span className="text-muted-foreground text-xs w-20 flex-shrink-0">Aksiyon:</span>
+                    <span className="text-foreground text-xs">{ACTION_OPTIONS.find(a => a.value === actionType)?.label}</span>
                   </div>
                 </div>
               </div>
             </div>
           )}
 
-          <div className="flex gap-3 pt-4 border-t border-gray-800 mt-4">
+          <div className="flex gap-3 pt-4 border-t border-border mt-4">
             {step > 1 && (
-              <Button variant="outline" className="border-gray-700 text-gray-300" onClick={() => setStep(step - 1)}>
+              <Button variant="outline" className="border-border text-muted-foreground" onClick={() => setStep(step - 1)}>
                 Geri
               </Button>
             )}
             {step < 4 ? (
               <Button
-                className="bg-blue-600 hover:bg-blue-700 flex-1"
+                className="bg-primary hover:bg-primary/90 flex-1"
                 onClick={() => setStep(step + 1)}
                 data-testid={`button-wizard-next-${step}`}
               >
@@ -1831,7 +1831,7 @@ function RuleWizard({ onComplete, onClose }: {
               </Button>
             )}
             {step === 1 && (
-              <Button variant="outline" className="border-gray-700 text-gray-300" onClick={onClose}>
+              <Button variant="outline" className="border-border text-muted-foreground" onClick={onClose}>
                 İptal
               </Button>
             )}
@@ -1850,14 +1850,14 @@ function TriggerConfigEditor({ triggerType, triggerConfig, onChange }: {
   onChange: (type: string, config: Record<string, any>) => void;
 }) {
   return (
-    <Card className="bg-gray-900/50 border-gray-800 mb-4">
+    <Card className="bg-card/50 border-border mb-4">
       <CardContent className="p-4">
-        <h3 className="text-sm font-medium text-white mb-3">Tetikleyici Ayarları</h3>
+        <h3 className="text-sm font-medium text-foreground mb-3">Tetikleyici Ayarları</h3>
         <div className="space-y-3">
           <div>
-            <label className="text-xs text-gray-400 block mb-1">Tetikleyici Türü</label>
+            <label className="text-xs text-muted-foreground block mb-1">Tetikleyici Türü</label>
             <Select value={triggerType} onValueChange={(val) => onChange(val, triggerConfig)}>
-              <SelectTrigger className="bg-gray-800 border-gray-700 text-white text-xs h-8" data-testid="select-trigger-type">
+              <SelectTrigger className="bg-muted border-border text-foreground text-xs h-8" data-testid="select-trigger-type">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -1871,12 +1871,12 @@ function TriggerConfigEditor({ triggerType, triggerConfig, onChange }: {
           {triggerType === "agent_tool_complete" && (
             <>
               <div>
-                <label className="text-xs text-gray-400 block mb-1">Ajan Türü</label>
+                <label className="text-xs text-muted-foreground block mb-1">Ajan Türü</label>
                 <Select
                   value={triggerConfig.agentType || ""}
                   onValueChange={(v) => onChange(triggerType, { ...triggerConfig, agentType: v })}
                 >
-                  <SelectTrigger className="bg-gray-800 border-gray-700 text-white text-xs h-8" data-testid="select-trigger-agent-type">
+                  <SelectTrigger className="bg-muted border-border text-foreground text-xs h-8" data-testid="select-trigger-agent-type">
                     <SelectValue placeholder="Ajan seçin..." />
                   </SelectTrigger>
                   <SelectContent>
@@ -1887,12 +1887,12 @@ function TriggerConfigEditor({ triggerType, triggerConfig, onChange }: {
                 </Select>
               </div>
               <div>
-                <label className="text-xs text-gray-400 block mb-1">Araç Adı</label>
+                <label className="text-xs text-muted-foreground block mb-1">Araç Adı</label>
                 <Input
                   value={triggerConfig.toolName || ""}
                   onChange={(e) => onChange(triggerType, { ...triggerConfig, toolName: e.target.value })}
                   placeholder="örn: send_email, generate_pdf"
-                  className="bg-gray-800 border-gray-700 text-white text-xs h-8"
+                  className="bg-muted border-border text-foreground text-xs h-8"
                   data-testid="input-trigger-tool-name"
                 />
               </div>
@@ -1902,12 +1902,12 @@ function TriggerConfigEditor({ triggerType, triggerConfig, onChange }: {
           {triggerType === "schedule" && (
             <>
               <div>
-                <label className="text-xs text-gray-400 block mb-1">Zamanlama Türü</label>
+                <label className="text-xs text-muted-foreground block mb-1">Zamanlama Türü</label>
                 <Select
                   value={triggerConfig.scheduleType || "daily"}
                   onValueChange={(val) => onChange(triggerType, { ...triggerConfig, scheduleType: val })}
                 >
-                  <SelectTrigger className="bg-gray-800 border-gray-700 text-white text-xs h-8" data-testid="select-schedule-type">
+                  <SelectTrigger className="bg-muted border-border text-foreground text-xs h-8" data-testid="select-schedule-type">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -1922,12 +1922,12 @@ function TriggerConfigEditor({ triggerType, triggerConfig, onChange }: {
               {triggerConfig.scheduleType !== "custom" && (
                 <div className="flex gap-2">
                   <div className="flex-1">
-                    <label className="text-xs text-gray-400 block mb-1">Saat</label>
+                    <label className="text-xs text-muted-foreground block mb-1">Saat</label>
                     <Select
                       value={String(triggerConfig.scheduleHour ?? 9)}
                       onValueChange={(val) => onChange(triggerType, { ...triggerConfig, scheduleHour: parseInt(val) })}
                     >
-                      <SelectTrigger className="bg-gray-800 border-gray-700 text-white text-xs h-8" data-testid="select-schedule-hour">
+                      <SelectTrigger className="bg-muted border-border text-foreground text-xs h-8" data-testid="select-schedule-hour">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -1938,12 +1938,12 @@ function TriggerConfigEditor({ triggerType, triggerConfig, onChange }: {
                     </Select>
                   </div>
                   <div className="flex-1">
-                    <label className="text-xs text-gray-400 block mb-1">Dakika</label>
+                    <label className="text-xs text-muted-foreground block mb-1">Dakika</label>
                     <Select
                       value={String(triggerConfig.scheduleMinute ?? 0)}
                       onValueChange={(val) => onChange(triggerType, { ...triggerConfig, scheduleMinute: parseInt(val) })}
                     >
-                      <SelectTrigger className="bg-gray-800 border-gray-700 text-white text-xs h-8" data-testid="select-schedule-minute">
+                      <SelectTrigger className="bg-muted border-border text-foreground text-xs h-8" data-testid="select-schedule-minute">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -1958,7 +1958,7 @@ function TriggerConfigEditor({ triggerType, triggerConfig, onChange }: {
 
               {triggerConfig.scheduleType === "weekly" && (
                 <div>
-                  <label className="text-xs text-gray-400 block mb-1">Günler</label>
+                  <label className="text-xs text-muted-foreground block mb-1">Günler</label>
                   <div className="flex gap-1">
                     {dayLabels.map((label, i) => {
                       const selected = (triggerConfig.scheduleDaysOfWeek || []).includes(i);
@@ -1966,7 +1966,7 @@ function TriggerConfigEditor({ triggerType, triggerConfig, onChange }: {
                         <button
                           key={i}
                           className={`px-2 py-1 text-[10px] rounded border ${
-                            selected ? "bg-blue-600 border-blue-500 text-white" : "bg-gray-800 border-gray-700 text-gray-400"
+                            selected ? "bg-blue-600 border-blue-500 text-foreground" : "bg-muted border-border text-muted-foreground"
                           }`}
                           onClick={() => {
                             const days = triggerConfig.scheduleDaysOfWeek || [];
@@ -1985,12 +1985,12 @@ function TriggerConfigEditor({ triggerType, triggerConfig, onChange }: {
 
               {triggerConfig.scheduleType === "monthly" && (
                 <div>
-                  <label className="text-xs text-gray-400 block mb-1">Ayın Günü</label>
+                  <label className="text-xs text-muted-foreground block mb-1">Ayın Günü</label>
                   <Select
                     value={String(triggerConfig.scheduleDayOfMonth || 1)}
                     onValueChange={(val) => onChange(triggerType, { ...triggerConfig, scheduleDayOfMonth: parseInt(val) })}
                   >
-                    <SelectTrigger className="bg-gray-800 border-gray-700 text-white text-xs h-8" data-testid="select-schedule-day">
+                    <SelectTrigger className="bg-muted border-border text-foreground text-xs h-8" data-testid="select-schedule-day">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -2004,12 +2004,12 @@ function TriggerConfigEditor({ triggerType, triggerConfig, onChange }: {
 
               {triggerConfig.scheduleType === "custom" && (
                 <div>
-                  <label className="text-xs text-gray-400 block mb-1">Cron İfadesi</label>
+                  <label className="text-xs text-muted-foreground block mb-1">Cron İfadesi</label>
                   <Input
                     value={triggerConfig.cronExpression || ""}
                     onChange={(e) => onChange(triggerType, { ...triggerConfig, cronExpression: e.target.value })}
                     placeholder="*/5 * * * *"
-                    className="bg-gray-800 border-gray-700 text-white text-xs h-8 font-mono"
+                    className="bg-muted border-border text-foreground text-xs h-8 font-mono"
                     data-testid="input-cron-expression"
                   />
                 </div>
@@ -2019,12 +2019,12 @@ function TriggerConfigEditor({ triggerType, triggerConfig, onChange }: {
 
           {triggerType === "webhook" && (
             <div>
-              <label className="text-xs text-gray-400 block mb-1">Webhook Yolu</label>
+              <label className="text-xs text-muted-foreground block mb-1">Webhook Yolu</label>
               <Input
                 value={triggerConfig.webhookPath || ""}
                 onChange={(e) => onChange(triggerType, { ...triggerConfig, webhookPath: e.target.value })}
                 placeholder="/my-webhook"
-                className="bg-gray-800 border-gray-700 text-white text-xs h-8"
+                className="bg-muted border-border text-foreground text-xs h-8"
                 data-testid="input-webhook-path"
               />
             </div>
@@ -2033,32 +2033,32 @@ function TriggerConfigEditor({ triggerType, triggerConfig, onChange }: {
           {triggerType === "email_received" && (
             <>
               <div>
-                <label className="text-xs text-gray-400 block mb-1">Gönderen Filtresi</label>
+                <label className="text-xs text-muted-foreground block mb-1">Gönderen Filtresi</label>
                 <Input
                   value={triggerConfig.senderFilter || ""}
                   onChange={(e) => onChange(triggerType, { ...triggerConfig, senderFilter: e.target.value })}
                   placeholder="örn: @example.com veya john@example.com"
-                  className="bg-gray-800 border-gray-700 text-white text-xs h-8"
+                  className="bg-muted border-border text-foreground text-xs h-8"
                   data-testid="input-email-sender-filter"
                 />
               </div>
               <div>
-                <label className="text-xs text-gray-400 block mb-1">Konu Filtresi</label>
+                <label className="text-xs text-muted-foreground block mb-1">Konu Filtresi</label>
                 <Input
                   value={triggerConfig.subjectFilter || ""}
                   onChange={(e) => onChange(triggerType, { ...triggerConfig, subjectFilter: e.target.value })}
                   placeholder="örn: Fatura, Sipariş"
-                  className="bg-gray-800 border-gray-700 text-white text-xs h-8"
+                  className="bg-muted border-border text-foreground text-xs h-8"
                   data-testid="input-email-subject-filter"
                 />
               </div>
               <div>
-                <label className="text-xs text-gray-400 block mb-1">Hedef E-posta</label>
+                <label className="text-xs text-muted-foreground block mb-1">Hedef E-posta</label>
                 <Input
                   value={triggerConfig.targetEmail || ""}
                   onChange={(e) => onChange(triggerType, { ...triggerConfig, targetEmail: e.target.value })}
                   placeholder="info@company.com"
-                  className="bg-gray-800 border-gray-700 text-white text-xs h-8"
+                  className="bg-muted border-border text-foreground text-xs h-8"
                   data-testid="input-email-target"
                 />
               </div>
@@ -2068,22 +2068,22 @@ function TriggerConfigEditor({ triggerType, triggerConfig, onChange }: {
           {triggerType === "threshold" && (
             <>
               <div>
-                <label className="text-xs text-gray-400 block mb-1">Alan Adı</label>
+                <label className="text-xs text-muted-foreground block mb-1">Alan Adı</label>
                 <Input
                   value={triggerConfig.thresholdField || ""}
                   onChange={(e) => onChange(triggerType, { ...triggerConfig, thresholdField: e.target.value })}
                   placeholder="örn: amount, count"
-                  className="bg-gray-800 border-gray-700 text-white text-xs h-8"
+                  className="bg-muted border-border text-foreground text-xs h-8"
                   data-testid="input-threshold-field"
                 />
               </div>
               <div>
-                <label className="text-xs text-gray-400 block mb-1">Karşılaştırma</label>
+                <label className="text-xs text-muted-foreground block mb-1">Karşılaştırma</label>
                 <Select
                   value={triggerConfig.thresholdOperator || "gt"}
                   onValueChange={(val) => onChange(triggerType, { ...triggerConfig, thresholdOperator: val })}
                 >
-                  <SelectTrigger className="bg-gray-800 border-gray-700 text-white text-xs h-8" data-testid="select-threshold-operator">
+                  <SelectTrigger className="bg-muted border-border text-foreground text-xs h-8" data-testid="select-threshold-operator">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -2096,12 +2096,12 @@ function TriggerConfigEditor({ triggerType, triggerConfig, onChange }: {
                 </Select>
               </div>
               <div>
-                <label className="text-xs text-gray-400 block mb-1">Eşik Değeri</label>
+                <label className="text-xs text-muted-foreground block mb-1">Eşik Değeri</label>
                 <Input
                   type="number"
                   value={triggerConfig.thresholdValue || 0}
                   onChange={(e) => onChange(triggerType, { ...triggerConfig, thresholdValue: parseFloat(e.target.value) || 0 })}
-                  className="bg-gray-800 border-gray-700 text-white text-xs h-8"
+                  className="bg-muted border-border text-foreground text-xs h-8"
                   data-testid="input-threshold-value"
                 />
               </div>
@@ -2111,12 +2111,12 @@ function TriggerConfigEditor({ triggerType, triggerConfig, onChange }: {
           {triggerType === "event_monitor" && (
             <>
               <div>
-                <label className="text-xs text-gray-400 block mb-1">Olay Türü</label>
+                <label className="text-xs text-muted-foreground block mb-1">Olay Türü</label>
                 <Select
                   value={triggerConfig.eventType || "lead_inactivity"}
                   onValueChange={(val) => onChange(triggerType, { ...triggerConfig, eventType: val })}
                 >
-                  <SelectTrigger className="bg-gray-800 border-gray-700 text-white text-xs h-8" data-testid="select-event-type">
+                  <SelectTrigger className="bg-muted border-border text-foreground text-xs h-8" data-testid="select-event-type">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -2127,18 +2127,18 @@ function TriggerConfigEditor({ triggerType, triggerConfig, onChange }: {
                 </Select>
               </div>
               <div>
-                <label className="text-xs text-gray-400 block mb-1">Gün Eşiği</label>
+                <label className="text-xs text-muted-foreground block mb-1">Gün Eşiği</label>
                 <Input
                   type="number"
                   min="1"
                   max="365"
                   value={triggerConfig.daysThreshold || 3}
                   onChange={(e) => onChange(triggerType, { ...triggerConfig, daysThreshold: parseInt(e.target.value) || 3 })}
-                  className="bg-gray-800 border-gray-700 text-white text-xs h-8"
+                  className="bg-muted border-border text-foreground text-xs h-8"
                   placeholder="3"
                   data-testid="input-days-threshold"
                 />
-                <p className="text-[10px] text-gray-500 mt-1">
+                <p className="text-[10px] text-muted-foreground mt-1">
                   {triggerConfig.eventType === "lead_inactivity" && "Lead bu kadar gündür güncellenmemişse tetikle"}
                   {triggerConfig.eventType === "overdue_invoice" && "Muhasebe görevi bu kadar gündür açıksa tetikle"}
                   {triggerConfig.eventType === "uncompleted_tasks" && "Görev bu kadar gündür tamamlanmamışsa tetikle"}
@@ -2231,15 +2231,15 @@ function WorkflowBuilderView({ workflow, onBack }: {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-950 to-gray-900 pt-16 p-4 md:p-8">
+    <div className="min-h-screen bg-background pt-16 p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
         <div className="flex items-center gap-3 mb-6">
           <Button variant="ghost" size="icon" onClick={onBack} data-testid="button-back-builder">
-            <ArrowLeft className="w-5 h-5 text-gray-400" />
+            <ArrowLeft className="w-5 h-5 text-muted-foreground" />
           </Button>
           <div className="flex-1">
-            <h1 className="text-xl font-bold text-white">{workflow.name}</h1>
-            <p className="text-gray-400 text-xs mt-0.5">Görsel Düzenleyici</p>
+            <h1 className="text-xl font-bold text-foreground">{workflow.name}</h1>
+            <p className="text-muted-foreground text-xs mt-0.5">Görsel Düzenleyici</p>
           </div>
           <div className="flex gap-2">
             {hasChanges && (
@@ -2257,31 +2257,31 @@ function WorkflowBuilderView({ workflow, onBack }: {
         </div>
 
         <div className="flex gap-2 mb-4 flex-wrap">
-          <Button size="sm" variant="outline" className="text-xs border-gray-700 text-gray-300" onClick={() => addNodeMutation("action", "send_email")} data-testid="button-add-email-node">
+          <Button size="sm" variant="outline" className="text-xs border-border text-muted-foreground" onClick={() => addNodeMutation("action", "send_email")} data-testid="button-add-email-node">
             <Mail className="w-3 h-3 mr-1" /> E-posta
           </Button>
-          <Button size="sm" variant="outline" className="text-xs border-gray-700 text-gray-300" onClick={() => addNodeMutation("action", "create_task")} data-testid="button-add-task-node">
+          <Button size="sm" variant="outline" className="text-xs border-border text-muted-foreground" onClick={() => addNodeMutation("action", "create_task")} data-testid="button-add-task-node">
             <FileText className="w-3 h-3 mr-1" /> Görev
           </Button>
-          <Button size="sm" variant="outline" className="text-xs border-gray-700 text-gray-300" onClick={() => addNodeMutation("action", "notify_owner")} data-testid="button-add-notify-node">
+          <Button size="sm" variant="outline" className="text-xs border-border text-muted-foreground" onClick={() => addNodeMutation("action", "notify_owner")} data-testid="button-add-notify-node">
             <Bell className="w-3 h-3 mr-1" /> Bildirim
           </Button>
-          <Button size="sm" variant="outline" className="text-xs border-gray-700 text-gray-300" onClick={() => addNodeMutation("action", "http_request")} data-testid="button-add-http-node">
+          <Button size="sm" variant="outline" className="text-xs border-border text-muted-foreground" onClick={() => addNodeMutation("action", "http_request")} data-testid="button-add-http-node">
             <Globe className="w-3 h-3 mr-1" /> HTTP
           </Button>
-          <Button size="sm" variant="outline" className="text-xs border-gray-700 text-gray-300" onClick={() => addNodeMutation("action", "set_variable")} data-testid="button-add-variable-node">
+          <Button size="sm" variant="outline" className="text-xs border-border text-muted-foreground" onClick={() => addNodeMutation("action", "set_variable")} data-testid="button-add-variable-node">
             <Variable className="w-3 h-3 mr-1" /> Değişken
           </Button>
-          <Button size="sm" variant="outline" className="text-xs border-gray-700 text-gray-300" onClick={() => addNodeMutation("condition")} data-testid="button-add-condition-node">
+          <Button size="sm" variant="outline" className="text-xs border-border text-muted-foreground" onClick={() => addNodeMutation("condition")} data-testid="button-add-condition-node">
             <AlertTriangle className="w-3 h-3 mr-1" /> Koşul
           </Button>
-          <Button size="sm" variant="outline" className="text-xs border-gray-700 text-gray-300" onClick={() => addNodeMutation("delay")} data-testid="button-add-delay-node">
+          <Button size="sm" variant="outline" className="text-xs border-border text-muted-foreground" onClick={() => addNodeMutation("delay")} data-testid="button-add-delay-node">
             <Timer className="w-3 h-3 mr-1" /> Bekleme
           </Button>
-          <Button size="sm" variant="outline" className="text-xs border-gray-700 text-gray-300" onClick={() => addNodeMutation("action", "whatsapp_message")} data-testid="button-add-whatsapp-node">
+          <Button size="sm" variant="outline" className="text-xs border-border text-muted-foreground" onClick={() => addNodeMutation("action", "whatsapp_message")} data-testid="button-add-whatsapp-node">
             <MessageSquare className="w-3 h-3 mr-1" /> WhatsApp
           </Button>
-          <Button size="sm" variant="outline" className="text-xs border-gray-700 text-gray-300" onClick={() => addNodeMutation("action", "format_data")} data-testid="button-add-format-node">
+          <Button size="sm" variant="outline" className="text-xs border-border text-muted-foreground" onClick={() => addNodeMutation("action", "format_data")} data-testid="button-add-format-node">
             <Database className="w-3 h-3 mr-1" /> Veri Dönüştür
           </Button>
           <Button size="sm" variant="outline" className="text-xs border-blue-700 text-blue-300 bg-blue-500/10" onClick={() => addNodeMutation("action", "integration")} data-testid="button-add-integration-node">
@@ -2299,12 +2299,12 @@ function WorkflowBuilderView({ workflow, onBack }: {
 
         {nodes.length > 0 && (
           <div className="mt-4">
-            <h3 className="text-sm font-medium text-gray-400 mb-2">Düğümler ({nodes.length})</h3>
+            <h3 className="text-sm font-medium text-muted-foreground mb-2">Düğümler ({nodes.length})</h3>
             <div className="space-y-1">
               {nodes.map((node: any) => (
-                <div key={node.id} className="flex items-center gap-2 px-3 py-1.5 bg-gray-800/30 rounded text-xs">
-                  <span className="text-gray-400 font-mono w-24 truncate">{node.id}</span>
-                  <span className="text-white flex-1 truncate">{node.label}</span>
+                <div key={node.id} className="flex items-center gap-2 px-3 py-1.5 bg-muted/30 rounded text-xs">
+                  <span className="text-muted-foreground font-mono w-24 truncate">{node.id}</span>
+                  <span className="text-foreground flex-1 truncate">{node.label}</span>
                   <Button
                     variant="ghost"
                     size="sm"
@@ -2435,14 +2435,14 @@ export default function Automations() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-gray-950 to-gray-900 pt-16 flex items-center justify-center" data-testid="automations-login-prompt">
-        <Card className="bg-gray-900/50 border-gray-800 max-w-md">
+      <div className="min-h-screen bg-background pt-16 flex items-center justify-center" data-testid="automations-login-prompt">
+        <Card className="bg-card/50 border-border max-w-md">
           <CardContent className="p-8 text-center">
             <Zap className="w-12 h-12 text-yellow-400 mx-auto mb-4" />
-            <h2 className="text-xl font-bold text-white mb-2">Otomasyonlar</h2>
-            <p className="text-gray-400 mb-6">Otomasyonları kullanmak için giriş yapın.</p>
+            <h2 className="text-xl font-bold text-foreground mb-2">Otomasyonlar</h2>
+            <p className="text-muted-foreground mb-6">Otomasyonları kullanmak için giriş yapın.</p>
             <Link href="/login">
-              <Button className="bg-blue-600 hover:bg-blue-700" data-testid="link-login-automations">Giriş Yap</Button>
+              <Button className="bg-primary hover:bg-primary/90" data-testid="link-login-automations">Giriş Yap</Button>
             </Link>
           </CardContent>
         </Card>
@@ -2480,15 +2480,15 @@ export default function Automations() {
   if (view === "templates") {
     const categories = [...new Set(templates.map((t) => t.category))];
     return (
-      <div className="min-h-screen bg-gradient-to-b from-gray-950 to-gray-900 pt-16 p-4 md:p-8">
+      <div className="min-h-screen bg-background pt-16 p-4 md:p-8">
         <div className="max-w-5xl mx-auto">
           <div className="flex items-center gap-3 mb-8">
             <Button variant="ghost" size="icon" onClick={() => setView("list")} data-testid="button-back-templates">
-              <ArrowLeft className="w-5 h-5 text-gray-400" />
+              <ArrowLeft className="w-5 h-5 text-muted-foreground" />
             </Button>
             <div>
-              <h1 className="text-2xl font-bold text-white">Şablon Galerisi</h1>
-              <p className="text-gray-400 text-sm">Hazır otomasyon şablonlarından seçin</p>
+              <h1 className="text-2xl font-bold text-foreground">Şablon Galerisi</h1>
+              <p className="text-muted-foreground text-sm">Hazır otomasyon şablonlarından seçin</p>
             </div>
           </div>
 
@@ -2499,31 +2499,31 @@ export default function Automations() {
               <div key={category} className="mb-8">
                 <div className="flex items-center gap-2 mb-4">
                   <CategoryIcon className="w-5 h-5 text-blue-400" />
-                  <h2 className="text-lg font-semibold text-white">{categoryLabels[category] || category}</h2>
+                  <h2 className="text-lg font-semibold text-foreground">{categoryLabels[category] || category}</h2>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {catTemplates.map((template) => (
-                    <Card key={template.id} className="bg-gray-900/50 border-gray-800 hover:border-gray-700 transition-colors" data-testid={`card-template-${template.id}`}>
+                    <Card key={template.id} className="bg-card/50 border-border hover:border-border transition-colors" data-testid={`card-template-${template.id}`}>
                       <CardContent className="p-5">
                         <div className="flex items-start gap-3 mb-3">
                           <span className="text-2xl">{template.icon}</span>
                           <div className="flex-1">
-                            <h3 className="font-semibold text-white text-sm">{template.nametr}</h3>
-                            <p className="text-gray-400 text-xs mt-1">{template.descriptionTr}</p>
+                            <h3 className="font-semibold text-foreground text-sm">{template.nametr}</h3>
+                            <p className="text-muted-foreground text-xs mt-1">{template.descriptionTr}</p>
                           </div>
                         </div>
                         <div className="flex items-center justify-between mt-4">
                           <div className="flex gap-2">
-                            <Badge variant="outline" className="text-xs border-gray-700 text-gray-400">
+                            <Badge variant="outline" className="text-xs border-border text-muted-foreground">
                               {triggerTypeLabels[template.triggerType]}
                             </Badge>
-                            <Badge variant="outline" className="text-xs border-gray-700 text-gray-400">
+                            <Badge variant="outline" className="text-xs border-border text-muted-foreground">
                               {template.nodeCount} adım
                             </Badge>
                           </div>
                           <Button
                             size="sm"
-                            className="bg-blue-600 hover:bg-blue-700 text-xs"
+                            className="bg-primary hover:bg-primary/90 text-xs"
                             onClick={() => createFromTemplateMutation.mutate(template.id)}
                             disabled={createFromTemplateMutation.isPending}
                             data-testid={`button-use-template-${template.id}`}
@@ -2545,40 +2545,40 @@ export default function Automations() {
 
   if (view === "create") {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-gray-950 to-gray-900 pt-16 p-4 md:p-8">
+      <div className="min-h-screen bg-background pt-16 p-4 md:p-8">
         <div className="max-w-lg mx-auto">
           <div className="flex items-center gap-3 mb-8">
             <Button variant="ghost" size="icon" onClick={() => setView("list")} data-testid="button-back-create">
-              <ArrowLeft className="w-5 h-5 text-gray-400" />
+              <ArrowLeft className="w-5 h-5 text-muted-foreground" />
             </Button>
-            <h1 className="text-2xl font-bold text-white">Yeni Otomasyon</h1>
+            <h1 className="text-2xl font-bold text-foreground">Yeni Otomasyon</h1>
           </div>
-          <Card className="bg-gray-900/50 border-gray-800">
+          <Card className="bg-card/50 border-border">
             <CardContent className="p-6 space-y-4">
               <div>
-                <label className="text-sm text-gray-300 mb-1 block">İsim</label>
+                <label className="text-sm text-muted-foreground mb-1 block">İsim</label>
                 <Input
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
                   placeholder="Otomasyon adı..."
-                  className="bg-gray-800 border-gray-700 text-white"
+                  className="bg-muted border-border text-foreground"
                   data-testid="input-automation-name"
                 />
               </div>
               <div>
-                <label className="text-sm text-gray-300 mb-1 block">Açıklama</label>
+                <label className="text-sm text-muted-foreground mb-1 block">Açıklama</label>
                 <Textarea
                   value={newDescription}
                   onChange={(e) => setNewDescription(e.target.value)}
                   placeholder="Bu otomasyon ne yapar..."
-                  className="bg-gray-800 border-gray-700 text-white"
+                  className="bg-muted border-border text-foreground"
                   rows={3}
                   data-testid="input-automation-description"
                 />
               </div>
               <div className="flex gap-3 pt-2">
                 <Button
-                  className="bg-blue-600 hover:bg-blue-700 flex-1"
+                  className="bg-primary hover:bg-primary/90 flex-1"
                   onClick={() => createMutation.mutate()}
                   disabled={!newName.trim() || createMutation.isPending}
                   data-testid="button-create-automation"
@@ -2586,7 +2586,7 @@ export default function Automations() {
                   {createMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
                   Oluştur
                 </Button>
-                <Button variant="outline" className="border-gray-700 text-gray-300" onClick={() => setView("list")} data-testid="button-cancel-create">
+                <Button variant="outline" className="border-border text-muted-foreground" onClick={() => setView("list")} data-testid="button-cancel-create">
                   İptal
                 </Button>
               </div>
@@ -2599,16 +2599,16 @@ export default function Automations() {
 
   if (view === "detail" && selectedWorkflow) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-gray-950 to-gray-900 pt-16 p-4 md:p-8">
+      <div className="min-h-screen bg-background pt-16 p-4 md:p-8">
         <div className="max-w-5xl mx-auto">
           <div className="flex items-center gap-3 mb-6">
             <Button variant="ghost" size="icon" onClick={() => { setView("list"); setSelectedWorkflowId(null); }} data-testid="button-back-detail">
-              <ArrowLeft className="w-5 h-5 text-gray-400" />
+              <ArrowLeft className="w-5 h-5 text-muted-foreground" />
             </Button>
             <div className="flex-1">
-              <h1 className="text-2xl font-bold text-white">{selectedWorkflow.name}</h1>
+              <h1 className="text-2xl font-bold text-foreground">{selectedWorkflow.name}</h1>
               {selectedWorkflow.description && (
-                <p className="text-gray-400 text-sm mt-1">{selectedWorkflow.description}</p>
+                <p className="text-muted-foreground text-sm mt-1">{selectedWorkflow.description}</p>
               )}
             </div>
             <div className="flex items-center gap-3">
@@ -2617,40 +2617,40 @@ export default function Automations() {
                 onCheckedChange={(checked) => toggleMutation.mutate({ id: selectedWorkflow.id, isActive: checked })}
                 data-testid="switch-workflow-active"
               />
-              <span className="text-sm text-gray-400">{selectedWorkflow.isActive ? "Aktif" : "Pasif"}</span>
+              <span className="text-sm text-muted-foreground">{selectedWorkflow.isActive ? "Aktif" : "Pasif"}</span>
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <Card className="bg-gray-900/50 border-gray-800">
+            <Card className="bg-card/50 border-border">
               <CardContent className="p-4 flex items-center gap-3">
                 <Activity className="w-8 h-8 text-blue-400" />
                 <div>
-                  <p className="text-2xl font-bold text-white">{selectedWorkflow.runCount}</p>
-                  <p className="text-xs text-gray-400">Toplam Çalışma</p>
+                  <p className="text-2xl font-bold text-foreground">{selectedWorkflow.runCount}</p>
+                  <p className="text-xs text-muted-foreground">Toplam Çalışma</p>
                 </div>
               </CardContent>
             </Card>
-            <Card className="bg-gray-900/50 border-gray-800">
+            <Card className="bg-card/50 border-border">
               <CardContent className="p-4 flex items-center gap-3">
                 <Clock className="w-8 h-8 text-green-400" />
                 <div>
-                  <p className="text-sm font-medium text-white">
+                  <p className="text-sm font-medium text-foreground">
                     {selectedWorkflow.lastRunAt ? new Date(selectedWorkflow.lastRunAt).toLocaleString("tr-TR") : "Hiç"}
                   </p>
-                  <p className="text-xs text-gray-400">Son Çalışma</p>
+                  <p className="text-xs text-muted-foreground">Son Çalışma</p>
                 </div>
               </CardContent>
             </Card>
-            <Card className="bg-gray-900/50 border-gray-800">
+            <Card className="bg-card/50 border-border">
               <CardContent className="p-4 flex items-center gap-3">
                 {(() => {
                   const TriggerIcon = triggerTypeIcons[selectedWorkflow.triggerType] || Zap;
                   return <TriggerIcon className="w-8 h-8 text-yellow-400" />;
                 })()}
                 <div>
-                  <p className="text-sm font-medium text-white">{triggerTypeLabels[selectedWorkflow.triggerType] || selectedWorkflow.triggerType}</p>
-                  <p className="text-xs text-gray-400">Tetikleyici Türü</p>
+                  <p className="text-sm font-medium text-foreground">{triggerTypeLabels[selectedWorkflow.triggerType] || selectedWorkflow.triggerType}</p>
+                  <p className="text-xs text-muted-foreground">Tetikleyici Türü</p>
                 </div>
               </CardContent>
             </Card>
@@ -2668,7 +2668,7 @@ export default function Automations() {
             </Button>
             <Button
               variant="outline"
-              className="border-gray-700 text-gray-300 hover:text-white"
+              className="border-border text-muted-foreground hover:text-foreground"
               onClick={() => setView("builder")}
               data-testid="button-open-builder"
             >
@@ -2690,9 +2690,9 @@ export default function Automations() {
             </Button>
           </div>
 
-          <Card className="bg-gray-900/50 border-gray-800 mb-6">
+          <Card className="bg-card/50 border-border mb-6">
             <CardHeader>
-              <CardTitle className="text-white text-lg">Workflow Görünümü</CardTitle>
+              <CardTitle className="text-foreground text-lg">Workflow Görünümü</CardTitle>
             </CardHeader>
             <CardContent>
               <VisualWorkflowEditor
@@ -2706,13 +2706,13 @@ export default function Automations() {
             <EventMonitorPanel workflowId={selectedWorkflow.id} />
           )}
 
-          <Card className="bg-gray-900/50 border-gray-800">
+          <Card className="bg-card/50 border-border">
             <CardHeader>
-              <CardTitle className="text-white text-lg">Çalışma Geçmişi</CardTitle>
+              <CardTitle className="text-foreground text-lg">Çalışma Geçmişi</CardTitle>
             </CardHeader>
             <CardContent>
               {executions.length === 0 ? (
-                <p className="text-gray-500 text-sm">Henüz çalışma geçmişi yok.</p>
+                <p className="text-muted-foreground text-sm">Henüz çalışma geçmişi yok.</p>
               ) : (
                 <div className="space-y-3">
                   {executions.map((exec) => (
@@ -2728,20 +2728,20 @@ export default function Automations() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-950 to-gray-900 pt-16 p-4 md:p-8">
+    <div className="min-h-screen bg-background pt-16 p-4 md:p-8">
       <div className="max-w-5xl mx-auto">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-white flex items-center gap-3">
+            <h1 className="text-2xl md:text-3xl font-bold text-foreground flex items-center gap-3">
               <Zap className="w-8 h-8 text-yellow-400" />
               Otomasyonlar
             </h1>
-            <p className="text-gray-400 text-sm mt-1">Ajan aksiyonlarını otomatik workflow'lara bağlayın</p>
+            <p className="text-muted-foreground text-sm mt-1">Ajan aksiyonlarını otomatik workflow'lara bağlayın</p>
           </div>
           <div className="flex gap-2 flex-wrap justify-end">
             <Button
               variant="outline"
-              className="border-gray-700 text-gray-300 hover:text-white"
+              className="border-border text-muted-foreground hover:text-foreground"
               onClick={() => setView("templates")}
               data-testid="button-view-templates"
             >
@@ -2750,7 +2750,7 @@ export default function Automations() {
             </Button>
             <Button
               variant="outline"
-              className="border-purple-700 text-purple-300 hover:text-white hover:bg-purple-500/10"
+              className="border-purple-700 text-purple-300 hover:text-foreground hover:bg-purple-500/10"
               onClick={() => setShowNLBuilder(true)}
               data-testid="button-nl-builder"
             >
@@ -2759,7 +2759,7 @@ export default function Automations() {
             </Button>
             <Button
               variant="outline"
-              className="border-blue-700 text-blue-300 hover:text-white hover:bg-blue-500/10"
+              className="border-blue-700 text-blue-300 hover:text-foreground hover:bg-blue-500/10"
               onClick={() => setShowWizard(true)}
               data-testid="button-open-wizard"
             >
@@ -2767,7 +2767,7 @@ export default function Automations() {
               Sihirbaz
             </Button>
             <Button
-              className="bg-blue-600 hover:bg-blue-700"
+              className="bg-primary hover:bg-primary/90"
               onClick={() => setView("create")}
               data-testid="button-new-automation"
             >
@@ -2782,17 +2782,17 @@ export default function Automations() {
             <Loader2 className="w-8 h-8 text-blue-400 animate-spin" />
           </div>
         ) : workflows.length === 0 ? (
-          <Card className="bg-gray-900/50 border-gray-800">
+          <Card className="bg-card/50 border-border">
             <CardContent className="p-12 text-center">
-              <Zap className="w-16 h-16 text-gray-700 mx-auto mb-4" />
-              <h2 className="text-xl font-semibold text-white mb-2">Henüz otomasyon yok</h2>
-              <p className="text-gray-400 mb-6 max-w-md mx-auto">
+              <Zap className="w-16 h-16 text-muted-foreground/50 mx-auto mb-4" />
+              <h2 className="text-xl font-semibold text-foreground mb-2">Henüz otomasyon yok</h2>
+              <p className="text-muted-foreground mb-6 max-w-md mx-auto">
                 Ajan aksiyonlarını otomatik zincirlere bağlayın. Örneğin: fatura oluşturulunca e-posta gönder, yeni lead gelince takip planla.
               </p>
               <div className="flex gap-3 justify-center">
                 <Button
                   variant="outline"
-                  className="border-gray-700 text-gray-300"
+                  className="border-border text-muted-foreground"
                   onClick={() => setView("templates")}
                   data-testid="button-browse-templates-empty"
                 >
@@ -2800,7 +2800,7 @@ export default function Automations() {
                   Şablonlara Göz At
                 </Button>
                 <Button
-                  className="bg-blue-600 hover:bg-blue-700"
+                  className="bg-primary hover:bg-primary/90"
                   onClick={() => setView("create")}
                   data-testid="button-create-first-automation"
                 >
@@ -2817,7 +2817,7 @@ export default function Automations() {
               return (
                 <Card
                   key={workflow.id}
-                  className="bg-gray-900/50 border-gray-800 hover:border-gray-700 cursor-pointer transition-all"
+                  className="bg-card/50 border-border hover:border-border cursor-pointer transition-all"
                   onClick={() => { setSelectedWorkflowId(workflow.id); setView("detail"); }}
                   data-testid={`card-workflow-${workflow.id}`}
                 >
@@ -2825,7 +2825,7 @@ export default function Automations() {
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex items-center gap-2">
                         <TriggerIcon className="w-5 h-5 text-yellow-400" />
-                        <h3 className="font-semibold text-white text-sm">{workflow.name}</h3>
+                        <h3 className="font-semibold text-foreground text-sm">{workflow.name}</h3>
                       </div>
                       <div onClick={(e) => e.stopPropagation()}>
                         <Switch
@@ -2836,21 +2836,21 @@ export default function Automations() {
                       </div>
                     </div>
                     {workflow.description && (
-                      <p className="text-gray-400 text-xs mb-3 line-clamp-2">{workflow.description}</p>
+                      <p className="text-muted-foreground text-xs mb-3 line-clamp-2">{workflow.description}</p>
                     )}
                     <div className="flex items-center justify-between">
                       <div className="flex gap-2">
-                        <Badge variant={workflow.isActive ? "default" : "secondary"} className={`text-xs ${workflow.isActive ? "bg-green-500/20 text-green-400 border-green-500/30" : "bg-gray-700/50 text-gray-400"}`}>
+                        <Badge variant={workflow.isActive ? "default" : "secondary"} className={`text-xs ${workflow.isActive ? "bg-green-500/20 text-green-400 border-green-500/30" : "bg-muted/50 text-muted-foreground"}`}>
                           {workflow.isActive ? "Aktif" : "Pasif"}
                         </Badge>
-                        <Badge variant="outline" className="text-xs border-gray-700 text-gray-500">
+                        <Badge variant="outline" className="text-xs border-border text-muted-foreground">
                           {workflow.runCount} çalışma
                         </Badge>
                       </div>
-                      <ChevronRight className="w-4 h-4 text-gray-600" />
+                      <ChevronRight className="w-4 h-4 text-muted-foreground/70" />
                     </div>
                     {workflow.lastRunAt && (
-                      <p className="text-xs text-gray-600 mt-2">
+                      <p className="text-xs text-muted-foreground/70 mt-2">
                         Son: {new Date(workflow.lastRunAt).toLocaleString("tr-TR")}
                       </p>
                     )}

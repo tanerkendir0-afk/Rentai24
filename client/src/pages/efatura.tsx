@@ -33,6 +33,7 @@ import {
 import { Link } from "wouter";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from "react-i18next";
 import { apiRequest } from "@/lib/queryClient";
 
 interface ParseDetail {
@@ -79,8 +80,10 @@ interface Fatura {
   tevkifat_kodu?: string;
 }
 
-function formatTL(val: string | number) {
-  return Number(val).toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+function formatTL(val: string | number | undefined | null) {
+  const num = Number(val);
+  if (isNaN(num) || val == null) return "0,00";
+  return num.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 function getCurrentDonem() {
@@ -89,6 +92,7 @@ function getCurrentDonem() {
 }
 
 export default function EFatura() {
+  const { t } = useTranslation("pages");
   const { user } = useAuth();
   const { toast } = useToast();
   const qc = useQueryClient();
@@ -137,7 +141,7 @@ export default function EFatura() {
   const handleUpload = useCallback(async (files: FileList | File[]) => {
     const xmlFiles = Array.from(files).filter(f => f.name.toLowerCase().endsWith(".xml"));
     if (xmlFiles.length === 0) {
-      toast({ title: "Hata", description: "Sadece XML dosyaları kabul edilir", variant: "destructive" });
+      toast({ title: t("efatura.error"), description: t("efatura.uploadError"), variant: "destructive" });
       return;
     }
 
@@ -159,11 +163,11 @@ export default function EFatura() {
       setShowDetails(true);
       refetch();
       toast({
-        title: "Faturalar Yüklendi",
+        title: t("efatura.uploaded"),
         description: `${data.basarili} başarılı, ${data.hatali} hata, ${data.mukerrer} mükerrer`,
       });
     } catch (err) {
-      toast({ title: "Yükleme Hatası", description: "Dosyalar yüklenirken hata oluştu", variant: "destructive" });
+      toast({ title: t("efatura.uploadFailed"), description: t("efatura.uploadFailedDesc"), variant: "destructive" });
     } finally {
       setUploading(false);
     }
@@ -176,8 +180,8 @@ export default function EFatura() {
       await fetch(`/api/efatura/fatura/${id}`, { method: "DELETE", credentials: "include" });
       refetch();
       qc.invalidateQueries({ queryKey: ["/api/efatura/donemler"] });
-      toast({ title: "Silindi", description: "Fatura başarıyla silindi" });
-    } catch { toast({ title: "Hata", description: "Silinemedi", variant: "destructive" }); }
+      toast({ title: t("efatura.deleted"), description: t("efatura.deletedDesc") });
+    } catch { toast({ title: t("efatura.error"), description: t("efatura.periodDeleteError"), variant: "destructive" }); }
   };
 
   const deleteDonem = async () => {
@@ -187,8 +191,8 @@ export default function EFatura() {
       const data = await res.json();
       refetch();
       qc.invalidateQueries({ queryKey: ["/api/efatura/donemler"] });
-      toast({ title: "Dönem Silindi", description: `${data.deleted} fatura silindi` });
-    } catch { toast({ title: "Hata", description: "Dönem silinemedi", variant: "destructive" }); }
+      toast({ title: t("efatura.periodDeleted"), description: t("efatura.periodDeletedDesc", { count: data.deleted }) });
+    } catch { toast({ title: t("efatura.error"), description: t("efatura.periodDeleteError"), variant: "destructive" }); }
   };
 
   const deleteSelected = async () => {
@@ -241,8 +245,8 @@ export default function EFatura() {
     });
 
   const ozet = kdvData?.ozet || [];
-  const genelMatrah = ozet.reduce((s, o) => s + Number(o.matrah), 0);
-  const genelKDV = ozet.reduce((s, o) => s + Number(o.kdv), 0);
+  const genelMatrah = ozet.reduce((s, o) => s + (Number(o.matrah) || 0), 0);
+  const genelKDV = ozet.reduce((s, o) => s + (Number(o.kdv) || 0), 0);
 
   if (!user) {
     return (
@@ -918,6 +922,7 @@ function BeyannameRaporu({ donem, faturalar }: { donem: string; faturalar: Fatur
 // ============================================================
 
 function GibEntegrasyonPanel({ donem, onSyncComplete }: { donem: string; onSyncComplete: () => void }) {
+  const { t } = useTranslation("pages");
   const [open, setOpen] = useState(false);
   const [provider, setProvider] = useState("orkestra");
   const [apiUrl, setApiUrl] = useState("");
@@ -991,9 +996,9 @@ function GibEntegrasyonPanel({ donem, onSyncComplete }: { donem: string; onSyncC
       const data = await res.json();
       setSyncResult(data);
       if (data.newInvoices > 0) onSyncComplete();
-      toast({ title: "Senkronizasyon Tamamlandı", description: `${data.fetched} fatura çekildi, ${data.newInvoices} yeni eklendi` });
+      toast({ title: t("efatura.syncComplete"), description: t("efatura.syncCompleteDesc", { fetched: data.fetched, newInvoices: data.newInvoices }) });
     } catch {
-      toast({ title: "Hata", description: "Senkronizasyon başarısız", variant: "destructive" });
+      toast({ title: t("efatura.error"), description: t("efatura.syncFailed"), variant: "destructive" });
     } finally {
       setSyncing(false);
     }
@@ -1128,6 +1133,7 @@ function GibEntegrasyonPanel({ donem, onSyncComplete }: { donem: string; onSyncC
 // ============================================================
 
 function ErpEntegrasyonPanel({ donem, onSyncComplete }: { donem: string; onSyncComplete: () => void }) {
+  const { t } = useTranslation("pages");
   const [provider, setProvider] = useState("parasut");
   const [apiUrl, setApiUrl] = useState("");
   const [apiKey, setApiKey] = useState("");

@@ -47,7 +47,7 @@ export interface IStorage {
 
   createAgentAction(action: InsertAgentAction): Promise<AgentAction>;
   getAgentAction(id: number): Promise<AgentAction | undefined>;
-  getActionsByUser(userId: number): Promise<AgentAction[]>;
+  getActionsByUser(userId: number, since?: Date): Promise<AgentAction[]>;
 
   createEmailCampaign(campaign: InsertEmailCampaign): Promise<EmailCampaign>;
   getCampaignsByUser(userId: number): Promise<EmailCampaign[]>;
@@ -333,14 +333,20 @@ export class DatabaseStorage implements IStorage {
     if (rental) {
       const now = new Date();
       const resetAt = rental.dailyResetAt ? new Date(rental.dailyResetAt) : new Date(0);
-      const needsReset = now.toDateString() !== resetAt.toDateString();
+      const needsDailyReset = now.toDateString() !== resetAt.toDateString();
+
+      // Monthly period reset: reset messagesUsed when a new billing month starts
+      const periodReset = rental.periodResetAt ? new Date(rental.periodResetAt) : new Date(rental.startedAt);
+      const monthsSincePeriodReset = (now.getFullYear() - periodReset.getFullYear()) * 12 + (now.getMonth() - periodReset.getMonth());
+      const needsMonthlyReset = monthsSincePeriodReset >= 1;
 
       await db
         .update(rentals)
         .set({
-          messagesUsed: rental.messagesUsed + 1,
-          dailyMessagesUsed: needsReset ? 1 : (rental.dailyMessagesUsed || 0) + 1,
-          dailyResetAt: needsReset ? now : rental.dailyResetAt,
+          messagesUsed: needsMonthlyReset ? 1 : rental.messagesUsed + 1,
+          periodResetAt: needsMonthlyReset ? now : rental.periodResetAt,
+          dailyMessagesUsed: needsDailyReset ? 1 : (rental.dailyMessagesUsed || 0) + 1,
+          dailyResetAt: needsDailyReset ? now : rental.dailyResetAt,
         })
         .where(eq(rentals.id, rentalId));
     }
@@ -516,8 +522,12 @@ export class DatabaseStorage implements IStorage {
     return action;
   }
 
-  async getActionsByUser(userId: number): Promise<AgentAction[]> {
-    return db.select().from(agentActions).where(eq(agentActions.userId, userId)).orderBy(desc(agentActions.createdAt));
+  async getActionsByUser(userId: number, since?: Date): Promise<AgentAction[]> {
+    const conditions = [eq(agentActions.userId, userId)];
+    if (since) {
+      conditions.push(gte(agentActions.createdAt, since));
+    }
+    return db.select().from(agentActions).where(and(...conditions)).orderBy(desc(agentActions.createdAt));
   }
 
   async createEmailCampaign(campaign: InsertEmailCampaign): Promise<EmailCampaign> {

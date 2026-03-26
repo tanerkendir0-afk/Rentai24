@@ -104,6 +104,8 @@ export default function Dashboard() {
   const { toast } = useToast();
   const { trackEvent } = useAnalytics();
 
+  const [activityDays, setActivityDays] = useState(2);
+
   const { data: rentals, isLoading } = useQuery<Rental[]>({
     queryKey: ["/api/rentals"],
     enabled: !!user,
@@ -114,8 +116,17 @@ export default function Dashboard() {
     enabled: !!user,
   });
 
+  const { data: planInfo } = useQuery<{ plan: string; maxAgents: number; activeAgents: number; canSwap: boolean }>({
+    queryKey: ["/api/plan-info"],
+    enabled: !!user,
+  });
+
   const { data: agentActions } = useQuery<any[]>({
-    queryKey: ["/api/agent-actions"],
+    queryKey: ["/api/agent-actions", activityDays],
+    queryFn: async () => {
+      const res = await fetch(`/api/agent-actions?days=${activityDays}`);
+      return res.json();
+    },
     enabled: !!user,
   });
 
@@ -151,9 +162,10 @@ export default function Dashboard() {
 
   async function handleInstallAgent(agentId: string) {
     setInstallingAgent(agentId);
+    const userPlan = subscription?.metadata?.plan || "standard";
     try {
       const res = await apiRequest("POST", "/api/test-checkout", {
-        plan: "standard",
+        plan: userPlan,
         agentType: agentId,
         cardNumber: "4242424242424242",
         expiry: "12/28",
@@ -161,7 +173,7 @@ export default function Dashboard() {
       });
       const data = await res.json();
       if (data.success) {
-        trackEvent("agent_rented", "agent", { agentType: agentId, plan: "standard" });
+        trackEvent("agent_rented", "agent", { agentType: agentId, plan: userPlan });
         toast({ title: t("dashboard.toast.agentActivated"), description: t("dashboard.toast.agentActivatedDesc") });
         queryClient.invalidateQueries({ queryKey: ["/api/rentals"] });
       }
@@ -289,7 +301,7 @@ export default function Dashboard() {
               <Link href="/dashboard/tasks">
                 <Button variant="outline" size="sm" data-testid="button-tasks-dashboard">
                   <ClipboardList className="w-4 h-4 mr-1" />
-                  Görev Takibi
+                  {t("dashboard.taskTracking")}
                 </Button>
               </Link>
               <Link href="/settings">
@@ -316,7 +328,7 @@ export default function Dashboard() {
               </div>
               <div className="min-w-0">
                 <p className="text-xl sm:text-2xl font-bold text-foreground" data-testid="text-active-workers">
-                  {activeRentals.length}
+                  {activeRentals.length}{planInfo ? `/${planInfo.maxAgents}` : ""}
                 </p>
                 <p className="text-[10px] sm:text-xs text-muted-foreground truncate">{t("dashboard.stats.activeWorkers")}</p>
               </div>
@@ -446,14 +458,14 @@ export default function Dashboard() {
                     <Building2 className="w-5 h-5 text-violet-400/60" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-foreground text-sm">Organizasyon Oluştur</h3>
-                    <p className="text-xs text-muted-foreground">Ekibinizle birlikte AI çalışanlarınızı yönetin</p>
+                    <h3 className="font-semibold text-foreground text-sm">{t("dashboard.createOrg")}</h3>
+                    <p className="text-xs text-muted-foreground">{t("dashboard.createOrgDesc")}</p>
                   </div>
                 </div>
-                <Link href="/settings">
+                <Link href="/settings?tab=organization">
                   <Button size="sm" variant="outline" className="text-xs border-violet-500/30 text-violet-400 hover:bg-violet-500/10" data-testid="button-create-org-cta">
                     <Building2 className="w-3 h-3 mr-1" />
-                    Organizasyon Kur
+                    {t("dashboard.setupOrg")}
                   </Button>
                 </Link>
               </div>
@@ -535,12 +547,32 @@ export default function Dashboard() {
                       <span className="text-xs text-muted-foreground capitalize">
                         {t("dashboard.planLabel", { plan: rental.plan })}
                       </span>
-                      <Link href={`/chat?agent=${rental.agentType}`}>
-                        <Button size="sm" variant="outline" className="text-xs" data-testid={`button-chat-${rental.agentType}`}>
-                          <MessageSquare className="w-3 h-3 mr-1" />
-                          {t("dashboard.chat")}
+                      <div className="flex items-center gap-1.5">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-xs text-muted-foreground hover:text-red-400 h-7 px-2"
+                          onClick={async () => {
+                            if (!confirm(t("dashboard.fireConfirm", { defaultValue: `${persona} ajanını işten çıkarmak istediğinize emin misiniz?` }))) return;
+                            try {
+                              await apiRequest("POST", `/api/rentals/${rental.id}/deactivate`);
+                              toast({ title: t("dashboard.fired", { defaultValue: "Ajan işten çıkarıldı" }) });
+                              queryClient.invalidateQueries({ queryKey: ["/api/rentals"] });
+                            } catch (err: any) {
+                              toast({ title: t("dashboard.toast.error"), description: err.message, variant: "destructive" });
+                            }
+                          }}
+                          data-testid={`button-fire-${rental.agentType}`}
+                        >
+                          <LogOut className="w-3 h-3" />
                         </Button>
-                      </Link>
+                        <Link href={`/chat?agent=${rental.agentType}`}>
+                          <Button size="sm" variant="outline" className="text-xs" data-testid={`button-chat-${rental.agentType}`}>
+                            <MessageSquare className="w-3 h-3 mr-1" />
+                            {t("dashboard.chat")}
+                          </Button>
+                        </Link>
+                      </div>
                     </div>
                   </Card>
                 </motion.div>
@@ -612,10 +644,10 @@ export default function Dashboard() {
             <div className="grid grid-cols-1 gap-3" data-testid="smart-alerts-grid">
               {smartAlerts.slice(0, 8).map((alert: any, i: number) => {
                 const severityConfig: Record<string, { icon: any; bg: string; text: string; border: string }> = {
-                  urgent: { icon: AlertCircle, bg: "bg-red-500/10", text: "text-red-400", border: "border-red-500/30" },
-                  warning: { icon: AlertTriangle, bg: "bg-yellow-500/10", text: "text-yellow-400", border: "border-yellow-500/30" },
-                  info: { icon: Info, bg: "bg-blue-500/10", text: "text-blue-400", border: "border-blue-500/30" },
-                  success: { icon: Flame, bg: "bg-emerald-500/10", text: "text-emerald-400", border: "border-emerald-500/30" },
+                  urgent: { icon: AlertCircle, bg: "bg-red-500/5 backdrop-blur-sm", text: "text-red-400", border: "border-red-500/20" },
+                  warning: { icon: AlertTriangle, bg: "bg-yellow-500/5 backdrop-blur-sm", text: "text-yellow-400", border: "border-yellow-500/20" },
+                  info: { icon: Info, bg: "bg-blue-500/5 backdrop-blur-sm", text: "text-blue-400", border: "border-blue-500/20" },
+                  success: { icon: Flame, bg: "bg-emerald-500/5 backdrop-blur-sm", text: "text-emerald-400", border: "border-emerald-500/20" },
                 };
                 const config = severityConfig[alert.severity] || severityConfig.info;
                 const AlertIcon = config.icon;
@@ -640,7 +672,7 @@ export default function Dashboard() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              className={`mt-2 h-7 px-2 text-xs ${config.text} hover:bg-white/10`}
+                              className={`mt-2 h-7 px-2 text-xs ${config.text} hover:bg-foreground/5`}
                             >
                               {actionLabel}
                               <ArrowRight className="w-3 h-3 ml-1" />
@@ -658,10 +690,25 @@ export default function Dashboard() {
 
         {agentActions && agentActions.length > 0 && (
           <div className="mt-6 sm:mt-8">
-            <div className="flex items-center gap-2 mb-3 sm:mb-4">
-              <Activity className="w-5 h-5 text-blue-400" />
-              <h2 className="text-base sm:text-lg font-semibold text-foreground" data-testid="text-actions-title">{t("dashboard.activityLog")}</h2>
-              <Badge variant="secondary" className="text-xs">{agentActions.length}</Badge>
+            <div className="flex items-center justify-between mb-3 sm:mb-4">
+              <div className="flex items-center gap-2">
+                <Activity className="w-5 h-5 text-blue-400" />
+                <h2 className="text-base sm:text-lg font-semibold text-foreground" data-testid="text-actions-title">{t("dashboard.activityLog")}</h2>
+                <Badge variant="secondary" className="text-xs">{agentActions.length}</Badge>
+              </div>
+              <div className="flex items-center gap-1" data-testid="activity-day-picker">
+                {[2, 7, 14, 30].map((d) => (
+                  <Button
+                    key={d}
+                    variant={activityDays === d ? "default" : "ghost"}
+                    size="sm"
+                    className={`h-7 px-2 text-xs ${activityDays === d ? "bg-blue-500/20 text-blue-400 border border-blue-500/30" : "text-muted-foreground"}`}
+                    onClick={() => setActivityDays(d)}
+                  >
+                    {d} {t("dashboard.days", { defaultValue: "gün" })}
+                  </Button>
+                ))}
+              </div>
             </div>
             <Card className="bg-card border-border/50 divide-y divide-border/50" data-testid="card-actions-log">
               {agentActions.slice(0, 20).map((action: any, i: number) => {

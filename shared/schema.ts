@@ -63,6 +63,8 @@ export const rentals = pgTable("rentals", {
   messagesLimit: integer("messages_limit").notNull().default(75),
   dailyMessagesUsed: integer("daily_messages_used").notNull().default(0),
   dailyResetAt: timestamp("daily_reset_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+  periodResetAt: timestamp("period_reset_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+  lastSwapAt: timestamp("last_swap_at"),
   startedAt: timestamp("started_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
   expiresAt: timestamp("expires_at"),
 });

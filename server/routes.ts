@@ -2872,8 +2872,8 @@ export async function registerRoutes(
       const userId = req.session.userId!;
       const donem = req.params.donem;
       const faturalar = await db.execute(sql`SELECT * FROM indirilecek_kdv_faturalar WHERE user_id = ${userId} AND donem = ${donem} ORDER BY fatura_tarihi, sira_no`);
-      const ozet = await db.execute(sql`SELECT * FROM v_indirilecek_kdv_ozet WHERE user_id = ${userId} AND donem = ${donem}`);
-      res.json({ donem: req.params.donem, faturalar: faturalar.rows, ozet: ozet.rows, toplam: faturalar.rows.length });
+      const ozetRaw = await db.execute(sql`SELECT kdv_orani, COUNT(*) as adet, SUM(matrah) as matrah, SUM(kdv_tutari) as kdv FROM indirilecek_kdv_faturalar WHERE user_id = ${userId} AND donem = ${donem} GROUP BY kdv_orani ORDER BY kdv_orani`);
+      res.json({ donem: req.params.donem, faturalar: faturalar.rows, ozet: ozetRaw.rows, toplam: faturalar.rows.length });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }

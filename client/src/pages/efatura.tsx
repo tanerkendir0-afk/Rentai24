@@ -98,6 +98,7 @@ export default function EFatura() {
   const [sortField, setSortField] = useState<string>("fatura_tarihi");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [showDetails, setShowDetails] = useState(false);
+  const [detailFatura, setDetailFatura] = useState<Fatura | null>(null);
 
   const [noAccess, setNoAccess] = useState(false);
   const [showDonemler, setShowDonemler] = useState(false);
@@ -578,7 +579,7 @@ export default function EFatura() {
                   </tr>
                 ) : (
                   faturalar.map((f, i) => (
-                    <tr key={f.id} className={`border-b hover:bg-slate-50/50 transition-colors ${i % 2 === 0 ? "bg-white" : "bg-slate-50/30"}`}>
+                    <tr key={f.id} onClick={() => setDetailFatura(f)} className={`border-b hover:bg-slate-50/50 transition-colors cursor-pointer ${i % 2 === 0 ? "bg-white" : "bg-slate-50/30"} ${detailFatura?.id === f.id ? "ring-1 ring-emerald-400 bg-emerald-50/30" : ""}`}>
                       <td className="px-2 py-2">
                         <input type="checkbox" className="rounded"
                           checked={selectedRows.has(f.id)}
@@ -633,6 +634,94 @@ export default function EFatura() {
               )}
             </table>
           </div>
+
+          {/* Fatura Detay Paneli */}
+          <AnimatePresence>
+            {detailFatura && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                className="border-t bg-slate-50 overflow-hidden"
+              >
+                <div className="p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-semibold flex items-center gap-2">
+                      <FileText className="w-4 h-4 text-emerald-600" />
+                      Fatura Detayı — {detailFatura.belge_no}
+                    </h3>
+                    <button onClick={() => setDetailFatura(null)} className="text-muted-foreground hover:text-foreground">
+                      <XCircle className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Satıcı Unvanı</p>
+                      <p className="text-sm font-medium">{detailFatura.satici_unvani || "—"}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wide">VKN / TCKN</p>
+                      <p className="text-sm font-mono">{detailFatura.satici_vkn || "—"}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Fatura Tarihi</p>
+                      <p className="text-sm">{detailFatura.fatura_tarihi ? new Date(detailFatura.fatura_tarihi).toLocaleDateString("tr-TR") : "—"}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Belge No</p>
+                      <p className="text-sm font-mono">{detailFatura.belge_no}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Belge Türü</p>
+                      <p className="text-sm">{detailFatura.belge_turu}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Fatura Tipi</p>
+                      <p className="text-sm">{detailFatura.fatura_tipi_kodu || "SATIS"}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Para Birimi</p>
+                      <p className="text-sm">{detailFatura.para_birimi || "TRY"}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Hesap Kodu</p>
+                      <p className="text-sm font-mono">{detailFatura.hesap_kodu}</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-4 mt-4 pt-3 border-t">
+                    <div className="bg-white rounded-lg p-3 border">
+                      <p className="text-[10px] text-muted-foreground uppercase">Matrah</p>
+                      <p className="text-lg font-bold">{formatTL(detailFatura.matrah)} TL</p>
+                    </div>
+                    <div className="bg-white rounded-lg p-3 border">
+                      <p className="text-[10px] text-muted-foreground uppercase">KDV Oranı</p>
+                      <p className="text-lg font-bold">%{detailFatura.kdv_orani}</p>
+                    </div>
+                    <div className="bg-emerald-50 rounded-lg p-3 border border-emerald-200">
+                      <p className="text-[10px] text-emerald-600 uppercase">KDV Tutarı</p>
+                      <p className="text-lg font-bold text-emerald-700">{formatTL(detailFatura.kdv_tutari)} TL</p>
+                    </div>
+                  </div>
+                  {detailFatura.tevkifat_tutari && Number(detailFatura.tevkifat_tutari) > 0 && (
+                    <div className="grid grid-cols-3 gap-4 mt-3">
+                      <div className="bg-amber-50 rounded-lg p-3 border border-amber-200">
+                        <p className="text-[10px] text-amber-600 uppercase">Tevkifat Oranı</p>
+                        <p className="text-lg font-bold text-amber-700">%{detailFatura.tevkifat_orani}</p>
+                      </div>
+                      <div className="bg-amber-50 rounded-lg p-3 border border-amber-200">
+                        <p className="text-[10px] text-amber-600 uppercase">Tevkifat Tutarı</p>
+                        <p className="text-lg font-bold text-amber-700">{formatTL(detailFatura.tevkifat_tutari)} TL</p>
+                      </div>
+                      <div className="bg-amber-50 rounded-lg p-3 border border-amber-200">
+                        <p className="text-[10px] text-amber-600 uppercase">Tevkifat Kodu</p>
+                        <p className="text-lg font-bold text-amber-700">{detailFatura.tevkifat_kodu || "—"}</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </Card>
 
         {/* Beyanname Hazırlık Raporu */}

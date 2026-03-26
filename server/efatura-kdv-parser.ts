@@ -133,10 +133,23 @@ export function parseEFatura(xmlContent: string): ParseResult {
     let saticiVKN = '';
 
     if (supplier) {
-      // Unvan
-      saticiUnvani = xmlStr(supplier.PartyName?.Name)
+      // Unvan - birden fazla fallback
+      const partyName = supplier.PartyName;
+      const pn = Array.isArray(partyName) ? partyName[0] : partyName;
+      saticiUnvani = xmlStr(pn?.Name)
         || xmlStr(supplier.PartyLegalEntity?.RegistrationName)
         || '';
+      // Gerçek kişi fallback
+      if (!saticiUnvani && supplier.Person) {
+        const p = supplier.Person;
+        saticiUnvani = [xmlStr(p.FirstName), xmlStr(p.MiddleName), xmlStr(p.FamilyName)].filter(Boolean).join(' ');
+      }
+      // AgentParty fallback (Aras Kargo gibi aracı firmalar)
+      if (!saticiUnvani && supplier.AgentParty) {
+        const ap = supplier.AgentParty;
+        const apn = Array.isArray(ap.PartyName) ? ap.PartyName[0] : ap.PartyName;
+        saticiUnvani = xmlStr(apn?.Name) || '';
+      }
 
       // VKN/TCKN
       const partyId = supplier.PartyIdentification;

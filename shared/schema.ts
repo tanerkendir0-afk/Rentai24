@@ -353,6 +353,7 @@ export const conversations = pgTable("conversations", {
   qualityRating: text("quality_rating"),
   isBoostTask: boolean("is_boost_task").notNull().default(false),
   boostStatus: text("boost_status").notNull().default("idle"),
+  project: text("project"),
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
 });
 

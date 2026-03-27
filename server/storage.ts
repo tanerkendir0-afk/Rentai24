@@ -335,24 +335,21 @@ export class DatabaseStorage implements IStorage {
       const resetAt = rental.dailyResetAt ? new Date(rental.dailyResetAt) : new Date(0);
       const needsDailyReset = now.toDateString() !== resetAt.toDateString();
 
-      // Monthly period reset: reset messagesUsed when a new billing month starts
-      const periodReset = (rental as any).periodResetAt ? new Date((rental as any).periodResetAt) : new Date(rental.startedAt);
-      const monthsSincePeriodReset = (now.getFullYear() - periodReset.getFullYear()) * 12 + (now.getMonth() - periodReset.getMonth());
-      const needsMonthlyReset = monthsSincePeriodReset >= 1;
-
-      const updateData: any = {
-        messagesUsed: needsMonthlyReset ? 1 : rental.messagesUsed + 1,
-        dailyMessagesUsed: needsDailyReset ? 1 : (rental.dailyMessagesUsed || 0) + 1,
-        dailyResetAt: needsDailyReset ? now : rental.dailyResetAt,
-      };
-      // Only set periodResetAt if the column exists in the DB
-      try {
-        if (needsMonthlyReset) updateData.periodResetAt = now;
-      } catch {}
+      // Monthly period reset based on startedAt
+      const started = new Date(rental.startedAt);
+      const monthsSinceStart = (now.getFullYear() - started.getFullYear()) * 12 + (now.getMonth() - started.getMonth());
+      const currentPeriodMonth = started.getMonth() + monthsSinceStart;
+      const lastResetMonth = Math.floor(rental.messagesUsed > 0 ? currentPeriodMonth : currentPeriodMonth - 1);
+      const needsMonthlyReset = monthsSinceStart > 0 && now.getDate() >= started.getDate() && rental.messagesUsed > 0 &&
+        (now.getMonth() !== started.getMonth() || now.getFullYear() !== started.getFullYear());
 
       await db
         .update(rentals)
-        .set(updateData)
+        .set({
+          messagesUsed: needsMonthlyReset ? 1 : rental.messagesUsed + 1,
+          dailyMessagesUsed: needsDailyReset ? 1 : (rental.dailyMessagesUsed || 0) + 1,
+          dailyResetAt: needsDailyReset ? now : rental.dailyResetAt,
+        })
         .where(eq(rentals.id, rentalId));
     }
   }

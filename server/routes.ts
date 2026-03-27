@@ -3985,8 +3985,8 @@ export async function registerRoutes(
     const now = new Date();
     const enriched = rentals.map((r) => {
       // Check if monthly period reset is needed (show 0 usage for new billing period)
-      const periodReset = r.periodResetAt ? new Date(r.periodResetAt) : new Date(r.startedAt);
-      const monthsSince = (now.getFullYear() - periodReset.getFullYear()) * 12 + (now.getMonth() - periodReset.getMonth());
+      const started = new Date(r.startedAt);
+      const monthsSince = (now.getFullYear() - started.getFullYear()) * 12 + (now.getMonth() - started.getMonth());
       const needsReset = monthsSince >= 1;
       return {
         ...r,
@@ -4065,15 +4065,7 @@ export async function registerRoutes(
     const planMeta = (subscription?.metadata as Record<string, string> | null)?.plan || 'standard';
     const planConfig = PLAN_CONFIG[planMeta] || PLAN_CONFIG.standard;
 
-    // Plans with fewer than 9 agents get limited swaps (1 per week)
-    const swapAt = (rental as any).lastSwapAt;
-    if (planConfig.maxAgents < 9 && swapAt) {
-      const weekAgo = new Date();
-      weekAgo.setDate(weekAgo.getDate() - 7);
-      if (new Date(swapAt) > weekAgo) {
-        return res.status(429).json({ error: "Haftada sadece 1 ajan değişikliği yapabilirsiniz." });
-      }
-    }
+    // Swap limit can be added later with a dedicated DB column
 
     await db.update(rentals).set({ status: "inactive" }).where(eq(rentals.id, rentalId));
     res.json({ success: true, message: "Agent deactivated" });

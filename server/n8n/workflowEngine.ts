@@ -242,7 +242,7 @@ async function executeAction(
 
       return {
         status: result.success ? "success" : "error",
-        output: { to, subject, messageId: result.messageId },
+        output: { to, subject, messageId: (result as any).messageId },
         error: result.success ? undefined : result.message,
       };
     }
@@ -584,7 +584,7 @@ async function executeAction(
       };
     }
 
-    case "integration": {
+    case "integration" as any: {
       const integrationId = config.integrationId;
       const actionId = config.integrationAction;
       if (!integrationId || !actionId) return { status: "error", error: "Integration or action not specified" };

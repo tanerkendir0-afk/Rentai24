@@ -6579,7 +6579,7 @@ function SkillsPanel({ token }: { token: string }) {
                           const agent = AGENTS_DATA.find(ag => ag.slug === a.agentSlug);
                           return (
                             <span key={a.agentSlug} className="text-[10px] px-1.5 py-0.5 rounded bg-cyan-900/30 text-cyan-400 border border-cyan-800/30">
-                              {agent?.name || a.agentSlug}
+                              {(agent as any)?.name || a.agentSlug}
                             </span>
                           );
                         })}
@@ -6672,8 +6672,8 @@ function AgentAssignModal({ skill, currentAssignments, onSave, onClose }: {
               }`}
               data-testid={`assign-agent-${agent.slug}`}
             >
-              <span className="text-lg">{agent.emoji}</span>
-              <span className="text-sm font-medium flex-1 text-left">{agent.name}</span>
+              <span className="text-lg">{(agent as any).emoji}</span>
+              <span className="text-sm font-medium flex-1 text-left">{(agent as any).name}</span>
               {selected.includes(agent.slug) && <CheckCircle className="w-4 h-4 text-cyan-400" />}
             </button>
           ))}
@@ -6808,8 +6808,8 @@ function CreateSkillModal({ token, onClose, onCreated }: { token: string; onClos
           <div className="space-y-2 p-3 bg-[#111633] rounded-lg border border-[#1E2448]">
             <label className="text-xs font-medium text-cyan-400">AI Prompt Şablonu</label>
             <textarea
-              value={form.config.userPromptTemplate || ""}
-              onChange={e => setForm(f => ({ ...f, config: { ...f.config, userPromptTemplate: e.target.value } }))}
+              value={(form.config as any).userPromptTemplate || ""}
+              onChange={e => setForm(f => ({ ...f, config: { ...f.config, userPromptTemplate: e.target.value } as any }))}
               placeholder="{{input}} verisini analiz et ve sonuçları JSON olarak döndür..."
               className="w-full h-24 bg-[#0B0F2E] border border-[#1E2448] text-white rounded-md p-2 text-sm resize-none"
               data-testid="create-skill-prompt"
@@ -6821,8 +6821,8 @@ function CreateSkillModal({ token, onClose, onCreated }: { token: string; onClos
           <div className="space-y-2 p-3 bg-[#111633] rounded-lg border border-[#1E2448]">
             <label className="text-xs font-medium text-cyan-400">JavaScript İfadesi</label>
             <textarea
-              value={form.config.expression || ""}
-              onChange={e => setForm(f => ({ ...f, config: { ...f.config, expression: e.target.value } }))}
+              value={(form.config as any).expression || ""}
+              onChange={e => setForm(f => ({ ...f, config: { ...f.config, expression: e.target.value } as any }))}
               placeholder="return params.a + params.b;"
               className="w-full h-24 bg-[#0B0F2E] border border-[#1E2448] text-white rounded-md p-2 text-sm font-mono resize-none"
               data-testid="create-skill-expression"
@@ -6990,7 +6990,7 @@ function SkillDetailModal({ skill, assignments, onClose, token, onUpdated }: {
                     const agent = AGENTS_DATA.find(ag => ag.slug === a.agentSlug);
                     return (
                       <span key={a.agentSlug} className="text-xs px-2 py-1 rounded-full bg-cyan-900/30 text-cyan-400 border border-cyan-800/30">
-                        {agent?.emoji} {agent?.name || a.agentSlug}
+                        {(agent as any)?.emoji} {(agent as any)?.name || a.agentSlug}
                       </span>
                     );
                   })}

@@ -32,7 +32,7 @@ function fontsAvailable(): boolean {
   return fs.existsSync(path.join(FONT_DIR, "DejaVuSans.ttf"));
 }
 
-function registerFonts(doc: PDFKit.PDFDocument): boolean {
+function registerFonts(doc: any): boolean {
   if (!fontsAvailable()) return false;
   doc.registerFont("DejaVu", path.join(FONT_DIR, "DejaVuSans.ttf"));
   doc.registerFont("DejaVu-Bold", path.join(FONT_DIR, "DejaVuSans-Bold.ttf"));
@@ -115,7 +115,7 @@ export function generateBrandedInvoicePDF(data: InvoiceData, branding?: UserBran
   const theme = branding?.theme || DEFAULT_THEME;
   const currency = data.currency || "₺";
 
-  const doc = new PDFDocument({ size: "A4", margin: 50 });
+  const doc: any = new PDFDocument({ size: "A4", margin: 50 });
   const hasFont = registerFonts(doc);
   const FONT = hasFont ? "DejaVu" : "Helvetica";
   const FONT_BOLD = hasFont ? "DejaVu-Bold" : "Helvetica-Bold";
@@ -334,7 +334,7 @@ export function generateBrandedReportPDF(data: ReportData, branding?: UserBrandi
   try {
   const theme = branding?.theme || DEFAULT_THEME;
 
-  const doc = new PDFDocument({ size: "A4", margin: 50 });
+  const doc: any = new PDFDocument({ size: "A4", margin: 50 });
   const hasFont = registerFonts(doc);
   const FONT = hasFont ? "DejaVu" : "Helvetica";
   const FONT_BOLD = hasFont ? "DejaVu-Bold" : "Helvetica-Bold";

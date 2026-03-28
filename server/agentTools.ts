@@ -3708,8 +3708,8 @@ Be specific to the ${industry} industry. About 400-500 words.`;
       try {
         const contacts = await storage.searchRexContacts(userId, {
           query: args.query ? String(args.query) : undefined,
-          segment: args.segment ? String(args.segment) : undefined,
-          source: args.source ? String(args.source) : undefined,
+          segment: args.segment ? String(args.segment) as any : undefined,
+          source: args.source ? String(args.source) as any : undefined,
           minScore: args.min_score ? Number(args.min_score) : undefined,
           limit: args.limit ? Number(args.limit) : 20,
         });
@@ -3741,10 +3741,10 @@ Be specific to the ${industry} industry. About 400-500 words.`;
           companySize: args.company_size ? String(args.company_size) : undefined,
           industry: args.industry ? String(args.industry) : undefined,
           website: args.website ? String(args.website) : undefined,
-          isDecisionMaker: args.is_decision_maker ?? false,
+          isDecisionMaker: (args.is_decision_maker ?? false) as boolean,
           source: (args.source && LEAD_SOURCE_VALUES.includes(args.source as LeadSourceValue) ? args.source as LeadSourceValue : "cold"),
           segment: (args.segment && CUSTOMER_SEGMENT_VALUES.includes(args.segment as CustomerSegmentValue) ? args.segment as CustomerSegmentValue : "smb"),
-          tags: args.tags || [],
+          tags: (args.tags || []) as string[],
           notes: args.notes ? String(args.notes) : undefined,
         });
 
@@ -5944,7 +5944,7 @@ ${activeRentals.map(r => `  ${r.agentType}: ${r.messagesUsed}/${r.messagesLimit}
     }
 
     case "calculate_kdv": {
-      const result = hesaplaKDV(args.tutar, args.kdvOrani, args.dahilMi, args.tevkifatOrani);
+      const result = hesaplaKDV(args.tutar as number, args.kdvOrani as number, args.dahilMi as boolean | undefined, args.tevkifatOrani as any);
       await storage.createAgentAction({
         userId, agentType,
         actionType: "kdv_calculated",
@@ -5960,11 +5960,11 @@ ${activeRentals.map(r => `  ${r.agentType}: ${r.messagesUsed}/${r.messagesLimit}
 
     case "calculate_bordro": {
       const result = hesaplaBordro({
-        brutUcret: args.brutUcret,
-        cocukSayisi: args.cocukSayisi,
-        medeniDurum: args.medeniDurum,
-        besOrani: args.besOrani,
-        kumulatifGvMatrahi: args.kumulatifGvMatrahi
+        brutUcret: args.brutUcret as number,
+        cocukSayisi: args.cocukSayisi as number | undefined,
+        medeniDurum: args.medeniDurum as "bekar" | "evli" | undefined,
+        besOrani: args.besOrani as number | undefined,
+        kumulatifGvMatrahi: args.kumulatifGvMatrahi as number | undefined,
       });
       await storage.createAgentAction({
         userId, agentType,
@@ -5980,11 +5980,11 @@ ${activeRentals.map(r => `  ${r.agentType}: ${r.messagesUsed}/${r.messagesLimit}
     }
 
     case "calculate_amortisman": {
-      const result = hesaplaAmortisman(args.maliyet, args.faydaliOmur, args.yontem);
+      const result = hesaplaAmortisman(args.maliyet as number, args.faydaliOmur as number, args.yontem as any);
       await storage.createAgentAction({
         userId, agentType,
         actionType: "amortisman_calculated",
-        description: `🧮 Amortisman (${result.yontem}): ${formatTL(args.maliyet)} — ${result.faydaliOmur} yıl — yıllık ${formatTL(result.yillikAmortisman)}`,
+        description: `🧮 Amortisman (${result.yontem}): ${formatTL(args.maliyet as number)} — ${result.faydaliOmur} yıl — yıllık ${formatTL(result.yillikAmortisman)}`,
         metadata: result,
       });
       return {
@@ -5996,7 +5996,7 @@ ${activeRentals.map(r => `  ${r.agentType}: ${r.messagesUsed}/${r.messagesLimit}
 
     case "calculate_kur_degerleme": {
       const result = hesaplaKurDegerlemesi(
-        args.dovizTutar, args.dovizCinsi, args.kayitKuru, args.degerlemeKuru, args.hesapTuru
+        args.dovizTutar as number, args.dovizCinsi as string, args.kayitKuru as number, args.degerlemeKuru as number, args.hesapTuru as any
       );
       await storage.createAgentAction({
         userId, agentType,
@@ -6012,7 +6012,7 @@ ${activeRentals.map(r => `  ${r.agentType}: ${r.messagesUsed}/${r.messagesLimit}
     }
 
     case "calculate_stopaj": {
-      const result = hesaplaStopaj(args.brutTutar, args.gelirTuru, args.kdvOrani, args.kdvTevkifatOrani);
+      const result = hesaplaStopaj(args.brutTutar as number, args.gelirTuru as any, args.kdvOrani as number | undefined, args.kdvTevkifatOrani as string | undefined);
       await storage.createAgentAction({
         userId, agentType,
         actionType: "stopaj_calculated",
@@ -6027,7 +6027,7 @@ ${activeRentals.map(r => `  ${r.agentType}: ${r.messagesUsed}/${r.messagesLimit}
     }
     case "parse_efatura_xml": {
       const { parseEFatura } = await import("./efatura-kdv-parser");
-      const result = parseEFatura(args.xml_content);
+      const result = parseEFatura(args.xml_content as string);
       if (result.success && result.invoice) {
         const inv = result.invoice;
         const fDate = inv.faturaTarihi.split(".").reverse().join("-");
@@ -6046,7 +6046,7 @@ ${activeRentals.map(r => `  ${r.agentType}: ${r.messagesUsed}/${r.messagesLimit}
     }
 
     case "format_yevmiye": {
-      const kayit = formatYevmiyeKaydi(args.tarih, args.aciklama, args.satirlar);
+      const kayit = formatYevmiyeKaydi(args.tarih as string, args.aciklama as string, args.satirlar as any);
       const md = yevmiyeToMarkdown(kayit);
       await storage.createAgentAction({
         userId, agentType,

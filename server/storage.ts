@@ -1263,7 +1263,7 @@ export class DatabaseStorage implements IStorage {
 
   async getEscalations(filters?: { status?: string; userId?: number }): Promise<Escalation[]> {
     const conditions = [];
-    if (filters?.status) conditions.push(eq(escalations.status, filters.status));
+    if (filters?.status) conditions.push(eq(escalations.status, filters.status as any));
     if (filters?.userId) conditions.push(eq(escalations.userId, filters.userId));
     return db.select().from(escalations).where(conditions.length > 0 ? and(...conditions) : undefined).orderBy(desc(escalations.createdAt));
   }

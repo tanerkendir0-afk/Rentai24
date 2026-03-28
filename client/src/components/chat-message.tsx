@@ -197,9 +197,10 @@ const createComponents = (isUser: boolean, showToast?: (msg: string) => void): C
     }
     const isDownloadLink = href && href.match(/^\/api\/.*\/(download|pdf|excel)$/);
     if (isDownloadLink) {
+      const safeHref = href!;
       const childText = String(children || "");
-      const isExcel = href.includes("/reports/") || href.endsWith("/excel");
-      const isPdf = href.endsWith("/pdf");
+      const isExcel = safeHref.includes("/reports/") || safeHref.endsWith("/excel");
+      const isPdf = safeHref.endsWith("/pdf");
       const FileIcon = isExcel ? FileSpreadsheet : isPdf ? FileText : File;
       const fileExt = isExcel ? "XLSX" : isPdf ? "PDF" : "FILE";
       const displayName = childText || (isExcel ? "Rapor.xlsx" : "Dosya");
@@ -209,7 +210,7 @@ const createComponents = (isUser: boolean, showToast?: (msg: string) => void): C
           type="button"
           onClick={async () => {
             try {
-              const res = await fetch(href, { credentials: "include" });
+              const res = await fetch(safeHref, { credentials: "include" });
               if (!res.ok) throw new Error("Download failed");
               const blob = await res.blob();
               const disposition = res.headers.get("Content-Disposition");
@@ -217,9 +218,9 @@ const createComponents = (isUser: boolean, showToast?: (msg: string) => void): C
               if (disposition) {
                 const match = disposition.match(/filename="?([^";\n]+)"?/);
                 if (match) filename = match[1];
-              } else if (href.endsWith("/pdf")) {
+              } else if (safeHref.endsWith("/pdf")) {
                 filename = "Fatura.pdf";
-              } else if (href.endsWith("/excel")) {
+              } else if (safeHref.endsWith("/excel")) {
                 filename = "Fatura.xlsx";
               } else {
                 filename = "Rapor.xlsx";

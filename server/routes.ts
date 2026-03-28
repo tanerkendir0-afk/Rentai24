@@ -213,9 +213,9 @@ function smartRouteByComplexity(message: string, hasTools: boolean, nvidiaAvaila
 
 function convertToolsToAnthropic(tools: OpenAI.ChatCompletionTool[]): Anthropic.Tool[] {
   return tools.map(tool => ({
-    name: tool.function.name,
-    description: tool.function.description || "",
-    input_schema: (tool.function.parameters || { type: "object", properties: {} }) as Anthropic.Tool.InputSchema,
+    name: (tool as any).function.name,
+    description: (tool as any).function.description || "",
+    input_schema: ((tool as any).function.parameters || { type: "object", properties: {} }) as Anthropic.Tool.InputSchema,
   }));
 }
 
@@ -239,7 +239,7 @@ function convertMessagesToAnthropic(messages: OpenAI.ChatCompletionMessageParam[
           contentBlocks.push({ type: "text", text: assistantMsg.content as string });
         }
         for (const tc of assistantMsg.tool_calls) {
-          const fn = tc.function;
+          const fn = (tc as any).function;
           let parsedInput: Record<string, unknown> = {};
           try { parsedInput = JSON.parse(fn.arguments); } catch { }
           contentBlocks.push({
@@ -2227,7 +2227,7 @@ export async function registerRoutes(
           },
         ];
         for (const rule of defaultRules) {
-          await storage.upsertEscalationRule(rule);
+          await storage.upsertEscalationRule(rule as any);
         }
         console.log("[Escalation] Seeded 3 default escalation rules");
       }
@@ -2580,12 +2580,12 @@ export async function registerRoutes(
         (a: any) => a.actionType === "report_generated" && a.metadata?.reportId === reportId
       );
 
-      if (!reportAction || !reportAction.metadata?.excelBase64) {
+      if (!reportAction || !(reportAction.metadata as any)?.excelBase64) {
         return res.status(404).json({ error: "Rapor bulunamadı" });
       }
 
-      const buf = Buffer.from(reportAction.metadata.excelBase64, "base64");
-      const reportType = reportAction.metadata.reportType || "rapor";
+      const buf = Buffer.from((reportAction.metadata as any).excelBase64, "base64");
+      const reportType = (reportAction.metadata as any).reportType || "rapor";
       const filename = `${reportType}_${reportId}.xlsx`;
 
       res.set({
@@ -2601,7 +2601,7 @@ export async function registerRoutes(
 
   app.get("/api/pdf/:actionId/download", requireAuth, async (req, res) => {
     try {
-      const actionId = parseInt(req.params.actionId);
+      const actionId = parseInt(req.params.actionId as string);
       const userId = req.session.userId!;
 
       const pdfAction = await storage.getAgentAction(actionId);
@@ -2730,7 +2730,7 @@ export async function registerRoutes(
   app.delete("/api/marketplace/connections/:id", requireAuth, async (req, res) => {
     try {
       const { marketplaceConnections } = await import("@shared/schema");
-      const connId = parseInt(req.params.id);
+      const connId = parseInt(req.params.id as string);
       await db.update(marketplaceConnections)
         .set({ isActive: false })
         .where(and(eq(marketplaceConnections.id, connId), eq(marketplaceConnections.userId, req.session.userId!)));
@@ -2743,7 +2743,7 @@ export async function registerRoutes(
   app.post("/api/marketplace/connections/:id/test", requireAuth, async (req, res) => {
     try {
       const { getConnectionById, createTrendyolService, createShopifyService } = await import("./services/marketplace/marketplaceCoordinator");
-      const conn = await getConnectionById(parseInt(req.params.id), req.session.userId!);
+      const conn = await getConnectionById(parseInt(req.params.id as string), req.session.userId!);
       if (!conn) return res.status(404).json({ error: "Bağlantı bulunamadı" });
 
       let result;
@@ -2947,7 +2947,7 @@ export async function registerRoutes(
   app.get('/api/efatura/kdv-listesi/:donem/excel', requireAuth, requireFinnAccess, async (req, res) => {
     try {
       const userId = req.session.userId!;
-      const donem = req.params.donem;
+      const donem = req.params.donem as string;
       const faturalar = await db.execute(sql`SELECT * FROM indirilecek_kdv_faturalar WHERE user_id = ${userId} AND donem = ${donem} ORDER BY fatura_tarihi, sira_no`);
       const ozet = await db.execute(sql`SELECT * FROM v_indirilecek_kdv_ozet WHERE user_id = ${userId} AND donem = ${donem}`);
       const { generateKdvListesiExcel } = await import('./services/reportGenerator');
@@ -2964,7 +2964,7 @@ export async function registerRoutes(
   app.get('/api/efatura/kdv-listesi/:donem/pdf', requireAuth, requireFinnAccess, async (req, res) => {
     try {
       const userId = req.session.userId!;
-      const donem = req.params.donem;
+      const donem = req.params.donem as string;
       const faturalar = await db.execute(sql`SELECT * FROM indirilecek_kdv_faturalar WHERE user_id = ${userId} AND donem = ${donem} ORDER BY fatura_tarihi, sira_no`);
       const ozet = await db.execute(sql`SELECT * FROM v_indirilecek_kdv_ozet WHERE user_id = ${userId} AND donem = ${donem}`);
       const { generateKdvListesiPdf } = await import('./services/kdvListesiPdfGenerator');
@@ -2982,7 +2982,7 @@ export async function registerRoutes(
   app.delete('/api/efatura/fatura/:id', requireAuth, requireFinnAccess, async (req, res) => {
     try {
       const userId = req.session.userId!;
-      const id = parseInt(req.params.id);
+      const id = parseInt(req.params.id as string);
       await db.execute(sql`DELETE FROM indirilecek_kdv_faturalar WHERE id = ${id} AND user_id = ${userId}`);
       res.json({ success: true });
     } catch (err: any) {
@@ -3195,7 +3195,7 @@ export async function registerRoutes(
     try {
       const { uploadedFiles } = await import("@shared/schema");
       const [file] = await db.select().from(uploadedFiles)
-        .where(and(eq(uploadedFiles.id, parseInt(req.params.id)), eq(uploadedFiles.userId, req.session.userId!)));
+        .where(and(eq(uploadedFiles.id, parseInt(req.params.id as string)), eq(uploadedFiles.userId, req.session.userId!)));
       if (!file) return res.status(404).json({ error: "Dosya bulunamadı" });
 
       const { parseFile } = await import("./services/dataAnalysisService");
@@ -3211,7 +3211,7 @@ export async function registerRoutes(
     try {
       const { uploadedFiles } = await import("@shared/schema");
       const [file] = await db.select().from(uploadedFiles)
-        .where(and(eq(uploadedFiles.id, parseInt(req.params.id)), eq(uploadedFiles.userId, req.session.userId!)));
+        .where(and(eq(uploadedFiles.id, parseInt(req.params.id as string)), eq(uploadedFiles.userId, req.session.userId!)));
       if (!file) return res.status(404).json({ error: "Dosya bulunamadı" });
       if (!fs.existsSync(file.storedPath)) return res.status(404).json({ error: "Dosya silinmiş" });
       res.download(file.storedPath, file.originalName);
@@ -3224,7 +3224,7 @@ export async function registerRoutes(
     try {
       const { uploadedFiles } = await import("@shared/schema");
       const [file] = await db.select().from(uploadedFiles)
-        .where(and(eq(uploadedFiles.id, parseInt(req.params.id)), eq(uploadedFiles.userId, req.session.userId!)));
+        .where(and(eq(uploadedFiles.id, parseInt(req.params.id as string)), eq(uploadedFiles.userId, req.session.userId!)));
       if (!file) return res.status(404).json({ error: "Dosya bulunamadı" });
       if (fs.existsSync(file.storedPath)) fs.unlinkSync(file.storedPath);
       await db.delete(uploadedFiles).where(eq(uploadedFiles.id, file.id));
@@ -4114,11 +4114,11 @@ export async function registerRoutes(
 
   // Deactivate (fire) an agent rental
   app.post("/api/rentals/:id/deactivate", requireAuth, async (req, res) => {
-    const rentalId = parseInt(req.params.id);
+    const rentalId = parseInt(req.params.id as string);
     const userRentals = await storage.getRentalsByUser(req.session.userId!);
     const rental = userRentals.find(r => r.id === rentalId && r.status === "active");
     if (!rental) {
-      return res.status(404).json({ error: msg("rentalNotFound", req.lang!) });
+      return res.status(404).json({ error: msg("rentalNotFound" as any, req.lang!) });
     }
 
     // Check weekly swap limit for non-unlimited plans
@@ -4351,7 +4351,7 @@ export async function registerRoutes(
       let activeEsc = await storage.getActiveEscalationForUser(req.session.userId, agentType);
       if (!activeEsc && agentType === "manager") {
         const allEscalations = await storage.getEscalations({ status: "admin_joined", userId: req.session.userId });
-        activeEsc = allEscalations.length > 0 ? allEscalations[0] : null;
+        activeEsc = allEscalations.length > 0 ? allEscalations[0] : undefined;
       }
       if (activeEsc && activeEsc.status === "admin_joined") {
         await storage.createEscalationMessage({
@@ -5496,7 +5496,7 @@ ${TURKISH_BUSINESS_STYLE}${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BE
     }
   });
 
-  app.get("/api/stripe/config", (_req, res) => {
+  app.get("/api/stripe/config", (req, res) => {
     try {
       const publishableKey = getPublishableKey();
       res.json({ publishableKey });
@@ -5933,7 +5933,7 @@ ${TURKISH_BUSINESS_STYLE}${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BE
   });
 
   // Legacy Stripe-based price endpoint (unused)
-  app.get("/api/image-credits/prices-legacy", async (_req, res) => {
+  app.get("/api/image-credits/prices-legacy", async (req, res) => {
     try {
       const rows = await storage.listProductsWithPrices(true);
       const prices = rows
@@ -6143,7 +6143,7 @@ ${TURKISH_BUSINESS_STYLE}${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BE
     }
   });
 
-  app.get(`/api/${ADMIN_PATH}/agent-rules-pdf`, requireAdmin, async (_req, res) => {
+  app.get(`/api/${ADMIN_PATH}/agent-rules-pdf`, requireAdmin, async (req, res) => {
     try {
       const pdfBuffer = await generateAgentRulesPDF();
       res.setHeader("Content-Type", "application/pdf");
@@ -6274,7 +6274,7 @@ ${TURKISH_BUSINESS_STYLE}${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BE
     }
   });
 
-  app.get(`/api/${ADMIN_PATH}/agent-performance`, requireAdmin, async (_req, res) => {
+  app.get(`/api/${ADMIN_PATH}/agent-performance`, requireAdmin, async (req, res) => {
     try {
       const { db } = await import("./db");
       const { agentActions, chatMessages } = await import("@shared/schema");
@@ -6477,7 +6477,7 @@ ${TURKISH_BUSINESS_STYLE}${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BE
     }
   });
 
-  app.get(`/api/${ADMIN_PATH}/contact-messages`, requireAdmin, async (_req, res) => {
+  app.get(`/api/${ADMIN_PATH}/contact-messages`, requireAdmin, async (req, res) => {
     try {
       const messages = await storage.getContactMessages();
       res.json(messages);
@@ -6486,7 +6486,7 @@ ${TURKISH_BUSINESS_STYLE}${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BE
     }
   });
 
-  app.get(`/api/${ADMIN_PATH}/newsletter-subscribers`, requireAdmin, async (_req, res) => {
+  app.get(`/api/${ADMIN_PATH}/newsletter-subscribers`, requireAdmin, async (req, res) => {
     try {
       const subscribers = await storage.getNewsletterSubscribers();
       res.json(subscribers);
@@ -6495,7 +6495,7 @@ ${TURKISH_BUSINESS_STYLE}${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BE
     }
   });
 
-  app.get(`/api/${ADMIN_PATH}/token-usage/summary`, requireAdmin, async (_req, res) => {
+  app.get(`/api/${ADMIN_PATH}/token-usage/summary`, requireAdmin, async (req, res) => {
     try {
       const summary = await storage.getTokenUsageSummary();
       res.json(summary);
@@ -6539,7 +6539,7 @@ ${TURKISH_BUSINESS_STYLE}${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BE
     }
   });
 
-  app.get(`/api/${ADMIN_PATH}/token-usage/totals`, requireAdmin, async (_req, res) => {
+  app.get(`/api/${ADMIN_PATH}/token-usage/totals`, requireAdmin, async (req, res) => {
     try {
       const result = await db.execute(sql`
         SELECT
@@ -6558,7 +6558,7 @@ ${TURKISH_BUSINESS_STYLE}${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BE
     }
   });
 
-  app.get(`/api/${ADMIN_PATH}/token-optimization`, requireAdmin, async (_req, res) => {
+  app.get(`/api/${ADMIN_PATH}/token-optimization`, requireAdmin, async (req, res) => {
     try {
       const [modelDistribution, avgTokens, dailyStats] = await Promise.all([
         db.execute(sql`
@@ -6711,7 +6711,7 @@ ${TURKISH_BUSINESS_STYLE}${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BE
     }
   });
 
-  app.get(`/api/${ADMIN_PATH}/users`, requireAdmin, async (_req, res) => {
+  app.get(`/api/${ADMIN_PATH}/users`, requireAdmin, async (req, res) => {
     try {
       const result = await db.execute(sql`
         SELECT
@@ -6738,7 +6738,7 @@ ${TURKISH_BUSINESS_STYLE}${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BE
 
   app.patch(`/api/${ADMIN_PATH}/users/:id/token-limit`, requireAdmin, async (req: any, res) => {
     try {
-      const userId = parseInt(req.params.id);
+      const userId = parseInt(req.params.id as string);
       const { tokenSpendingLimit } = req.body;
       if (isNaN(userId) || typeof tokenSpendingLimit !== "number" || tokenSpendingLimit < 0) {
         return res.status(400).json({ error: "Invalid userId or tokenSpendingLimit" });
@@ -6858,7 +6858,7 @@ ${TURKISH_BUSINESS_STYLE}${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BE
 
   app.get("/api/rex/contacts/:id", requireAuth, async (req, res) => {
     try {
-      const contact = await storage.getRexContact(req.params.id, req.session.userId!);
+      const contact = await storage.getRexContact(req.params.id as string, req.session.userId!);
       if (!contact) return res.status(404).json({ error: "Contact not found" });
       res.json(contact);
     } catch (error: any) {
@@ -6870,7 +6870,7 @@ ${TURKISH_BUSINESS_STYLE}${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BE
   app.patch("/api/rex/contacts/:id", requireAuth, async (req, res) => {
     try {
       const { id: _id, userId: _u, createdAt: _c, updatedAt: _up, ...safeBody } = req.body;
-      const contact = await storage.updateRexContact(req.params.id, req.session.userId!, safeBody);
+      const contact = await storage.updateRexContact(req.params.id as string, req.session.userId!, safeBody);
       if (!contact) return res.status(404).json({ error: "Contact not found" });
       res.json(contact);
     } catch (error: any) {
@@ -6881,7 +6881,7 @@ ${TURKISH_BUSINESS_STYLE}${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BE
 
   app.delete("/api/rex/contacts/:id", requireAuth, async (req, res) => {
     try {
-      const deleted = await storage.deleteRexContact(req.params.id, req.session.userId!);
+      const deleted = await storage.deleteRexContact(req.params.id as string, req.session.userId!);
       if (!deleted) return res.status(404).json({ error: "Contact not found" });
       res.json({ success: true });
     } catch (error: any) {
@@ -6925,7 +6925,7 @@ ${TURKISH_BUSINESS_STYLE}${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BE
 
   app.get("/api/rex/deals/:id", requireAuth, async (req, res) => {
     try {
-      const deal = await storage.getRexDeal(req.params.id, req.session.userId!);
+      const deal = await storage.getRexDeal(req.params.id as string, req.session.userId!);
       if (!deal) return res.status(404).json({ error: "Deal not found" });
       res.json(deal);
     } catch (error: any) {
@@ -6937,7 +6937,7 @@ ${TURKISH_BUSINESS_STYLE}${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BE
   app.patch("/api/rex/deals/:id", requireAuth, async (req, res) => {
     try {
       const { id: _id, userId: _u, contactId: _c, createdAt: _cr, updatedAt: _up, ...safeBody } = req.body;
-      const deal = await storage.updateRexDeal(req.params.id, req.session.userId!, safeBody);
+      const deal = await storage.updateRexDeal(req.params.id as string, req.session.userId!, safeBody);
       if (!deal) return res.status(404).json({ error: "Deal not found" });
       res.json(deal);
     } catch (error: any) {
@@ -6950,7 +6950,7 @@ ${TURKISH_BUSINESS_STYLE}${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BE
     try {
       const { stage, notes } = req.body;
       if (!stage || !DEAL_STAGE_VALUES.includes(stage as DealStageValue)) return res.status(400).json({ error: `stage must be one of: ${DEAL_STAGE_VALUES.join(", ")}` });
-      const deal = await storage.updateRexDealStage(req.params.id, req.session.userId!, stage as DealStageValue, notes);
+      const deal = await storage.updateRexDealStage(req.params.id as string, req.session.userId!, stage as DealStageValue, notes);
       if (!deal) return res.status(404).json({ error: "Deal not found" });
       res.json(deal);
     } catch (error: any) {
@@ -7044,7 +7044,7 @@ ${TURKISH_BUSINESS_STYLE}${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BE
   app.patch("/api/rex/sequences/:id", requireAuth, async (req, res) => {
     try {
       const { id: _id, userId: _u, contactId: _c, dealId: _d, createdAt: _cr, updatedAt: _up, ...safeBody } = req.body;
-      const sequence = await storage.updateRexSequence(req.params.id, req.session.userId!, safeBody);
+      const sequence = await storage.updateRexSequence(req.params.id as string, req.session.userId!, safeBody);
       if (!sequence) return res.status(404).json({ error: "Sequence not found" });
       res.json(sequence);
     } catch (error: any) {
@@ -7076,7 +7076,7 @@ ${TURKISH_BUSINESS_STYLE}${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BE
   app.get("/api/rex/activities/:contactId", requireAuth, async (req, res) => {
     try {
       const userId = req.session.userId!;
-      const activities = await storage.getRexActivitiesByContact(req.params.contactId, userId);
+      const activities = await storage.getRexActivitiesByContact(req.params.contactId as string, userId);
       res.json(activities);
     } catch (error: any) {
       console.error(error);
@@ -7087,7 +7087,7 @@ ${TURKISH_BUSINESS_STYLE}${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BE
   app.put("/api/rex/contacts/:id", requireAuth, async (req, res) => {
     try {
       const { id: _id, userId: _u, createdAt: _c, updatedAt: _up, ...safeBody } = req.body;
-      const contact = await storage.updateRexContact(req.params.id, req.session.userId!, safeBody);
+      const contact = await storage.updateRexContact(req.params.id as string, req.session.userId!, safeBody);
       if (!contact) return res.status(404).json({ error: "Contact not found" });
       res.json(contact);
     } catch (error: any) {
@@ -7099,7 +7099,7 @@ ${TURKISH_BUSINESS_STYLE}${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BE
   app.put("/api/rex/deals/:id", requireAuth, async (req, res) => {
     try {
       const { id: _id, userId: _u, contactId: _c, createdAt: _cr, updatedAt: _up, ...safeBody } = req.body;
-      const deal = await storage.updateRexDeal(req.params.id, req.session.userId!, safeBody);
+      const deal = await storage.updateRexDeal(req.params.id as string, req.session.userId!, safeBody);
       if (!deal) return res.status(404).json({ error: "Deal not found" });
       res.json(deal);
     } catch (error: any) {
@@ -7112,7 +7112,7 @@ ${TURKISH_BUSINESS_STYLE}${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BE
     try {
       const { stage, notes } = req.body;
       if (!stage || !DEAL_STAGE_VALUES.includes(stage as DealStageValue)) return res.status(400).json({ error: `stage must be one of: ${DEAL_STAGE_VALUES.join(", ")}` });
-      const deal = await storage.updateRexDealStage(req.params.id, req.session.userId!, stage as DealStageValue, notes);
+      const deal = await storage.updateRexDealStage(req.params.id as string, req.session.userId!, stage as DealStageValue, notes);
       if (!deal) return res.status(404).json({ error: "Deal not found" });
       res.json(deal);
     } catch (error: any) {
@@ -7172,7 +7172,7 @@ ${TURKISH_BUSINESS_STYLE}${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BE
 
   app.patch(`/api/${ADMIN_PATH}/rentals/:id`, requireAdmin, async (req, res) => {
     try {
-      const rentalId = parseInt(req.params.id);
+      const rentalId = parseInt(req.params.id as string);
       const { messagesLimit, messagesUsed, plan, status } = req.body;
       const updates: Partial<{ messagesLimit: number; messagesUsed: number; plan: string; status: string }> = {};
       if (messagesLimit !== undefined) updates.messagesLimit = parseInt(messagesLimit);
@@ -7189,7 +7189,7 @@ ${TURKISH_BUSINESS_STYLE}${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BE
     }
   });
 
-  app.get(`/api/${ADMIN_PATH}/all-rentals`, requireAdmin, async (_req, res) => {
+  app.get(`/api/${ADMIN_PATH}/all-rentals`, requireAdmin, async (req, res) => {
     try {
       const result = await db.execute(sql`
         SELECT r.id, r.user_id, r.agent_type, r.plan, r.status,
@@ -7205,7 +7205,7 @@ ${TURKISH_BUSINESS_STYLE}${BRAND_CONFIDENTIALITY}${SYSTEM_SECRECY}${PROACTIVE_BE
     }
   });
 
-  app.get(`/api/${ADMIN_PATH}/overview`, requireAdmin, async (_req, res) => {
+  app.get(`/api/${ADMIN_PATH}/overview`, requireAdmin, async (req, res) => {
     try {
       const [usersResult, rentalsResult, costResult, messagesResult] = await Promise.all([
         db.execute(sql`SELECT COUNT(*)::int as total FROM users`),
@@ -7527,7 +7527,7 @@ Be decisive and actionable. Format with clear sections.`;
     }
   });
 
-  app.get(`/api/${ADMIN_PATH}/collaboration-sessions`, requireAdmin, async (_req, res) => {
+  app.get(`/api/${ADMIN_PATH}/collaboration-sessions`, requireAdmin, async (req, res) => {
     try {
       const sessions = await db
         .select()
@@ -7556,7 +7556,7 @@ Be decisive and actionable. Format with clear sections.`;
     }
   });
 
-  app.get(`/api/${ADMIN_PATH}/spend-analysis`, requireAdmin, async (_req, res) => {
+  app.get(`/api/${ADMIN_PATH}/spend-analysis`, requireAdmin, async (req, res) => {
     try {
       const overallResult = await db.execute(sql`
         SELECT 
@@ -8185,7 +8185,7 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
     }
   });
 
-  app.get(`/api/${ADMIN_PATH}/boss-conversations`, requireAdmin, async (_req, res) => {
+  app.get(`/api/${ADMIN_PATH}/boss-conversations`, requireAdmin, async (req, res) => {
     try {
       const conversations = await db
         .select()
@@ -8284,7 +8284,7 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
 
   app.get("/api/escalation/:id/messages", requireAuth, async (req: any, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = parseInt(req.params.id as string);
       if (isNaN(id)) return res.status(400).json({ error: msg("invalidId", req.lang!) });
       const esc = await storage.getEscalationById(id);
       if (!esc || esc.userId !== req.session.userId) {
@@ -8299,7 +8299,7 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
     }
   });
 
-  app.get(`/api/${ADMIN_PATH}/escalation-rules`, requireAdmin, async (_req, res) => {
+  app.get(`/api/${ADMIN_PATH}/escalation-rules`, requireAdmin, async (req, res) => {
     try {
       const rules = await storage.getEscalationRules();
       res.json(rules);
@@ -8321,7 +8321,7 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
 
   app.patch(`/api/${ADMIN_PATH}/escalation-rules/:id`, requireAdmin, async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = parseInt(req.params.id as string);
       if (isNaN(id)) return res.status(400).json({ error: msg("invalidId", req.lang!) });
       const updated = await storage.updateEscalationRule(id, req.body);
       if (!updated) return res.status(404).json({ error: msg("ruleNotFound", req.lang!) });
@@ -8334,7 +8334,7 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
 
   app.delete(`/api/${ADMIN_PATH}/escalation-rules/:id`, requireAdmin, async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = parseInt(req.params.id as string);
       const deleted = await storage.deleteEscalationRule(id);
       res.json({ success: deleted });
     } catch (error: unknown) {
@@ -8360,7 +8360,7 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
 
   app.get(`/api/${ADMIN_PATH}/escalation/:id`, requireAdmin, async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = parseInt(req.params.id as string);
       if (isNaN(id)) return res.status(400).json({ error: msg("invalidId", req.lang!) });
       const esc = await storage.getEscalationById(id);
       if (!esc) return res.status(404).json({ error: msg("escalationNotFound", req.lang!) });
@@ -8375,7 +8375,7 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
 
   app.post(`/api/${ADMIN_PATH}/escalation/:id/join`, requireAdmin, async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = parseInt(req.params.id as string);
       if (isNaN(id)) return res.status(400).json({ error: msg("invalidId", req.lang!) });
       const esc = await storage.joinEscalation(id);
       if (!esc) return res.status(404).json({ error: msg("escalationNotFound", req.lang!) });
@@ -8388,16 +8388,16 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
 
   app.post(`/api/${ADMIN_PATH}/escalation/:id/message`, requireAdmin, async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = parseInt(req.params.id as string);
       if (isNaN(id)) return res.status(400).json({ error: msg("invalidId", req.lang!) });
       const { content } = req.body;
       if (!content || !content.trim()) return res.status(400).json({ error: msg("messageContentRequired", req.lang!) });
-      const msg = await storage.createEscalationMessage({
+      const escMsg = await storage.createEscalationMessage({
         escalationId: id,
         senderType: "admin",
         content: content.trim(),
       });
-      res.json(msg);
+      res.json(escMsg);
     } catch (error: unknown) {
       console.error("Send escalation message error:", error);
       res.status(500).json({ error: msg("internalServerError", req.lang!) });
@@ -8406,7 +8406,7 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
 
   app.get(`/api/${ADMIN_PATH}/escalation/:id/messages`, requireAdmin, async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = parseInt(req.params.id as string);
       if (isNaN(id)) return res.status(400).json({ error: msg("invalidId", req.lang!) });
       const afterParam = req.query.after ? new Date(req.query.after as string) : undefined;
       const messages = await storage.getEscalationMessages(id, afterParam);
@@ -8419,7 +8419,7 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
 
   app.post(`/api/${ADMIN_PATH}/escalation/:id/resolve`, requireAdmin, async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = parseInt(req.params.id as string);
       if (isNaN(id)) return res.status(400).json({ error: msg("invalidId", req.lang!) });
       const esc = await storage.updateEscalationStatus(id, "resolved", new Date());
       if (!esc) return res.status(404).json({ error: msg("escalationNotFound", req.lang!) });
@@ -8432,7 +8432,7 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
 
   app.post(`/api/${ADMIN_PATH}/escalation/:id/dismiss`, requireAdmin, async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = parseInt(req.params.id as string);
       if (isNaN(id)) return res.status(400).json({ error: msg("invalidId", req.lang!) });
       const esc = await storage.updateEscalationStatus(id, "dismissed", new Date());
       if (!esc) return res.status(404).json({ error: msg("escalationNotFound", req.lang!) });
@@ -8443,7 +8443,7 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
     }
   });
 
-  app.get(`/api/${ADMIN_PATH}/agent-instructions`, requireAdmin, async (_req, res) => {
+  app.get(`/api/${ADMIN_PATH}/agent-instructions`, requireAdmin, async (req, res) => {
     try {
       const instructions = await storage.getAllAgentInstructions();
       const global = await storage.getGlobalInstruction();
@@ -8459,7 +8459,7 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
       const { agentType } = req.params;
       const { instructions } = req.body;
       if (typeof instructions !== "string") return res.status(400).json({ error: msg("instructionsRequired", req.lang!) });
-      const result = await storage.upsertAgentInstruction(agentType, instructions);
+      const result = await storage.upsertAgentInstruction(agentType as string, instructions);
       res.json(result);
     } catch (error: unknown) {
       console.error("Update agent instructions error:", error);
@@ -8479,7 +8479,7 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
     }
   });
 
-  app.get(`/api/${ADMIN_PATH}/ai-provider`, requireAdmin, async (_req, res) => {
+  app.get(`/api/${ADMIN_PATH}/ai-provider`, requireAdmin, async (req, res) => {
     try {
       const defaultProvider = await storage.getSystemSetting("default_ai_provider") || "openai";
       const agentProviders: Record<string, string> = {};
@@ -8613,7 +8613,7 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
 
   app.get("/api/crm-documents/:id/download", requireAuth, async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = parseInt(req.params.id as string);
       if (isNaN(id)) return res.status(400).json({ error: msg("invalidId", req.lang!) });
       const doc = await storage.getCrmDocumentById(id, req.session.userId!);
       if (!doc) return res.status(404).json({ error: msg("documentNotFound", req.lang!) });
@@ -8648,7 +8648,7 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
 
   app.delete("/api/crm-documents/:id", requireAuth, async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = parseInt(req.params.id as string);
       if (isNaN(id)) return res.status(400).json({ error: msg("invalidId", req.lang!) });
       const deleted = await storage.deleteCrmDocument(id, req.session.userId!);
       if (!deleted) return res.status(404).json({ error: msg("documentNotFound", req.lang!) });
@@ -8942,7 +8942,7 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
 
   app.post("/api/skills/:id/execute", requireAuth, async (req, res) => {
     try {
-      const skillId = parseInt(req.params.id);
+      const skillId = parseInt(req.params.id as string);
       if (isNaN(skillId)) return res.status(400).json({ error: "Invalid skill ID" });
       const agentSlug = req.body.agentSlug;
       if (!agentSlug) return res.status(400).json({ error: "agentSlug required for skill execution" });
@@ -9004,7 +9004,7 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
 
   app.put(`/api/${ADMIN_PATH}/skills/:id`, requireAdmin, async (req, res) => {
     try {
-      const skillId = parseInt(req.params.id);
+      const skillId = parseInt(req.params.id as string);
       if (isNaN(skillId)) return res.status(400).json({ error: "Invalid skill ID" });
       const { agentSkills } = await import("@shared/schema");
       const updates: Record<string, any> = {};
@@ -9026,7 +9026,7 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
 
   app.delete(`/api/${ADMIN_PATH}/skills/:id`, requireAdmin, async (req, res) => {
     try {
-      const skillId = parseInt(req.params.id);
+      const skillId = parseInt(req.params.id as string);
       if (isNaN(skillId)) return res.status(400).json({ error: "Invalid skill ID" });
       const { agentSkills } = await import("@shared/schema");
       const [skill] = await db.select().from(agentSkills).where(eq(agentSkills.id, skillId));
@@ -9044,7 +9044,7 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
 
   app.post(`/api/${ADMIN_PATH}/skills/:id/agents`, requireAdmin, async (req, res) => {
     try {
-      const skillId = parseInt(req.params.id);
+      const skillId = parseInt(req.params.id as string);
       if (isNaN(skillId)) return res.status(400).json({ error: "Invalid skill ID" });
       const { agentSlug } = req.body;
       if (!agentSlug) return res.status(400).json({ error: "agentSlug required" });
@@ -9066,8 +9066,8 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
 
   app.delete(`/api/${ADMIN_PATH}/skills/:id/agents/:agentSlug`, requireAdmin, async (req, res) => {
     try {
-      const skillId = parseInt(req.params.id);
-      const agentSlug = req.params.agentSlug;
+      const skillId = parseInt(req.params.id as string);
+      const agentSlug = req.params.agentSlug as string;
       if (isNaN(skillId)) return res.status(400).json({ error: "Invalid skill ID" });
       const { agentSkillAssignments } = await import("@shared/schema");
       await db.delete(agentSkillAssignments)
@@ -9081,7 +9081,7 @@ ${rows(recentChatResult).map((r) => `- [${r.agent_type}] ${r.role}: ${r.content_
 
   app.post(`/api/${ADMIN_PATH}/skills/:id/agents/bulk`, requireAdmin, async (req, res) => {
     try {
-      const skillId = parseInt(req.params.id);
+      const skillId = parseInt(req.params.id as string);
       if (isNaN(skillId)) return res.status(400).json({ error: "Invalid skill ID" });
       const { agents } = req.body;
       if (!Array.isArray(agents)) return res.status(400).json({ error: "agents array required" });
@@ -9576,8 +9576,7 @@ Position nodes with x:250 and increasing y values (50, 180, 310, etc.)`;
         isActive: isActive !== false,
         notifyEmail: !!notifyEmail,
         notifyInApp: notifyInApp !== false,
-        nextRunAt: nextRunAt || undefined,
-      });
+      } as any);
       res.status(201).json(task);
     } catch (error) {
       console.error("Create scheduled task error:", error);
@@ -9588,7 +9587,7 @@ Position nodes with x:250 and increasing y values (50, 180, 310, etc.)`;
   app.patch("/api/scheduled-tasks/:id", requireAuth, async (req, res) => {
     try {
       const userId = req.session.userId!;
-      const taskId = parseInt(req.params.id);
+      const taskId = parseInt(req.params.id as string);
       if (isNaN(taskId)) return res.status(400).json({ error: "Invalid task ID" });
 
       const { name, description, agentType, taskPrompt, cronExpression, scheduleType, isActive, notifyEmail, notifyInApp } = req.body;
@@ -9623,7 +9622,7 @@ Position nodes with x:250 and increasing y values (50, 180, 310, etc.)`;
   app.delete("/api/scheduled-tasks/:id", requireAuth, async (req, res) => {
     try {
       const userId = req.session.userId!;
-      const taskId = parseInt(req.params.id);
+      const taskId = parseInt(req.params.id as string);
       if (isNaN(taskId)) return res.status(400).json({ error: "Invalid task ID" });
 
       const deleted = await storage.deleteScheduledTask(taskId, userId);
@@ -9638,7 +9637,7 @@ Position nodes with x:250 and increasing y values (50, 180, 310, etc.)`;
   app.get("/api/scheduled-tasks/:id/runs", requireAuth, async (req, res) => {
     try {
       const userId = req.session.userId!;
-      const taskId = parseInt(req.params.id);
+      const taskId = parseInt(req.params.id as string);
       if (isNaN(taskId)) return res.status(400).json({ error: "Invalid task ID" });
 
       const task = await storage.getScheduledTaskById(taskId, userId);
@@ -9655,7 +9654,7 @@ Position nodes with x:250 and increasing y values (50, 180, 310, etc.)`;
   app.post("/api/scheduled-tasks/:id/run-now", requireAuth, async (req, res) => {
     try {
       const userId = req.session.userId!;
-      const taskId = parseInt(req.params.id);
+      const taskId = parseInt(req.params.id as string);
       if (isNaN(taskId)) return res.status(400).json({ error: "Invalid task ID" });
 
       const task = await storage.getScheduledTaskById(taskId, userId);
@@ -9822,7 +9821,7 @@ JSON formatında döndür: {"cronExpression": "...", "scheduleType": "daily|week
 
   app.put("/api/organizations/:orgId/members/:userId/role", requireAuth, requireOrgRole("admin", "owner"), async (req, res) => {
     try {
-      const targetUserId = parseInt(req.params.userId);
+      const targetUserId = parseInt(req.params.userId as string);
       const { role } = req.body;
       const validRoles: OrgRole[] = [...orgRoleEnum];
       if (!validRoles.includes(role as OrgRole)) {
@@ -9853,7 +9852,7 @@ JSON formatında döndür: {"cronExpression": "...", "scheduleType": "daily|week
 
   app.delete("/api/organizations/:orgId/members/:userId", requireAuth, requireOrgRole("admin", "owner"), async (req, res) => {
     try {
-      const targetUserId = parseInt(req.params.userId);
+      const targetUserId = parseInt(req.params.userId as string);
       const org = await storage.getOrganizationById(req.organizationId!);
       if (!org) return res.status(404).json({ error: "Organization not found" });
       if (org.ownerId === targetUserId) {
@@ -9949,7 +9948,7 @@ JSON formatında döndür: {"cronExpression": "...", "scheduleType": "daily|week
 
   app.delete("/api/organizations/:orgId/invites/:inviteId", requireAuth, requireOrgRole("admin", "owner"), async (req, res) => {
     try {
-      const inviteId = parseInt(req.params.inviteId);
+      const inviteId = parseInt(req.params.inviteId as string);
       const cancelled = await storage.cancelOrganizationInvite(inviteId, req.organizationId!);
       if (!cancelled) return res.status(404).json({ error: "Invite not found" });
       res.json({ success: true });
@@ -9977,7 +9976,7 @@ JSON formatında döndür: {"cronExpression": "...", "scheduleType": "daily|week
 
   app.get("/api/invites/:token", async (req, res) => {
     try {
-      const invite = await storage.getOrganizationInviteByToken(req.params.token);
+      const invite = await storage.getOrganizationInviteByToken(req.params.token as string);
       if (!invite) return res.status(404).json({ error: "Invite not found" });
       if (invite.status !== "pending") return res.status(400).json({ error: "Invite already used or cancelled" });
       if (new Date() > invite.expiresAt) return res.status(400).json({ error: "Invite has expired" });
@@ -9993,12 +9992,12 @@ JSON formatında döndür: {"cronExpression": "...", "scheduleType": "daily|week
     try {
       const user = await storage.getUserById(req.session.userId!);
       if (!user) return res.status(404).json({ error: "User not found" });
-      const invite = await storage.getOrganizationInviteByToken(req.params.token);
+      const invite = await storage.getOrganizationInviteByToken(req.params.token as string);
       if (!invite) return res.status(404).json({ error: "Invite not found" });
       if (invite.email.toLowerCase() !== user.email.toLowerCase()) {
         return res.status(403).json({ error: "This invite was sent to a different email address" });
       }
-      const result = await storage.acceptOrganizationInvite(req.params.token, req.session.userId!);
+      const result = await storage.acceptOrganizationInvite(req.params.token as string, req.session.userId!);
       if (!result.success) return res.status(400).json({ error: result.error });
       res.json({ success: true, organizationId: result.organizationId });
     } catch (error) {
@@ -10157,8 +10156,8 @@ JSON formatında döndür: {"cronExpression": "...", "scheduleType": "daily|week
         await sendViaResendDirect({
           to: email.trim(),
           subject: `${inviter?.fullName || "Someone"} sizi ${org.name} organizasyonuna davet etti`,
-          html: `<p>Merhaba,</p><p><strong>${inviter?.fullName || "Bir kullanıcı"}</strong> sizi <strong>${org.name}</strong> organizasyonuna <strong>${role}</strong> rolüyle davet etti.</p><p><a href="${inviteUrl}" style="background:#6366f1;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;display:inline-block">Daveti Kabul Et</a></p><p>Bu link 7 gün geçerlidir.</p>`,
-        });
+          body: `${inviter?.fullName || "Bir kullanıcı"} sizi ${org.name} organizasyonuna ${role} rolüyle davet etti. Daveti kabul etmek için: ${inviteUrl} (7 gün geçerli)`,
+        } as any);
       } catch (emailErr) {
         console.error("Invite email failed:", emailErr);
       }
@@ -10173,7 +10172,7 @@ JSON formatında döndür: {"cronExpression": "...", "scheduleType": "daily|week
     try {
       const org = await storage.getOrganizationForUser(req.session.userId!);
       if (!org || org.ownerId !== req.session.userId) return res.status(403).json({ error: "Forbidden" });
-      const cancelled = await storage.cancelOrganizationInvite(parseInt(req.params.id), org.id);
+      const cancelled = await storage.cancelOrganizationInvite(parseInt(req.params.id as string), org.id);
       res.json({ success: cancelled });
     } catch (err) {
       res.status(500).json({ error: "Failed to cancel invitation" });
@@ -10186,7 +10185,7 @@ JSON formatında döndür: {"cronExpression": "...", "scheduleType": "daily|week
       if (!org || org.ownerId !== req.session.userId) return res.status(403).json({ error: "Forbidden" });
       const { role } = req.body;
       if (!role) return res.status(400).json({ error: "Role required" });
-      const targetUserId = parseInt(req.params.id);
+      const targetUserId = parseInt(req.params.id as string);
       const updated = await storage.updateMemberRole(org.id, targetUserId, role as OrgRole);
       res.json({ member: updated });
     } catch (err) {
@@ -10198,7 +10197,7 @@ JSON formatında döndür: {"cronExpression": "...", "scheduleType": "daily|week
     try {
       const org = await storage.getOrganizationForUser(req.session.userId!);
       if (!org || org.ownerId !== req.session.userId) return res.status(403).json({ error: "Forbidden" });
-      const targetUserId = parseInt(req.params.id);
+      const targetUserId = parseInt(req.params.id as string);
       const removed = await storage.removeOrganizationMember(org.id, targetUserId);
       res.json({ success: removed });
     } catch (err) {
@@ -10208,7 +10207,7 @@ JSON formatında döndür: {"cronExpression": "...", "scheduleType": "daily|week
 
   app.get("/api/invite/:token", async (req, res) => {
     try {
-      const invitation = await storage.getOrganizationInviteByToken(req.params.token);
+      const invitation = await storage.getOrganizationInviteByToken(req.params.token as string);
       if (!invitation) return res.status(404).json({ error: "Invitation not found" });
       if (invitation.status !== "pending") return res.status(400).json({ error: "Invitation already used or cancelled", status: invitation.status });
       if (new Date() > invitation.expiresAt) return res.status(400).json({ error: "Invitation expired", status: "expired" });
@@ -10221,7 +10220,7 @@ JSON formatında döndür: {"cronExpression": "...", "scheduleType": "daily|week
 
   app.post("/api/invite/:token/accept", requireAuth, async (req, res) => {
     try {
-      const result = await storage.acceptOrganizationInvite(req.params.token, req.session.userId!);
+      const result = await storage.acceptOrganizationInvite(req.params.token as string, req.session.userId!);
       if (!result.success) return res.status(400).json({ error: result.error || "Invitation is no longer valid" });
       res.json({ success: true, organizationId: result.organizationId });
     } catch (err) {

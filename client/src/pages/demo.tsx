@@ -52,6 +52,8 @@ import {
   FileText,
   Paperclip,
   Square,
+  Globe,
+  Search,
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";

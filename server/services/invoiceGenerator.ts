@@ -63,14 +63,14 @@ const DARK = "#333333";
 const GRAY = "#666666";
 const LIGHT_GRAY = "#999999";
 
-function drawLine(doc: InstanceType<typeof PDFDocument>, y: number, x1: number, x2: number, color = "#DDDDDD") {
+function drawLine(doc: any, y: number, x1: number, x2: number, color = "#DDDDDD") {
   doc.moveTo(x1, y).lineTo(x2, y).strokeColor(color).lineWidth(0.5).stroke();
 }
 
 export async function generateInvoicePDF(invoice: Invoice, items: InvoiceItem[]): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     try {
-      const doc = new PDFDocument({ size: "A4", margin: 40 });
+      const doc: any = new PDFDocument({ size: "A4", margin: 40 });
       const chunks: Buffer[] = [];
 
       doc.on("data", (chunk: Buffer) => chunks.push(chunk));

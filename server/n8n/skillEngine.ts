@@ -56,7 +56,7 @@ async function safeEvalExpression(expr: string, context: Record<string, any> = {
   const sandbox = { params: context, Math, String, Number, Boolean, Array, Object, JSON, Date, parseInt, parseFloat, isNaN, isFinite, encodeURIComponent, decodeURIComponent };
   const vmContext = vm.createContext(sandbox);
   const sanitized = expr.replace(/require|import|process|global|__dirname|__filename|eval|Function/g, "_blocked_");
-  const script = new vm.Script(`(function() { "use strict"; ${sanitized} })()`, { timeout: 3000 });
+  const script = new vm.Script(`(function() { "use strict"; ${sanitized} })()`, { timeout: 3000 } as any);
   return script.runInContext(vmContext, { timeout: 3000 });
 }
 
@@ -341,21 +341,21 @@ export const BUILTIN_SKILLS: Record<string, BuiltinSkillDefinition> = {
     execute: async (params) => {
       const { csvText, delimiter = ",", hasHeader = true } = params;
       if (!csvText) return { success: false, output: null, error: "CSV text is required" };
-      const lines = csvText.trim().split("\n").map(l => l.trim()).filter(l => l);
+      const lines = csvText.trim().split("\n").map((l: any) => l.trim()).filter((l: any) => l);
       if (lines.length === 0) return { success: false, output: null, error: "Empty CSV" };
 
       if (hasHeader) {
-        const headers = lines[0].split(delimiter).map(h => h.trim().replace(/^["']|["']$/g, ""));
-        const rows = lines.slice(1).map(line => {
-          const values = line.split(delimiter).map(v => v.trim().replace(/^["']|["']$/g, ""));
+        const headers = lines[0].split(delimiter).map((h: any) => h.trim().replace(/^["']|["']$/g, ""));
+        const rows = lines.slice(1).map((line: any) => {
+          const values = line.split(delimiter).map((v: any) => v.trim().replace(/^["']|["']$/g, ""));
           const row: Record<string, string> = {};
-          headers.forEach((h, i) => { row[h] = values[i] || ""; });
+          headers.forEach((h: any, i: any) => { row[h] = values[i] || ""; });
           return row;
         });
         return { success: true, output: { headers, rows, rowCount: rows.length } };
       }
 
-      const rows = lines.map(line => line.split(delimiter).map(v => v.trim().replace(/^["']|["']$/g, "")));
+      const rows = lines.map((line: any) => line.split(delimiter).map((v: any) => v.trim().replace(/^["']|["']$/g, "")));
       return { success: true, output: { rows, rowCount: rows.length } };
     },
   },
@@ -384,10 +384,10 @@ export const BUILTIN_SKILLS: Record<string, BuiltinSkillDefinition> = {
       if (operation === "pick_fields" && fields) {
         const fieldList = fields.split(",").map((f: string) => f.trim());
         if (Array.isArray(data)) {
-          return { success: true, output: { result: data.map((item: any) => { const picked: any = {}; fieldList.forEach(f => { if (item[f] !== undefined) picked[f] = item[f]; }); return picked; }) } };
+          return { success: true, output: { result: data.map((item: any) => { const picked: any = {}; fieldList.forEach((f: any) => { if (item[f] !== undefined) picked[f] = item[f]; }); return picked; }) } };
         }
         const picked: any = {};
-        fieldList.forEach(f => { if (data[f] !== undefined) picked[f] = data[f]; });
+        fieldList.forEach((f: any) => { if (data[f] !== undefined) picked[f] = data[f]; });
         return { success: true, output: { result: picked } };
       }
 
@@ -680,9 +680,9 @@ export const BUILTIN_SKILLS: Record<string, BuiltinSkillDefinition> = {
       const words2 = text2.split(/\s+/);
       const set1 = new Set(words1);
       const set2 = new Set(words2);
-      const added = words2.filter(w => !set1.has(w));
-      const removed = words1.filter(w => !set2.has(w));
-      const common = words1.filter(w => set2.has(w));
+      const added = words2.filter((w: any) => !set1.has(w));
+      const removed = words1.filter((w: any) => !set2.has(w));
+      const common = words1.filter((w: any) => set2.has(w));
       return {
         success: true,
         output: {

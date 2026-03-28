@@ -230,8 +230,8 @@ export const workflowTemplates: WorkflowTemplate[] = [
           operator: "exists",
         },
         conditionTrueNodeId: "action-1",
-        conditionFalseNodeId: null,
-        nextNodeId: null,
+        conditionFalseNodeId: undefined,
+        nextNodeId: undefined,
       },
       {
         id: "action-1",

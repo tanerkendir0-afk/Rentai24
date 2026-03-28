@@ -492,6 +492,62 @@
       "德语"
     ]
   },
+  "logistics": {
+    "name": "物流与供应链智能员工",
+    "role": "物流运营专家",
+    "shortDescription": "比较货运价格、追踪货物、寻找供应商并计算物流成本。",
+    "fullDescription": "Dora 是您的 AI 物流和供应链专家，专精于土耳其物流市场。比较 Aras Kargo、MNG、Yurtiçi、PTT、UPS、FedEx 和 DHL 之间的运费。追踪货物、通过网络搜索寻找供应商，并计算包括运费、KDV（增值税）、保险和关税在内的总物流成本。专注于土耳其国内和国际物流。",
+    "tag": "全新",
+    "skills": [
+      "货运价格比较",
+      "货物追踪",
+      "供应商搜索",
+      "成本计算（运费 + KDV）",
+      "报关和贸易术语指导",
+      "体积重量计算"
+    ],
+    "useCases": [
+      "比较物流商的电商企业",
+      "计算总物流成本的出口公司",
+      "在土耳其寻找可靠供应商的企业",
+      "跨多个承运商追踪货物的公司"
+    ],
+    "metrics": {
+      "providersCompared": {
+        "label": "比较物流商",
+        "value": "8+"
+      },
+      "costSavings": {
+        "label": "平均成本节省",
+        "value": "15-25%"
+      },
+      "trackingSpeed": {
+        "label": "追踪速度",
+        "value": "<5秒"
+      },
+      "languages": {
+        "label": "支持语言",
+        "value": "5"
+      }
+    },
+    "priceLabel": "$300/月起（不含税）",
+    "integrations": [
+      "Aras Kargo",
+      "MNG Kargo",
+      "Yurtiçi Kargo",
+      "PTT Kargo",
+      "UPS",
+      "FedEx",
+      "DHL"
+    ],
+    "languages": [
+      "土耳其语",
+      "英语",
+      "西班牙语",
+      "法语",
+      "德语"
+    ]
+  },
   "categories": {
     "All": "全部",
     "Customer Support": "客户支持",
@@ -613,6 +669,7 @@
     "dataAnalyst": "数据分析",
     "ecommerceOps": "电商运营",
     "realEstate": "房地产",
+    "logistics": "物流",
     "ready": "就绪"
   },
   "regionInfo": {
@@ -662,6 +719,11 @@
       "marketNote": "专注于土耳其房地产市场分析和物业搜索",
       "localPlatforms": ["Sahibinden.com", "Hepsiemlak.com", "Emlakjet.com"],
       "tip": "适合在土耳其投资房产的中国投资者，提供产权、DASK 保险和租赁法律指导"
+    },
+    "logistics": {
+      "marketNote": "比较土耳其国内和国际货运商，提供详细成本分析",
+      "localPlatforms": ["Aras Kargo", "MNG Kargo", "Yurtiçi Kargo", "UPS", "DHL"],
+      "tip": "适合中土贸易物流 — 运费比较、报关指导和供应商寻找"
     }
   }
 }

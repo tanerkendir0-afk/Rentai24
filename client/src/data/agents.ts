@@ -88,6 +88,13 @@ export const agentMetadata: AgentMetadata[] = [
     languages: ["Turkish", "English", "Spanish", "German"],
     category: "Operations",
   },
+  {
+    id: "logistics",
+    slug: "logistics-supply-chain-agent",
+    integrations: ["Aras Kargo", "MNG Kargo", "Yurtiçi Kargo", "PTT Kargo", "UPS", "FedEx", "DHL"],
+    languages: ["Turkish", "English", "Spanish", "French", "German"],
+    category: "Operations",
+  },
 ];
 
 export const categories = [

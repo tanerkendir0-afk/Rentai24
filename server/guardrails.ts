@@ -109,6 +109,12 @@ const AGENT_CONFIGS: Record<string, GuardrailConfig> = {
     dailyTokenLimit: 40000,
     blockedTopics: [...COMMON_BLOCKED_TOPICS, "sahte ilan", "yasadışı kiralama", "tapusuz", "kaçak yapı", "illegal rental", "fraudulent listing"],
   },
+  "logistics": {
+    maxInputTokens: 8000,
+    maxOutputTokens: 3600,
+    dailyTokenLimit: 35000,
+    blockedTopics: [...COMMON_BLOCKED_TOPICS, "kaçak mal", "smuggling", "sahte gümrük", "fake customs", "yasadışı ithalat", "illegal import", "kaçakçılık", "contraband", "sahte fatura", "fake invoice"],
+  },
 };
 
 const DEFAULT_CONFIG: GuardrailConfig = {

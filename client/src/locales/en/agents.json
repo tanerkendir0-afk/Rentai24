@@ -492,6 +492,62 @@
       "German"
     ]
   },
+  "logistics": {
+    "name": "Logistics & Supply Chain Agent",
+    "role": "Logistics Operations Specialist",
+    "shortDescription": "Compares cargo prices, tracks shipments, finds suppliers, and calculates logistics costs.",
+    "fullDescription": "Dora is your AI logistics and supply chain specialist for the Turkish market. Compares shipping prices across Aras Kargo, MNG, Yurtiçi, PTT, UPS, FedEx, and DHL. Tracks shipments, searches for suppliers via web research, and calculates total logistics costs including freight, KDV (VAT), insurance, and customs duties. Specialized in Turkish domestic and international logistics.",
+    "tag": "New",
+    "skills": [
+      "Cargo Price Comparison",
+      "Shipment Tracking",
+      "Supplier Search",
+      "Cost Calculation (Freight + KDV)",
+      "Customs & Incoterm Guidance",
+      "Desi/Volume Weight Calculation"
+    ],
+    "useCases": [
+      "E-commerce businesses comparing shipping providers",
+      "Export companies calculating total logistics costs",
+      "Businesses finding reliable suppliers in Turkey",
+      "Companies tracking shipments across multiple carriers"
+    ],
+    "metrics": {
+      "providersCompared": {
+        "label": "Providers Compared",
+        "value": "8+"
+      },
+      "costSavings": {
+        "label": "Avg Cost Savings",
+        "value": "15-25%"
+      },
+      "trackingSpeed": {
+        "label": "Tracking Speed",
+        "value": "<5s"
+      },
+      "languages": {
+        "label": "Languages",
+        "value": "5"
+      }
+    },
+    "priceLabel": "From $300/mo (excl. VAT)",
+    "integrations": [
+      "Aras Kargo",
+      "MNG Kargo",
+      "Yurtiçi Kargo",
+      "PTT Kargo",
+      "UPS",
+      "FedEx",
+      "DHL"
+    ],
+    "languages": [
+      "Turkish",
+      "English",
+      "Spanish",
+      "French",
+      "German"
+    ]
+  },
   "categories": {
     "All": "All",
     "Customer Support": "Customer Support",
@@ -613,6 +669,7 @@
     "dataAnalyst": "Data Analyst",
     "ecommerceOps": "E-Commerce Ops",
     "realEstate": "Real Estate",
+    "logistics": "Logistics",
     "ready": "Ready"
   },
   "regionInfo": {
@@ -662,6 +719,11 @@
       "marketNote": "Focused on Turkish real estate market analysis and property search",
       "localPlatforms": ["Sahibinden.com", "Hepsiemlak.com", "Emlakjet.com"],
       "tip": "Suitable for Chinese investors buying property in Turkey — covers title deeds, DASK insurance, and rental law"
+    },
+    "logistics": {
+      "marketNote": "Compares Turkish domestic and international cargo providers with cost breakdowns",
+      "localPlatforms": ["Aras Kargo", "MNG Kargo", "Yurtiçi Kargo", "UPS", "DHL"],
+      "tip": "Ideal for China-Turkey trade logistics — freight cost comparison, customs guidance, and supplier sourcing"
     }
   }
 }

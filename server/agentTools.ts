@@ -2278,6 +2278,96 @@ export const realEstateTools: OpenAI.ChatCompletionTool[] = [
   ...gmailInboxTools,
 ];
 
+// ── Dora (Logistics & Supply Chain) Tools ──────────────────────────
+export const logisticsTools: OpenAI.ChatCompletionTool[] = [
+  webSearchTool,
+  ...whatsappTools,
+  {
+    type: "function",
+    function: {
+      name: "kargo_search",
+      description: "Compare cargo/shipping prices across providers (Aras Kargo, MNG Kargo, Yurtiçi, PTT, etc.) for a given route, weight, and volume. Returns estimated prices and delivery times. Prices are mock/estimated — always label them as 'tahmini' unless from a live API.",
+      parameters: {
+        type: "object",
+        properties: {
+          origin_city: { type: "string", description: "Gönderim şehri (e.g. İstanbul)" },
+          destination_city: { type: "string", description: "Varış şehri (e.g. Ankara)" },
+          weight_kg: { type: "number", description: "Paket ağırlığı (kg)" },
+          volume_desi: { type: "number", description: "Hacimsel desi (en × boy × yükseklik / 3000)" },
+          shipment_type: { type: "string", enum: ["standart", "express", "economy"], description: "Gönderi tipi (default: standart)" },
+        },
+        required: ["origin_city", "destination_city", "weight_kg"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "shipment_lookup",
+      description: "Look up shipment/cargo tracking status by tracking number, or retrieve the user's most recent shipments. Returns current status, location, and estimated delivery date.",
+      parameters: {
+        type: "object",
+        properties: {
+          tracking_number: { type: "string", description: "Kargo takip numarası (e.g. 'ARAS123456789'). Leave empty to get recent shipments." },
+          provider: { type: "string", enum: ["aras", "mng", "yurtici", "ptt", "ups", "fedex", "dhl", "auto"], description: "Kargo firması. 'auto' = takip numarasından otomatik algıla (default: auto)" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "supplier_search",
+      description: "Search for suppliers/vendors for a given product or material category using web search. Returns company names, locations, and contact information. Uses webSearchService under the hood.",
+      parameters: {
+        type: "object",
+        properties: {
+          query: { type: "string", description: "Aranacak ürün/malzeme/tedarikçi (e.g. 'ambalaj malzemesi tedarikçisi İstanbul')" },
+          city: { type: "string", description: "Tercih edilen şehir (optional)" },
+          category: { type: "string", description: "Sektör/kategori filtresi (e.g. 'gıda', 'tekstil', 'ambalaj')" },
+        },
+        required: ["query"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "cost_calculator",
+      description: "Calculate total logistics cost including freight, KDV (VAT), insurance, and customs (if applicable). Breaks down all cost components with a summary table.",
+      parameters: {
+        type: "object",
+        properties: {
+          freight_cost: { type: "number", description: "Navlun/taşıma ücreti (TL)" },
+          insurance_rate: { type: "number", description: "Sigorta oranı (%, e.g. 0.5 for %0.5). Default: 0" },
+          cargo_value: { type: "number", description: "Kargo değeri (TL) — sigorta ve gümrük hesabı için" },
+          kdv_rate: { type: "number", description: "KDV oranı (%, e.g. 20). Default: 20" },
+          customs_duty_rate: { type: "number", description: "Gümrük vergisi oranı (%, only for international). Default: 0" },
+          additional_fees: { type: "number", description: "Ek masraflar (depolama, elleçleme vb., TL). Default: 0" },
+        },
+        required: ["freight_cost"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "send_logistics_email",
+      description: "Send a logistics-related email — shipping quotes, tracking updates, supplier inquiries, or cost reports. Use when the user asks to email logistics information.",
+      parameters: {
+        type: "object",
+        properties: {
+          to: { type: "string", description: "Recipient email address" },
+          subject: { type: "string", description: "Email subject line" },
+          body: { type: "string", description: "Email body content (professional logistics tone)" },
+        },
+        required: ["to", "subject", "body"],
+      },
+    },
+  },
+  ...gmailInboxTools,
+];
+
 const createTaskTool: OpenAI.ChatCompletionTool = {
   type: "function",
   function: {
@@ -2307,7 +2397,7 @@ const delegateTaskTool: OpenAI.ChatCompletionTool = {
       properties: {
         targetAgentType: {
           type: "string",
-          enum: ["sales-sdr", "customer-support", "social-media", "bookkeeping", "scheduling", "hr-recruiting", "data-analyst", "ecommerce-ops", "real-estate"],
+          enum: ["sales-sdr", "customer-support", "social-media", "bookkeeping", "scheduling", "hr-recruiting", "data-analyst", "ecommerce-ops", "real-estate", "logistics"],
           description: "The agent type to delegate the task to"
         },
         title: { type: "string", description: "Title of the task to delegate" },
@@ -2334,6 +2424,7 @@ export const agentToolRegistry: Record<string, OpenAI.ChatCompletionTool[]> = {
   "hr-recruiting": [...hrRecruitingTools, ...pdfEmailTools, createTaskTool, delegateTaskTool],
   "ecommerce-ops": [...ecommerceOpsTools, ...pdfEmailTools, createTaskTool, delegateTaskTool],
   "real-estate": [...realEstateTools, ...pdfEmailTools, createTaskTool, delegateTaskTool],
+  "logistics": [...logisticsTools, ...pdfEmailTools, createTaskTool, delegateTaskTool],
   "manager": [createTaskTool, delegateTaskTool],
 };
 
@@ -2444,6 +2535,11 @@ const TOOL_KEYWORD_MAP: Record<string, string[]> = {
   lease_review: ["lease", "kira sözleşme", "contract", "sözleşme"],
   market_report: ["market", "piyasa", "trend", "fiyat"],
   calculate_costs: ["cost", "calculate", "maliyet", "hesapla", "expense"],
+  kargo_search: ["kargo", "cargo", "shipping", "fiyat karşılaştır", "compare", "aras", "mng", "yurtiçi", "ptt", "navlun", "freight", "taşıma", "gönderi ücreti", "kargo fiyat", "shipping cost", "desi", "ağırlık"],
+  shipment_lookup: ["takip", "tracking", "kargo takip", "nerede", "where is", "shipment", "gönderi", "teslimat", "delivery", "kargom", "paket", "package", "son durum", "status"],
+  supplier_search: ["tedarikçi", "supplier", "vendor", "firma bul", "üretici", "manufacturer", "hammadde", "malzeme", "ambalaj", "kaynak", "sourcing", "find supplier"],
+  cost_calculator: ["maliyet", "cost", "navlun", "freight", "KDV", "sigorta", "insurance", "gümrük", "customs", "toplam maliyet", "total cost", "hesapla", "calculate", "lojistik maliyet"],
+  send_logistics_email: ["email", "mail", "gönder", "teklif gönder", "kargo bilgi", "logistics email"],
   create_task: ["task", "görev", "göreve al", "kaydet", "hatırlat", "remind", "to-do", "todo", "yapılacak", "tarihte yap", "not al", "planla"],
   delegate_task: ["delegate", "devret", "başka ajana", "ata", "ilet", "transfer", "görev devret", "assign to", "handoff", "hand off", "yönlendir"],
   generate_pdf: ["pdf", "belge", "document", "fatura oluştur", "rapor oluştur", "teklif oluştur", "makbuz", "invoice", "report", "proposal", "receipt", "pdf oluştur", "pdf generate", "dosya oluştur"],
@@ -2519,6 +2615,7 @@ const agentDisplayNames: Record<string, string> = {
   "data-analyst": "Data Analyst Agent",
   "ecommerce-ops": "E-Commerce Operations Agent",
   "real-estate": "Real Estate & Property Agent",
+  "logistics": "Logistics & Supply Chain Agent",
 };
 
 async function _executeToolCallInner(
@@ -6607,6 +6704,7 @@ ${activeRentals.map(r => `  ${r.agentType}: ${r.messagesUsed}/${r.messagesLimit}
     case "send_report_email":
     case "send_campaign_email":
     case "send_order_email":
+    case "send_logistics_email":
     case "send_property_email": {
       const emailResult = await sendEmail({
         userId,
@@ -6622,6 +6720,7 @@ ${activeRentals.map(r => `  ${r.agentType}: ${r.messagesUsed}/${r.messagesLimit}
         send_campaign_email: "Campaign email",
         send_order_email: "Order email",
         send_property_email: "Property email",
+        send_logistics_email: "Logistics email",
       };
       const label = toolLabel[toolName] || "Email";
 
@@ -7117,6 +7216,143 @@ ${activeRentals.map(r => `  ${r.agentType}: ${r.messagesUsed}/${r.messagesLimit}
       } catch (err: any) {
         return { result: `❌ Görev devredilemedi: ${err.message || "Bilinmeyen hata"}` };
       }
+    }
+
+    // ── Dora (Logistics) Tool Handlers ──────────────────────────
+    case "kargo_search": {
+      const origin = String(args.origin_city);
+      const destination = String(args.destination_city);
+      const weightKg = Number(args.weight_kg);
+      const volumeDesi = args.volume_desi ? Number(args.volume_desi) : Math.ceil(weightKg * 1.5);
+      const shipmentType = args.shipment_type ? String(args.shipment_type) : "standart";
+
+      const billableWeight = Math.max(weightKg, volumeDesi);
+      const baseRatePerKg: Record<string, number> = { aras: 12.5, mng: 11.8, yurtici: 13.2, ptt: 9.5, ups: 18.0 };
+      const expressMultiplier = shipmentType === "express" ? 1.6 : shipmentType === "economy" ? 0.85 : 1.0;
+      const providers = Object.entries(baseRatePerKg).map(([provider, rate]) => {
+        const cost = +(billableWeight * rate * expressMultiplier).toFixed(2);
+        const deliveryDays = provider === "ptt" ? "3-5" : shipmentType === "express" ? "1" : "2-3";
+        return { provider, cost, deliveryDays };
+      }).sort((a, b) => a.cost - b.cost);
+
+      const providerNames: Record<string, string> = { aras: "Aras Kargo", mng: "MNG Kargo", yurtici: "Yurtiçi Kargo", ptt: "PTT Kargo", ups: "UPS" };
+      const table = providers.map(p =>
+        `| ${providerNames[p.provider] || p.provider} | ${p.cost.toLocaleString("tr-TR")} ₺ | ${p.deliveryDays} gün |`
+      ).join("\n");
+
+      await storage.createAgentAction({
+        userId, agentType,
+        actionType: "kargo_search",
+        description: `📦 Kargo fiyat karşılaştırması: ${origin} → ${destination} (${weightKg}kg)`,
+        metadata: { origin, destination, weightKg, volumeDesi, shipmentType, providers },
+      });
+
+      return {
+        result: `📦 **TAHMİNİ** Kargo Fiyat Karşılaştırması\n${origin} → ${destination} | ${weightKg} kg | Desi: ${volumeDesi} | Tip: ${shipmentType}\n\n| Firma | Tahmini Fiyat | Teslimat Süresi |\n|---|---|---|\n${table}\n\n⚠️ Bu fiyatlar tahminidir, gerçek fiyatlar kargo firması API entegrasyonu sonrası güncellenecektir. Faturalanabilir ağırlık: ${billableWeight} kg (ağırlık ve desi'den büyük olan).`,
+        actionType: "kargo_search",
+        actionDescription: `📦 Kargo karşılaştırma: ${origin} → ${destination}`,
+      };
+    }
+
+    case "shipment_lookup": {
+      const trackingNumber = args.tracking_number ? String(args.tracking_number) : null;
+      const provider = args.provider ? String(args.provider) : "auto";
+
+      if (!trackingNumber) {
+        try {
+          const recentActions = await storage.getActionsByUser(userId, new Date(Date.now() - 30 * 24 * 60 * 60 * 1000));
+          const shipmentActions = recentActions.filter((a: { actionType: string }) => a.actionType === "shipment_lookup" || a.actionType === "kargo_search").slice(0, 5);
+          if (shipmentActions.length > 0) {
+            const list = shipmentActions.map((a: { description: string | null; createdAt: Date | null }) =>
+              `• ${a.description || "Gönderi"} — ${a.createdAt ? new Date(a.createdAt).toLocaleDateString("tr-TR") : ""}`
+            ).join("\n");
+            return { result: `Son gönderi işlemleri:\n${list}\n\nDetaylı takip için bir takip numarası girin.` };
+          }
+        } catch {}
+        return { result: "Henüz kayıtlı gönderi bulunamadı. Bir takip numarası ile sorgulama yapabilirsiniz." };
+      }
+
+      let detectedProvider = provider;
+      if (provider === "auto") {
+        if (/^ARAS/i.test(trackingNumber)) detectedProvider = "aras";
+        else if (/^MNG/i.test(trackingNumber)) detectedProvider = "mng";
+        else if (/^YK/i.test(trackingNumber)) detectedProvider = "yurtici";
+        else detectedProvider = "unknown";
+      }
+
+      const mockStatuses = ["Gönderi teslim alındı", "Aktarma merkezinde", "Dağıtıma çıktı", "Teslim edildi"];
+      const statusIndex = Math.min(Math.floor(Math.random() * mockStatuses.length), mockStatuses.length - 1);
+
+      await storage.createAgentAction({
+        userId, agentType,
+        actionType: "shipment_lookup",
+        description: `🔍 Kargo takip sorgusu: ${trackingNumber} (${detectedProvider})`,
+        metadata: { trackingNumber, provider: detectedProvider, status: mockStatuses[statusIndex] },
+      });
+
+      return {
+        result: `🔍 **Kargo Takip** (TAHMİNİ — Gerçek API entegrasyonu sonra eklenecek)\n\nTakip No: ${trackingNumber}\nFirma: ${detectedProvider.toUpperCase()}\nDurum: ${mockStatuses[statusIndex]}\nSon Güncelleme: ${new Date().toLocaleDateString("tr-TR")} ${new Date().toLocaleTimeString("tr-TR")}\n\n⚠️ Bu bilgi simülasyondur. Gerçek kargo API'si entegre edildikten sonra canlı veri sağlanacaktır.`,
+        actionType: "shipment_lookup",
+        actionDescription: `🔍 Kargo takip: ${trackingNumber}`,
+      };
+    }
+
+    case "supplier_search": {
+      const query = String(args.query);
+      const city = args.city ? String(args.city) : "";
+      const category = args.category ? String(args.category) : "";
+      const searchQuery = `${query} ${city} ${category} tedarikçi iletişim bilgileri`.trim();
+
+      let searchResults = "";
+      try {
+        const webResult = await realWebSearch(searchQuery);
+        searchResults = typeof webResult === "string" ? webResult : JSON.stringify(webResult);
+      } catch (err) {
+        searchResults = "Web araması şu an kullanılamıyor. Genel öneriler sunulacaktır.";
+      }
+
+      await storage.createAgentAction({
+        userId, agentType,
+        actionType: "supplier_search",
+        description: `🏭 Tedarikçi araması: "${query}"${city ? ` (${city})` : ""}`,
+        metadata: { query, city, category, resultPreview: searchResults.substring(0, 500) },
+      });
+
+      return {
+        result: `🏭 Tedarikçi Araması: "${query}"${city ? ` — ${city}` : ""}${category ? ` — Kategori: ${category}` : ""}\n\n${searchResults}\n\nBu sonuçları değerlendirip size en uygun tedarikçileri önerebilirim. Detaylı bilgi için firma web sitelerini inceleyebilirim.`,
+        actionType: "supplier_search",
+        actionDescription: `🏭 Tedarikçi araması: "${query}"`,
+      };
+    }
+
+    case "cost_calculator": {
+      const freightCost = Number(args.freight_cost);
+      const insuranceRate = args.insurance_rate ? Number(args.insurance_rate) : 0;
+      const cargoValue = args.cargo_value ? Number(args.cargo_value) : 0;
+      const kdvRate = args.kdv_rate !== undefined ? Number(args.kdv_rate) : 20;
+      const customsDutyRate = args.customs_duty_rate ? Number(args.customs_duty_rate) : 0;
+      const additionalFees = args.additional_fees ? Number(args.additional_fees) : 0;
+
+      const insuranceCost = +(cargoValue * insuranceRate / 100).toFixed(2);
+      const customsDuty = +(cargoValue * customsDutyRate / 100).toFixed(2);
+      const subtotal = +(freightCost + insuranceCost + customsDuty + additionalFees).toFixed(2);
+      const kdvAmount = +(subtotal * kdvRate / 100).toFixed(2);
+      const totalCost = +(subtotal + kdvAmount).toFixed(2);
+
+      const fmt = (n: number) => n.toLocaleString("tr-TR", { minimumFractionDigits: 2 });
+
+      await storage.createAgentAction({
+        userId, agentType,
+        actionType: "cost_calculation",
+        description: `💰 Lojistik maliyet hesabı: toplam ${fmt(totalCost)} ₺`,
+        metadata: { freightCost, insuranceCost, customsDuty, additionalFees, kdvAmount, subtotal, totalCost },
+      });
+
+      return {
+        result: `💰 **Lojistik Maliyet Hesabı**\n\n| Kalem | Tutar |\n|---|---|\n| Navlun/Taşıma | ${fmt(freightCost)} ₺ |\n${insuranceCost > 0 ? `| Sigorta (%${insuranceRate}) | ${fmt(insuranceCost)} ₺ |\n` : ""}${customsDuty > 0 ? `| Gümrük Vergisi (%${customsDutyRate}) | ${fmt(customsDuty)} ₺ |\n` : ""}${additionalFees > 0 ? `| Ek Masraflar | ${fmt(additionalFees)} ₺ |\n` : ""}| **Ara Toplam** | **${fmt(subtotal)} ₺** |\n| KDV (%${kdvRate}) | ${fmt(kdvAmount)} ₺ |\n| **GENEL TOPLAM** | **${fmt(totalCost)} ₺** |`,
+        actionType: "cost_calculation",
+        actionDescription: `💰 Maliyet hesabı: ${fmt(totalCost)} ₺`,
+      };
     }
 
     default: {

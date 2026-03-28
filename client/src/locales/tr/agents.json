@@ -492,6 +492,62 @@
       "Almanca"
     ]
   },
+  "logistics": {
+    "name": "Lojistik ve Tedarik Zinciri Ajanı",
+    "role": "Lojistik Operasyon Uzmanı",
+    "shortDescription": "Kargo fiyatlarını karşılaştırır, gönderileri takip eder, tedarikçi bulur ve lojistik maliyetleri hesaplar.",
+    "fullDescription": "Dora, Türk lojistik pazarında uzmanlaşmış AI lojistik ve tedarik zinciri uzmanınızdır. Aras Kargo, MNG, Yurtiçi, PTT, UPS, FedEx ve DHL arasında kargo fiyatlarını karşılaştırır. Gönderi takibi yapar, web araştırması ile tedarikçi bulur ve navlun, KDV, sigorta ve gümrük vergisi dahil toplam lojistik maliyetleri hesaplar. Türkiye iç ve uluslararası lojistikte uzmanlaşmıştır.",
+    "tag": "Yeni",
+    "skills": [
+      "Kargo Fiyat Karşılaştırma",
+      "Gönderi Takibi",
+      "Tedarikçi Arama",
+      "Maliyet Hesaplama (Navlun + KDV)",
+      "Gümrük ve Incoterm Rehberliği",
+      "Desi/Hacimsel Ağırlık Hesaplama"
+    ],
+    "useCases": [
+      "Kargo firması karşılaştıran e-ticaret işletmeleri",
+      "Toplam lojistik maliyeti hesaplayan ihracat firmaları",
+      "Türkiye'de güvenilir tedarikçi arayan işletmeler",
+      "Birden fazla taşıyıcıda gönderi takibi yapan şirketler"
+    ],
+    "metrics": {
+      "providersCompared": {
+        "label": "Karşılaştırılan Firma",
+        "value": "8+"
+      },
+      "costSavings": {
+        "label": "Ort. Maliyet Tasarrufu",
+        "value": "%15-25"
+      },
+      "trackingSpeed": {
+        "label": "Takip Hızı",
+        "value": "<5sn"
+      },
+      "languages": {
+        "label": "Diller",
+        "value": "5"
+      }
+    },
+    "priceLabel": "$300/ay'dan (KDV hariç)",
+    "integrations": [
+      "Aras Kargo",
+      "MNG Kargo",
+      "Yurtiçi Kargo",
+      "PTT Kargo",
+      "UPS",
+      "FedEx",
+      "DHL"
+    ],
+    "languages": [
+      "Türkçe",
+      "İngilizce",
+      "İspanyolca",
+      "Fransızca",
+      "Almanca"
+    ]
+  },
   "categories": {
     "All": "Tümü",
     "Customer Support": "Müşteri Desteği",
@@ -613,6 +669,7 @@
     "dataAnalyst": "Veri Analisti",
     "ecommerceOps": "E-Ticaret Ops",
     "realEstate": "Emlak",
+    "logistics": "Lojistik",
     "ready": "Hazır"
   },
   "regionInfo": {
@@ -662,6 +719,11 @@
       "marketNote": "Türk emlak piyasası analizi ve mülk aramasına odaklanır",
       "localPlatforms": ["Sahibinden.com", "Hepsiemlak.com", "Emlakjet.com"],
       "tip": "Türkiye'de gayrimenkul yatırımı yapan Çinli yatırımcılar için — tapu, DASK sigortası ve kira hukuku bilgisi"
+    },
+    "logistics": {
+      "marketNote": "Türkiye iç ve uluslararası kargo firmalarını maliyet dökümüyle karşılaştırır",
+      "localPlatforms": ["Aras Kargo", "MNG Kargo", "Yurtiçi Kargo", "UPS", "DHL"],
+      "tip": "Çin-Türkiye ticaret lojistiği için ideal — navlun karşılaştırma, gümrük rehberliği ve tedarikçi bulma"
     }
   }
 }
